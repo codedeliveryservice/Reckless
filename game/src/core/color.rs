@@ -6,4 +6,11 @@ pub enum Color {
 
 impl Color {
     pub const NUM: usize = 2;
+
+    pub fn opposite(self) -> Color {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
 }
