@@ -4,14 +4,14 @@ use super::Board;
 
 #[derive(Debug)]
 pub enum ParseFenError {
-    InvalidSpecification,
-    InvalidTurnColor,
-    InvalidPiece,
+    InvalidNumberOfSections { length: usize },
+    UnexpectedTurnColor { color: String },
+    UnexpectedPiece { piece: char },
 }
 
 /// Implements interaction with the Forsyth–Edwards notation which is a standard way for describing
 /// a particular board position of a chess game.
-/// 
+///
 /// See [Wikipedia article](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for more information.
 pub struct Fen;
 
@@ -38,7 +38,9 @@ impl InnerFen {
         let parts: Vec<&str> = fen.split_whitespace().collect();
 
         if parts.len() != 6 {
-            return Err(ParseFenError::InvalidSpecification);
+            return Err(ParseFenError::InvalidNumberOfSections {
+                length: parts.len(),
+            });
         }
 
         self.set_pieces(parts[0])?;
@@ -51,7 +53,7 @@ impl InnerFen {
         let mut rank = 7;
         let mut file = 0;
 
-        Ok(for c in text.chars() {
+        for c in text.chars() {
             if c == Self::SEPARATOR {
                 rank -= 1;
                 file = 0;
@@ -66,19 +68,21 @@ impl InnerFen {
 
                 file += 1;
             }
-        })
+        }
+
+        Ok(())
     }
 
     fn parse_piece(&self, c: char) -> Result<Piece, ParseFenError> {
-        Ok(match c {
+        match c {
             'P' | 'p' => Ok(Piece::Pawn),
             'N' | 'n' => Ok(Piece::Knight),
             'B' | 'b' => Ok(Piece::Bishop),
             'R' | 'r' => Ok(Piece::Rook),
             'Q' | 'q' => Ok(Piece::Queen),
             'K' | 'k' => Ok(Piece::King),
-            _ => Err(ParseFenError::InvalidPiece),
-        }?)
+            _ => Err(ParseFenError::UnexpectedPiece { piece: c }),
+        }
     }
 
     fn parse_color(&self, c: char) -> Color {
@@ -89,10 +93,14 @@ impl InnerFen {
     }
 
     fn set_turn(&mut self, text: &str) -> Result<(), ParseFenError> {
-        Ok(self.board.state.turn = match text {
+        self.board.state.turn = match text {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
-            _ => Err(ParseFenError::InvalidTurnColor),
-        }?)
+            _ => Err(ParseFenError::UnexpectedTurnColor {
+                color: text.to_string(),
+            }),
+        }?;
+
+        Ok(())
     }
 }

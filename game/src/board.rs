@@ -43,6 +43,7 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
+    #[inline(always)]
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].set(square);
         self.colors[color as usize].set(square);

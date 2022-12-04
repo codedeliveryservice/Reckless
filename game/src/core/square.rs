@@ -4,6 +4,7 @@ use super::bitboard::Bitboard;
 ///
 /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct Square(pub u8);
 
 impl Square {
