@@ -22,6 +22,26 @@ impl Board {
         Fen::parse(fen)
     }
 
+    #[inline(always)]
+    pub fn us(&self) -> Bitboard {
+        self.colors[self.state.turn as usize]
+    }
+
+    #[inline(always)]
+    pub fn them(&self) -> Bitboard {
+        self.colors[self.state.turn.opposite() as usize]
+    }
+
+    #[inline(always)]
+    pub fn our(&self, piece: Piece) -> Bitboard {
+        self.pieces[piece as usize] & self.us()
+    }
+
+    #[inline(always)]
+    pub fn their(&self, piece: Piece) -> Bitboard {
+        self.pieces[piece as usize] & self.them()
+    }
+
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].set(square);
