@@ -1,4 +1,4 @@
-use super::square::Square;
+use super::{macros::impl_ops, square::Square};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.
@@ -20,6 +20,8 @@ impl Bitboard {
         self.0 |= 1 << square.0;
     }
 }
+
+impl_ops!(Bitboard);
 
 #[cfg(test)]
 mod tests {
