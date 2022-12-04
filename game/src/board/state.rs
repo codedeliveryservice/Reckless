@@ -1,7 +1,7 @@
 use crate::core::color::Color;
 
 pub struct State {
-    turn: Color,
+    pub turn: Color,
 }
 
 impl Default for State {
