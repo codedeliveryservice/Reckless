@@ -9,6 +9,12 @@ use super::{macros::impl_ops, square::Square};
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    /// Determines whether the `Bitboard` is empty.
+    #[inline(always)]
+    pub fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
     /// Determines whether the `Square` is set on the `Bitboard`.
     #[inline(always)]
     pub fn contains(self, square: Square) -> bool {
@@ -19,6 +25,25 @@ impl Bitboard {
     #[inline(always)]
     pub fn set(&mut self, square: Square) {
         self.0 |= 1 << square.0;
+    }
+
+    // Clears the `Square` on the `Bitboard`, if any.
+    #[inline(always)]
+    pub fn clear(&mut self, square: Square) {
+        self.0 &= !(1 << square.0);
+    }
+
+    // Returns the least significant bit of the `Bitboard` and clears it, if any.
+    #[inline(always)]
+    pub fn pop(&mut self) -> Option<Square> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let square = Square(self.0.trailing_zeros() as u8);
+        self.clear(square);
+
+        Some(square)
     }
 }
 
@@ -44,5 +69,23 @@ mod tests {
         bb.set(Square(4));
 
         assert_eq!(Bitboard(0b10100), bb);
+    }
+
+    #[test]
+    fn clear() {
+        let mut bb = Bitboard(0b1010100);
+        bb.clear(Square(0));
+        bb.clear(Square(4));
+
+        assert_eq!(Bitboard(0b1000100), bb);
+    }
+
+    #[test]
+    fn pop() {
+        let mut bb = Bitboard(0b10100);
+
+        assert_eq!(bb.pop(), Some(Square(2)));
+        assert_eq!(bb.pop(), Some(Square(4)));
+        assert_eq!(bb.pop(), None);
     }
 }
