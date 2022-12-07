@@ -1,7 +1,8 @@
-use crate::core::{bitboard::Bitboard, color::Color, piece::Piece, square::Square};
+use crate::core::{bitboard::Bitboard, color::Color, moves::Move, piece::Piece, square::Square};
 
 use self::{
     fen::{Fen, ParseFenError},
+    generator::Generator,
     state::State,
 };
 
@@ -20,6 +21,10 @@ pub struct Board {
 impl Board {
     pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
         Fen::parse(fen)
+    }
+
+    pub fn generate_moves(&self) -> Vec<Move> {
+        Generator::generate_moves(self)
     }
 
     #[inline(always)]
