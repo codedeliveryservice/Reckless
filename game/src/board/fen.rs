@@ -93,7 +93,7 @@ impl InnerFen {
     }
 
     fn set_turn(&mut self, text: &str) -> Result<(), ParseFenError> {
-        self.board.state.turn = match text {
+        self.board.turn = match text {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
             _ => Err(ParseFenError::UnexpectedTurnColor {

@@ -1,11 +1,6 @@
-use crate::core::color::Color;
-
-pub struct State {
-    pub turn: Color,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self { turn: Color::White }
-    }
-}
+/// Contains irreversible aspects of a chess position that cannot be restored by unmaking
+/// a move from a previous position, such as an en passant target, castling rights, etc.
+///
+/// NOTE: At the moment, it's a dummy structure designed to potentially store such information.
+#[derive(Default, Clone)]
+pub struct State {}
