@@ -58,11 +58,37 @@ impl Board {
         self.pieces[piece as usize] & self.them()
     }
 
+    /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
+    #[inline(always)]
+    pub fn get_piece(&self, square: Square) -> Option<Piece> {
+        for index in 0..Piece::NUM {
+            if self.pieces[index].contains(square) {
+                return unsafe { core::mem::transmute(index as u8) };
+            }
+        }
+
+        None
+    }
+
     /// Places a piece of the specified type and color on the square.
     #[inline(always)]
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].set(square);
         self.colors[color as usize].set(square);
+    }
+
+    /// Removes a piece of the specified type and color from the square.
+    #[inline(always)]
+    pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
+        self.pieces[piece as usize].clear(square);
+        self.colors[color as usize].clear(square);
+    }
+
+    /// Moves a piece of the specified type and color from the starting square to the target square.
+    #[inline(always)]
+    pub fn move_piece(&mut self, piece: Piece, color: Color, start: Square, target: Square) {
+        self.add_piece(piece, color, target);
+        self.remove_piece(piece, color, start);
     }
 }
 
