@@ -7,6 +7,7 @@ pub enum Color {
 impl Color {
     pub const NUM: usize = 2;
 
+    /// Return the opposite color of `self`.
     pub fn opposite(self) -> Color {
         match self {
             Color::White => Color::Black,
