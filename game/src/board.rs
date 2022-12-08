@@ -1,6 +1,7 @@
 use crate::core::{bitboard::Bitboard, color::Color, moves::Move, piece::Piece, square::Square};
 
 use self::{
+    change::Change,
     fen::{Fen, ParseFenError},
     generator::Generator,
     state::State,
