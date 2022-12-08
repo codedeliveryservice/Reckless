@@ -36,13 +36,13 @@ const CAPTURE_FLAG: u16 = 1 << 14;
 impl Move {
     /// Constructs a new quiet move.
     #[inline(always)]
-    pub fn quiet(start: Square, target: Square) -> Self {
+    pub(crate) fn quiet(start: Square, target: Square) -> Self {
         Self(start.0 as u16 | (target.0 as u16) << 6)
     }
 
     /// Constructs a new move with a capture.
     #[inline(always)]
-    pub fn capture(start: Square, target: Square) -> Self {
+    pub(crate) fn capture(start: Square, target: Square) -> Self {
         Self(start.0 as u16 | (target.0 as u16) << 6 | CAPTURE_FLAG)
     }
 
