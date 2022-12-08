@@ -10,6 +10,7 @@ use self::{
 pub mod generator;
 pub mod state;
 
+mod change;
 mod fen;
 
 /// Data structure representing the board and the location of its pieces.
@@ -18,7 +19,10 @@ pub struct Board {
     pub state: State,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
+    stack: Vec<Change>,
 }
+
+pub struct IllegalMove;
 
 impl Board {
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
@@ -33,6 +37,62 @@ impl Board {
     /// Generates all possible pseudo legal moves for the current state of `self`.
     pub fn generate_moves(&self) -> Vec<Move> {
         Generator::generate_moves(self)
+    }
+
+    /// Updates the board representation by making the specified `Move`.
+    ///
+    /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Make_Move) for more information.
+    ///
+    /// # Panics
+    /// Panics if the `Move` contains incorrect information for the current `Board`.
+    ///
+    /// # Errors
+    /// This function will return an error if the `Move` is not allowed by the rules of chess.
+    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMove> {
+        let mut change = Change::new(mv, self.state.clone(), None);
+
+        let start = mv.start();
+        let target = mv.target();
+
+        if mv.is_capture() {
+            let capture = self.get_piece(target).unwrap();
+            self.remove_piece(capture, self.turn, target);
+
+            change.capture = Some(capture);
+        }
+
+        let piece = self.get_piece(start).unwrap();
+        self.move_piece(piece, self.turn, start, target);
+
+        self.stack.push(change);
+
+        self.turn.reverse();
+
+        Ok(())
+    }
+
+    /// Restores the board to the previous state after the last move made.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
+    pub fn take_back(&mut self) {
+        let change = self.stack.pop().unwrap();
+
+        self.state = change.state;
+        self.turn.reverse();
+
+        let mv = change.mv;
+
+        let start = mv.start();
+        let target = mv.target();
+
+        let piece = self.get_piece(target).unwrap();
+        self.move_piece(piece, self.turn, target, start);
+
+        if mv.is_capture() {
+            self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
+        }
     }
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
@@ -100,6 +160,7 @@ impl Default for Board {
             state: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),
+            stack: Default::default(),
         }
     }
 }
