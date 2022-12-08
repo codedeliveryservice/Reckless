@@ -13,4 +13,9 @@ impl Color {
             Color::Black => Color::White,
         }
     }
+
+    /// Changes the color of `self` to the opposite.
+    pub fn reverse(&mut self) {
+        *self = self.opposite();
+    }
 }
