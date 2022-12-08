@@ -8,6 +8,19 @@ use super::bitboard::Bitboard;
 pub struct Square(pub u8);
 
 impl Square {
+    /// Contains little-endian rank-file square mappings.
+    #[rustfmt::skip]
+    const NOTATION: [&str; 64] = [
+        "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+        "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+        "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+        "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+        "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+        "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+        "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+        "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+    ];
+
     /// Returns a `Square` from file and rank coordinates.
     ///
     /// # Panics
@@ -25,6 +38,42 @@ impl Square {
     #[inline(always)]
     pub fn to_bb(self) -> Bitboard {
         Bitboard(1 << self.0)
+    }
+}
+
+impl TryFrom<&str> for Square {
+    type Error = ();
+
+    /// Performs the conversion using the algebraic notation.
+    ///
+    /// The first character is defined to be only `a-h` / `A-H`.
+    /// The second character is defined to be only `1-8`.
+
+    /// # Examples
+    ///
+    /// ```
+    /// use game::core::square::Square;
+    ///
+    /// assert_eq!(Square::try_from("a1"), Ok(Square(0)));
+    /// assert_eq!(Square::try_from("C8"), Ok(Square(58)));
+    /// assert_eq!(Square::try_from("k6"), Err(()));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the given notation is invalid.
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::NOTATION
+            .iter()
+            .position(|&v| v == value.to_lowercase())
+            .map(|i| Square(i as u8))
+            .ok_or(())
+    }
+}
+
+impl std::fmt::Display for Square {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", Self::NOTATION[self.0 as usize])
     }
 }
 
@@ -50,5 +99,12 @@ mod tests {
         assert_eq!(Square(0).to_bb(), Bitboard(0b1));
         assert_eq!(Square(2).to_bb(), Bitboard(0b100));
         assert_eq!(Square(5).to_bb(), Bitboard(0b100000));
+    }
+
+    #[test]
+    fn try_from_str() {
+        assert_eq!(Square::try_from("a1"), Ok(Square(0)));
+        assert_eq!(Square::try_from("C8"), Ok(Square(58)));
+        assert_eq!(Square::try_from("k6"), Err(()));
     }
 }
