@@ -65,6 +65,12 @@ impl Move {
     }
 }
 
+impl std::fmt::Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.pad(&format!("{}{}", self.start(), self.target()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core::square::Square;
