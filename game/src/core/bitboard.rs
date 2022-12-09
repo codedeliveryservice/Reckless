@@ -15,6 +15,12 @@ impl Bitboard {
         self.0 == 0
     }
 
+    /// Returns `true` if `self` has one or more bits set.
+    #[inline(always)]
+    pub fn is_not_empty(self) -> bool {
+        self.0 != 0
+    }
+
     /// Returns `true` if `self` contains a set bit at the `Square` position.
     #[inline(always)]
     pub fn contains(self, square: Square) -> bool {
