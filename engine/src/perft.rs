@@ -17,7 +17,7 @@ pub fn run(depth: u32, board: &mut Board) -> u64 {
     let now = Instant::now();
 
     let mut nodes = 0;
-    let mut index = 1;
+    let mut index = 0;
 
     for mv in board.generate_moves() {
         let now = Instant::now();
