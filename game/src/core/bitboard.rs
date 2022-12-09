@@ -9,13 +9,13 @@ use super::{macros::impl_ops, square::Square};
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
-    /// Determines whether the `Bitboard` is empty.
+    /// Returns `true` if `self` has zero bits set.
     #[inline(always)]
     pub fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-    /// Determines whether the `Square` is set on the `Bitboard`.
+    /// Returns `true` if `self` contains a set bit at the `Square` position.
     #[inline(always)]
     pub fn contains(self, square: Square) -> bool {
         (self.0 >> square.0) & 1 != 0
