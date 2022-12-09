@@ -20,3 +20,11 @@ impl Color {
         *self = self.opposite();
     }
 }
+
+impl<T> std::ops::Index<Color> for [T] {
+    type Output = T;
+
+    fn index(&self, index: Color) -> &Self::Output {
+        &self[index as usize]
+    }
+}
