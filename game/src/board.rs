@@ -66,6 +66,14 @@ impl Board {
 
         self.stack.push(change);
 
+        // The move is considered illegal if it exposes the king to an attack after it has been made
+        if self.is_in_check() {
+            self.turn.reverse();
+            self.take_back();
+
+            return Err(IllegalMove);
+        }
+
         self.turn.reverse();
 
         Ok(())
@@ -150,6 +158,25 @@ impl Board {
     pub fn move_piece(&mut self, piece: Piece, color: Color, start: Square, target: Square) {
         self.add_piece(piece, color, target);
         self.remove_piece(piece, color, start);
+    }
+
+    /// Returns `true` if the king of the current turn color is in check.
+    pub fn is_in_check(&self) -> bool {
+        let square = match self.our(Piece::King).pop() {
+            Some(king) => king,
+            None => return false,
+        };
+
+        self.is_square_attacked(square, self.turn.opposite())
+    }
+
+    /// Returns `true` if any piece of the attacker color can attack the `Square`.
+    pub fn is_square_attacked(&self, square: Square, attacker: Color) -> bool {
+        use crate::lookup::*;
+
+        let attackers = self.colors[attacker];
+
+        (king_attacks(square) & self.pieces[Piece::King] & attackers).is_not_empty()
     }
 }
 
