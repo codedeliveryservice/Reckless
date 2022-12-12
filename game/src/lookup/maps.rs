@@ -1,8 +1,6 @@
-//! Contains constant arrays of move maps.
+use crate::attacks;
 
-use super::attacks;
-
-pub const KING_MAP: [u64; 64] = {
+pub fn king_map() -> [u64; 64] {
     let mut map = [0; 64];
 
     let mut square = 0;
@@ -12,4 +10,4 @@ pub const KING_MAP: [u64; 64] = {
     }
 
     map
-};
+}
