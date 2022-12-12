@@ -15,6 +15,7 @@ impl Piece {
 impl<T> std::ops::Index<Piece> for [T] {
     type Output = T;
 
+    #[inline(always)]
     fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }

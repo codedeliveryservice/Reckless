@@ -24,6 +24,7 @@ impl Color {
 impl<T> std::ops::Index<Color> for [T] {
     type Output = T;
 
+    #[inline(always)]
     fn index(&self, index: Color) -> &Self::Output {
         &self[index as usize]
     }
