@@ -13,6 +13,7 @@ impl Generator {
 
 struct InnerGenerator<'a> {
     board: &'a Board,
+    all: Bitboard,
     us: Bitboard,
     them: Bitboard,
     list: Vec<Move>,
@@ -24,6 +25,7 @@ impl<'a> InnerGenerator<'a> {
             board,
             us: board.us(),
             them: board.them(),
+            all: board.us() | board.them(),
             list: Vec::with_capacity(32),
         }
     }
@@ -31,7 +33,12 @@ impl<'a> InnerGenerator<'a> {
     fn generate(mut self) -> Vec<Move> {
         use crate::lookup::*;
 
+        let occupancies = self.all;
+
         self.collect_for(Piece::King, king_attacks);
+        self.collect_for(Piece::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for(Piece::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for(Piece::Queen, |square| queen_attacks(square, occupancies));
 
         self.list
     }

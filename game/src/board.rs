@@ -175,8 +175,14 @@ impl Board {
         use crate::lookup::*;
 
         let attackers = self.colors[attacker];
+        let occupancies = self.them() | self.us();
+
+        let bishop_queen = self.pieces[Piece::Bishop] | self.pieces[Piece::Queen];
+        let rook_queen = self.pieces[Piece::Rook] | self.pieces[Piece::Queen];
 
         (king_attacks(square) & self.pieces[Piece::King] & attackers).is_not_empty()
+            | (bishop_attacks(square, occupancies) & bishop_queen & attackers).is_not_empty()
+            | (rook_attacks(square, occupancies) & rook_queen & attackers).is_not_empty()
     }
 }
 
