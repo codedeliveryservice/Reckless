@@ -8,7 +8,7 @@ macro_rules! write_map {
     ($f:ident, $name:tt, $type:tt, $items:expr) => {
         let size = $items.len();
 
-        writeln!($f, "pub const {}: [{}; {}] = [", $name, $type, size).unwrap();
+        writeln!($f, "pub static {}: [{}; {}] = [", $name, $type, size).unwrap();
         for item in $items {
             write!($f, "{},", item).unwrap();
         }
