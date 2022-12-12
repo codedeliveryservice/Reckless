@@ -17,3 +17,30 @@ pub fn king_attacks(square: u8) -> u64 {
         | (bitboard & !H_FILE) << 1
         | (bitboard & !H_FILE) << 9
 }
+
+pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
+    directions.iter().fold(0, |output, &direction| {
+        output | generate_sliding_attacks(square, occupancies, direction)
+    })
+}
+
+fn generate_sliding_attacks(square: u8, occupancies: u64, direction: (i8, i8)) -> u64 {
+    let mut output = 0;
+
+    let mut rank = (square / 8) as i8 + direction.0;
+    let mut file = (square % 8) as i8 + direction.1;
+
+    while (0..8).contains(&file) && (0..8).contains(&rank) {
+        let bitboard = 1 << (rank * 8 + file);
+        output |= bitboard;
+
+        if (bitboard & occupancies) != 0 {
+            break;
+        }
+
+        rank += direction.0;
+        file += direction.1;
+    }
+
+    output
+}
