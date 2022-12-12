@@ -56,7 +56,7 @@ impl Board {
 
         if mv.is_capture() {
             let capture = self.get_piece(target).unwrap();
-            self.remove_piece(capture, self.turn, target);
+            self.remove_piece(capture, self.turn.opposite(), target);
 
             change.capture = Some(capture);
         }
