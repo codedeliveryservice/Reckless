@@ -1,6 +1,6 @@
 use crate::attacks;
 
-pub fn king_map() -> [u64; 64] {
+pub fn generate_king_map() -> [u64; 64] {
     let mut map = [0; 64];
 
     let mut square = 0;

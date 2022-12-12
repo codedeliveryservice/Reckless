@@ -21,5 +21,5 @@ fn main() {
     let path = Path::new(&dir).join("lookup.rs");
     let mut f = File::create(&path).unwrap();
 
-    write_map!(f, "KING_MAP", "u64", maps::king_map());
+    write_map!(f, "KING_MAP", "u64", maps::generate_king_map());
 }
