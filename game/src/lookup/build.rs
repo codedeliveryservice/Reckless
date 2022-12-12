@@ -1,6 +1,7 @@
 use std::{env, fs::File, io::Write, path::Path};
 
 mod attacks;
+mod magics;
 mod maps;
 
 macro_rules! write_map {
