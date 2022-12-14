@@ -1,4 +1,4 @@
-use crate::{attacks, magics::*};
+use crate::{attacks::*, magics::*};
 
 pub fn generate_king_map() -> [u64; 64] {
     let mut map = [0; 64];
@@ -37,7 +37,7 @@ fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[(i8, i
         let mut occupancies = 0u64;
         for _ in 0..get_permutation_count(entry.mask) {
             let hash = magic_index(occupancies, entry) as usize;
-            map[hash] = attacks::sliding_attacks(square, occupancies, directions);
+            map[hash] = sliding_attacks(square, occupancies, directions);
 
             occupancies = occupancies.wrapping_sub(entry.mask) & entry.mask;
         }
