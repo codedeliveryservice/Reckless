@@ -55,11 +55,7 @@ impl<'a> InnerGenerator<'a> {
     fn add_moves(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
             let capture = self.them.contains(target);
-
-            match capture {
-                true => self.list.push(Move::capture(start, target)),
-                false => self.list.push(Move::quiet(start, target)),
-            };
+            self.list.push(Move::new(start, target, capture));
         }
     }
 }

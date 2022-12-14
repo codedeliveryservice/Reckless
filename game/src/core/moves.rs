@@ -34,16 +34,10 @@ const TARGET_MASK: u16 = START_MASK << 6;
 const CAPTURE_FLAG: u16 = 1 << 14;
 
 impl Move {
-    /// Constructs a new quiet move.
+    /// Creates a new `Move`.
     #[inline(always)]
-    pub(crate) fn quiet(start: Square, target: Square) -> Self {
-        Self(start.0 as u16 | (target.0 as u16) << 6)
-    }
-
-    /// Constructs a new move with a capture.
-    #[inline(always)]
-    pub(crate) fn capture(start: Square, target: Square) -> Self {
-        Self(start.0 as u16 | (target.0 as u16) << 6 | CAPTURE_FLAG)
+    pub(crate) fn new(start: Square, target: Square, capture: bool) -> Self {
+        Self(start.0 as u16 | (target.0 as u16) << 6 | (capture as u16) << 14)
     }
 
     /// Returns the start square.
@@ -82,7 +76,7 @@ mod tests {
 
     #[test]
     fn quiet() {
-        let m = Move::quiet(START, TARGET);
+        let m = Move::new(START, TARGET, false);
 
         assert_eq!(m.start(), START);
         assert_eq!(m.target(), TARGET);
@@ -91,7 +85,7 @@ mod tests {
 
     #[test]
     fn capture() {
-        let m = Move::capture(START, TARGET);
+        let m = Move::new(START, TARGET, true);
 
         assert_eq!(m.start(), START);
         assert_eq!(m.target(), TARGET);
