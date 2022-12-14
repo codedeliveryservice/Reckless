@@ -1,12 +1,17 @@
 use crate::{attacks::*, magics::*};
 
 pub fn generate_king_map() -> [u64; 64] {
-    let mut map = [0; 64];
+    generate_map(king_attacks)
+}
 
-    let mut square = 0;
-    while square < 64 {
-        map[square as usize] = attacks::king_attacks(square as u8);
-        square += 1;
+pub fn generate_knight_map() -> [u64; 64] {
+    generate_map(knight_attacks)
+}
+
+fn generate_map<T: Fn(u8) -> u64>(gen: T) -> [u64; 64] {
+    let mut map = [0; 64];
+    for square in 0..64 {
+        map[square as usize] = gen(square as u8);
     }
 
     map

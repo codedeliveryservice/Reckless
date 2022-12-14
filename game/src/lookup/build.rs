@@ -22,6 +22,7 @@ fn main() {
     let mut f = File::create(&path).unwrap();
 
     write_map!(f, "KING_MAP", "u64", maps::generate_king_map());
+    write_map!(f, "KNIGHT_MAP", "u64", maps::generate_knight_map());
 
     write_map!(f, "ROOK_MAP", "u64", maps::generate_rook_map());
     write_map!(f, "BISHOP_MAP", "u64", maps::generate_bishop_map());

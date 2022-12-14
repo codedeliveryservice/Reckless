@@ -4,7 +4,12 @@
 //! so no mask is required.
 
 const A_FILE: u64 = 0x101010101010101;
+const B_FILE: u64 = A_FILE << 1;
 const H_FILE: u64 = A_FILE << 7;
+const G_FILE: u64 = A_FILE << 6;
+
+const AB_FILE: u64 = A_FILE | B_FILE;
+const GH_FILE: u64 = G_FILE | H_FILE;
 
 pub fn king_attacks(square: u8) -> u64 {
     let bitboard = 1 << square;
@@ -16,6 +21,19 @@ pub fn king_attacks(square: u8) -> u64 {
         | (bitboard & !H_FILE) >> 7
         | (bitboard & !H_FILE) << 1
         | (bitboard & !H_FILE) << 9
+}
+
+pub fn knight_attacks(square: u8) -> u64 {
+    let bitboard = 1 << square;
+
+    (bitboard & !A_FILE) >> 17
+        | (bitboard & !A_FILE) << 15
+        | (bitboard & !H_FILE) >> 15
+        | (bitboard & !H_FILE) << 17
+        | (bitboard & !AB_FILE) >> 10
+        | (bitboard & !AB_FILE) << 6
+        | (bitboard & !GH_FILE) >> 6
+        | (bitboard & !GH_FILE) << 10
 }
 
 pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {

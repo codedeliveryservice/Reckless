@@ -8,6 +8,11 @@ pub fn king_attacks(square: Square) -> Bitboard {
 }
 
 #[inline(always)]
+pub fn knight_attacks(square: Square) -> Bitboard {
+    Bitboard(KNIGHT_MAP[square.0 as usize])
+}
+
+#[inline(always)]
 pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
     let entry = &ROOK_MAGICS[square.0 as usize];
     let index = magic_index(occupancies, entry);
