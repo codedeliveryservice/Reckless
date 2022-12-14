@@ -11,6 +11,20 @@ const G_FILE: u64 = A_FILE << 6;
 const AB_FILE: u64 = A_FILE | B_FILE;
 const GH_FILE: u64 = G_FILE | H_FILE;
 
+pub enum Color {
+    White,
+    Black,
+}
+
+pub fn pawn_attacks(square: u8, color: Color) -> u64 {
+    let bitboard = 1 << square;
+    if matches!(color, Color::White) {
+        (bitboard & !A_FILE) << 7 | (bitboard & !H_FILE) << 9
+    } else {
+        (bitboard & !H_FILE) >> 7 | (bitboard & !A_FILE) >> 9
+    }
+}
+
 pub fn king_attacks(square: u8) -> u64 {
     let bitboard = 1 << square;
 

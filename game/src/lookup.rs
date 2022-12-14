@@ -1,6 +1,14 @@
-use crate::core::{bitboard::Bitboard, square::Square};
+use crate::core::{bitboard::Bitboard, color::Color, square::Square};
 
 include!(concat!(env!("OUT_DIR"), "/lookup.rs"));
+
+#[inline(always)]
+pub fn pawn_attacks(square: Square, color: Color) -> Bitboard {
+    Bitboard(match color {
+        Color::White => WHITE_PAWN_MAP[square.0 as usize],
+        Color::Black => BLACK_PAWN_MAP[square.0 as usize],
+    })
+}
 
 #[inline(always)]
 pub fn king_attacks(square: Square) -> Bitboard {
