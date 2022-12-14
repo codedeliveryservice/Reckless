@@ -36,6 +36,8 @@ impl<'a> InnerGenerator<'a> {
         let occupancies = self.all;
 
         self.collect_for(Piece::King, king_attacks);
+        self.collect_for(Piece::Knight, knight_attacks);
+
         self.collect_for(Piece::Rook, |square| rook_attacks(square, occupancies));
         self.collect_for(Piece::Bishop, |square| bishop_attacks(square, occupancies));
         self.collect_for(Piece::Queen, |square| queen_attacks(square, occupancies));
