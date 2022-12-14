@@ -1,4 +1,7 @@
-use crate::core::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square};
+use crate::{
+    core::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square},
+    lookup::*,
+};
 
 use super::Board;
 
@@ -31,8 +34,6 @@ impl<'a> InnerGenerator<'a> {
     }
 
     fn generate(mut self) -> Vec<Move> {
-        use crate::lookup::*;
-
         let occupancies = self.all;
 
         self.collect_for(Piece::King, king_attacks);
