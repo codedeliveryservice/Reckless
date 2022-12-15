@@ -53,10 +53,23 @@ impl<'a> InnerGenerator<'a> {
         }
     }
 
-    fn add_moves(&mut self, start: Square, mut targets: Bitboard) {
+    #[inline(always)]
+    fn add_moves(&mut self, start: Square, targets: Bitboard) {
+        self.add_captures(start, targets & self.them);
+        self.add_quiets(start, targets & !self.them);
+    }
+
+    #[inline(always)]
+    fn add_captures(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
-            let capture = self.them.contains(target);
-            self.list.push(Move::new(start, target, capture));
+            self.list.push(Move::new(start, target, true));
+        }
+    }
+
+    #[inline(always)]
+    fn add_quiets(&mut self, start: Square, mut targets: Bitboard) {
+        while let Some(target) = targets.pop() {
+            self.list.push(Move::new(start, target, false));
         }
     }
 }
