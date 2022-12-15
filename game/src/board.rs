@@ -132,7 +132,7 @@ impl Board {
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
             if self.pieces[index].contains(square) {
-                return unsafe { core::mem::transmute(index as u8) };
+                return Some(Piece::from(index as u8));
             }
         }
 
