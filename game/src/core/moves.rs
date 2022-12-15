@@ -1,94 +1,51 @@
 use super::square::Square;
 
-/// Represents a chess move containing the starting and target squares, as well as flags for special moves.
-/// The information fits into a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
-///
-/// See [Chess Programming Wiki article](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
+/// Represents a chess move containing the starting and target squares, as well as a kind for special moves.
 #[derive(Clone, Copy)]
-#[repr(transparent)]
-pub struct Move(u16);
+pub struct Move {
+    start: Square,
+    target: Square,
+    kind: MoveKind,
+}
 
-// BITS      INFO
-// 0-5       start square
-// 6-11      target square
-// 12-15     flags
-
-// BIN       FLAG
-// 0000      quiets
-// 0001      double pawn push
-// 0010      king castle
-// 0011      queen castle
-// 0100      captures
-// 0101      e.p. capture
-// 1000      knight promotion
-// 1001      bishop promotion
-// 1010      rook   promotion
-// 1011      queen  promotion
-// 1100      knight promotion capture
-// 1101      bishop promotion capture
-// 1110      rook   promotion capture
-// 1111      queen  promotion capture
-
-const START_MASK: u16 = (1 << 6) - 1;
-const TARGET_MASK: u16 = START_MASK << 6;
-const CAPTURE_FLAG: u16 = 1 << 14;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum MoveKind {
+    Quiet,
+    Capture,
+}
 
 impl Move {
     /// Creates a new `Move`.
     #[inline(always)]
-    pub(crate) fn new(start: Square, target: Square, capture: bool) -> Self {
-        Self(start.0 as u16 | (target.0 as u16) << 6 | (capture as u16) << 14)
+    pub(crate) fn new(start: Square, target: Square, kind: MoveKind) -> Self {
+        Self {
+            start,
+            target,
+            kind,
+        }
     }
 
-    /// Returns the start square.
+    /// Returns the start square of `self`.
     #[inline(always)]
     pub fn start(self) -> Square {
-        Square((self.0 & START_MASK) as u8)
+        self.start
     }
 
-    /// Returns the target square.
+    /// Returns the target square of `self`.
     #[inline(always)]
     pub fn target(self) -> Square {
-        Square(((self.0 & TARGET_MASK) >> 6) as u8)
+        self.target
     }
 
-    /// Returns `true` if `self` is a capture.
+    /// Returns the kind of `self`.
     #[inline(always)]
-    pub fn is_capture(self) -> bool {
-        self.0 & CAPTURE_FLAG != 0
+    pub fn kind(self) -> MoveKind {
+        self.kind
     }
 }
 
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.pad(&format!("{}{}", self.start(), self.target()))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::core::square::Square;
-
-    use super::Move;
-
-    const START: Square = Square(11);
-    const TARGET: Square = Square(47);
-
-    #[test]
-    fn quiet() {
-        let m = Move::new(START, TARGET, false);
-
-        assert_eq!(m.start(), START);
-        assert_eq!(m.target(), TARGET);
-        assert_eq!(m.is_capture(), false);
-    }
-
-    #[test]
-    fn capture() {
-        let m = Move::new(START, TARGET, true);
-
-        assert_eq!(m.start(), START);
-        assert_eq!(m.target(), TARGET);
-        assert_eq!(m.is_capture(), true);
     }
 }

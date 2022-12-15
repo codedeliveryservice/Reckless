@@ -1,5 +1,10 @@
 use crate::{
-    core::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square},
+    core::{
+        bitboard::Bitboard,
+        moves::{Move, MoveKind},
+        piece::Piece,
+        square::Square,
+    },
     lookup::*,
 };
 
@@ -62,14 +67,14 @@ impl<'a> InnerGenerator<'a> {
     #[inline(always)]
     fn add_captures(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
-            self.list.push(Move::new(start, target, true));
+            self.list.push(Move::new(start, target, MoveKind::Capture));
         }
     }
 
     #[inline(always)]
     fn add_quiets(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
-            self.list.push(Move::new(start, target, false));
+            self.list.push(Move::new(start, target, MoveKind::Quiet));
         }
     }
 }

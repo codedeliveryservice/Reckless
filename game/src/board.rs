@@ -1,4 +1,10 @@
-use crate::core::{bitboard::Bitboard, color::Color, moves::Move, piece::Piece, square::Square};
+use crate::core::{
+    bitboard::Bitboard,
+    color::Color,
+    moves::{Move, MoveKind},
+    piece::Piece,
+    square::Square,
+};
 
 use self::{
     change::Change,
@@ -53,8 +59,9 @@ impl Board {
 
         let start = mv.start();
         let target = mv.target();
+        let kind = mv.kind();
 
-        if mv.is_capture() {
+        if kind == MoveKind::Capture {
             let capture = self.get_piece(target).unwrap();
             self.remove_piece(capture, self.turn.opposite(), target);
 
@@ -98,7 +105,7 @@ impl Board {
         let piece = self.get_piece(target).unwrap();
         self.move_piece(piece, self.turn, target, start);
 
-        if mv.is_capture() {
+        if mv.kind() == MoveKind::Capture {
             self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
         }
     }
