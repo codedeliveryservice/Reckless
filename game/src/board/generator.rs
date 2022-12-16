@@ -1,9 +1,6 @@
 use crate::{
     core::{
-        bitboard::Bitboard,
-        moves::{Move, MoveKind},
-        piece::Piece,
-        square::Square,
+        bitboard::Bitboard, move_list::MoveList, moves::MoveKind, piece::Piece, square::Square,
     },
     lookup::*,
 };
@@ -14,7 +11,7 @@ pub struct Generator;
 
 impl Generator {
     /// Generates pseudo legal moves for the current state of the board.
-    pub fn generate_moves(board: &Board) -> Vec<Move> {
+    pub fn generate_moves(board: &Board) -> MoveList {
         InnerGenerator::new(board).generate()
     }
 }
@@ -24,7 +21,7 @@ struct InnerGenerator<'a> {
     all: Bitboard,
     us: Bitboard,
     them: Bitboard,
-    list: Vec<Move>,
+    list: MoveList,
 }
 
 impl<'a> InnerGenerator<'a> {
@@ -34,11 +31,11 @@ impl<'a> InnerGenerator<'a> {
             us: board.us(),
             them: board.them(),
             all: board.us() | board.them(),
-            list: Vec::with_capacity(32),
+            list: MoveList::new(),
         }
     }
 
-    fn generate(mut self) -> Vec<Move> {
+    fn generate(mut self) -> MoveList {
         let occupancies = self.all;
 
         self.collect_for(Piece::King, king_attacks);
@@ -54,27 +51,24 @@ impl<'a> InnerGenerator<'a> {
     fn collect_for<T: Fn(Square) -> Bitboard>(&mut self, piece: Piece, gen: T) {
         let mut bb = self.board.our(piece);
         while let Some(start) = bb.pop() {
-            self.add_moves(start, gen(start) & !self.us);
-        }
-    }
+            let targets = gen(start) & !self.us;
 
-    #[inline(always)]
-    fn add_moves(&mut self, start: Square, targets: Bitboard) {
-        self.add_captures(start, targets & self.them);
-        self.add_quiets(start, targets & !self.them);
+            self.add_captures(start, targets & self.them);
+            self.add_quiets(start, targets & !self.them);
+        }
     }
 
     #[inline(always)]
     fn add_captures(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
-            self.list.push(Move::new(start, target, MoveKind::Capture));
+            self.list.add(start, target, MoveKind::Capture)
         }
     }
 
     #[inline(always)]
     fn add_quiets(&mut self, start: Square, mut targets: Bitboard) {
         while let Some(target) = targets.pop() {
-            self.list.push(Move::new(start, target, MoveKind::Quiet));
+            self.list.add(start, target, MoveKind::Quiet)
         }
     }
 }

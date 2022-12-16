@@ -15,6 +15,16 @@ pub enum MoveKind {
 }
 
 impl Move {
+    /// Creates an empty new `Move` which is invalid in chess.
+    #[inline(always)]
+    pub(crate) const fn null() -> Self {
+        Self {
+            start: Square(0),
+            target: Square(0),
+            kind: MoveKind::Quiet,
+        }
+    }
+
     /// Creates a new `Move`.
     #[inline(always)]
     pub(crate) fn new(start: Square, target: Square, kind: MoveKind) -> Self {

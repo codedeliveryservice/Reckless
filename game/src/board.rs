@@ -3,7 +3,7 @@ use crate::core::{
     color::Color,
     moves::{Move, MoveKind},
     piece::Piece,
-    square::Square,
+    square::Square, move_list::MoveList,
 };
 
 use self::{
@@ -41,7 +41,7 @@ impl Board {
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
-    pub fn generate_moves(&self) -> Vec<Move> {
+    pub fn generate_moves(&self) -> MoveList {
         Generator::generate_moves(self)
     }
 
