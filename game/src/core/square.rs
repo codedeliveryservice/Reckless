@@ -1,4 +1,4 @@
-use super::bitboard::Bitboard;
+use super::Bitboard;
 
 /// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
 ///

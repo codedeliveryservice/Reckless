@@ -1,4 +1,4 @@
-use super::square::Square;
+use super::Square;
 
 /// Represents a chess move containing the starting and target squares, as well as a kind for special moves.
 #[derive(Clone, Copy)]

@@ -1,13 +1,11 @@
 use crate::{
-    core::{
-        bitboard::Bitboard, move_list::MoveList, moves::MoveKind, piece::Piece, square::Square,
-    },
+    core::{Bitboard, MoveKind, MoveList, Piece, Square},
     lookup::*,
 };
 
 use super::Board;
 
-pub struct Generator;
+pub(crate) struct Generator;
 
 impl Generator {
     /// Generates pseudo legal moves for the current state of the board.

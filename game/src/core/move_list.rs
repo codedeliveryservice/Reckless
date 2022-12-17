@@ -1,7 +1,4 @@
-use super::{
-    moves::{Move, MoveKind},
-    square::Square,
-};
+use super::{Move, MoveKind, Square};
 
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
 /// on collecting and processing `Move` objects.

@@ -1,4 +1,4 @@
-use crate::core::{color::Color, piece::Piece, square::Square};
+use crate::core::{Color, Piece, Square};
 
 use super::Board;
 

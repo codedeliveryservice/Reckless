@@ -1,4 +1,4 @@
-use crate::core::{bitboard::Bitboard, color::Color, square::Square};
+use crate::core::{Bitboard, Color, Square};
 
 include!(concat!(env!("OUT_DIR"), "/lookup.rs"));
 

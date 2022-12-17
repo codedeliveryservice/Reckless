@@ -1,4 +1,4 @@
-use super::{macros::impl_ops, square::Square};
+use super::{macros::impl_ops, Square};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.

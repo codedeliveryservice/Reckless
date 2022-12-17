@@ -1,23 +1,12 @@
-use crate::core::{
-    bitboard::Bitboard,
-    color::Color,
-    moves::{Move, MoveKind},
-    piece::Piece,
-    square::Square, move_list::MoveList,
-};
+use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square};
 
-use self::{
-    change::Change,
-    fen::{Fen, ParseFenError},
-    generator::Generator,
-    state::State,
-};
+use self::{change::Change, fen::ParseFenError, state::State};
 
-pub mod generator;
 pub mod state;
 
 mod change;
 mod fen;
+mod generator;
 
 /// Data structure representing the board and the location of its pieces.
 pub struct Board {
@@ -37,12 +26,12 @@ impl Board {
     ///
     /// This function will return an error if the given notation is invalid.
     pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
-        Fen::parse(fen)
+        fen::Fen::parse(fen)
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
     pub fn generate_moves(&self) -> MoveList {
-        Generator::generate_moves(self)
+        generator::Generator::generate_moves(self)
     }
 
     /// Updates the board representation by making the specified `Move`.

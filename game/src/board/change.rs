@@ -1,4 +1,4 @@
-use crate::core::{moves::Move, piece::Piece};
+use crate::core::{Move, Piece};
 
 use super::state::State;
 
