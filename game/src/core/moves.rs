@@ -12,6 +12,7 @@ pub struct Move {
 pub enum MoveKind {
     Quiet,
     Capture,
+    EnPassant,
     DoublePush,
 
     PromotionN,

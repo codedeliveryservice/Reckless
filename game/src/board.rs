@@ -1,4 +1,4 @@
-use crate::core::{Bitboard, Color, Move, MoveList, Piece, Square};
+use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square};
 
 use self::{change::Change, fen::ParseFenError, state::State};
 
@@ -56,6 +56,14 @@ impl Board {
             change.capture = Some(capture);
         }
 
+        if mv.kind() == MoveKind::EnPassant {
+            self.remove_piece(
+                Piece::Pawn,
+                self.turn.opposite(),
+                target.shift(-self.turn.offset()),
+            );
+        }
+
         self.stack.push(change);
 
         if mv.is_promotion() {
@@ -65,6 +73,12 @@ impl Board {
         } else {
             let piece = self.get_piece(start).unwrap();
             self.move_piece(piece, self.turn, start, target);
+        }
+
+        if mv.kind() == MoveKind::DoublePush {
+            self.state.en_passant = Some(Square((start.0 + target.0) / 2));
+        } else {
+            self.state.en_passant = None;
         }
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
@@ -106,6 +120,14 @@ impl Board {
 
         if mv.is_capture() {
             self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
+        }
+
+        if mv.kind() == MoveKind::EnPassant {
+            self.add_piece(
+                Piece::Pawn,
+                self.turn.opposite(),
+                target.shift(-self.turn.offset()),
+            );
         }
     }
 

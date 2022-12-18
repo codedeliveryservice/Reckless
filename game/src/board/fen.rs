@@ -4,6 +4,7 @@ use super::Board;
 
 #[derive(Debug)]
 pub enum ParseFenError {
+    InvalidEnPassant { text: String },
     InvalidNumberOfSections { length: usize },
     UnexpectedTurnColor { color: String },
     UnexpectedPiece { piece: char },
@@ -45,6 +46,7 @@ impl InnerFen {
 
         self.set_pieces(parts[0])?;
         self.set_turn(parts[1])?;
+        self.set_en_passant(parts[3])?;
 
         Ok(self.board)
     }
@@ -100,6 +102,19 @@ impl InnerFen {
                 color: text.to_string(),
             }),
         }?;
+
+        Ok(())
+    }
+
+    fn set_en_passant(&mut self, text: &str) -> Result<(), ParseFenError> {
+        self.board.state.en_passant = match text {
+            "-" => None,
+            _ => Some(
+                Square::try_from(text).map_err(|_| ParseFenError::InvalidEnPassant {
+                    text: text.to_string(),
+                })?,
+            ),
+        };
 
         Ok(())
     }

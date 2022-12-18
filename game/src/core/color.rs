@@ -7,6 +7,17 @@ pub enum Color {
 impl Color {
     pub const NUM: usize = 2;
 
+    /// Returns the difference between two adjacent ranks based on the current color.
+    ///
+    /// The result can only be `8` or `-8`.
+    #[inline(always)]
+    pub const fn offset(self) -> i8 {
+        match self {
+            Color::White => 8,
+            Color::Black => -8,
+        }
+    }
+
     /// Return the opposite color of `self`.
     pub fn opposite(self) -> Color {
         match self {
