@@ -1,4 +1,7 @@
-use super::{macros::impl_ops, Square};
+use super::{
+    macros::{impl_bit_op, impl_not_op},
+    Square,
+};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.
@@ -57,7 +60,9 @@ impl Bitboard {
     }
 }
 
-impl_ops!(Bitboard);
+impl_bit_op!(Bitboard, BitAnd, bitand);
+impl_bit_op!(Bitboard, BitOr, bitor);
+impl_not_op!(Bitboard);
 
 #[cfg(test)]
 mod tests {
