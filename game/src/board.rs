@@ -1,4 +1,4 @@
-use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square};
+use crate::core::{Bitboard, Color, Move, MoveList, Piece, Square};
 
 use self::{change::Change, fen::ParseFenError, state::State};
 
@@ -48,19 +48,24 @@ impl Board {
 
         let start = mv.start();
         let target = mv.target();
-        let kind = mv.kind();
 
-        if kind == MoveKind::Capture {
+        if mv.is_capture() {
             let capture = self.get_piece(target).unwrap();
             self.remove_piece(capture, self.turn.opposite(), target);
 
             change.capture = Some(capture);
         }
 
-        let piece = self.get_piece(start).unwrap();
-        self.move_piece(piece, self.turn, start, target);
-
         self.stack.push(change);
+
+        if mv.is_promotion() {
+            let piece = self.get_piece(start).unwrap();
+            self.remove_piece(piece, self.turn, start);
+            self.add_piece(mv.get_promotion_piece(), self.turn, target);
+        } else {
+            let piece = self.get_piece(start).unwrap();
+            self.move_piece(piece, self.turn, start, target);
+        }
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
         if self.is_in_check() {
@@ -91,10 +96,15 @@ impl Board {
         let start = mv.start();
         let target = mv.target();
 
-        let piece = self.get_piece(target).unwrap();
-        self.move_piece(piece, self.turn, target, start);
+        if mv.is_promotion() {
+            self.remove_piece(mv.get_promotion_piece(), self.turn, target);
+            self.add_piece(Piece::Pawn, self.turn, start);
+        } else {
+            let piece = self.get_piece(target).unwrap();
+            self.move_piece(piece, self.turn, target, start);
+        }
 
-        if mv.kind() == MoveKind::Capture {
+        if mv.is_capture() {
             self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
         }
     }
@@ -180,6 +190,8 @@ impl Board {
             | (knight_attacks(square) & self.pieces[Piece::Knight] & attackers).is_not_empty()
             | (bishop_attacks(square, occupancies) & bishop_queen & attackers).is_not_empty()
             | (rook_attacks(square, occupancies) & rook_queen & attackers).is_not_empty()
+            | (pawn_attacks(square, attacker.opposite()) & self.pieces[Piece::Pawn] & attackers)
+                .is_not_empty()
     }
 }
 

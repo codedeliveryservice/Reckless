@@ -9,6 +9,10 @@ use super::{macros::impl_ops, Square};
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    pub const RANK_1: Bitboard = Bitboard(0b1111_1111);
+    pub const RANK_2: Bitboard = Bitboard(Self::RANK_1.0 << 8);
+    pub const RANK_7: Bitboard = Bitboard(Self::RANK_1.0 << (8 * 6));
+
     /// Returns `true` if `self` has zero bits set.
     #[inline(always)]
     pub fn is_empty(self) -> bool {
