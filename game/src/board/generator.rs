@@ -16,6 +16,8 @@ impl Generator {
 
 struct InnerGenerator<'a> {
     board: &'a Board,
+    turn: Color,
+    turn_opposite: Color,
     all: Bitboard,
     us: Bitboard,
     them: Bitboard,
@@ -26,6 +28,8 @@ impl<'a> InnerGenerator<'a> {
     fn new(board: &'a Board) -> Self {
         Self {
             board,
+            turn: board.turn,
+            turn_opposite: board.turn.opposite(),
             us: board.us(),
             them: board.them(),
             all: board.us() | board.them(),
@@ -61,7 +65,7 @@ impl<'a> InnerGenerator<'a> {
     fn collect_pawn_moves(&mut self) {
         let bb = self.board.our(Piece::Pawn);
 
-        let (starting_rank, promotion_rank) = match self.board.turn {
+        let (starting_rank, promotion_rank) = match self.turn {
             Color::White => (Bitboard::RANK_2, Bitboard::RANK_7),
             Color::Black => (Bitboard::RANK_7, Bitboard::RANK_2),
         };
@@ -74,10 +78,10 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_regular_pawn_moves(&mut self, mut bb: Bitboard) {
-        let offset = self.board.turn.offset();
+        let offset = self.turn.offset();
         while let Some(start) = bb.pop() {
             // Captures
-            let targets = pawn_attacks(start, self.board.turn) & self.them;
+            let targets = pawn_attacks(start, self.turn) & self.them;
             self.add_captures(start, targets);
 
             // One square pawn push
@@ -90,10 +94,10 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_promotions(&mut self, mut bb: Bitboard) {
-        let offset = self.board.turn.offset();
+        let offset = self.turn.offset();
         while let Some(start) = bb.pop() {
             // Promotion with a capture
-            let mut targets = pawn_attacks(start, self.board.turn) & self.them;
+            let mut targets = pawn_attacks(start, self.turn) & self.them;
             while let Some(target) = targets.pop() {
                 self.add_promotion_captures(start, target);
             }
@@ -108,7 +112,7 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_double_pushes(&mut self, mut bb: Bitboard) {
-        let offset = self.board.turn.offset();
+        let offset = self.turn.offset();
         while let Some(start) = bb.pop() {
             let one_up = start.shift(offset);
             let two_up = one_up.shift(offset);
@@ -123,7 +127,7 @@ impl<'a> InnerGenerator<'a> {
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         let Some(en_passant) = self.board.state.en_passant else { return };
         
-        let mut starts = pawn_attacks(en_passant, self.board.turn.opposite()) & bb;
+        let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
         while let Some(start) = starts.pop() {
             self.list.add(start, en_passant, MoveKind::EnPassant);
         }
