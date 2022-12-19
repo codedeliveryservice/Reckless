@@ -49,19 +49,17 @@ impl Board {
         let start = mv.start();
         let target = mv.target();
 
-        if mv.is_capture() {
-            let capture = self.get_piece(target).unwrap();
-            self.remove_piece(capture, self.turn.opposite(), target);
-
-            change.capture = Some(capture);
-        }
-
         if mv.kind() == MoveKind::EnPassant {
             self.remove_piece(
                 Piece::Pawn,
                 self.turn.opposite(),
                 target.shift(-self.turn.offset()),
             );
+        } else if mv.is_capture() {
+            let capture = self.get_piece(target).unwrap();
+            self.remove_piece(capture, self.turn.opposite(), target);
+
+            change.capture = Some(capture);
         }
 
         self.stack.push(change);
@@ -81,13 +79,15 @@ impl Board {
             self.state.en_passant = None;
         }
 
-        if mv.kind() == MoveKind::Castling {
-            match target {
-                Square::G1 => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
-                Square::C1 => self.move_piece(Piece::Rook, Color::White, Square::A1, Square::D1),
-                Square::G8 => self.move_piece(Piece::Rook, Color::Black, Square::H8, Square::F8),
-                Square::C8 => self.move_piece(Piece::Rook, Color::Black, Square::A8, Square::D8),
-                _ => panic!("Unexpected target square '{}' for castling", target),
+        if mv.kind() == MoveKind::KingCastling {
+            match self.turn {
+                Color::White => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
+                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::H8, Square::F8),
+            }
+        } else if mv.kind() == MoveKind::QueenCastling {
+            match self.turn {
+                Color::White => self.move_piece(Piece::Rook, Color::White, Square::A1, Square::D1),
+                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::A8, Square::D8),
             }
         }
 
@@ -130,25 +130,25 @@ impl Board {
             self.move_piece(piece, self.turn, target, start);
         }
 
-        if mv.is_capture() {
-            self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
-        }
-
         if mv.kind() == MoveKind::EnPassant {
             self.add_piece(
                 Piece::Pawn,
                 self.turn.opposite(),
                 target.shift(-self.turn.offset()),
             );
+        } else if mv.is_capture() {
+            self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
         }
 
-        if mv.kind() == MoveKind::Castling {
-            match target {
-                Square::G1 => self.move_piece(Piece::Rook, Color::White, Square::F1, Square::H1),
-                Square::C1 => self.move_piece(Piece::Rook, Color::White, Square::D1, Square::A1),
-                Square::G8 => self.move_piece(Piece::Rook, Color::Black, Square::F8, Square::H8),
-                Square::C8 => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
-                _ => panic!("Unexpected target square '{}' for castling", target),
+        if mv.kind() == MoveKind::KingCastling {
+            match self.turn {
+                Color::White => self.move_piece(Piece::Rook, Color::White, Square::F1, Square::H1),
+                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::F8, Square::H8),
+            }
+        } else if mv.kind() == MoveKind::QueenCastling {
+            match self.turn {
+                Color::White => self.move_piece(Piece::Rook, Color::White, Square::D1, Square::A1),
+                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
             }
         }
     }

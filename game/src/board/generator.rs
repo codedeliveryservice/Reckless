@@ -76,7 +76,7 @@ impl<'a> InnerGenerator<'a> {
             && !self.board.is_square_attacked(e1, self.turn_opposite)
             && !self.board.is_square_attacked(f1, self.turn_opposite)
         {
-            self.list.add(e1, g1, MoveKind::Castling);
+            self.list.add(e1, g1, MoveKind::KingCastling);
         }
 
         if self.board.state.castling.is_queen_side_available(self.turn)
@@ -86,7 +86,7 @@ impl<'a> InnerGenerator<'a> {
             && !self.board.is_square_attacked(e1, self.turn_opposite)
             && !self.board.is_square_attacked(d1, self.turn_opposite)
         {
-            self.list.add(e1, c1, MoveKind::Castling);
+            self.list.add(e1, c1, MoveKind::QueenCastling);
         }
     }
 
