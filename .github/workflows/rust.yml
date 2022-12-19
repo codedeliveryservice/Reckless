@@ -1,0 +1,20 @@
+name: Build and Test
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build
+      run: cargo build --verbose --release
+
+    - name: Run tests
+      run: cargo test --verbose --release
