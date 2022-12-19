@@ -1,4 +1,4 @@
-use crate::core::Square;
+use crate::core::{Castling, Square};
 
 /// Contains irreversible aspects of a chess position that cannot be restored by unmaking
 /// a move from a previous position, such as an en passant target, castling rights, etc.
@@ -7,4 +7,5 @@ use crate::core::Square;
 #[derive(Default, Clone)]
 pub struct State {
     pub en_passant: Option<Square>,
+    pub castling: Castling,
 }

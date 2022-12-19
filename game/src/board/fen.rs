@@ -1,4 +1,4 @@
-use crate::core::{Color, Piece, Square};
+use crate::core::{Castling, Color, Piece, Square};
 
 use super::Board;
 
@@ -8,6 +8,7 @@ pub enum ParseFenError {
     InvalidNumberOfSections { length: usize },
     UnexpectedTurnColor { color: String },
     UnexpectedPiece { piece: char },
+    UnexpectedCastling { char: char },
 }
 
 /// Implements interaction with the Forsyth–Edwards notation which is a standard way for describing
@@ -46,6 +47,7 @@ impl InnerFen {
 
         self.set_pieces(parts[0])?;
         self.set_turn(parts[1])?;
+        self.set_castling(parts[2])?;
         self.set_en_passant(parts[3])?;
 
         Ok(self.board)
@@ -102,6 +104,21 @@ impl InnerFen {
                 color: text.to_string(),
             }),
         }?;
+
+        Ok(())
+    }
+
+    fn set_castling(&mut self, text: &str) -> Result<(), ParseFenError> {
+        for c in text.chars() {
+            self.board.state.castling |= match c {
+                'K' => Castling::WHITE_KING_SIDE,
+                'Q' => Castling::WHITE_QUEEN_SIDE,
+                'k' => Castling::BLACK_KING_SIDE,
+                'q' => Castling::BLACK_QUEEN_SIDE,
+                '-' => Castling::NONE,
+                _ => return Err(ParseFenError::UnexpectedCastling { char: c }),
+            };
+        }
 
         Ok(())
     }

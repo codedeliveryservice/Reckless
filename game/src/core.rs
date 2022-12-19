@@ -1,4 +1,5 @@
 pub mod bitboard;
+pub mod castling;
 pub mod color;
 pub mod move_list;
 pub mod moves;
@@ -8,6 +9,7 @@ pub mod square;
 mod macros;
 
 pub use bitboard::*;
+pub use castling::*;
 pub use color::*;
 pub use move_list::*;
 pub use moves::*;

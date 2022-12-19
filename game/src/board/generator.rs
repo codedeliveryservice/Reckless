@@ -48,6 +48,7 @@ impl<'a> InnerGenerator<'a> {
         self.collect_for(Piece::Queen, |square| queen_attacks(square, occupancies));
 
         self.collect_pawn_moves();
+        self.collect_castling();
 
         self.list
     }
@@ -59,6 +60,33 @@ impl<'a> InnerGenerator<'a> {
 
             self.add_captures(start, targets & self.them);
             self.add_quiets(start, targets & !self.them);
+        }
+    }
+
+    fn collect_castling(&mut self) {
+        #[rustfmt::skip]
+        let (b1, c1, e1, d1, f1, g1) = match self.turn {
+            Color::White => (Square::B1, Square::C1, Square::E1, Square::D1, Square::F1, Square::G1),
+            Color::Black => (Square::B8, Square::C8, Square::E8, Square::D8, Square::F8, Square::G8),
+        };
+
+        if self.board.state.castling.is_king_side_available(self.turn)
+            && !self.all.contains(f1)
+            && !self.all.contains(g1)
+            && !self.board.is_square_attacked(e1, self.turn_opposite)
+            && !self.board.is_square_attacked(f1, self.turn_opposite)
+        {
+            self.list.add(e1, g1, MoveKind::Castling);
+        }
+
+        if self.board.state.castling.is_queen_side_available(self.turn)
+            && !self.all.contains(d1)
+            && !self.all.contains(c1)
+            && !self.all.contains(b1)
+            && !self.board.is_square_attacked(e1, self.turn_opposite)
+            && !self.board.is_square_attacked(d1, self.turn_opposite)
+        {
+            self.list.add(e1, c1, MoveKind::Castling);
         }
     }
 
@@ -126,7 +154,7 @@ impl<'a> InnerGenerator<'a> {
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         let Some(en_passant) = self.board.state.en_passant else { return };
-        
+
         let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
         while let Some(start) = starts.pop() {
             self.list.add(start, en_passant, MoveKind::EnPassant);

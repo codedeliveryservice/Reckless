@@ -14,6 +14,7 @@ pub enum MoveKind {
     Capture,
     EnPassant,
     DoublePush,
+    Castling,
 
     PromotionN,
     PromotionB,

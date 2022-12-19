@@ -81,6 +81,16 @@ impl Board {
             self.state.en_passant = None;
         }
 
+        if mv.kind() == MoveKind::Castling {
+            match target {
+                Square::G1 => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
+                Square::C1 => self.move_piece(Piece::Rook, Color::White, Square::A1, Square::D1),
+                Square::G8 => self.move_piece(Piece::Rook, Color::Black, Square::H8, Square::F8),
+                Square::C8 => self.move_piece(Piece::Rook, Color::Black, Square::A8, Square::D8),
+                _ => panic!("Unexpected target square '{}' for castling", target),
+            }
+        }
+
         // The move is considered illegal if it exposes the king to an attack after it has been made
         if self.is_in_check() {
             self.turn.reverse();
@@ -89,6 +99,8 @@ impl Board {
             return Err(IllegalMove);
         }
 
+        self.state.castling.update_for_square(start);
+        self.state.castling.update_for_square(target);
         self.turn.reverse();
 
         Ok(())
@@ -128,6 +140,16 @@ impl Board {
                 self.turn.opposite(),
                 target.shift(-self.turn.offset()),
             );
+        }
+
+        if mv.kind() == MoveKind::Castling {
+            match target {
+                Square::G1 => self.move_piece(Piece::Rook, Color::White, Square::F1, Square::H1),
+                Square::C1 => self.move_piece(Piece::Rook, Color::White, Square::D1, Square::A1),
+                Square::G8 => self.move_piece(Piece::Rook, Color::Black, Square::F8, Square::H8),
+                Square::C8 => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
+                _ => panic!("Unexpected target square '{}' for castling", target),
+            }
         }
     }
 
