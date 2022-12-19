@@ -16,7 +16,7 @@ impl Square {
     pub const F1: Square = Square(5);
     pub const G1: Square = Square(6);
     pub const H1: Square = Square(7);
-    
+
     pub const A8: Square = Square(56);
     pub const B8: Square = Square(57);
     pub const C8: Square = Square(58);
@@ -25,7 +25,7 @@ impl Square {
     pub const F8: Square = Square(61);
     pub const G8: Square = Square(62);
     pub const H8: Square = Square(63);
-    
+
     /// Contains little-endian rank-file square mappings.
     #[rustfmt::skip]
     const NOTATION: [&str; 64] = [

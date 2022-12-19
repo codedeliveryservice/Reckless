@@ -33,7 +33,7 @@ pub enum MoveKind {
     PromotionCaptureQ = 0b1111,
 }
 
-impl Move {    
+impl Move {
     const START_MASK: u16 = 0b0000_0000_0011_1111;
     const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 

@@ -33,7 +33,7 @@ impl Castling {
     ];
 
     pub const NONE: Castling = Castling(0);
-    
+
     pub const WHITE_KING_SIDE: Castling = Castling(0b0001);
     pub const WHITE_QUEEN_SIDE: Castling = Castling(0b0010);
     pub const BLACK_KING_SIDE: Castling = Castling(0b0100);

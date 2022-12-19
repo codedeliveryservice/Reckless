@@ -18,7 +18,7 @@ pub fn perft(board: &mut Board, depth: u32) -> u32 {
 }
 
 macro_rules! assert_perft {
-        ($($name:ident, $fen:tt, $depth:tt, $expected:tt;)*) => {$(
+        ($($name:ident: ($fen:tt, $depth:tt, $expected:tt),)*) => {$(
             #[test]
             fn $name() {
                 let actual = common::perft(&mut game::board::Board::from_fen($fen).unwrap(), $depth);
