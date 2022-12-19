@@ -49,7 +49,7 @@ fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[(i8, i
 
         let mut occupancies = 0u64;
         for _ in 0..get_permutation_count(entry.mask) {
-            let hash = magic_index(occupancies, entry) as usize;
+            let hash = magic_index(occupancies, entry);
             map[hash] = sliding_attacks(square, occupancies, directions);
 
             occupancies = occupancies.wrapping_sub(entry.mask) & entry.mask;
@@ -63,8 +63,8 @@ fn get_permutation_count(mask: u64) -> u64 {
     1 << mask.count_ones()
 }
 
-fn magic_index(occupancies: u64, entry: &MagicEntry) -> u32 {
+fn magic_index(occupancies: u64, entry: &MagicEntry) -> usize {
     let mut hash = occupancies & entry.mask;
     hash = hash.wrapping_mul(entry.magic) >> entry.shift;
-    hash as u32 + entry.offset
+    hash as usize + entry.offset
 }

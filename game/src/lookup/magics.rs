@@ -1,5 +1,5 @@
 #[rustfmt::skip]
-pub struct MagicEntry { pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }
+pub struct MagicEntry { pub mask: u64, pub magic: u64, pub shift: u32, pub offset: usize }
 
 #[rustfmt::skip]
 pub const ROOK_MAGICS: [MagicEntry; 64] = [
