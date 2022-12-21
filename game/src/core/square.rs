@@ -8,23 +8,23 @@ use super::Bitboard;
 pub struct Square(pub u8);
 
 impl Square {
-    pub const A1: Square = Square(0);
-    pub const B1: Square = Square(1);
-    pub const C1: Square = Square(2);
-    pub const D1: Square = Square(3);
-    pub const E1: Square = Square(4);
-    pub const F1: Square = Square(5);
-    pub const G1: Square = Square(6);
-    pub const H1: Square = Square(7);
+    pub const A1: Self = Self(0);
+    pub const B1: Self = Self(1);
+    pub const C1: Self = Self(2);
+    pub const D1: Self = Self(3);
+    pub const E1: Self = Self(4);
+    pub const F1: Self = Self(5);
+    pub const G1: Self = Self(6);
+    pub const H1: Self = Self(7);
 
-    pub const A8: Square = Square(56);
-    pub const B8: Square = Square(57);
-    pub const C8: Square = Square(58);
-    pub const E8: Square = Square(60);
-    pub const D8: Square = Square(59);
-    pub const F8: Square = Square(61);
-    pub const G8: Square = Square(62);
-    pub const H8: Square = Square(63);
+    pub const A8: Self = Self(56);
+    pub const B8: Self = Self(57);
+    pub const C8: Self = Self(58);
+    pub const E8: Self = Self(60);
+    pub const D8: Self = Self(59);
+    pub const F8: Self = Self(61);
+    pub const G8: Self = Self(62);
+    pub const H8: Self = Self(63);
 
     /// Contains little-endian rank-file square mappings.
     #[rustfmt::skip]
@@ -45,11 +45,11 @@ impl Square {
     ///
     /// Panics if rank or file is not in the range of `0..8`.
     #[inline(always)]
-    pub fn from_axes(rank: u32, file: u32) -> Square {
+    pub fn from_axes(rank: u32, file: u32) -> Self {
         assert!((0..8).contains(&rank));
         assert!((0..8).contains(&file));
 
-        Square(rank as u8 * 8 + file as u8)
+        Self(rank as u8 * 8 + file as u8)
     }
 
     /// Returns the bitboard containing the set bit at the current square value.

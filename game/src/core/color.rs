@@ -19,14 +19,16 @@ impl Color {
     }
 
     /// Return the opposite color of `self`.
-    pub fn opposite(self) -> Color {
+    #[inline(always)]
+    pub const fn opposite(self) -> Self {
         match self {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
+            Self::White => Self::Black,
+            Self::Black => Self::White,
         }
     }
 
     /// Changes the color of `self` to the opposite.
+    #[inline(always)]
     pub fn reverse(&mut self) {
         *self = self.opposite();
     }

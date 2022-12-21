@@ -32,12 +32,12 @@ impl Castling {
         7, 15, 15, 15, 3, 15, 15, 11,
     ];
 
-    pub const NONE: Castling = Castling(0);
+    pub const NONE: Self = Self(0);
 
-    pub const WHITE_KING_SIDE: Castling = Castling(0b0001);
-    pub const WHITE_QUEEN_SIDE: Castling = Castling(0b0010);
-    pub const BLACK_KING_SIDE: Castling = Castling(0b0100);
-    pub const BLACK_QUEEN_SIDE: Castling = Castling(0b1000);
+    pub const WHITE_KING_SIDE: Self = Self(0b0001);
+    pub const WHITE_QUEEN_SIDE: Self = Self(0b0010);
+    pub const BLACK_KING_SIDE: Self = Self(0b0100);
+    pub const BLACK_QUEEN_SIDE: Self = Self(0b1000);
 
     /// Updates castling rights when interacting with the given `square`.
     pub fn update_for_square(&mut self, square: Square) {

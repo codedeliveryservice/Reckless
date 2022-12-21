@@ -12,9 +12,9 @@ use super::{
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
-    pub const RANK_1: Bitboard = Bitboard(0b1111_1111);
-    pub const RANK_2: Bitboard = Bitboard(Self::RANK_1.0 << 8);
-    pub const RANK_7: Bitboard = Bitboard(Self::RANK_1.0 << (8 * 6));
+    pub const RANK_1: Self = Self(0b1111_1111);
+    pub const RANK_2: Self = Self(Self::RANK_1.0 << 8);
+    pub const RANK_7: Self = Self(Self::RANK_1.0 << (8 * 6));
 
     /// Returns `true` if `self` has zero bits set.
     #[inline(always)]
