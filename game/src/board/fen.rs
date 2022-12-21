@@ -110,7 +110,7 @@ impl InnerFen {
 
     fn set_castling(&mut self, text: &str) -> Result<(), ParseFenError> {
         for c in text.chars() {
-            self.board.state.castling |= match c {
+            self.board.state_mut().castling |= match c {
                 'K' => Castling::WHITE_KING_SIDE,
                 'Q' => Castling::WHITE_QUEEN_SIDE,
                 'k' => Castling::BLACK_KING_SIDE,
@@ -124,7 +124,7 @@ impl InnerFen {
     }
 
     fn set_en_passant(&mut self, text: &str) -> Result<(), ParseFenError> {
-        self.board.state.en_passant = match text {
+        self.board.state_mut().en_passant = match text {
             "-" => None,
             _ => Some(
                 Square::try_from(text).map_err(|_| ParseFenError::InvalidEnPassant {

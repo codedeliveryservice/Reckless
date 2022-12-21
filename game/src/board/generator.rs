@@ -70,7 +70,7 @@ impl<'a> InnerGenerator<'a> {
             Color::Black => (Square::B8, Square::C8, Square::E8, Square::D8, Square::F8, Square::G8),
         };
 
-        if self.board.state.castling.is_king_side_available(self.turn)
+        if self.board.state().castling.is_king_side_available(self.turn)
             && !self.all.contains(f1)
             && !self.all.contains(g1)
             && !self.board.is_square_attacked(e1, self.turn_opposite)
@@ -79,7 +79,7 @@ impl<'a> InnerGenerator<'a> {
             self.list.add(e1, g1, MoveKind::KingCastling);
         }
 
-        if self.board.state.castling.is_queen_side_available(self.turn)
+        if self.board.state().castling.is_queen_side_available(self.turn)
             && !self.all.contains(d1)
             && !self.all.contains(c1)
             && !self.all.contains(b1)
@@ -153,7 +153,7 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
-        let Some(en_passant) = self.board.state.en_passant else { return };
+        let Some(en_passant) = self.board.state().en_passant else { return };
 
         let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
         while let Some(start) = starts.pop() {

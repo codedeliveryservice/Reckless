@@ -1,25 +1,26 @@
 use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square};
 
-use self::{change::Change, fen::ParseFenError, state::State};
+use self::{fen::ParseFenError, state::State};
 
 pub mod state;
 
-mod change;
 mod fen;
 mod generator;
 
 /// Data structure representing the board and the location of its pieces.
 pub struct Board {
     pub turn: Color,
-    pub state: State,
+    pub ply: usize,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
-    stack: Vec<Change>,
+    history: [State; Self::MAX_GAME_LENGTH],
 }
 
 pub struct IllegalMove;
 
 impl Board {
+    const MAX_GAME_LENGTH: usize = 512;
+
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
     /// # Errors
@@ -44,7 +45,10 @@ impl Board {
     /// # Errors
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMove> {
-        let mut change = Change::new(mv, self.state.clone(), None);
+        self.history[self.ply + 1] = *self.state();
+        self.ply += 1;
+
+        self.state_mut().previous_move = Some(mv);
 
         let start = mv.start();
         let target = mv.target();
@@ -59,10 +63,8 @@ impl Board {
             let capture = self.get_piece(target).unwrap();
             self.remove_piece(capture, self.turn.opposite(), target);
 
-            change.capture = Some(capture);
+            self.state_mut().captured_piece = Some(capture);
         }
-
-        self.stack.push(change);
 
         if mv.is_promotion() {
             let piece = self.get_piece(start).unwrap();
@@ -73,11 +75,10 @@ impl Board {
             self.move_piece(piece, self.turn, start, target);
         }
 
-        if mv.kind() == MoveKind::DoublePush {
-            self.state.en_passant = Some(Square((start.0 + target.0) / 2));
-        } else {
-            self.state.en_passant = None;
-        }
+        self.state_mut().en_passant = match mv.kind() == MoveKind::DoublePush {
+            true => Some(Square((start.0 + target.0) / 2)),
+            false => None,
+        };
 
         if mv.kind() == MoveKind::KingCastling {
             match self.turn {
@@ -99,8 +100,8 @@ impl Board {
             return Err(IllegalMove);
         }
 
-        self.state.castling.update_for_square(start);
-        self.state.castling.update_for_square(target);
+        self.state_mut().castling.update_for_square(start);
+        self.state_mut().castling.update_for_square(target);
         self.turn.reverse();
 
         Ok(())
@@ -112,12 +113,9 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn take_back(&mut self) {
-        let change = self.stack.pop().unwrap();
+        let mv = self.state().previous_move.unwrap();
 
-        self.state = change.state;
         self.turn.reverse();
-
-        let mv = change.mv;
 
         let start = mv.start();
         let target = mv.target();
@@ -137,7 +135,11 @@ impl Board {
                 target.shift(-self.turn.offset()),
             );
         } else if mv.is_capture() {
-            self.add_piece(change.capture.unwrap(), self.turn.opposite(), target);
+            self.add_piece(
+                self.state().captured_piece.unwrap(),
+                self.turn.opposite(),
+                target,
+            );
         }
 
         if mv.kind() == MoveKind::KingCastling {
@@ -151,6 +153,20 @@ impl Board {
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
             }
         }
+
+        self.ply -= 1;
+    }
+
+    /// Returns a reference to the current state of this `Board`.
+    #[inline(always)]
+    pub fn state(&self) -> &State {
+        &self.history[self.ply]
+    }
+
+    /// Returns a mutable reference to the current state of this `Board`.
+    #[inline(always)]
+    pub fn state_mut(&mut self) -> &mut State {
+        &mut self.history[self.ply]
     }
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
@@ -243,10 +259,10 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             turn: Color::White,
-            state: Default::default(),
+            ply: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),
-            stack: Default::default(),
+            history: [Default::default(); Self::MAX_GAME_LENGTH],
         }
     }
 }
