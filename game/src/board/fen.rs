@@ -15,7 +15,7 @@ pub enum ParseFenError {
 /// a particular board position of a chess game.
 ///
 /// See [Wikipedia article](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for more information.
-pub struct Fen;
+pub(super) struct Fen;
 
 impl Fen {
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
@@ -23,7 +23,7 @@ impl Fen {
     /// # Errors
     ///
     /// This function will return an error if the given notation is not valid.
-    pub(crate) fn parse(fen: &str) -> Result<Board, ParseFenError> {
+    pub fn parse(fen: &str) -> Result<Board, ParseFenError> {
         InnerFen::default().parse(fen)
     }
 }
@@ -36,7 +36,7 @@ struct InnerFen {
 impl InnerFen {
     const SEPARATOR: char = '/';
 
-    pub fn parse(mut self, fen: &str) -> Result<Board, ParseFenError> {
+    fn parse(mut self, fen: &str) -> Result<Board, ParseFenError> {
         let parts: Vec<&str> = fen.split_whitespace().collect();
 
         if parts.len() != 6 {
