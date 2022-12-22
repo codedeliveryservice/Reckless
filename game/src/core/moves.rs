@@ -94,7 +94,20 @@ impl Move {
 
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.pad(&format!("{}{}", self.start(), self.target()))
+        let mut output = format!("{}{}", self.start(), self.target());
+
+        if self.is_promotion() {
+            let ch = match self.get_promotion_piece() {
+                Piece::Knight => 'N',
+                Piece::Bishop => 'B',
+                Piece::Rook => 'R',
+                Piece::Queen => 'Q',
+                _ => panic!("The move was expected to be a promotion"),
+            };
+            output.push(ch);
+        }
+
+        f.pad(&format!("{}", output))
     }
 }
 
