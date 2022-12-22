@@ -1,4 +1,9 @@
-use std::{env, fs::File, io::Write, path::Path};
+use std::{
+    env,
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+};
 
 mod attacks;
 mod magics;
@@ -19,7 +24,8 @@ macro_rules! write_map {
 fn main() {
     let dir = env::var("OUT_DIR").unwrap();
     let path = Path::new(&dir).join("lookup.rs");
-    let mut f = File::create(&path).unwrap();
+    let out = File::create(&path).unwrap();
+    let mut f = BufWriter::new(out);
 
     write_map!(f, "KING_MAP", "u64", maps::generate_king_map());
     write_map!(f, "KNIGHT_MAP", "u64", maps::generate_knight_map());
