@@ -58,8 +58,8 @@ impl<'a> InnerGenerator<'a> {
         while let Some(start) = bb.pop() {
             let targets = gen(start) & !self.us;
 
-            self.add_captures(start, targets & self.them);
-            self.add_quiets(start, targets & !self.them);
+            self.add_many(start, targets & self.them, MoveKind::Capture);
+            self.add_many(start, targets & !self.them, MoveKind::Quiet);
         }
     }
 
@@ -110,7 +110,7 @@ impl<'a> InnerGenerator<'a> {
         while let Some(start) = bb.pop() {
             // Captures
             let targets = pawn_attacks(start, self.turn) & self.them;
-            self.add_captures(start, targets);
+            self.add_many(start, targets, MoveKind::Capture);
 
             // One square pawn push
             let target = start.shift(offset);
@@ -153,25 +153,18 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
-        let Some(en_passant) = self.board.state().en_passant else { return };
-
-        let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
-        while let Some(start) = starts.pop() {
-            self.list.add(start, en_passant, MoveKind::EnPassant);
+        if let Some(en_passant) = self.board.state().en_passant {
+            let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
+            while let Some(start) = starts.pop() {
+                self.list.add(start, en_passant, MoveKind::EnPassant);
+            }
         }
     }
 
     #[inline(always)]
-    fn add_captures(&mut self, start: Square, mut targets: Bitboard) {
+    fn add_many(&mut self, start: Square, mut targets: Bitboard, move_kind: MoveKind) {
         while let Some(target) = targets.pop() {
-            self.list.add(start, target, MoveKind::Capture)
-        }
-    }
-
-    #[inline(always)]
-    fn add_quiets(&mut self, start: Square, mut targets: Bitboard) {
-        while let Some(target) = targets.pop() {
-            self.list.add(start, target, MoveKind::Quiet)
+            self.list.add(start, target, move_kind);
         }
     }
 
