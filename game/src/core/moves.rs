@@ -107,7 +107,7 @@ impl std::fmt::Display for Move {
             output.push(ch);
         }
 
-        f.pad(&format!("{}", output))
+        f.pad(&output.to_string())
     }
 }
 
