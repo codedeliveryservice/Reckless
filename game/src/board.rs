@@ -16,7 +16,8 @@ pub struct Board {
     history: [State; Self::MAX_GAME_LENGTH],
 }
 
-pub struct IllegalMove;
+#[derive(Debug, Clone, Copy)]
+pub struct IllegalMoveError;
 
 impl Board {
     const MAX_GAME_LENGTH: usize = 512;
@@ -44,7 +45,7 @@ impl Board {
     ///
     /// # Errors
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
-    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMove> {
+    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.history[self.ply + 1] = *self.state();
         self.ply += 1;
 
@@ -97,7 +98,7 @@ impl Board {
             self.turn.reverse();
             self.take_back();
 
-            return Err(IllegalMove);
+            return Err(IllegalMoveError);
         }
 
         self.state_mut().castling.update_for_square(start);
