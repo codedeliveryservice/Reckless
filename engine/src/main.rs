@@ -1,8 +1,21 @@
-mod perft;
+use engine::Engine;
 
-use game::board::Board;
+mod engine;
+mod perft;
+mod uci;
 
 fn main() {
-    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    perft::run(6, &mut Board::from_fen(fen).unwrap());
+    let mut engine = Engine::new();
+    engine.set_position(Engine::START_FEN);
+
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+
+        if input.starts_with("quit") {
+            break;
+        }
+
+        uci::execute_command(&mut engine, &input);
+    }
 }
