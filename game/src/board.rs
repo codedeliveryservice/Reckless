@@ -259,7 +259,7 @@ impl Board {
 impl Default for Board {
     fn default() -> Self {
         Self {
-            turn: Color::White,
+            turn: Default::default(),
             depth: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),

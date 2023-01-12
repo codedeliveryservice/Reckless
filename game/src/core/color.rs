@@ -34,6 +34,12 @@ impl Color {
     }
 }
 
+impl Default for Color {
+    fn default() -> Self {
+        Self::White
+    }
+}
+
 impl<T> std::ops::Index<Color> for [T] {
     type Output = T;
 
