@@ -10,17 +10,17 @@ mod generator;
 /// Data structure representing the board and the location of its pieces.
 pub struct Board {
     pub turn: Color,
-    pub ply: usize,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
-    history: [State; Self::MAX_GAME_LENGTH],
+    history: [State; Self::MAX_SEARCH_DEPTH],
+    depth: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct IllegalMoveError;
 
 impl Board {
-    const MAX_GAME_LENGTH: usize = 512;
+    const MAX_SEARCH_DEPTH: usize = 64;
 
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
@@ -46,8 +46,8 @@ impl Board {
     /// # Errors
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.history[self.ply + 1] = *self.state();
-        self.ply += 1;
+        self.history[self.depth + 1] = *self.state();
+        self.depth += 1;
 
         self.state_mut().previous_move = Some(mv);
 
@@ -155,19 +155,19 @@ impl Board {
             }
         }
 
-        self.ply -= 1;
+        self.depth -= 1;
     }
 
     /// Returns a reference to the current state of this `Board`.
     #[inline(always)]
     pub fn state(&self) -> &State {
-        &self.history[self.ply]
+        &self.history[self.depth]
     }
 
     /// Returns a mutable reference to the current state of this `Board`.
     #[inline(always)]
     pub fn state_mut(&mut self) -> &mut State {
-        &mut self.history[self.ply]
+        &mut self.history[self.depth]
     }
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
@@ -260,10 +260,10 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             turn: Color::White,
-            ply: Default::default(),
+            depth: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),
-            history: [Default::default(); Self::MAX_GAME_LENGTH],
+            history: [Default::default(); Self::MAX_SEARCH_DEPTH],
         }
     }
 }
