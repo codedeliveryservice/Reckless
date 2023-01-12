@@ -237,22 +237,22 @@ impl Board {
         self.is_square_attacked(square, self.turn.opposite())
     }
 
-    /// Returns `true` if any piece of the attacker color can attack the `Square`.
-    pub fn is_square_attacked(&self, square: Square, attacker: Color) -> bool {
-        use crate::lookup::*;
+    /// Returns `true` if any piece of the attacker `Color` can attack the `Square`.
+    pub fn is_square_attacked(&self, square: Square, color: Color) -> bool {
+        use crate::lookup;
 
-        let attackers = self.colors[attacker];
         let occupancies = self.them() | self.us();
 
         let bishop_queen = self.pieces[Piece::Bishop] | self.pieces[Piece::Queen];
         let rook_queen = self.pieces[Piece::Rook] | self.pieces[Piece::Queen];
 
-        (king_attacks(square) & self.pieces[Piece::King] & attackers).is_not_empty()
-            | (knight_attacks(square) & self.pieces[Piece::Knight] & attackers).is_not_empty()
-            | (bishop_attacks(square, occupancies) & bishop_queen & attackers).is_not_empty()
-            | (rook_attacks(square, occupancies) & rook_queen & attackers).is_not_empty()
-            | (pawn_attacks(square, attacker.opposite()) & self.pieces[Piece::Pawn] & attackers)
-                .is_not_empty()
+        let possible_attackers = (lookup::king_attacks(square) & self.pieces[Piece::King])
+            | (lookup::knight_attacks(square) & self.pieces[Piece::Knight])
+            | (lookup::bishop_attacks(square, occupancies) & bishop_queen)
+            | (lookup::rook_attacks(square, occupancies) & rook_queen)
+            | (lookup::pawn_attacks(square, color.opposite()) & self.pieces[Piece::Pawn]);
+
+        (possible_attackers & self.colors[color]).is_not_empty()
     }
 }
 
