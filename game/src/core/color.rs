@@ -13,8 +13,8 @@ impl Color {
     #[inline(always)]
     pub const fn offset(self) -> i8 {
         match self {
-            Color::White => 8,
-            Color::Black => -8,
+            Self::White => 8,
+            Self::Black => -8,
         }
     }
 
