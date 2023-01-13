@@ -27,7 +27,7 @@ impl Board {
     /// # Errors
     ///
     /// This function will return an error if the given notation is invalid.
-    pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
+    pub fn new(fen: &str) -> Result<Self, ParseFenError> {
         fen::Fen::parse(fen)
     }
 

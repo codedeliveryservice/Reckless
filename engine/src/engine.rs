@@ -13,7 +13,7 @@ impl Engine {
     }
 
     pub fn set_position(&mut self, fen: &str) {
-        self.board = Board::from_fen(fen).unwrap();
+        self.board = Board::new(fen).unwrap();
     }
 
     /// Plays the specified UCI move.
