@@ -94,7 +94,9 @@ fn go_command(engine: &mut Engine, tokens: &[&str]) {
 /// Run a performance test with the specified depth on the current position set up
 /// with the `position` command.
 fn perft_command(engine: &mut Engine, tokens: &[&str]) {
-    // TODO: Parse depth from arguments
-    let depth = 5;
-    engine.perft(depth);
+    if let Some(token) = tokens.get(1) {
+        if let Ok(depth) = token.parse::<u32>() {
+            engine.perft(depth);
+        }
+    }
 }
