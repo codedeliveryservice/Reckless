@@ -98,10 +98,10 @@ impl std::fmt::Display for Move {
 
         if self.is_promotion() {
             let ch = match self.get_promotion_piece() {
-                Piece::Knight => 'N',
-                Piece::Bishop => 'B',
-                Piece::Rook => 'R',
-                Piece::Queen => 'Q',
+                Piece::Knight => 'n',
+                Piece::Bishop => 'b',
+                Piece::Rook => 'r',
+                Piece::Queen => 'q',
                 _ => panic!("The move was expected to be a promotion"),
             };
             output.push(ch);
