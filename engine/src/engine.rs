@@ -37,6 +37,7 @@ impl Engine {
         self.board.make_move(mv).unwrap();
     }
 
+    #[allow(unused_variables)]
     pub fn search(&mut self, depth: u32) {
         // A placeholder that selects the first legal move in the position.
         for mv in self.board.generate_moves() {

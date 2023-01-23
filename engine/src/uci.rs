@@ -85,6 +85,7 @@ fn position_command(engine: &mut Engine, tokens: &[&str]) {
 /// # Arguments
 ///
 /// * `depth <x>` - Search `x` plies only.
+#[allow(unused_variables)]
 fn go_command(engine: &mut Engine, tokens: &[&str]) {
     // TODO: Parse depth from arguments
     let depth = 5;
