@@ -170,6 +170,12 @@ impl Board {
         &mut self.history[self.depth]
     }
 
+    /// Returns a `Bitboard` of `Piece` of the specified `Color`.
+    #[inline(always)]
+    pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
+        self.pieces[piece] & self.colors[color]
+    }
+
     /// Returns a `Bitboard` with friendly pieces for the current state.
     #[inline(always)]
     pub fn us(&self) -> Bitboard {
