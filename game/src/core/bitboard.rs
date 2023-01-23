@@ -34,6 +34,12 @@ impl Bitboard {
         (self.0 >> square.0) & 1 != 0
     }
 
+    /// Returns the number of pieces on the `Bitboard`.
+    #[inline(always)]
+    pub fn count(self) -> u32 {
+        self.0.count_ones()
+    }
+
     /// Sets the `Square` on the `Bitboard`.
     #[inline(always)]
     pub fn set(&mut self, square: Square) {
