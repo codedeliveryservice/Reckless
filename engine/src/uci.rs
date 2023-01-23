@@ -17,6 +17,7 @@ pub fn execute_command(engine: &mut Engine, input: &str) {
 
         // Custom CLI commands not included in the UCI protocol
         "perft" => perft_command(engine, &tokens),
+        "eval" => eval_command(engine),
 
         _ => println!("Unknown command '{}'", tokens[0]),
     };
@@ -100,4 +101,9 @@ fn perft_command(engine: &mut Engine, tokens: &[&str]) {
             engine.perft(depth);
         }
     }
+}
+
+/// Run static analysis on the current position set up with the `position` command.
+fn eval_command(engine: &mut Engine) {
+    engine.eval();
 }

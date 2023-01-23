@@ -1,5 +1,7 @@
 use game::board::Board;
 
+use crate::evaluation;
+
 #[derive(Default)]
 pub struct Engine {
     board: Board,
@@ -47,6 +49,10 @@ impl Engine {
                 break;
             }
         }
+    }
+
+    pub fn eval(&self) {
+        println!("evaluation {}", evaluation::evaluate(&self.board));
     }
 
     pub fn perft(&mut self, depth: u32) {

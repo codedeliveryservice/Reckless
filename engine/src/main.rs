@@ -1,6 +1,7 @@
 use engine::Engine;
 
 mod engine;
+mod evaluation;
 mod perft;
 mod uci;
 
