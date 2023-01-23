@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! impl_bit_assign_op {
     ($type:ident, $trait:ident, $fn:ident) => {
         impl std::ops::$trait for $type {
@@ -9,6 +10,7 @@ macro_rules! impl_bit_assign_op {
     };
 }
 
+#[macro_export]
 macro_rules! impl_bit_op {
     ($type:ident, $trait:ident, $fn:ident) => {
         impl std::ops::$trait for $type {
@@ -22,6 +24,7 @@ macro_rules! impl_bit_op {
     };
 }
 
+#[macro_export]
 macro_rules! impl_not_op {
     ($type:ident) => {
         impl std::ops::Not for $type {
