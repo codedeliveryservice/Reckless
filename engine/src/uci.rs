@@ -1,7 +1,7 @@
 //! The Universal Chess Interface (UCI) is an open communication protocol that enables
 //! chess engines to communicate with other programs including Graphical User Interfaces.
 //!
-//! See (Chess Programming Wiki article)[https://www.chessprogramming.org/UCI]
+//! See [Chess Programming Wiki article](https://www.chessprogramming.org/UCI)
 //! for more information.
 use crate::Engine;
 
