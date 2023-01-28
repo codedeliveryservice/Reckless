@@ -1,10 +1,11 @@
 use std::cmp::Ordering;
 
-use game::{impl_assign_op, impl_binary_op};
+use game::{impl_assign_op, impl_binary_op, impl_unary_op};
 
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
+/// Represents a value that determines the odds of winning or losing.
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(transparent)]
-pub struct Score(i32);
+pub struct Score(pub i32);
 
 impl Score {
     pub const EMPTY: Self = Self(0);
@@ -15,6 +16,7 @@ impl Score {
     }
 }
 
+impl_unary_op!(Score, Neg, neg);
 impl_binary_op!(Score, Add, add);
 impl_binary_op!(Score, Sub, sub);
 impl_binary_op!(Score, Mul, mul);
