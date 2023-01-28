@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use game::{impl_bit_assign_op, impl_bit_op};
+use game::{impl_assign_op, impl_binary_op};
 
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
@@ -15,12 +15,12 @@ impl Score {
     }
 }
 
-impl_bit_op!(Score, Add, add);
-impl_bit_op!(Score, Sub, sub);
-impl_bit_op!(Score, Mul, mul);
-impl_bit_op!(Score, Div, div);
-impl_bit_assign_op!(Score, AddAssign, add_assign);
-impl_bit_assign_op!(Score, SubAssign, sub_assign);
+impl_binary_op!(Score, Add, add);
+impl_binary_op!(Score, Sub, sub);
+impl_binary_op!(Score, Mul, mul);
+impl_binary_op!(Score, Div, div);
+impl_assign_op!(Score, AddAssign, add_assign);
+impl_assign_op!(Score, SubAssign, sub_assign);
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! impl_bit_assign_op {
+macro_rules! impl_assign_op {
     ($type:ident, $trait:ident, $fn:ident) => {
         impl std::ops::$trait for $type {
             #[inline(always)]
@@ -11,7 +11,7 @@ macro_rules! impl_bit_assign_op {
 }
 
 #[macro_export]
-macro_rules! impl_bit_op {
+macro_rules! impl_binary_op {
     ($type:ident, $trait:ident, $fn:ident) => {
         impl std::ops::$trait for $type {
             type Output = $type;
@@ -25,19 +25,19 @@ macro_rules! impl_bit_op {
 }
 
 #[macro_export]
-macro_rules! impl_not_op {
-    ($type:ident) => {
-        impl std::ops::Not for $type {
+macro_rules! impl_unary_op {
+    ($type:ident, $trait:ident, $fn:ident) => {
+        impl std::ops::$trait for $type {
             type Output = $type;
 
             #[inline(always)]
-            fn not(self) -> Self::Output {
-                Self(!self.0)
+            fn $fn(self) -> Self::Output {
+                $type(std::ops::$trait::$fn(self.0))
             }
         }
     };
 }
 
-pub(crate) use impl_bit_assign_op;
-pub(crate) use impl_bit_op;
-pub(crate) use impl_not_op;
+pub(crate) use impl_assign_op;
+pub(crate) use impl_binary_op;
+pub(crate) use impl_unary_op;

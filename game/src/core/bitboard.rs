@@ -1,5 +1,5 @@
 use super::{
-    macros::{impl_bit_op, impl_not_op},
+    macros::{impl_binary_op, impl_unary_op},
     Square,
 };
 
@@ -66,9 +66,9 @@ impl Bitboard {
     }
 }
 
-impl_bit_op!(Bitboard, BitAnd, bitand);
-impl_bit_op!(Bitboard, BitOr, bitor);
-impl_not_op!(Bitboard);
+impl_binary_op!(Bitboard, BitAnd, bitand);
+impl_binary_op!(Bitboard, BitOr, bitor);
+impl_unary_op!(Bitboard, Not, not);
 
 #[cfg(test)]
 mod tests {

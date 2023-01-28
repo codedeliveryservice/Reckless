@@ -1,5 +1,5 @@
 use super::{
-    macros::{impl_bit_assign_op, impl_bit_op},
+    macros::{impl_assign_op, impl_binary_op},
     Color, Square,
 };
 
@@ -61,5 +61,5 @@ impl Castling {
     }
 }
 
-impl_bit_op!(Castling, BitAnd, bitand);
-impl_bit_assign_op!(Castling, BitOrAssign, bitor_assign);
+impl_binary_op!(Castling, BitAnd, bitand);
+impl_assign_op!(Castling, BitOrAssign, bitor_assign);
