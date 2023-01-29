@@ -14,6 +14,11 @@ impl Score {
     pub fn new(score: i32) -> Self {
         Self(score)
     }
+
+    /// Returns a `Score` shifted by the specified offset.
+    pub fn shift(self, offset: i32) -> Self {
+        Self(self.0 + offset)
+    }
 }
 
 impl_unary_op!(Score, Neg, neg);
