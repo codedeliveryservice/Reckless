@@ -1,6 +1,6 @@
 use game::board::Board;
 
-use crate::evaluation;
+use crate::{evaluation, search};
 
 #[derive(Default)]
 pub struct Engine {
@@ -39,16 +39,8 @@ impl Engine {
         self.board.apply_move(mv).unwrap();
     }
 
-    #[allow(unused_variables)]
     pub fn search(&mut self, depth: u32) {
-        // A placeholder that selects the first legal move in the position.
-        for mv in self.board.generate_moves() {
-            if self.board.make_move(mv).is_ok() {
-                println!("bestmove {}", mv);
-                self.board.take_back();
-                break;
-            }
-        }
+        println!("bestmove {}", search::search(&mut self.board, depth));
     }
 
     pub fn eval(&self) {

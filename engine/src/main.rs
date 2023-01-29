@@ -3,6 +3,7 @@ use engine::Engine;
 mod engine;
 mod evaluation;
 mod perft;
+mod search;
 mod uci;
 
 fn main() {
