@@ -36,7 +36,7 @@ impl Engine {
             .find(|m| m.to_string() == uci_move)
             .unwrap();
 
-        self.board.make_move(mv).unwrap();
+        self.board.apply_move(mv).unwrap();
     }
 
     #[allow(unused_variables)]

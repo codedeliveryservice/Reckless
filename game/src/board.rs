@@ -36,34 +36,26 @@ impl Board {
         generator::Generator::generate_moves(self)
     }
 
-    /// Updates the board representation by making the specified `Move`.
-    ///
-    /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Make_Move) for more information.
+    /// Updates the board representation by making the specified `Move` without saving the changes to take it back.
     ///
     /// # Panics
     /// Panics if the `Move` contains incorrect information for the current `Board`.
     ///
     /// # Errors
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
-    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.history[self.depth + 1] = *self.state();
-        self.depth += 1;
-
+    pub fn apply_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.state_mut().previous_move = Some(mv);
 
         let start = mv.start();
         let target = mv.target();
+        let kind = mv.kind();
 
-        if mv.kind() == MoveKind::EnPassant {
-            self.remove_piece(
-                Piece::Pawn,
-                self.turn.opposite(),
-                target.shift(-self.turn.offset()),
-            );
+        if kind == MoveKind::EnPassant {
+            let target = target.shift(-self.turn.offset());
+            self.remove_piece(Piece::Pawn, self.turn.opposite(), target);
         } else if mv.is_capture() {
             let capture = self.get_piece(target).unwrap();
             self.remove_piece(capture, self.turn.opposite(), target);
-
             self.state_mut().captured_piece = Some(capture);
         }
 
@@ -76,17 +68,17 @@ impl Board {
             self.move_piece(piece, self.turn, start, target);
         }
 
-        self.state_mut().en_passant = match mv.kind() == MoveKind::DoublePush {
+        self.state_mut().en_passant = match kind == MoveKind::DoublePush {
             true => Some(Square((start.0 + target.0) / 2)),
             false => None,
         };
 
-        if mv.kind() == MoveKind::KingCastling {
+        if kind == MoveKind::KingCastling {
             match self.turn {
                 Color::White => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::H8, Square::F8),
             }
-        } else if mv.kind() == MoveKind::QueenCastling {
+        } else if kind == MoveKind::QueenCastling {
             match self.turn {
                 Color::White => self.move_piece(Piece::Rook, Color::White, Square::A1, Square::D1),
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::A8, Square::D8),
@@ -108,6 +100,22 @@ impl Board {
         Ok(())
     }
 
+    /// Updates the board representation by making the specified `Move` and storing changes in memory to take it back.
+    ///
+    /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Make_Move) for more information.
+    ///
+    /// # Panics
+    /// Panics if the `Move` contains incorrect information for the current `Board`.
+    ///
+    /// # Errors
+    /// This function will return an error if the `Move` is not allowed by the rules of chess.
+    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+        self.history[self.depth + 1] = *self.state();
+        self.depth += 1;
+
+        self.apply_move(mv)
+    }
+
     /// Restores the board to the previous state after the last move made.
     ///
     /// # Panics
@@ -115,11 +123,14 @@ impl Board {
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn take_back(&mut self) {
         let mv = self.state().previous_move.unwrap();
+        let capture = self.state().captured_piece;
 
         self.turn.reverse();
+        self.depth -= 1;
 
         let start = mv.start();
         let target = mv.target();
+        let kind = mv.kind();
 
         if mv.is_promotion() {
             self.remove_piece(mv.get_promotion_piece(), self.turn, target);
@@ -129,33 +140,24 @@ impl Board {
             self.move_piece(piece, self.turn, target, start);
         }
 
-        if mv.kind() == MoveKind::EnPassant {
-            self.add_piece(
-                Piece::Pawn,
-                self.turn.opposite(),
-                target.shift(-self.turn.offset()),
-            );
+        if kind == MoveKind::EnPassant {
+            let target = target.shift(-self.turn.offset());
+            self.add_piece(Piece::Pawn, self.turn.opposite(), target);
         } else if mv.is_capture() {
-            self.add_piece(
-                self.state().captured_piece.unwrap(),
-                self.turn.opposite(),
-                target,
-            );
+            self.add_piece(capture.unwrap(), self.turn.opposite(), target);
         }
 
-        if mv.kind() == MoveKind::KingCastling {
+        if kind == MoveKind::KingCastling {
             match self.turn {
                 Color::White => self.move_piece(Piece::Rook, Color::White, Square::F1, Square::H1),
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::F8, Square::H8),
             }
-        } else if mv.kind() == MoveKind::QueenCastling {
+        } else if kind == MoveKind::QueenCastling {
             match self.turn {
                 Color::White => self.move_piece(Piece::Rook, Color::White, Square::D1, Square::A1),
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
             }
         }
-
-        self.depth -= 1;
     }
 
     /// Returns a reference to the current state of this `Board`.
@@ -168,6 +170,11 @@ impl Board {
     #[inline(always)]
     pub fn state_mut(&mut self) -> &mut State {
         &mut self.history[self.depth]
+    }
+
+    /// Returns the history depth of this `Board`.
+    pub fn depth(&self) -> usize {
+        self.depth
     }
 
     /// Returns a `Bitboard` of `Piece` of the specified `Color`.
