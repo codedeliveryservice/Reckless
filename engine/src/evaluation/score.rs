@@ -8,7 +8,7 @@ use game::{impl_assign_op, impl_binary_op, impl_unary_op};
 pub struct Score(pub i32);
 
 impl Score {
-    pub const EMPTY: Self = Self(0);
+    pub const ZERO: Self = Self(0);
 
     /// Creates a new `Score`.
     pub fn new(score: i32) -> Self {
