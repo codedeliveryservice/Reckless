@@ -14,11 +14,6 @@ impl Score {
     pub fn new(score: i32) -> Self {
         Self(score)
     }
-
-    /// Returns a `Score` shifted by the specified offset.
-    pub fn shift(self, offset: i32) -> Self {
-        Self(self.0 + offset)
-    }
 }
 
 impl_unary_op!(Score, Neg, neg);
@@ -28,6 +23,15 @@ impl_binary_op!(Score, Mul, mul);
 impl_binary_op!(Score, Div, div);
 impl_assign_op!(Score, AddAssign, add_assign);
 impl_assign_op!(Score, SubAssign, sub_assign);
+
+impl std::ops::Add<i32> for Score {
+    type Output = Score;
+
+    #[inline(always)]
+    fn add(self, rhs: i32) -> Self::Output {
+        Score(self.0 + rhs)
+    }
+}
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

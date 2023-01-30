@@ -78,8 +78,7 @@ impl<'a> InnerSearch<'a> {
     fn checkmate_score(&mut self) -> Score {
         // Adding depth eliminates the problem of not choosing the closest path
         // in the case of multiple checkmated positions.
-        let ply = self.board.depth() as i32;
-        (-Self::CHECKMATE).shift(ply)
+        -Self::CHECKMATE + self.board.depth() as i32
     }
 
     /// Quiescence search evaluates only quiet positions, which prevents the horizon effect.
