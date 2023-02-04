@@ -7,6 +7,9 @@ use crate::Engine;
 
 pub fn execute_command(engine: &mut Engine, input: &str) {
     let tokens: Vec<&str> = input.split_whitespace().collect();
+    if tokens.is_empty() {
+        return;
+    }
 
     match tokens[0] {
         "uci" => uci_command(),
@@ -17,7 +20,7 @@ pub fn execute_command(engine: &mut Engine, input: &str) {
 
         // Custom CLI commands not included in the UCI protocol
         "perft" => perft_command(engine, &tokens),
-        "eval" => eval_command(engine),
+        "eval" => engine.eval(),
 
         _ => println!("Unknown command '{}'", tokens[0]),
     };
@@ -61,17 +64,19 @@ fn uci_new_game_command(engine: &mut Engine) {
 ///
 /// Format: `position [fen <fenstring> | startpos ] moves <move1> ... <movei>`
 fn position_command(engine: &mut Engine, tokens: &[&str]) {
-    match tokens[1] {
-        "startpos" => engine.set_position(Engine::START_FEN),
-        "fen" => engine.set_position(&tokens[2..8].join(" ")),
-        _ => {
-            println!("Unknown position starting point '{}'", tokens[1]);
-            return;
-        }
-    };
+    if tokens.len() <= 1 {
+        return;
+    }
+
+    let token = tokens[1];
+    if token == "startpos" {
+        engine.set_position(Engine::START_FEN);
+    } else if token == "fen" && tokens.len() >= 8 {
+        engine.set_position(&tokens[2..8].join(" "));
+    }
 
     if let Some(index) = tokens.iter().position(|&t| t == "moves") {
-        for &token in &tokens[(index + 1)..] {
+        for token in &tokens[(index + 1)..] {
             engine.play_uci_move(token);
         }
     }
@@ -86,24 +91,22 @@ fn position_command(engine: &mut Engine, tokens: &[&str]) {
 /// # Arguments
 ///
 /// * `depth <x>` - Search `x` plies only.
-#[allow(unused_variables)]
 fn go_command(engine: &mut Engine, tokens: &[&str]) {
-    // TODO: Parse depth from arguments
-    let depth = 5;
-    engine.search(depth);
+    if let Some(depth) = parse_token(tokens, "depth") {
+        engine.search(depth);
+    }
 }
 
 /// Run a performance test with the specified depth on the current position set up
 /// with the `position` command.
 fn perft_command(engine: &mut Engine, tokens: &[&str]) {
-    if let Some(token) = tokens.get(1) {
-        if let Ok(depth) = token.parse::<u32>() {
-            engine.perft(depth);
-        }
+    if let Some(depth) = parse_token(tokens, "perft") {
+        engine.perft(depth);
     }
 }
 
-/// Run static analysis on the current position set up with the `position` command.
-fn eval_command(engine: &mut Engine) {
-    engine.eval();
+fn parse_token<T: std::str::FromStr>(tokens: &[&str], token: &str) -> Option<T> {
+    let index = tokens.iter().position(|&t| t == token)?;
+    let token = tokens.get(index + 1)?;
+    token.parse::<T>().ok()
 }
