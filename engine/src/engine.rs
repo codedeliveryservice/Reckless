@@ -40,7 +40,9 @@ impl Engine {
     }
 
     pub fn search(&mut self, depth: u32) {
-        println!("bestmove {}", search::search(&mut self.board, depth));
+        let result = search::search(&mut self.board, depth);
+        println!("eval {}", result.1);
+        println!("bestmove {}", result.0);
     }
 
     pub fn eval(&self) {

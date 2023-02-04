@@ -5,10 +5,10 @@ use game::{
 
 use crate::evaluation::{self, score::Score};
 
-pub fn search(board: &mut Board, depth: u32) -> Move {
+pub fn search(board: &mut Board, depth: u32) -> (Move, Score) {
     let mut search_engine = InnerSearch::new(board);
-    search_engine.perform_search(depth);
-    search_engine.best_move
+    let score = search_engine.perform_search(depth);
+    (search_engine.best_move, score)
 }
 
 struct InnerSearch<'a> {
@@ -27,8 +27,8 @@ impl<'a> InnerSearch<'a> {
         }
     }
 
-    fn perform_search(&mut self, depth: u32) {
-        self.negamax(-Self::INFINITY, Self::INFINITY, depth);
+    fn perform_search(&mut self, depth: u32) -> Score {
+        self.negamax(-Self::INFINITY, Self::INFINITY, depth)
     }
 
     /// Implementation of minimax algorithm but instead of using two separate routines for the Min player
