@@ -3,7 +3,10 @@ use game::{
     core::{Color, Move},
 };
 
-use crate::evaluation::{self, score::Score};
+use crate::{
+    evaluation::{self, score::Score},
+    sorting,
+};
 
 pub struct SearchResult {
     pub best_move: Move,
@@ -59,7 +62,10 @@ impl<'a> InnerSearch<'a> {
 
         let mut legal_moves = 0;
 
-        for mv in self.board.generate_moves() {
+        let move_list = self.board.generate_moves();
+        let sorted_moves = sorting::sort_moves(self.board, move_list);
+
+        for mv in sorted_moves {
             if self.board.make_move(mv).is_err() {
                 continue;
             }
@@ -113,7 +119,10 @@ impl<'a> InnerSearch<'a> {
             alpha = evaluation;
         }
 
-        for mv in self.board.generate_moves() {
+        let move_list = self.board.generate_moves();
+        let sorted_moves = sorting::sort_moves(self.board, move_list);
+
+        for mv in sorted_moves {
             if !mv.is_capture() {
                 continue;
             }
