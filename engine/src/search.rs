@@ -5,15 +5,27 @@ use game::{
 
 use crate::evaluation::{self, score::Score};
 
-pub fn search(board: &mut Board, depth: u32) -> (Move, Score) {
+pub struct SearchResult {
+    pub best_move: Move,
+    pub score: Score,
+    pub nodes: u32,
+}
+
+pub fn search(board: &mut Board, depth: u32) -> SearchResult {
     let mut search_engine = InnerSearch::new(board);
     let score = search_engine.perform_search(depth);
-    (search_engine.best_move, score)
+
+    SearchResult {
+        best_move: search_engine.best_move,
+        nodes: search_engine.nodes,
+        score,
+    }
 }
 
 struct InnerSearch<'a> {
     board: &'a mut Board,
     best_move: Move,
+    nodes: u32,
 }
 
 impl<'a> InnerSearch<'a> {
@@ -24,6 +36,7 @@ impl<'a> InnerSearch<'a> {
         Self {
             board,
             best_move: Move::EMPTY,
+            nodes: 0,
         }
     }
 
@@ -41,6 +54,8 @@ impl<'a> InnerSearch<'a> {
         if depth == 0 {
             return self.quiescence(alpha, beta);
         }
+
+        self.nodes += 1;
 
         let mut legal_moves = 0;
 
@@ -86,6 +101,8 @@ impl<'a> InnerSearch<'a> {
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
     fn quiescence(&mut self, mut alpha: Score, beta: Score) -> Score {
+        self.nodes += 1;
+
         let evaluation = self.evaluate();
 
         if evaluation >= beta {
