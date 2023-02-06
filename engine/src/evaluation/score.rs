@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use game::{impl_assign_op, impl_binary_op, impl_unary_op};
 
 /// Represents a value that determines the odds of winning or losing.
@@ -35,12 +33,6 @@ impl std::ops::Add<i32> for Score {
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self.0.cmp(&0) {
-            Ordering::Equal => write!(f, "=")?,
-            Ordering::Greater => write!(f, "+")?,
-            Ordering::Less => { /* Negative sign included in the number */ }
-        };
-
-        write!(f, "{:.2}", self.0 as f32 / 100f32)
+        write!(f, "{}", self.0)
     }
 }
