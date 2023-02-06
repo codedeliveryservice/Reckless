@@ -35,16 +35,16 @@ impl MoveList {
         self.index += 1;
     }
 
-    /// Returns the number of moves in the list.
+    /// Swaps two elements in the list.
     #[inline(always)]
-    pub const fn len(&self) -> usize {
-        self.data.len()
+    pub fn swap(&mut self, left: usize, right: usize) {
+        self.data.swap(left, right);
     }
 
-    /// Returns `true` if the list has a length of 0.
+    /// Returns the number of moves in the list.
     #[inline(always)]
-    pub const fn is_empty(&self) -> bool {
-        self.data.is_empty()
+    pub fn len(&self) -> usize {
+        self.index
     }
 }
 
