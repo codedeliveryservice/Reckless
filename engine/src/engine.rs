@@ -1,4 +1,4 @@
-use game::board::Board;
+use game::Board;
 
 use crate::{evaluation, search};
 

@@ -1,11 +1,7 @@
 mod locations;
 mod material;
 
-pub mod score;
-
-use game::board::Board;
-
-use self::score::Score;
+use game::{Board, Score};
 
 /// Returns a statically evaluated `Score` relative to the white side,
 /// which means that positive values are better for the white side.

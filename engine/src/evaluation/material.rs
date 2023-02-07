@@ -1,9 +1,4 @@
-use game::{
-    board::Board,
-    core::{Color, Piece},
-};
-
-use super::score::Score;
+use game::{Board, Color, Piece, Score};
 
 #[rustfmt::skip]
 const MATERIAL_SCORES: [MaterialScore; 5] = [

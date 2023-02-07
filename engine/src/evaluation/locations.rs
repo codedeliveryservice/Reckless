@@ -4,12 +4,7 @@
 //! See [Simplified Evaluation Function](https://www.chessprogramming.org/Simplified_Evaluation_Function#Piece-Square_Tables)
 //! for more information.
 
-use game::{
-    board::Board,
-    core::{Color, Piece},
-};
-
-use super::score::Score;
+use game::{Board, Color, Piece, Score};
 
 #[rustfmt::skip]
 const PAWNS: [i32; 64] = [
