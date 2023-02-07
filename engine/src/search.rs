@@ -1,12 +1,9 @@
 use game::{
     board::Board,
-    core::{Color, Move},
+    core::{Color, Move, Score},
 };
 
-use crate::{
-    evaluation::{self, score::Score},
-    sorting,
-};
+use crate::{evaluation, sorting};
 
 pub struct SearchResult {
     pub best_move: Move,

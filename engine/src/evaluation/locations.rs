@@ -6,10 +6,8 @@
 
 use game::{
     board::Board,
-    core::{Color, Piece},
+    core::{Color, Piece, Score},
 };
-
-use super::score::Score;
 
 #[rustfmt::skip]
 const PAWNS: [i32; 64] = [

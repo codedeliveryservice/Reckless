@@ -1,4 +1,4 @@
-use game::{impl_assign_op, impl_binary_op, impl_unary_op};
+use super::macros::{impl_assign_op, impl_binary_op, impl_unary_op};
 
 /// Represents a value that determines the odds of winning or losing.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
