@@ -70,6 +70,29 @@ impl_binary_op!(Bitboard, BitAnd, bitand);
 impl_binary_op!(Bitboard, BitOr, bitor);
 impl_unary_op!(Bitboard, Not, not);
 
+pub struct BitboardIter {
+    bitboard: Bitboard,
+}
+
+impl Iterator for BitboardIter {
+    type Item = Square;
+
+    #[inline(always)]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.bitboard.pop()
+    }
+}
+
+impl IntoIterator for Bitboard {
+    type Item = Square;
+    type IntoIter = BitboardIter;
+
+    #[inline(always)]
+    fn into_iter(self) -> Self::IntoIter {
+        BitboardIter { bitboard: self }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core::{bitboard::Bitboard, square::Square};
@@ -108,5 +131,13 @@ mod tests {
         assert_eq!(bb.pop(), Some(Square(2)));
         assert_eq!(bb.pop(), Some(Square(4)));
         assert_eq!(bb.pop(), None);
+    }
+
+    #[test]
+    fn iter() {
+        let iter = Bitboard(0b110101).into_iter();
+        let squares = [Square(0), Square(2), Square(4), Square(5)];
+
+        assert!(iter.eq(squares.into_iter()));
     }
 }

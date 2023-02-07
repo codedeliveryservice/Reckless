@@ -54,8 +54,7 @@ impl<'a> InnerGenerator<'a> {
     }
 
     fn collect_for<T: Fn(Square) -> Bitboard>(&mut self, piece: Piece, gen: T) {
-        let mut bb = self.board.our(piece);
-        while let Some(start) = bb.pop() {
+        for start in self.board.our(piece) {
             let targets = gen(start) & !self.us;
 
             self.add_many(start, targets & self.them, MoveKind::Capture);
@@ -105,9 +104,9 @@ impl<'a> InnerGenerator<'a> {
     }
 
     #[inline(always)]
-    fn collect_regular_pawn_moves(&mut self, mut bb: Bitboard) {
+    fn collect_regular_pawn_moves(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
-        while let Some(start) = bb.pop() {
+        for start in bb {
             // Captures
             let targets = pawn_attacks(start, self.turn) & self.them;
             self.add_many(start, targets, MoveKind::Capture);
@@ -121,12 +120,11 @@ impl<'a> InnerGenerator<'a> {
     }
 
     #[inline(always)]
-    fn collect_promotions(&mut self, mut bb: Bitboard) {
+    fn collect_promotions(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
-        while let Some(start) = bb.pop() {
+        for start in bb {
             // Promotion with a capture
-            let mut targets = pawn_attacks(start, self.turn) & self.them;
-            while let Some(target) = targets.pop() {
+            for target in pawn_attacks(start, self.turn) & self.them {
                 self.add_promotion_captures(start, target);
             }
 
@@ -139,9 +137,9 @@ impl<'a> InnerGenerator<'a> {
     }
 
     #[inline(always)]
-    fn collect_double_pushes(&mut self, mut bb: Bitboard) {
+    fn collect_double_pushes(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
-        while let Some(start) = bb.pop() {
+        for start in bb {
             let one_up = start.shift(offset);
             let two_up = one_up.shift(offset);
 
@@ -154,16 +152,15 @@ impl<'a> InnerGenerator<'a> {
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         if let Some(en_passant) = self.board.state().en_passant {
-            let mut starts = pawn_attacks(en_passant, self.turn.opposite()) & bb;
-            while let Some(start) = starts.pop() {
+            for start in pawn_attacks(en_passant, self.turn.opposite()) & bb {
                 self.list.add(start, en_passant, MoveKind::EnPassant);
             }
         }
     }
 
     #[inline(always)]
-    fn add_many(&mut self, start: Square, mut targets: Bitboard, move_kind: MoveKind) {
-        while let Some(target) = targets.pop() {
+    fn add_many(&mut self, start: Square, targets: Bitboard, move_kind: MoveKind) {
+        for target in targets {
             self.list.add(start, target, move_kind);
         }
     }

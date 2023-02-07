@@ -104,8 +104,7 @@ pub fn evaluate_locations(board: &Board) -> Score {
 fn get_score_for_white(board: &Board) -> Score {
     let mut score = 0;
     for pair in LOCATION_SCORES {
-        let mut bb = board.of(pair.piece, Color::White);
-        while let Some(square) = bb.pop() {
+        for square in board.of(pair.piece, Color::White) {
             score += pair.table[MIRRORED[square.0 as usize]];
         }
     }
@@ -115,8 +114,7 @@ fn get_score_for_white(board: &Board) -> Score {
 fn get_score_for_black(board: &Board) -> Score {
     let mut score = 0;
     for pair in LOCATION_SCORES {
-        let mut bb = board.of(pair.piece, Color::Black);
-        while let Some(square) = bb.pop() {
+        for square in board.of(pair.piece, Color::Black) {
             score += pair.table[square.0 as usize];
         }
     }
