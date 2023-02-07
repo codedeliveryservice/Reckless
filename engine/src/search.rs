@@ -32,9 +32,6 @@ struct InnerSearch<'a> {
 }
 
 impl<'a> InnerSearch<'a> {
-    const INFINITY: Score = Score(50000);
-    const CHECKMATE: Score = Score(48000);
-
     fn new(board: &'a mut Board) -> Self {
         Self {
             board,
@@ -44,7 +41,7 @@ impl<'a> InnerSearch<'a> {
     }
 
     fn perform_search(&mut self, depth: u32) -> Score {
-        self.negamax(-Self::INFINITY, Self::INFINITY, depth)
+        self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth)
     }
 
     /// Implementation of minimax algorithm but instead of using two separate routines for the Min player
@@ -94,18 +91,15 @@ impl<'a> InnerSearch<'a> {
             }
         }
 
-        if legal_moves == 0 {
-            // TODO: Add check for stalemate
-            return self.checkmate_score();
+        if in_check && legal_moves == 0 {
+            // Adding depth eliminates the problem of not choosing the closest path
+            // in the case of multiple checkmated positions.
+            return Score::CHECKMATE + self.board.depth() as i32;
+        } else if legal_moves == 0 {
+            return Score::STALEMATE;
         }
 
         alpha
-    }
-
-    fn checkmate_score(&mut self) -> Score {
-        // Adding depth eliminates the problem of not choosing the closest path
-        // in the case of multiple checkmated positions.
-        -Self::CHECKMATE + self.board.depth() as i32
     }
 
     /// Quiescence search evaluates only quiet positions, which prevents the horizon effect.
