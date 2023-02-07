@@ -1,7 +1,4 @@
-use game::{
-    board::Board,
-    core::{Move, MoveList, Piece},
-};
+use game::{Board, Move, MoveList, Piece};
 
 pub fn sort_moves(board: &Board, mut moves: MoveList) -> MoveList {
     let mut scores = vec![0; moves.len()];

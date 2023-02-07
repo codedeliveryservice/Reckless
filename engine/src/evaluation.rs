@@ -1,7 +1,7 @@
 mod locations;
 mod material;
 
-use game::{board::Board, core::Score};
+use game::{Board, Score};
 
 /// Returns a statically evaluated `Score` relative to the white side,
 /// which means that positive values are better for the white side.

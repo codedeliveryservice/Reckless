@@ -1,7 +1,4 @@
-use game::{
-    board::Board,
-    core::{Color, Move, Score},
-};
+use game::{Board, Color, Move, Score};
 
 use crate::{evaluation, sorting};
 

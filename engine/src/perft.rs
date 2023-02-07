@@ -5,7 +5,7 @@
 
 use std::time::Instant;
 
-use game::board::Board;
+use game::Board;
 
 /// Runs a performance test on the `Board` with the specified depth.
 #[rustfmt::skip]
