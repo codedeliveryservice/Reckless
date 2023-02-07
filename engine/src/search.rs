@@ -53,12 +53,18 @@ impl<'a> InnerSearch<'a> {
     /// `max(a, b) == -min(-a, -b)`
     ///
     /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
-    fn negamax(&mut self, mut alpha: Score, beta: Score, depth: u32) -> Score {
+    fn negamax(&mut self, mut alpha: Score, beta: Score, mut depth: u32) -> Score {
         if depth == 0 {
             return self.quiescence(alpha, beta);
         }
 
         self.nodes += 1;
+
+        let in_check = self.board.is_in_check();
+        // Increase search depth if king is in check
+        if in_check {
+            depth += 1;
+        }
 
         let mut legal_moves = 0;
 
