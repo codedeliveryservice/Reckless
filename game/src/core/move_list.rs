@@ -37,8 +37,8 @@ impl MoveList {
 
     /// Swaps two elements in the list.
     #[inline(always)]
-    pub fn swap(&mut self, left: usize, right: usize) {
-        self.data.swap(left, right);
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.data.swap(a, b);
     }
 
     /// Returns the number of moves in the list.
