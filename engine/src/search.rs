@@ -1,6 +1,10 @@
+mod killer_moves;
 mod mvv_lva;
 
+use self::killer_moves::KillerMoves;
+
 use crate::evaluation;
+
 use game::{Board, Color, Move, MoveList, Score};
 
 pub struct SearchResult {
@@ -24,6 +28,7 @@ struct InnerSearch<'a> {
     board: &'a mut Board,
     best_move: Move,
     nodes: u32,
+    killers: KillerMoves<2>,
 }
 
 impl<'a> InnerSearch<'a> {
@@ -32,6 +37,7 @@ impl<'a> InnerSearch<'a> {
             board,
             best_move: Move::EMPTY,
             nodes: Default::default(),
+            killers: KillerMoves::new(),
         }
     }
 
@@ -73,6 +79,7 @@ impl<'a> InnerSearch<'a> {
 
             // Perform a fail-hard beta cutoff
             if score >= beta {
+                self.killers.add(mv);
                 return beta;
             }
 
@@ -165,7 +172,11 @@ impl<'a> InnerSearch<'a> {
             return mvv_lva::score_mvv_lva(self.board, mv);
         }
 
-        // No techniques for ordering quiet moves are applied
+        if self.killers.contains(mv) {
+            // The quiet move score is rated below any capture move
+            return 90;
+        }
+
         Default::default()
     }
 }
