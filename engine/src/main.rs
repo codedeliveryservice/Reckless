@@ -4,7 +4,6 @@ mod engine;
 mod evaluation;
 mod perft;
 mod search;
-mod sorting;
 mod uci;
 
 fn main() {

@@ -1,32 +1,4 @@
-use game::{Board, Move, MoveList, Piece};
-
-pub fn sort_moves(board: &Board, mut moves: MoveList) -> MoveList {
-    let mut scores = vec![0; moves.len()];
-    for index in 0..moves.len() {
-        scores[index] = score_move(board, &moves[index]);
-    }
-
-    for current in 0..moves.len() {
-        for compared in (current + 1)..moves.len() {
-            if scores[current] < scores[compared] {
-                scores.swap(current, compared);
-                moves.swap(current, compared);
-            }
-        }
-    }
-
-    moves
-}
-
-fn score_move(board: &Board, mv: &Move) -> u32 {
-    // Score capture moves by MVV LVA table
-    if mv.is_capture() {
-        return score_mvv_lva(board, &mv);
-    }
-
-    // No techniques for ordering quiet moves are applied
-    0
-}
+use game::{Board, Move, Piece};
 
 /// Represents the Most Valuable Victim – Least Valuable Attacker heuristic table.
 ///
@@ -52,7 +24,7 @@ const MVV_LVA: [[u32; 6]; 6] = [
 ];
 
 /// Scores capture move based on the MVV LVA (Most Valuable Victim – Least Valuable Attacker) heuristic.
-fn score_mvv_lva(board: &Board, mv: &Move) -> u32 {
+pub fn score_mvv_lva(board: &Board, mv: Move) -> u32 {
     let start = board.get_piece(mv.start()).unwrap();
 
     // This trick handles en passant captures by unwrapping as a pawn for a default piece,

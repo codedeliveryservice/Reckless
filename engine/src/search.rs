@@ -1,6 +1,7 @@
-use game::{Board, Color, Move, Score};
+mod mvv_lva;
 
-use crate::{evaluation, sorting};
+use crate::evaluation;
+use game::{Board, Color, Move, MoveList, Score};
 
 pub struct SearchResult {
     pub best_move: Move,
@@ -30,7 +31,7 @@ impl<'a> InnerSearch<'a> {
         Self {
             board,
             best_move: Move::EMPTY,
-            nodes: 0,
+            nodes: Default::default(),
         }
     }
 
@@ -51,46 +52,48 @@ impl<'a> InnerSearch<'a> {
 
         self.nodes += 1;
 
-        let in_check = self.board.is_in_check();
         // Increase search depth if king is in check
+        let in_check = self.board.is_in_check();
         if in_check {
             depth += 1;
         }
 
         let mut legal_moves = 0;
 
-        let move_list = self.board.generate_moves();
-        let sorted_moves = sorting::sort_moves(self.board, move_list);
-
-        for mv in sorted_moves {
+        let moves = self.sort_moves(self.board.generate_moves());
+        for mv in moves {
             if self.board.make_move(mv).is_err() {
                 continue;
             }
 
             legal_moves += 1;
+
             let score = -self.negamax(-beta, -alpha, depth - 1);
             self.board.take_back();
 
+            // Perform a fail-hard beta cutoff
             if score >= beta {
                 return beta;
             }
 
+            // Found a better move that maximizes alpha
             if alpha < score {
                 alpha = score;
 
-                let root_node = self.board.depth() == 0;
-                if root_node {
+                let is_root = self.board.depth() == 0;
+                if is_root {
                     self.best_move = mv;
                 }
             }
         }
 
-        if in_check && legal_moves == 0 {
-            // Adding depth eliminates the problem of not choosing the closest path
-            // in the case of multiple checkmated positions.
-            return Score::CHECKMATE + self.board.depth() as i32;
-        } else if legal_moves == 0 {
-            return Score::STALEMATE;
+        if legal_moves == 0 {
+            return match in_check {
+                // Since negamax evaluates positions from the point of view of the maximizing player,
+                // we choose the longest path to checkmate by adding the depth (maximizing the score)
+                true => Score::CHECKMATE + self.board.depth() as i32,
+                false => Score::STALEMATE,
+            };
         }
 
         alpha
@@ -103,7 +106,11 @@ impl<'a> InnerSearch<'a> {
     fn quiescence(&mut self, mut alpha: Score, beta: Score) -> Score {
         self.nodes += 1;
 
-        let evaluation = self.evaluate();
+        // Negamax requires the static evaluation function to return a score relative to the side being evaluated
+        let evaluation = match self.board.turn {
+            Color::White => evaluation::evaluate(self.board),
+            Color::Black => -evaluation::evaluate(self.board),
+        };
 
         if evaluation >= beta {
             return beta;
@@ -113,15 +120,9 @@ impl<'a> InnerSearch<'a> {
             alpha = evaluation;
         }
 
-        let move_list = self.board.generate_moves();
-        let sorted_moves = sorting::sort_moves(self.board, move_list);
-
-        for mv in sorted_moves {
-            if !mv.is_capture() {
-                continue;
-            }
-
-            if self.board.make_move(mv).is_err() {
+        let moves = self.sort_moves(self.board.generate_moves());
+        for mv in moves {
+            if !mv.is_capture() || self.board.make_move(mv).is_err() {
                 continue;
             }
 
@@ -140,11 +141,31 @@ impl<'a> InnerSearch<'a> {
         alpha
     }
 
-    fn evaluate(&mut self) -> Score {
-        // Negamax requires the static evaluation function to return a score relative to the side being evaluated
-        match self.board.turn {
-            Color::White => evaluation::evaluate(self.board),
-            Color::Black => -evaluation::evaluate(self.board),
+    fn sort_moves(&self, mut moves: MoveList) -> MoveList {
+        let mut scores = vec![0; moves.len()];
+        for index in 0..moves.len() {
+            scores[index] = self.score_move(moves[index]);
         }
+
+        for current in 0..moves.len() {
+            for compared in (current + 1)..moves.len() {
+                if scores[current] < scores[compared] {
+                    scores.swap(current, compared);
+                    moves.swap(current, compared);
+                }
+            }
+        }
+
+        moves
+    }
+
+    /// Returns a move score based on heuristic analysis.
+    fn score_move(&self, mv: Move) -> u32 {
+        if mv.is_capture() {
+            return mvv_lva::score_mvv_lva(self.board, mv);
+        }
+
+        // No techniques for ordering quiet moves are applied
+        Default::default()
     }
 }
