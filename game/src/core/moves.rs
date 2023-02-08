@@ -4,7 +4,7 @@ use super::{Piece, Square};
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
 ///
 /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
