@@ -46,6 +46,12 @@ impl MoveList {
     pub fn len(&self) -> usize {
         self.index
     }
+
+    /// Returns `true` if the list has a length of 0.
+    #[inline(always)]
+    pub const fn is_empty(&self) -> bool {
+        self.index == 0
+    }
 }
 
 impl std::ops::Index<usize> for MoveList {
