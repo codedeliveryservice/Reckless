@@ -1,7 +1,12 @@
-use super::{
-    macros::{impl_assign_op, impl_binary_op},
-    Color, Square,
-};
+use super::Square;
+
+#[rustfmt::skip]
+pub enum CastlingKind {
+    WhiteShort = 0b0001,
+    WhiteLong  = 0b0010,
+    BlackShort = 0b0100,
+    BlackLong  = 0b1000,
+}
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
@@ -32,34 +37,21 @@ impl Castling {
          7, 15, 15, 15,  3, 15, 15, 11,
     ];
 
-    pub const NONE: Self = Self(0);
-
-    pub const WHITE_KING_SIDE: Self = Self(0b0001);
-    pub const WHITE_QUEEN_SIDE: Self = Self(0b0010);
-    pub const BLACK_KING_SIDE: Self = Self(0b0100);
-    pub const BLACK_QUEEN_SIDE: Self = Self(0b1000);
-
-    /// Updates castling rights when interacting with the given `square`.
+    /// Updates castling rights when interacting with the `Square`.
+    #[inline(always)]
     pub fn update_for_square(&mut self, square: Square) {
         self.0 &= Self::UPDATES[square.0 as usize];
     }
 
-    /// Returns `true` if king side castling is available for the specified color.
-    pub const fn is_king_side_available(self, color: Color) -> bool {
-        match color {
-            Color::White => (self.0 & Self::WHITE_KING_SIDE.0) != 0,
-            Color::Black => (self.0 & Self::BLACK_KING_SIDE.0) != 0,
-        }
+    /// Allows the specified `CastlingKind`.
+    #[inline(always)]
+    pub fn allow(&mut self, kind: CastlingKind) {
+        self.0 |= kind as u8
     }
 
-    /// Returns `true` if queen side castling is available for the specified color.
-    pub const fn is_queen_side_available(self, color: Color) -> bool {
-        match color {
-            Color::White => (self.0 & Self::WHITE_QUEEN_SIDE.0) != 0,
-            Color::Black => (self.0 & Self::BLACK_QUEEN_SIDE.0) != 0,
-        }
+    /// Returns `true` if the `CastlingKind` is allowed.
+    #[inline(always)]
+    pub const fn is_allowed(&self, kind: CastlingKind) -> bool {
+        (self.0 & kind as u8) != 0
     }
 }
-
-impl_binary_op!(Castling, BitAnd, bitand);
-impl_assign_op!(Castling, BitOrAssign, bitor_assign);

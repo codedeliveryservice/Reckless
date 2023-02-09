@@ -1,9 +1,9 @@
 use crate::{
-    core::{Bitboard, Color, MoveKind, MoveList, Piece, Square},
+    core::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Square},
     lookup::*,
 };
 
-use super::Board;
+use super::{Board, State};
 
 pub(crate) struct Generator;
 
@@ -16,8 +16,8 @@ impl Generator {
 
 struct InnerGenerator<'a> {
     board: &'a Board,
+    state: &'a State,
     turn: Color,
-    turn_opposite: Color,
     all: Bitboard,
     us: Bitboard,
     them: Bitboard,
@@ -28,11 +28,11 @@ impl<'a> InnerGenerator<'a> {
     fn new(board: &'a Board) -> Self {
         Self {
             board,
+            state: board.state(),
             turn: board.turn,
-            turn_opposite: board.turn.opposite(),
+            all: board.us() | board.them(),
             us: board.us(),
             them: board.them(),
-            all: board.us() | board.them(),
             list: MoveList::new(),
         }
     }
@@ -42,8 +42,8 @@ impl<'a> InnerGenerator<'a> {
 
         self.collect_pawn_moves();
 
-        self.collect_for(Piece::Knight, knight_attacks);        
-        self.collect_for(Piece::Bishop, |square| bishop_attacks(square, occupancies));        
+        self.collect_for(Piece::Knight, knight_attacks);
+        self.collect_for(Piece::Bishop, |square| bishop_attacks(square, occupancies));
         self.collect_for(Piece::Rook, |square| rook_attacks(square, occupancies));
         self.collect_for(Piece::Queen, |square| queen_attacks(square, occupancies));
 
@@ -63,29 +63,45 @@ impl<'a> InnerGenerator<'a> {
     }
 
     fn collect_castling(&mut self) {
-        #[rustfmt::skip]
-        let (b1, c1, e1, d1, f1, g1) = match self.turn {
-            Color::White => (Square::B1, Square::C1, Square::E1, Square::D1, Square::F1, Square::G1),
-            Color::Black => (Square::B8, Square::C8, Square::E8, Square::D8, Square::F8, Square::G8),
-        };
+        match self.turn {
+            Color::White => self.collect_white_castling(),
+            Color::Black => self.collect_black_castling(),
+        }
+    }
 
-        if self.board.state().castling.is_king_side_available(self.turn)
-            && !self.all.contains(f1)
-            && !self.all.contains(g1)
-            && !self.board.is_square_attacked(e1, self.turn_opposite)
-            && !self.board.is_square_attacked(f1, self.turn_opposite)
+    fn collect_white_castling(&mut self) {
+        if self.state.castling.is_allowed(CastlingKind::WhiteShort)
+            && (self.all & Bitboard::F1_G1).is_empty()
+            && !self.board.is_under_attack(Square::E1)
+            && !self.board.is_under_attack(Square::F1)
         {
-            self.list.add(e1, g1, MoveKind::KingCastling);
+            self.list.push(Move::WHITE_SHORT_CASTLING);
         }
 
-        if self.board.state().castling.is_queen_side_available(self.turn)
-            && !self.all.contains(d1)
-            && !self.all.contains(c1)
-            && !self.all.contains(b1)
-            && !self.board.is_square_attacked(e1, self.turn_opposite)
-            && !self.board.is_square_attacked(d1, self.turn_opposite)
+        if self.state.castling.is_allowed(CastlingKind::WhiteLong)
+            && (self.all & Bitboard::B1_C1_D1).is_empty()
+            && !self.board.is_under_attack(Square::E1)
+            && !self.board.is_under_attack(Square::D1)
         {
-            self.list.add(e1, c1, MoveKind::QueenCastling);
+            self.list.push(Move::WHITE_LONG_CASTLING);
+        }
+    }
+
+    fn collect_black_castling(&mut self) {
+        if self.state.castling.is_allowed(CastlingKind::BlackShort)
+            && (self.all & Bitboard::F8_G8).is_empty()
+            && !self.board.is_under_attack(Square::E8)
+            && !self.board.is_under_attack(Square::F8)
+        {
+            self.list.push(Move::BLACK_SHORT_CASTLING);
+        }
+
+        if self.state.castling.is_allowed(CastlingKind::BlackLong)
+            && (self.all & Bitboard::B8_C8_D8).is_empty()
+            && !self.board.is_under_attack(Square::E8)
+            && !self.board.is_under_attack(Square::D8)
+        {
+            self.list.push(Move::BLACK_LONG_CASTLING);
         }
     }
 
@@ -151,7 +167,7 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
-        if let Some(en_passant) = self.board.state().en_passant {
+        if let Some(en_passant) = self.state.en_passant {
             for start in pawn_attacks(en_passant, self.turn.opposite()) & bb {
                 self.list.add(start, en_passant, MoveKind::EnPassant);
             }

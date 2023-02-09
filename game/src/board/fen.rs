@@ -1,4 +1,4 @@
-use crate::core::{Castling, Color, Piece, Square};
+use crate::core::{CastlingKind, Color, Piece, Square};
 
 use super::Board;
 
@@ -109,13 +109,14 @@ impl InnerFen {
     }
 
     fn set_castling(&mut self, text: &str) -> Result<(), ParseFenError> {
+        let castling = &mut self.board.state_mut().castling;
         for c in text.chars() {
-            self.board.state_mut().castling |= match c {
-                'K' => Castling::WHITE_KING_SIDE,
-                'Q' => Castling::WHITE_QUEEN_SIDE,
-                'k' => Castling::BLACK_KING_SIDE,
-                'q' => Castling::BLACK_QUEEN_SIDE,
-                '-' => Castling::NONE,
+            match c {
+                'K' => castling.allow(CastlingKind::WhiteShort),
+                'Q' => castling.allow(CastlingKind::WhiteLong),
+                'k' => castling.allow(CastlingKind::BlackShort),
+                'q' => castling.allow(CastlingKind::BlackLong),
+                '-' => {}
                 _ => return Err(ParseFenError::UnexpectedCastling { char: c }),
             };
         }

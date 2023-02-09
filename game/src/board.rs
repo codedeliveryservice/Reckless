@@ -241,12 +241,19 @@ impl Board {
     }
 
     /// Returns `true` if the king of the current turn color is in check.
+    #[inline(always)]
     pub fn is_in_check(&self) -> bool {
         let square = match self.our(Piece::King).pop() {
             Some(king) => king,
             None => return false,
         };
 
+        self.is_under_attack(square)
+    }
+
+    /// Returns `true` if any enemy piece can attack the `Square`.    
+    #[inline(always)]
+    pub fn is_under_attack(&self, square: Square) -> bool {
         self.is_square_attacked(square, self.turn.opposite())
     }
 
