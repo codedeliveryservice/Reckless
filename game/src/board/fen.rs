@@ -50,6 +50,8 @@ impl InnerFen {
         self.set_castling(parts[2])?;
         self.set_en_passant(parts[3])?;
 
+        self.board.hash_key = self.board.generate_hash_key();
+        
         Ok(self.board)
     }
 

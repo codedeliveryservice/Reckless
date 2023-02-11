@@ -1,4 +1,4 @@
-use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square};
+use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square, Zobrist};
 
 use self::{fen::ParseFenError, state::State};
 
@@ -10,6 +10,7 @@ mod generator;
 /// Data structure representing the board and the location of its pieces.
 pub struct Board {
     pub turn: Color,
+    pub hash_key: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     history: [State; Self::MAX_SEARCH_DEPTH],
@@ -44,6 +45,10 @@ impl Board {
     /// # Errors
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn apply_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+        self.hash_key.update_side();
+        self.hash_key.update_castling(self.state().castling);
+        self.hash_key.update_en_passant(self.state().en_passant);
+
         self.state_mut().previous_move = Some(mv);
 
         let start = mv.start();
@@ -68,11 +73,6 @@ impl Board {
             self.move_piece(piece, self.turn, start, target);
         }
 
-        self.state_mut().en_passant = match kind == MoveKind::DoublePush {
-            true => Some(Square((start.0 + target.0) / 2)),
-            false => None,
-        };
-
         if kind == MoveKind::KingCastling {
             match self.turn {
                 Color::White => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
@@ -85,17 +85,26 @@ impl Board {
             }
         }
 
-        // The move is considered illegal if it exposes the king to an attack after it has been made
-        if self.is_in_check() {
-            self.turn.reverse();
-            self.take_back();
-
-            return Err(IllegalMoveError);
-        }
+        self.state_mut().en_passant = match kind == MoveKind::DoublePush {
+            true => {
+                let square = Square((start.0 + target.0) / 2);
+                self.hash_key.update_en_passant_square(square);
+                Some(square)
+            }
+            false => None,
+        };
 
         self.state_mut().castling.update_for_square(start);
         self.state_mut().castling.update_for_square(target);
+        self.hash_key.update_castling(self.state().castling);
         self.turn.reverse();
+
+        // The move is considered illegal if it exposes the king to an attack after it has been made
+        let king = self.their(Piece::King).pop().unwrap();
+        if self.is_square_attacked(king, self.turn) {
+            self.take_back();
+            return Err(IllegalMoveError);
+        }
 
         Ok(())
     }
@@ -122,11 +131,18 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn take_back(&mut self) {
+        self.hash_key.update_side();
+        self.hash_key.update_castling(self.state().castling);
+        self.hash_key.update_en_passant(self.state().en_passant);
+
         let mv = self.state().previous_move.unwrap();
         let capture = self.state().captured_piece;
 
         self.turn.reverse();
         self.depth -= 1;
+
+        self.hash_key.update_castling(self.state().castling);
+        self.hash_key.update_en_passant(self.state().en_passant);
 
         let start = mv.start();
         let target = mv.target();
@@ -224,6 +240,7 @@ impl Board {
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].set(square);
         self.colors[color as usize].set(square);
+        self.hash_key.update_piece(piece, color, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -231,6 +248,7 @@ impl Board {
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].clear(square);
         self.colors[color as usize].clear(square);
+        self.hash_key.update_piece(piece, color, square);
     }
 
     /// Moves a piece of the specified type and color from the starting square to the target square.
@@ -241,14 +259,13 @@ impl Board {
     }
 
     /// Returns `true` if the king of the current turn color is in check.
+    ///
+    /// # Panics
+    /// Panics if there is no king on the board.
     #[inline(always)]
     pub fn is_in_check(&self) -> bool {
-        let square = match self.our(Piece::King).pop() {
-            Some(king) => king,
-            None => return false,
-        };
-
-        self.is_under_attack(square)
+        let king = self.our(Piece::King).pop().unwrap();
+        self.is_under_attack(king)
     }
 
     /// Returns `true` if any enemy piece can attack the `Square`.    
@@ -274,6 +291,16 @@ impl Board {
 
         (possible_attackers & self.colors[color]).is_not_empty()
     }
+
+    /// Performs Zobrist hashing on `self`, generating an *almost* unique
+    /// position hash key from scratch.
+    ///
+    /// This method should only be used for the initial hash key generation.
+    /// For further reference, use `self.hash_key` to get a key that is
+    /// incrementally updated during the game due to performance considerations.
+    pub fn generate_hash_key(&self) -> Zobrist {
+        Zobrist::new(self)
+    }
 }
 
 impl Default for Board {
@@ -283,6 +310,7 @@ impl Default for Board {
             depth: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),
+            hash_key: Default::default(),
             history: [Default::default(); Self::MAX_SEARCH_DEPTH],
         }
     }
