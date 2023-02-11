@@ -10,7 +10,7 @@ pub enum CastlingKind {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct Castling(u8);
+pub struct Castling(pub(crate) u8);
 
 impl Castling {
     /// The update table contains masks for changing castling rights when moving
