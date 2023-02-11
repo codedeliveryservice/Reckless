@@ -11,7 +11,7 @@ pub fn perft(board: &mut Board, depth: u32) -> u32 {
         if board.make_move(mv).is_ok() {
             let expected_hash_key = board.generate_hash_key();
             assert_eq!(expected_hash_key, board.hash_key);
-            
+
             nodes += perft(board, depth - 1);
             board.take_back();
         }

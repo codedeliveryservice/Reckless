@@ -243,6 +243,7 @@ impl Board {
     /// Returns `true` if the king of the current turn color is in check.
     ///
     /// # Panics
+    ///
     /// Panics if there is no king on the board.
     #[inline(always)]
     pub fn is_in_check(&self) -> bool {

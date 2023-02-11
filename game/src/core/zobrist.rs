@@ -14,7 +14,7 @@ pub struct Zobrist(u64);
 impl Zobrist {
     /// Generates a new `Zobrist` hash key from scratch for the `Board`.
     pub(crate) fn new(board: &Board) -> Self {
-        let mut hash = Zobrist(0);
+        let mut hash = Zobrist::default();
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from(piece as u8);
