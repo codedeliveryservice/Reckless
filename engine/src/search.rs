@@ -28,6 +28,7 @@ struct InnerSearch<'a> {
     board: &'a mut Board,
     best_move: Move,
     nodes: u32,
+    ply: usize,
     killers: KillerMoves<2>,
 }
 
@@ -37,6 +38,7 @@ impl<'a> InnerSearch<'a> {
             board,
             best_move: Move::EMPTY,
             nodes: Default::default(),
+            ply: Default::default(),
             killers: KillerMoves::new(),
         }
     }
@@ -74,8 +76,10 @@ impl<'a> InnerSearch<'a> {
 
             legal_moves += 1;
 
+            self.ply += 1;
             let score = -self.negamax(-beta, -alpha, depth - 1);
             self.board.take_back();
+            self.ply -= 1;
 
             // Perform a fail-hard beta cutoff
             if score >= beta {
@@ -87,7 +91,7 @@ impl<'a> InnerSearch<'a> {
             if alpha < score {
                 alpha = score;
 
-                let is_root = self.board.depth() == 0;
+                let is_root = self.ply == 0;
                 if is_root {
                     self.best_move = mv;
                 }
@@ -98,7 +102,7 @@ impl<'a> InnerSearch<'a> {
             return match in_check {
                 // Since negamax evaluates positions from the point of view of the maximizing player,
                 // we choose the longest path to checkmate by adding the depth (maximizing the score)
-                true => Score::CHECKMATE + self.board.depth() as i32,
+                true => Score::CHECKMATE + self.ply as i32,
                 false => Score::STALEMATE,
             };
         }

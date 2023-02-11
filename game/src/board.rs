@@ -13,15 +13,15 @@ pub struct Board {
     pub hash_key: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
-    history: [State; Self::MAX_SEARCH_DEPTH],
-    depth: usize,
+    history: [State; Self::MAX_PLY],
+    ply: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct IllegalMoveError;
 
 impl Board {
-    const MAX_SEARCH_DEPTH: usize = 64;
+    const MAX_PLY: usize = 512;
 
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
@@ -37,14 +37,15 @@ impl Board {
         generator::Generator::generate_moves(self)
     }
 
-    /// Updates the board representation by making the specified `Move` without saving the changes to take it back.
-    ///
-    /// # Panics
-    /// Panics if the `Move` contains incorrect information for the current `Board`.
+    /// Updates the board representation by making the specified `Move`.
     ///
     /// # Errors
+    ///
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
-    pub fn apply_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+        self.history[self.ply + 1] = *self.state();
+        self.ply += 1;
+
         self.hash_key.update_side();
         self.hash_key.update_castling(self.state().castling);
         self.hash_key.update_en_passant(self.state().en_passant);
@@ -106,23 +107,9 @@ impl Board {
             return Err(IllegalMoveError);
         }
 
+        self.state_mut().hash_key = self.hash_key;
+
         Ok(())
-    }
-
-    /// Updates the board representation by making the specified `Move` and storing changes in memory to take it back.
-    ///
-    /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Make_Move) for more information.
-    ///
-    /// # Panics
-    /// Panics if the `Move` contains incorrect information for the current `Board`.
-    ///
-    /// # Errors
-    /// This function will return an error if the `Move` is not allowed by the rules of chess.
-    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.history[self.depth + 1] = *self.state();
-        self.depth += 1;
-
-        self.apply_move(mv)
     }
 
     /// Restores the board to the previous state after the last move made.
@@ -139,7 +126,7 @@ impl Board {
         let capture = self.state().captured_piece;
 
         self.turn.reverse();
-        self.depth -= 1;
+        self.ply -= 1;
 
         self.hash_key.update_castling(self.state().castling);
         self.hash_key.update_en_passant(self.state().en_passant);
@@ -179,18 +166,13 @@ impl Board {
     /// Returns a reference to the current state of this `Board`.
     #[inline(always)]
     pub fn state(&self) -> &State {
-        &self.history[self.depth]
+        &self.history[self.ply]
     }
 
     /// Returns a mutable reference to the current state of this `Board`.
     #[inline(always)]
     pub fn state_mut(&mut self) -> &mut State {
-        &mut self.history[self.depth]
-    }
-
-    /// Returns the history depth of this `Board`.
-    pub fn depth(&self) -> usize {
-        self.depth
+        &mut self.history[self.ply]
     }
 
     /// Returns a `Bitboard` of `Piece` of the specified `Color`.
@@ -307,11 +289,11 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             turn: Default::default(),
-            depth: Default::default(),
+            ply: Default::default(),
             pieces: Default::default(),
             colors: Default::default(),
             hash_key: Default::default(),
-            history: [Default::default(); Self::MAX_SEARCH_DEPTH],
+            history: [Default::default(); Self::MAX_PLY],
         }
     }
 }
