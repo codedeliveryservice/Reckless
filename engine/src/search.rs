@@ -1,6 +1,8 @@
 mod killer_moves;
 mod mvv_lva;
 
+use std::time::{Duration, Instant};
+
 use self::killer_moves::KillerMoves;
 
 use crate::evaluation;
@@ -11,17 +13,12 @@ pub struct SearchResult {
     pub best_move: Move,
     pub score: Score,
     pub nodes: u32,
+    pub depth: u32,
+    pub time: Duration,
 }
 
-pub fn search(board: &mut Board, depth: u32) -> SearchResult {
-    let mut search_engine = InnerSearch::new(board);
-    let score = search_engine.perform_search(depth);
-
-    SearchResult {
-        best_move: search_engine.best_move,
-        nodes: search_engine.nodes,
-        score,
-    }
+pub fn search<F: Fn(SearchResult)>(board: &mut Board, depth: u32, callback: F) {
+    InnerSearch::new(board).perform_search(depth, callback);
 }
 
 struct InnerSearch<'a> {
@@ -43,8 +40,23 @@ impl<'a> InnerSearch<'a> {
         }
     }
 
-    fn perform_search(&mut self, depth: u32) -> Score {
-        self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth)
+    fn perform_search<F: Fn(SearchResult)>(&mut self, max_depth: u32, callback: F) {
+        for depth in 1..=max_depth {
+            self.nodes = 0;
+            self.best_move = Move::EMPTY;
+
+            let now = Instant::now();
+            let score = self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth);
+            let time = now.elapsed();
+
+            callback(SearchResult {
+                best_move: self.best_move,
+                nodes: self.nodes,
+                time,
+                depth,
+                score,
+            });
+        }
     }
 
     /// Implementation of minimax algorithm but instead of using two separate routines for the Min player

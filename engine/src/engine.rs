@@ -40,17 +40,19 @@ impl Engine {
     }
 
     pub fn search(&mut self, depth: u32) {
-        let now = std::time::Instant::now();
+        search::search(&mut self.board, depth, |result| {
+            let nps = result.nodes as f32 / result.time.as_secs_f32();
+            let ms = result.time.as_millis();
 
-        let result = search::search(&mut self.board, depth);
-        let nps = result.nodes as f32 / now.elapsed().as_secs_f32();
-        let ms = now.elapsed().as_millis();
+            println!(
+                "info depth {} score cp {} nodes {} time {} nps {:.0}",
+                result.depth, result.score, result.nodes, ms, nps
+            );
 
-        println!(
-            "info score cp {} depth {} nodes {} time {} nps {:.0}",
-            result.score, depth, result.nodes, ms, nps
-        );
-        println!("bestmove {}", result.best_move);
+            if result.depth == depth {
+                println!("bestmove {}", result.best_move);
+            }
+        });
     }
 
     pub fn eval(&self) {
