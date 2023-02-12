@@ -240,6 +240,19 @@ impl Board {
         self.remove_piece(piece, color, start);
     }
 
+    /// Returns `true` if the current position has already been present at least once
+    /// in the board's history.
+    /// 
+    /// This method does not count the number of encounters.
+    pub fn is_repetition(&self) -> bool {
+        for index in (0..self.ply).rev() {
+            if self.history[index].hash_key == self.state().hash_key {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Returns `true` if the king of the current turn color is in check.
     ///
     /// # Panics

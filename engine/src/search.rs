@@ -54,6 +54,10 @@ impl<'a> InnerSearch<'a> {
     ///
     /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
     fn negamax(&mut self, mut alpha: Score, beta: Score, mut depth: u32) -> Score {
+        if self.ply > 0 && self.board.is_repetition() {
+            return Score::ZERO;
+        }
+
         if depth == 0 {
             return self.quiescence(alpha, beta);
         }
