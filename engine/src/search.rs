@@ -10,7 +10,7 @@ use crate::evaluation;
 use game::{Board, Color, Move, MoveList, Score};
 
 pub struct SearchResult {
-    pub best_move: Move,
+    pub pv: Vec<Move>,
     pub score: Score,
     pub nodes: u32,
     pub depth: u32,
@@ -23,7 +23,6 @@ pub fn search<F: Fn(SearchResult)>(board: &mut Board, depth: u32, callback: F) {
 
 struct InnerSearch<'a> {
     board: &'a mut Board,
-    best_move: Move,
     nodes: u32,
     ply: usize,
     killers: KillerMoves<2>,
@@ -33,7 +32,6 @@ impl<'a> InnerSearch<'a> {
     fn new(board: &'a mut Board) -> Self {
         Self {
             board,
-            best_move: Move::EMPTY,
             nodes: Default::default(),
             ply: Default::default(),
             killers: KillerMoves::new(),
@@ -43,15 +41,16 @@ impl<'a> InnerSearch<'a> {
     fn perform_search<F: Fn(SearchResult)>(&mut self, max_depth: u32, callback: F) {
         for depth in 1..=max_depth {
             self.nodes = 0;
-            self.best_move = Move::EMPTY;
+
+            let mut pv = vec![];
 
             let now = Instant::now();
-            let score = self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth);
+            let score = self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth, &mut pv);
             let time = now.elapsed();
 
             callback(SearchResult {
-                best_move: self.best_move,
                 nodes: self.nodes,
+                pv,
                 time,
                 depth,
                 score,
@@ -65,7 +64,13 @@ impl<'a> InnerSearch<'a> {
     /// `max(a, b) == -min(-a, -b)`
     ///
     /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
-    fn negamax(&mut self, mut alpha: Score, beta: Score, mut depth: u32) -> Score {
+    fn negamax(
+        &mut self,
+        mut alpha: Score,
+        beta: Score,
+        mut depth: u32,
+        pv: &mut Vec<Move>,
+    ) -> Score {
         if self.ply > 0 && self.board.is_repetition() {
             return Score::ZERO;
         }
@@ -91,9 +96,11 @@ impl<'a> InnerSearch<'a> {
             }
 
             legal_moves += 1;
-
             self.ply += 1;
-            let score = -self.negamax(-beta, -alpha, depth - 1);
+
+            let mut child_pv = vec![];
+            let score = -self.negamax(-beta, -alpha, depth - 1, &mut child_pv);
+
             self.board.take_back();
             self.ply -= 1;
 
@@ -107,10 +114,9 @@ impl<'a> InnerSearch<'a> {
             if alpha < score {
                 alpha = score;
 
-                let is_root = self.ply == 0;
-                if is_root {
-                    self.best_move = mv;
-                }
+                pv.clear();
+                pv.push(mv);
+                pv.extend(&child_pv);
             }
         }
 

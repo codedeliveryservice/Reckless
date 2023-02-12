@@ -44,13 +44,18 @@ impl Engine {
             let nps = result.nodes as f32 / result.time.as_secs_f32();
             let ms = result.time.as_millis();
 
-            println!(
-                "info depth {} score cp {} nodes {} time {} nps {:.0}",
+            print!(
+                "info depth {} score cp {} nodes {} time {} nps {:.0} pv",
                 result.depth, result.score, result.nodes, ms, nps
             );
 
+            for mv in &result.pv {
+                print!(" {}", mv);
+            }
+            println!();
+
             if result.depth == depth {
-                println!("bestmove {}", result.best_move);
+                println!("bestmove {}", result.pv[0]);
             }
         });
     }
