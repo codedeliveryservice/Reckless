@@ -1,4 +1,5 @@
 use engine::Engine;
+use uci::{Parser, UciCommand};
 
 mod engine;
 mod evaluation;
@@ -8,16 +9,17 @@ mod uci;
 
 fn main() {
     let mut engine = Engine::new();
-    engine.set_position(Engine::START_FEN);
 
     loop {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer).unwrap();
 
-        if input.starts_with("quit") {
-            break;
+        if let Ok(command) = Parser::new(buffer).parse_command() {
+            if command == UciCommand::Quit {
+                break;
+            }
+
+            engine.execute(command);
         }
-
-        uci::execute_command(&mut engine, &input);
     }
 }
