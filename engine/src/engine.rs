@@ -1,6 +1,9 @@
 use game::Board;
 
-use crate::{evaluation, perft, search, uci::UciCommand};
+use crate::{
+    evaluation, perft, search,
+    uci::{self, UciCommand, UciMessage},
+};
 
 pub struct Engine {
     board: Board,
@@ -19,19 +22,14 @@ impl Engine {
     /// Executes `UciCommand` for this `Engine`.
     pub fn execute(&mut self, command: UciCommand) {
         match command {
-            UciCommand::Info => {
-                println!("id name Reckless");
-                println!("uciok");
-            }
-            UciCommand::IsReady => {
-                println!("readyok");
-            }
+            UciCommand::Info => uci::send(UciMessage::Info),
+            UciCommand::IsReady => uci::send(UciMessage::Ready),
 
-            UciCommand::Eval => self.eval(),
             UciCommand::NewGame => self.reset(),
             UciCommand::Search { depth } => self.search(depth),
             UciCommand::Perft { depth } => self.perft(depth),
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
+            UciCommand::Eval => uci::send(UciMessage::Eval(evaluation::evaluate(&self.board))),
 
             UciCommand::Stop | UciCommand::Quit => {}
         }
@@ -63,28 +61,7 @@ impl Engine {
     }
 
     pub fn search(&mut self, depth: u32) {
-        search::search(&mut self.board, depth, |result| {
-            let nps = result.nodes as f32 / result.time.as_secs_f32();
-            let ms = result.time.as_millis();
-
-            print!(
-                "info depth {} score cp {} nodes {} time {} nps {:.0} pv",
-                result.depth, result.score, result.nodes, ms, nps
-            );
-
-            for mv in &result.pv {
-                print!(" {}", mv);
-            }
-            println!();
-
-            if result.depth == depth {
-                println!("bestmove {}", result.pv[0]);
-            }
-        });
-    }
-
-    pub fn eval(&self) {
-        println!("evaluation {}", evaluation::evaluate(&self.board));
+        search::search(&mut self.board, depth);
     }
 
     pub fn perft(&mut self, depth: u32) {

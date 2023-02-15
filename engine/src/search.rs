@@ -1,24 +1,19 @@
 mod killer_moves;
 mod mvv_lva;
 
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use self::killer_moves::KillerMoves;
 
-use crate::evaluation;
+use crate::{
+    evaluation,
+    uci::{self, UciMessage},
+};
 
 use game::{Board, Color, Move, MoveList, Score};
 
-pub struct SearchResult {
-    pub pv: Vec<Move>,
-    pub score: Score,
-    pub nodes: u32,
-    pub depth: u32,
-    pub time: Duration,
-}
-
-pub fn search<F: Fn(SearchResult)>(board: &mut Board, depth: u32, callback: F) {
-    InnerSearch::new(board).perform_search(depth, callback);
+pub fn search(board: &mut Board, depth: u32) {
+    InnerSearch::new(board).perform_search(depth);
 }
 
 struct InnerSearch<'a> {
@@ -38,7 +33,7 @@ impl<'a> InnerSearch<'a> {
         }
     }
 
-    fn perform_search<F: Fn(SearchResult)>(&mut self, max_depth: u32, callback: F) {
+    fn perform_search(&mut self, max_depth: u32) {
         for depth in 1..=max_depth {
             self.nodes = 0;
 
@@ -46,15 +41,19 @@ impl<'a> InnerSearch<'a> {
 
             let now = Instant::now();
             let score = self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth, &mut pv);
-            let time = now.elapsed();
+            let duration = now.elapsed();
 
-            callback(SearchResult {
-                nodes: self.nodes,
-                pv,
-                time,
+            uci::send(UciMessage::SearchReport {
                 depth,
                 score,
+                duration,
+                pv: pv.to_vec(),
+                nodes: self.nodes,
             });
+
+            if depth == max_depth {
+                uci::send(UciMessage::BestMove(pv[0]));
+            }
         }
     }
 
