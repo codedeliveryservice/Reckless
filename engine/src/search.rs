@@ -1,5 +1,6 @@
 mod killer_moves;
 mod mvv_lva;
+mod ordering;
 
 use std::time::Instant;
 
@@ -10,7 +11,7 @@ use crate::{
     uci::{self, UciMessage},
 };
 
-use game::{Board, Color, Move, MoveList, Score};
+use game::{Board, Color, Move, Score};
 
 pub fn search(board: &mut Board, depth: u32) {
     InnerSearch::new(board).perform_search(depth);
@@ -88,7 +89,7 @@ impl<'a> InnerSearch<'a> {
 
         let mut legal_moves = 0;
 
-        let moves = self.sort_moves(self.board.generate_moves());
+        let moves = ordering::order_moves(self.board, &self.killers, self.ply);
         for mv in moves {
             if self.board.make_move(mv).is_err() {
                 continue;
@@ -156,7 +157,7 @@ impl<'a> InnerSearch<'a> {
             alpha = evaluation;
         }
 
-        let moves = self.sort_moves(self.board.generate_moves());
+        let moves = ordering::order_moves(self.board, &self.killers, self.ply);
         for mv in moves {
             if !mv.is_capture() || self.board.make_move(mv).is_err() {
                 continue;
@@ -175,37 +176,5 @@ impl<'a> InnerSearch<'a> {
         }
 
         alpha
-    }
-
-    fn sort_moves(&self, mut moves: MoveList) -> MoveList {
-        let mut scores = vec![0; moves.len()];
-        for index in 0..moves.len() {
-            scores[index] = self.score_move(moves[index]);
-        }
-
-        for current in 0..moves.len() {
-            for compared in (current + 1)..moves.len() {
-                if scores[current] < scores[compared] {
-                    scores.swap(current, compared);
-                    moves.swap(current, compared);
-                }
-            }
-        }
-
-        moves
-    }
-
-    /// Returns a move score based on heuristic analysis.
-    fn score_move(&self, mv: Move) -> u32 {
-        if mv.is_capture() {
-            return mvv_lva::score_mvv_lva(self.board, mv);
-        }
-
-        if self.killers.contains(mv, self.ply) {
-            // The quiet move score is rated below any capture move
-            return 90;
-        }
-
-        Default::default()
     }
 }
