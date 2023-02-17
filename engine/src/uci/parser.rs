@@ -54,7 +54,7 @@ impl Parser {
             }),
 
             "perft" => Ok(UciCommand::Perft {
-                depth: self.parse_token("depth", 5),
+                depth: self.parse_token("perft", 5),
             }),
 
             _ => Err(()),
