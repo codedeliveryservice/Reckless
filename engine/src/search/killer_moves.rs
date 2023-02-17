@@ -6,7 +6,7 @@ use game::Move;
 /// See [Killer Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
 /// for more information.
 pub struct KillerMoves<const SIZE: usize> {
-    moves: [Move; SIZE],
+    moves: [[Move; SIZE]; 64],
 }
 
 impl<const SIZE: usize> KillerMoves<SIZE> {
@@ -15,21 +15,21 @@ impl<const SIZE: usize> KillerMoves<SIZE> {
         assert!(SIZE >= 1);
 
         Self {
-            moves: [Default::default(); SIZE],
+            moves: [[Default::default(); SIZE]; 64],
         }
     }
 
     /// Prepends the `Move` to the list of killer moves.
-    pub fn add(&mut self, mv: Move) {
-        for index in 1..self.moves.len() {
-            self.moves[index] = self.moves[index - 1];
+    pub fn add(&mut self, mv: Move, ply: usize) {
+        for index in 1..self.moves[ply].len() {
+            self.moves[ply][index] = self.moves[ply][index - 1];
         }
 
-        self.moves[0] = mv;
+        self.moves[ply][0] = mv;
     }
 
     /// Returns `true` if `self` contains the specified killer `Move`.
-    pub fn contains(&self, mv: Move) -> bool {
-        self.moves.contains(&mv)
+    pub fn contains(&self, mv: Move, ply: usize) -> bool {
+        self.moves[ply].contains(&mv)
     }
 }

@@ -105,7 +105,11 @@ impl<'a> InnerSearch<'a> {
 
             // Perform a fail-hard beta cutoff
             if score >= beta {
-                self.killers.add(mv);
+                // The killer heuristic is intended only for ordering quiet moves
+                if mv.is_quiet() {
+                    self.killers.add(mv, self.ply);
+                }
+
                 return beta;
             }
 
@@ -197,7 +201,7 @@ impl<'a> InnerSearch<'a> {
             return mvv_lva::score_mvv_lva(self.board, mv);
         }
 
-        if self.killers.contains(mv) {
+        if self.killers.contains(mv, self.ply) {
             // The quiet move score is rated below any capture move
             return 90;
         }
