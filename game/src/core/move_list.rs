@@ -17,7 +17,7 @@ impl MoveList {
     #[inline(always)]
     pub(crate) fn new() -> Self {
         Self {
-            data: [Move::EMPTY; Self::MAX_MOVES],
+            data: [Default::default(); Self::MAX_MOVES],
             index: 0,
         }
     }

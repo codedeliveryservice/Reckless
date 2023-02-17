@@ -4,7 +4,7 @@ use super::{Piece, Square};
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
 ///
 /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
@@ -34,15 +34,13 @@ pub enum MoveKind {
 }
 
 impl Move {
-    const START_MASK: u16 = 0b0000_0000_0011_1111;
-    const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
-
-    pub const EMPTY: Self = Self(0);
-
     pub const WHITE_SHORT_CASTLING: Self = Self(0b0010_0001_1000_0100);
     pub const WHITE_LONG_CASTLING: Self = Self(0b0011_0000_1000_0100);
     pub const BLACK_SHORT_CASTLING: Self = Self(0b0010_1111_1011_1100);
     pub const BLACK_LONG_CASTLING: Self = Self(0b0011_1110_1011_1100);
+
+    const START_MASK: u16 = 0b0000_0000_0011_1111;
+    const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 
     /// Creates a new `Move`.
     #[inline(always)]
@@ -72,6 +70,12 @@ impl Move {
     #[inline(always)]
     pub const fn is_capture(self) -> bool {
         (self.0 >> 14) & 1 != 0
+    }
+
+    /// Returns `true` if the current move is quiet.
+    #[inline(always)]
+    pub const fn is_quiet(self) -> bool {
+        (self.0 >> 14) & 1 == 0
     }
 
     /// Returns `true` if the current move is a pawn promotion.

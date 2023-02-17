@@ -15,7 +15,7 @@ impl<const SIZE: usize> KillerMoves<SIZE> {
         assert!(SIZE >= 1);
 
         Self {
-            moves: [Move::EMPTY; SIZE],
+            moves: [Default::default(); SIZE],
         }
     }
 
