@@ -2,7 +2,7 @@ use game::{Board, Move, MoveList};
 
 use super::{killer_moves::KillerMoves, mvv_lva};
 
-pub fn order_moves(board: &mut Board, killers: &KillerMoves<2>, ply: usize) -> MoveList {
+pub fn order_moves(board: &mut Board, killers: &KillerMoves, ply: usize) -> MoveList {
     let mut moves = board.generate_moves();
 
     let mut scores = vec![0; moves.len()];
@@ -23,7 +23,7 @@ pub fn order_moves(board: &mut Board, killers: &KillerMoves<2>, ply: usize) -> M
 }
 
 /// Returns a move score based on heuristic analysis.
-fn score_move(board: &Board, mv: Move, killers: &KillerMoves<2>, ply: usize) -> u32 {
+fn score_move(board: &Board, mv: Move, killers: &KillerMoves, ply: usize) -> u32 {
     if mv.is_capture() {
         return mvv_lva::score_mvv_lva(board, mv);
     }

@@ -21,7 +21,7 @@ struct InnerSearch<'a> {
     board: &'a mut Board,
     nodes: u32,
     ply: usize,
-    killers: KillerMoves<2>,
+    killers: KillerMoves,
 }
 
 impl<'a> InnerSearch<'a> {
