@@ -1,6 +1,6 @@
-use game::{Move, Score};
+use game::Score;
 
-use super::{SearchParams, SearchThread, quiescence, ordering};
+use super::{ordering, quiescence, SearchParams, SearchThread};
 
 /// Implementation of minimax algorithm but instead of using two separate routines for the Min player
 /// and the Max player, it passes on the negated score due to following mathematical relationship:
@@ -8,7 +8,9 @@ use super::{SearchParams, SearchThread, quiescence, ordering};
 /// `max(a, b) == -min(-a, -b)`
 ///
 /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
-pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread, pv: &mut Vec<Move>) -> Score {
+pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
+    thread.pv_length[p.ply] = p.ply;
+
     if p.ply > 0 && p.board.is_repetition() {
         return Score::ZERO;
     }
@@ -36,9 +38,8 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread, pv: &mut V
         legal_moves += 1;
         p.ply += 1;
 
-        let mut child_pv = vec![];
         let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth - 1, p.ply);
-        let score = -negamax_search(child_params, thread, &mut child_pv);
+        let score = -negamax_search(child_params, thread);
 
         p.board.take_back();
         p.ply -= 1;
@@ -57,9 +58,13 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread, pv: &mut V
         if score > p.alpha {
             p.alpha = score;
 
-            pv.clear();
-            pv.push(mv);
-            pv.extend(&child_pv);
+            thread.pv_table[p.ply][p.ply] = mv;
+
+            for index in (p.ply + 1)..thread.pv_length[p.ply + 1] {
+                thread.pv_table[p.ply][index] = thread.pv_table[p.ply + 1][index];
+            }
+
+            thread.pv_length[p.ply] = thread.pv_length[p.ply + 1];
         }
     }
 

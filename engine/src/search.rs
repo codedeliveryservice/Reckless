@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use game::{Board, Score};
+use game::{Board, Move, Score};
 
 use self::killer_moves::KillerMoves;
 use crate::uci::{self, UciMessage};
@@ -14,6 +14,8 @@ mod quiescence;
 pub struct SearchThread {
     nodes: u32,
     killers: KillerMoves,
+    pv_length: [usize; 64],
+    pv_table: [[Move; 64]; 64],
 }
 
 impl SearchThread {
@@ -21,6 +23,8 @@ impl SearchThread {
         Self {
             nodes: Default::default(),
             killers: KillerMoves::new(),
+            pv_length: [Default::default(); 64],
+            pv_table: [[Default::default(); 64]; 64],
         }
     }
 }
@@ -53,11 +57,19 @@ pub fn search(board: &mut Board, depth: u32) {
 
         let now = Instant::now();
 
-        let mut pv = vec![];
         let p = SearchParams::new(board, Score::NEGATIVE_INFINITY, Score::INFINITY, current, 0);
-        let score = negamax::negamax_search(p, &mut thread, &mut pv);
+        let score = negamax::negamax_search(p, &mut thread);
 
         let duration = now.elapsed();
+
+        let mut pv = vec![];
+        for mv in thread.pv_table[0] {
+            if mv == Default::default() {
+                break;
+            }
+
+            pv.push(mv);
+        }
 
         uci::send(UciMessage::SearchReport {
             depth: current,
