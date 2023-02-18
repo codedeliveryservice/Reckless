@@ -1,13 +1,13 @@
-use game::{Board, Move, MoveList};
+use game::{Move, MoveList};
 
-use super::{killer_moves::KillerMoves, mvv_lva};
+use super::{mvv_lva, SearchParams, SearchThread};
 
-pub fn order_moves(board: &mut Board, killers: &KillerMoves, ply: usize) -> MoveList {
-    let mut moves = board.generate_moves();
+pub fn order_moves(p: &SearchParams, thread: &SearchThread) -> MoveList {
+    let mut moves = p.board.generate_moves();
 
     let mut scores = vec![0; moves.len()];
     for index in 0..moves.len() {
-        scores[index] = score_move(board, moves[index], killers, ply);
+        scores[index] = score_move(moves[index], p, thread);
     }
 
     for current in 0..moves.len() {
@@ -23,12 +23,12 @@ pub fn order_moves(board: &mut Board, killers: &KillerMoves, ply: usize) -> Move
 }
 
 /// Returns a move score based on heuristic analysis.
-fn score_move(board: &Board, mv: Move, killers: &KillerMoves, ply: usize) -> u32 {
+fn score_move(mv: Move, p: &SearchParams, thread: &SearchThread) -> u32 {
     if mv.is_capture() {
-        return mvv_lva::score_mvv_lva(board, mv);
+        return mvv_lva::score_mvv_lva(p.board, mv);
     }
 
-    if killers.contains(mv, ply) {
+    if thread.killers.contains(mv, p.ply) {
         // The quiet move score is rated below any capture move
         return 90;
     }

@@ -1,180 +1,74 @@
-mod killer_moves;
-mod mvv_lva;
-mod ordering;
-
 use std::time::Instant;
 
+use game::{Board, Score};
+
 use self::killer_moves::KillerMoves;
+use crate::uci::{self, UciMessage};
 
-use crate::{
-    evaluation,
-    uci::{self, UciMessage},
-};
+mod killer_moves;
+mod mvv_lva;
+mod negamax;
+mod ordering;
+mod quiescence;
 
-use game::{Board, Color, Move, Score};
-
-pub fn search(board: &mut Board, depth: u32) {
-    InnerSearch::new(board).perform_search(depth);
-}
-
-struct InnerSearch<'a> {
-    board: &'a mut Board,
+pub struct SearchThread {
     nodes: u32,
-    ply: usize,
     killers: KillerMoves,
 }
 
-impl<'a> InnerSearch<'a> {
-    fn new(board: &'a mut Board) -> Self {
+impl SearchThread {
+    fn new() -> Self {
         Self {
-            board,
             nodes: Default::default(),
-            ply: Default::default(),
             killers: KillerMoves::new(),
         }
     }
+}
 
-    fn perform_search(&mut self, max_depth: u32) {
-        for depth in 1..=max_depth {
-            self.nodes = 0;
+pub struct SearchParams<'a> {
+    board: &'a mut Board,
+    alpha: Score,
+    beta: Score,
+    depth: u32,
+    ply: usize,
+}
 
-            let mut pv = vec![];
-
-            let now = Instant::now();
-            let score = self.negamax(Score::NEGATIVE_INFINITY, Score::INFINITY, depth, &mut pv);
-            let duration = now.elapsed();
-
-            uci::send(UciMessage::SearchReport {
-                depth,
-                score,
-                duration,
-                pv: pv.to_vec(),
-                nodes: self.nodes,
-            });
-
-            if depth == max_depth {
-                uci::send(UciMessage::BestMove(pv[0]));
-            }
+impl<'a> SearchParams<'a> {
+    pub fn new(board: &'a mut Board, alpha: Score, beta: Score, depth: u32, ply: usize) -> Self {
+        Self {
+            board,
+            alpha,
+            beta,
+            depth,
+            ply,
         }
     }
+}
 
-    /// Implementation of minimax algorithm but instead of using two separate routines for the Min player
-    /// and the Max player, it passes on the negated score due to following mathematical relationship:
-    ///
-    /// `max(a, b) == -min(-a, -b)`
-    ///
-    /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
-    fn negamax(
-        &mut self,
-        mut alpha: Score,
-        beta: Score,
-        mut depth: u32,
-        pv: &mut Vec<Move>,
-    ) -> Score {
-        if self.ply > 0 && self.board.is_repetition() {
-            return Score::ZERO;
+pub fn search(board: &mut Board, depth: u32) {
+    let mut thread = SearchThread::new();
+
+    for current in 1..=depth {
+        thread.nodes = 0;
+
+        let now = Instant::now();
+
+        let mut pv = vec![];
+        let p = SearchParams::new(board, Score::NEGATIVE_INFINITY, Score::INFINITY, current, 0);
+        let score = negamax::negamax_search(p, &mut thread, &mut pv);
+
+        let duration = now.elapsed();
+
+        uci::send(UciMessage::SearchReport {
+            depth: current,
+            score,
+            duration,
+            pv: pv.to_vec(),
+            nodes: thread.nodes,
+        });
+
+        if current == depth {
+            uci::send(UciMessage::BestMove(pv[0]));
         }
-
-        if depth == 0 {
-            return self.quiescence(alpha, beta);
-        }
-
-        self.nodes += 1;
-
-        // Increase search depth if king is in check
-        let in_check = self.board.is_in_check();
-        if in_check {
-            depth += 1;
-        }
-
-        let mut legal_moves = 0;
-
-        let moves = ordering::order_moves(self.board, &self.killers, self.ply);
-        for mv in moves {
-            if self.board.make_move(mv).is_err() {
-                continue;
-            }
-
-            legal_moves += 1;
-            self.ply += 1;
-
-            let mut child_pv = vec![];
-            let score = -self.negamax(-beta, -alpha, depth - 1, &mut child_pv);
-
-            self.board.take_back();
-            self.ply -= 1;
-
-            // Perform a fail-hard beta cutoff
-            if score >= beta {
-                // The killer heuristic is intended only for ordering quiet moves
-                if mv.is_quiet() {
-                    self.killers.add(mv, self.ply);
-                }
-
-                return beta;
-            }
-
-            // Found a better move that maximizes alpha
-            if alpha < score {
-                alpha = score;
-
-                pv.clear();
-                pv.push(mv);
-                pv.extend(&child_pv);
-            }
-        }
-
-        if legal_moves == 0 {
-            return match in_check {
-                // Since negamax evaluates positions from the point of view of the maximizing player,
-                // we choose the longest path to checkmate by adding the depth (maximizing the score)
-                true => Score::CHECKMATE + self.ply as i32,
-                false => Score::STALEMATE,
-            };
-        }
-
-        alpha
-    }
-
-    /// Quiescence search evaluates only quiet positions, which prevents the horizon effect.
-    ///
-    /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
-    /// for more information.
-    fn quiescence(&mut self, mut alpha: Score, beta: Score) -> Score {
-        self.nodes += 1;
-
-        // Negamax requires the static evaluation function to return a score relative to the side being evaluated
-        let evaluation = match self.board.turn {
-            Color::White => evaluation::evaluate(self.board),
-            Color::Black => -evaluation::evaluate(self.board),
-        };
-
-        if evaluation >= beta {
-            return beta;
-        }
-
-        if alpha < evaluation {
-            alpha = evaluation;
-        }
-
-        let moves = ordering::order_moves(self.board, &self.killers, self.ply);
-        for mv in moves {
-            if !mv.is_capture() || self.board.make_move(mv).is_err() {
-                continue;
-            }
-
-            let score = -self.quiescence(-beta, -alpha);
-            self.board.take_back();
-
-            if score >= beta {
-                return beta;
-            }
-
-            if alpha < score {
-                alpha = score;
-            }
-        }
-
-        alpha
     }
 }
