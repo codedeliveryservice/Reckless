@@ -243,7 +243,7 @@ impl Board {
 
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
-    /// 
+    ///
     /// This method does not count the number of encounters.
     pub fn is_repetition(&self) -> bool {
         for index in (0..self.ply).rev() {

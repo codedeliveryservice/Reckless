@@ -17,7 +17,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
 
     thread.nodes += 1;
 
-    let evaluation = evaluate_statically(&p.board);
+    let evaluation = evaluate_statically(p.board);
 
     if evaluation >= p.beta {
         return p.beta;
