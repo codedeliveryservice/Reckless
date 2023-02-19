@@ -4,7 +4,9 @@ use std::thread;
 use game::Board;
 
 use crate::uci::{self, UciCommand, UciMessage};
-use crate::{evaluation, perft, search};
+use crate::{evaluation, search};
+
+mod perft;
 
 pub struct Engine {
     board: Board,

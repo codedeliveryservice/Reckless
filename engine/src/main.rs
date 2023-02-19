@@ -3,7 +3,6 @@ use uci::{Parser, UciCommand};
 
 mod engine;
 mod evaluation;
-mod perft;
 mod search;
 mod uci;
 
