@@ -1,3 +1,4 @@
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use game::{Board, Move, Score};
@@ -12,6 +13,7 @@ mod ordering;
 mod quiescence;
 
 pub struct SearchThread {
+    terminator: Arc<RwLock<bool>>,
     nodes: u32,
     killers: KillerMoves,
     pv_length: [usize; 64],
@@ -19,8 +21,9 @@ pub struct SearchThread {
 }
 
 impl SearchThread {
-    fn new() -> Self {
+    fn new(terminator: Arc<RwLock<bool>>) -> Self {
         Self {
+            terminator,
             nodes: Default::default(),
             killers: KillerMoves::new(),
             pv_length: [Default::default(); 64],
@@ -49,8 +52,9 @@ impl<'a> SearchParams<'a> {
     }
 }
 
-pub fn search(board: &mut Board, depth: u32) {
-    let mut thread = SearchThread::new();
+pub fn search(board: &mut Board, terminator: Arc<RwLock<bool>>, depth: u32) {
+    let mut thread = SearchThread::new(terminator);
+    let mut last_best = Default::default();
 
     for current in 1..=depth {
         thread.nodes = 0;
@@ -63,13 +67,18 @@ pub fn search(board: &mut Board, depth: u32) {
         let duration = now.elapsed();
 
         let mut pv = vec![];
-        for mv in thread.pv_table[0] {
-            if mv == Default::default() {
-                break;
-            }
-
-            pv.push(mv);
+        let mut index = 0;
+        while thread.pv_table[0][index] != Default::default() {
+            pv.push(thread.pv_table[0][index]);
+            index += 1;
         }
+
+        if *thread.terminator.read().unwrap() {
+            uci::send(UciMessage::BestMove(last_best));
+            return;
+        }
+
+        last_best = pv[0];
 
         uci::send(UciMessage::SearchReport {
             depth: current,
@@ -80,7 +89,7 @@ pub fn search(board: &mut Board, depth: u32) {
         });
 
         if current == depth {
-            uci::send(UciMessage::BestMove(pv[0]));
+            uci::send(UciMessage::BestMove(last_best));
         }
     }
 }

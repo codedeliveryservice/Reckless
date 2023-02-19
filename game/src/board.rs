@@ -8,6 +8,7 @@ mod fen;
 mod generator;
 
 /// Data structure representing the board and the location of its pieces.
+#[derive(Clone)]
 pub struct Board {
     pub turn: Color,
     pub hash_key: Zobrist,

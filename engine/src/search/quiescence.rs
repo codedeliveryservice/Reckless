@@ -11,6 +11,10 @@ use crate::evaluation;
 /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
 /// for more information.
 pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
+    if thread.nodes % 4096 == 0 && *thread.terminator.read().unwrap() {
+        return Score::INVALID;
+    }
+
     thread.nodes += 1;
 
     let evaluation = evaluate_statically(&p.board);

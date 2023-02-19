@@ -9,6 +9,10 @@ use super::{ordering, quiescence, SearchParams, SearchThread};
 ///
 /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
 pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
+    if thread.nodes % 4096 == 0 && *thread.terminator.read().unwrap() {
+        return Score::INVALID;
+    }
+
     thread.pv_length[p.ply] = p.ply;
 
     if p.ply > 0 && p.board.is_repetition() {

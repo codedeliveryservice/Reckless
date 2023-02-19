@@ -1,12 +1,14 @@
+use std::sync::{Arc, RwLock};
+use std::thread;
+
 use game::Board;
 
-use crate::{
-    evaluation, perft, search,
-    uci::{self, UciCommand, UciMessage},
-};
+use crate::uci::{self, UciCommand, UciMessage};
+use crate::{evaluation, perft, search};
 
 pub struct Engine {
     board: Board,
+    terminator: Arc<RwLock<bool>>,
 }
 
 impl Engine {
@@ -16,6 +18,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::new(Self::START_FEN).unwrap(),
+            terminator: Default::default(),
         }
     }
 
@@ -29,9 +32,9 @@ impl Engine {
             UciCommand::Search { depth } => self.search(depth),
             UciCommand::Perft { depth } => self.perft(depth),
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
-            UciCommand::Eval => uci::send(UciMessage::Eval(evaluation::evaluate(&self.board))),
+            UciCommand::Eval => self.evaluate(),
 
-            UciCommand::Stop | UciCommand::Quit => {}
+            UciCommand::Stop | UciCommand::Quit => self.set_terminator(true),
         }
     }
 
@@ -58,13 +61,32 @@ impl Engine {
     /// Resets the `Engine` to its original state.
     fn reset(&mut self) {
         self.board = Board::new(Self::START_FEN).unwrap();
+        self.set_terminator(false);
     }
 
-    pub fn search(&mut self, depth: u32) {
-        search::search(&mut self.board, depth);
+    /// Sets the state of the terminator. If set to `true`, the current search will
+    /// be stopped as soon as possible.
+    fn set_terminator(&mut self, is_set: bool) {
+        *self.terminator.write().unwrap() = is_set;
     }
 
-    pub fn perft(&mut self, depth: u32) {
+    /// Runs an iterative deepening search on a separate thread.
+    fn search(&mut self, depth: u32) {
+        self.set_terminator(false);
+
+        let mut board = self.board.clone();
+        let terminator = self.terminator.clone();
+
+        thread::spawn(move || search::search(&mut board, terminator, depth));
+    }
+
+    /// Runs a node enumeration performance test for the current position.
+    fn perft(&mut self, depth: u32) {
         perft::run(depth, &mut self.board);
+    }
+
+    /// Statically evaluates the current position and sends a UCI report.
+    fn evaluate(&self) {
+        uci::send(UciMessage::Eval(evaluation::evaluate(&self.board)));
     }
 }
