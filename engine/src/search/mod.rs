@@ -12,7 +12,11 @@ mod negamax;
 mod ordering;
 mod quiescence;
 
+pub mod time_control;
+pub use time_control::*;
+
 pub struct SearchThread {
+    tc: TimeControl,
     terminator: Arc<RwLock<bool>>,
     nodes: u32,
     killers: KillerMoves,
@@ -21,14 +25,25 @@ pub struct SearchThread {
 }
 
 impl SearchThread {
-    fn new(terminator: Arc<RwLock<bool>>) -> Self {
+    pub fn new(tc: TimeControl, terminator: Arc<RwLock<bool>>) -> Self {
         Self {
+            tc,
             terminator,
             nodes: Default::default(),
             killers: KillerMoves::new(),
             pv_length: [Default::default(); 64],
             pv_table: [[Default::default(); 64]; 64],
         }
+    }
+
+    #[inline(always)]
+    pub fn requested_termination(&self) -> bool {
+        *self.terminator.read().unwrap()
+    }
+
+    #[inline(always)]
+    pub fn check_on(&self) -> bool {
+        self.nodes % 4096 == 0 && (self.tc.is_time_over() || self.requested_termination())
     }
 }
 
@@ -52,44 +67,36 @@ impl<'a> SearchParams<'a> {
     }
 }
 
-pub fn search(board: &mut Board, terminator: Arc<RwLock<bool>>, depth: u32) {
-    let mut thread = SearchThread::new(terminator);
+pub fn search(board: &mut Board, mut thread: SearchThread) {
     let mut last_best = Default::default();
 
-    for current in 1..=depth {
+    for depth in 1..=thread.tc.max_depth {
         thread.nodes = 0;
 
         let now = Instant::now();
-
-        let p = SearchParams::new(board, Score::NEGATIVE_INFINITY, Score::INFINITY, current, 0);
-        let score = negamax::negamax_search(p, &mut thread);
-
+        let params = SearchParams::new(board, Score::NEGATIVE_INFINITY, Score::INFINITY, depth, 0);
+        let score = negamax::negamax_search(params, &mut thread);
         let duration = now.elapsed();
 
-        let mut pv = vec![];
-        let mut index = 0;
-        while thread.pv_table[0][index] != Default::default() {
-            pv.push(thread.pv_table[0][index]);
-            index += 1;
-        }
-
-        if *thread.terminator.read().unwrap() {
+        if thread.tc.is_time_over() || thread.requested_termination() {
             uci::send(UciMessage::BestMove(last_best));
             return;
         }
 
-        last_best = pv[0];
+        last_best = thread.pv_table[0][0];
 
         uci::send(UciMessage::SearchReport {
-            depth: current,
+            depth,
             score,
             duration,
-            pv: pv.to_vec(),
+            pv: &thread.pv_table[0][..thread.pv_length[0]],
             nodes: thread.nodes,
         });
 
-        if current == depth {
-            uci::send(UciMessage::BestMove(last_best));
+        if !thread.tc.exactly && !thread.tc.can_search_deeper(duration) {
+            break;
         }
     }
+
+    uci::send(UciMessage::BestMove(last_best));
 }

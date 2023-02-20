@@ -1,10 +1,11 @@
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use game::Board;
+use game::{Board, Color};
 
+use crate::evaluation;
+use crate::search::{self, SearchThread, TimeControl};
 use crate::uci::{self, UciCommand, UciMessage};
-use crate::{evaluation, search};
 
 mod perft;
 
@@ -31,12 +32,24 @@ impl Engine {
             UciCommand::IsReady => uci::send(UciMessage::Ready),
 
             UciCommand::NewGame => self.reset(),
-            UciCommand::Search { depth } => self.search(depth),
             UciCommand::Perft { depth } => self.perft(depth),
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
             UciCommand::Eval => self.evaluate(),
 
             UciCommand::Stop | UciCommand::Quit => self.set_terminator(true),
+
+            UciCommand::Search {
+                white_time,
+                black_time,
+                white_inc,
+                black_inc,
+                moves,
+                movetime,
+                depth,
+            } => match self.board.turn {
+                Color::White => self.search(white_time, white_inc, moves, movetime, depth),
+                Color::Black => self.search(black_time, black_inc, moves, movetime, depth),
+            },
         }
     }
 
@@ -73,13 +86,24 @@ impl Engine {
     }
 
     /// Runs an iterative deepening search on a separate thread.
-    fn search(&mut self, depth: u32) {
+    fn search(
+        &mut self,
+        main: Option<u32>,
+        inc: Option<u32>,
+        moves: Option<u32>,
+        movetime: Option<u32>,
+        depth: Option<u32>,
+    ) {
         self.set_terminator(false);
 
         let mut board = self.board.clone();
         let terminator = self.terminator.clone();
 
-        thread::spawn(move || search::search(&mut board, terminator, depth));
+        thread::spawn(move || {
+            let tc = TimeControl::generate(main, inc, moves, movetime, depth);
+            let thread = SearchThread::new(tc, terminator);
+            search::search(&mut board, thread);
+        });
     }
 
     /// Runs a node enumeration performance test for the current position.

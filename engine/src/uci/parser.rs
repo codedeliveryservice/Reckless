@@ -50,7 +50,13 @@ impl Parser {
             }
 
             "go" => Ok(UciCommand::Search {
-                depth: self.parse_token("depth", 6),
+                white_time: self.try_parse_token("wtime"),
+                black_time: self.try_parse_token("btime"),
+                white_inc: self.try_parse_token("winc"),
+                black_inc: self.try_parse_token("binc"),
+                moves: self.try_parse_token("movestogo"),
+                movetime: self.try_parse_token("movetime"),
+                depth: self.try_parse_token("depth"),
             }),
 
             "perft" => Ok(UciCommand::Perft {

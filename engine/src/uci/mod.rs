@@ -18,22 +18,35 @@ pub enum UciCommand {
     Info,
     IsReady,
     NewGame,
-    Search { depth: u32 },
-    Perft { depth: u32 },
-    Position { fen: String, moves: Vec<String> },
+    Search {
+        white_time: Option<u32>,
+        black_time: Option<u32>,
+        white_inc: Option<u32>,
+        black_inc: Option<u32>,
+        moves: Option<u32>,
+        movetime: Option<u32>,
+        depth: Option<u32>,
+    },
+    Perft {
+        depth: u32,
+    },
+    Position {
+        fen: String,
+        moves: Vec<String>,
+    },
     Eval,
     Stop,
     Quit,
 }
 
 /// Represents a message sent from `Engine` to `GUI`.
-pub enum UciMessage {
+pub enum UciMessage<'a> {
     Info,
     Ready,
     Eval(Score),
     BestMove(Move),
     SearchReport {
-        pv: Vec<Move>,
+        pv: &'a [Move],
         depth: u32,
         score: Score,
         nodes: u32,

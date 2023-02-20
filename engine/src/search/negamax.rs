@@ -9,7 +9,7 @@ use super::{ordering, quiescence, SearchParams, SearchThread};
 ///
 /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
 pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
-    if thread.nodes % 4096 == 0 && *thread.terminator.read().unwrap() {
+    if thread.check_on() {
         return Score::INVALID;
     }
 
