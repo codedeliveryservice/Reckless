@@ -37,6 +37,15 @@ impl SearchThread {
     }
 
     #[inline(always)]
+    pub fn update_pv(&mut self, ply: usize, mv: Move) {
+        self.pv_table[ply][ply] = mv;
+        for index in (ply + 1)..self.pv_length[ply + 1] {
+            self.pv_table[ply][index] = self.pv_table[ply + 1][index];
+        }
+        self.pv_length[ply] = self.pv_length[ply + 1];
+    }
+
+    #[inline(always)]
     pub fn requested_termination(&self) -> bool {
         *self.terminator.read().unwrap()
     }

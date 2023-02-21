@@ -34,7 +34,7 @@ impl TimeControl {
     /// makes it impractical to start a new search.
     #[inline(always)]
     pub fn can_search_deeper(&self, last_duration: Duration) -> bool {
-        assert_eq!(self.exactly, false);
+        assert!(!self.exactly);
 
         let time_left = self.stop_time - Instant::now();
         let prediction = last_duration * Self::ESTIMATED_BRANCHING_FACTOR;
@@ -75,7 +75,7 @@ fn get_stop_time(
     movetime: Option<u32>,
     depth: Option<u32>,
 ) -> Instant {
-    if let Some(_) = depth {
+    if depth.is_some() {
         return Instant::now() + Duration::from_millis(INFINITE_TIME_MS);
     }
 
@@ -103,7 +103,7 @@ fn indemnify(mut time: u32) -> u32 {
     }
 
     // Ensure that there is time for at least one search to avoid sending an empty-move
-    if time <= 0 {
+    if time == 0 {
         time = 1;
     }
 
