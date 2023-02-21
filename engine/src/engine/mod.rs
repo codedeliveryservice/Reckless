@@ -92,7 +92,7 @@ impl Engine {
         inc: Option<u32>,
         moves: Option<u32>,
         movetime: Option<u32>,
-        depth: Option<u32>,
+        depth: Option<usize>,
     ) {
         self.set_terminator(false);
 
@@ -107,7 +107,7 @@ impl Engine {
     }
 
     /// Runs a node enumeration performance test for the current position.
-    fn perft(&mut self, depth: u32) {
+    fn perft(&mut self, depth: usize) {
         perft::run(depth, &mut self.board);
     }
 

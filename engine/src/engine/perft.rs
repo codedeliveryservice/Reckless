@@ -9,7 +9,7 @@ use game::Board;
 
 /// Runs a performance test on the `Board` with the specified depth.
 #[rustfmt::skip]
-pub fn run(depth: u32, board: &mut Board) -> u64 {
+pub fn run(depth: usize, board: &mut Board) -> u64 {
     println!("{}", "-".repeat(60));
     println!("{:>12} {:>12} {:>13} {:>15}", "Move", "Nodes", "Elapsed", "NPS");
     println!("{}", "-".repeat(60));
@@ -49,7 +49,7 @@ pub fn run(depth: u32, board: &mut Board) -> u64 {
 }
 
 #[inline(always)]
-fn perft(depth: u32, board: &mut Board) -> u64 {
+fn perft(depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;
     }

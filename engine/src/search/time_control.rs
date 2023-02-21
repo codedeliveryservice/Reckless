@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 pub struct TimeControl {
     pub exactly: bool,
-    pub max_depth: u32,
+    pub max_depth: usize,
     pub stop_time: Instant,
 }
 
@@ -15,7 +15,7 @@ impl TimeControl {
         inc: Option<u32>,
         moves: Option<u32>,
         movetime: Option<u32>,
-        depth: Option<u32>,
+        depth: Option<usize>,
     ) -> Self {
         Self {
             exactly: movetime.is_some(),
@@ -54,12 +54,12 @@ const TIME_MARGIN_MS: u32 = 25;
 const INFINITE_TIME_MS: u64 = 1000 * 60 * 60 * 24 * 365;
 
 /// Diving to a depth of 64 will take years, so it's considered infinite.
-const INFINITE_DEPTH: u32 = 64;
+const INFINITE_DEPTH: usize = 64;
 
 /// Returns the maximum `depth` for the current `TimeControl`. The depth value
 /// can take the specified value or infinity if no depth limit is specified.
 #[inline(always)]
-fn get_max_depth(depth: Option<u32>) -> u32 {
+fn get_max_depth(depth: Option<usize>) -> usize {
     match depth {
         Some(value) => value,
         None => INFINITE_DEPTH,
@@ -73,7 +73,7 @@ fn get_stop_time(
     inc: Option<u32>,
     moves: Option<u32>,
     movetime: Option<u32>,
-    depth: Option<u32>,
+    depth: Option<usize>,
 ) -> Instant {
     if depth.is_some() {
         return Instant::now() + Duration::from_millis(INFINITE_TIME_MS);

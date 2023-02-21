@@ -60,12 +60,12 @@ pub struct SearchParams<'a> {
     board: &'a mut Board,
     alpha: Score,
     beta: Score,
-    depth: u32,
+    depth: usize,
     ply: usize,
 }
 
 impl<'a> SearchParams<'a> {
-    pub fn new(board: &'a mut Board, alpha: Score, beta: Score, depth: u32, ply: usize) -> Self {
+    pub fn new(board: &'a mut Board, alpha: Score, beta: Score, depth: usize, ply: usize) -> Self {
         Self {
             board,
             alpha,

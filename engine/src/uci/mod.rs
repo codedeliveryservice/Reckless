@@ -25,10 +25,10 @@ pub enum UciCommand {
         black_inc: Option<u32>,
         moves: Option<u32>,
         movetime: Option<u32>,
-        depth: Option<u32>,
+        depth: Option<usize>,
     },
     Perft {
-        depth: u32,
+        depth: usize,
     },
     Position {
         fen: String,
@@ -47,7 +47,7 @@ pub enum UciMessage<'a> {
     BestMove(Move),
     SearchReport {
         pv: &'a [Move],
-        depth: u32,
+        depth: usize,
         score: Score,
         nodes: u32,
         duration: Duration,
