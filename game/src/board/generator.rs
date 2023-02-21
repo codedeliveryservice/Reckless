@@ -183,17 +183,17 @@ impl<'a> InnerGenerator<'a> {
 
     #[inline(always)]
     fn add_promotions(&mut self, start: Square, target: Square) {
-        self.list.add(start, target, MoveKind::PromotionN);
-        self.list.add(start, target, MoveKind::PromotionB);
-        self.list.add(start, target, MoveKind::PromotionR);
         self.list.add(start, target, MoveKind::PromotionQ);
+        self.list.add(start, target, MoveKind::PromotionR);
+        self.list.add(start, target, MoveKind::PromotionB);
+        self.list.add(start, target, MoveKind::PromotionN);
     }
 
     #[inline(always)]
     fn add_promotion_captures(&mut self, start: Square, target: Square) {
-        self.list.add(start, target, MoveKind::PromotionCaptureN);
-        self.list.add(start, target, MoveKind::PromotionCaptureB);
-        self.list.add(start, target, MoveKind::PromotionCaptureR);
         self.list.add(start, target, MoveKind::PromotionCaptureQ);
+        self.list.add(start, target, MoveKind::PromotionCaptureR);
+        self.list.add(start, target, MoveKind::PromotionCaptureB);
+        self.list.add(start, target, MoveKind::PromotionCaptureN);
     }
 }
