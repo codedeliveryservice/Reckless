@@ -1,16 +1,17 @@
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 
 use game::{Board, Color};
 
 use crate::evaluation;
-use crate::search::{self, SearchThread, TimeControl};
+use crate::search::{self, Cache, SearchThread, TimeControl};
 use crate::uci::{self, UciCommand, UciMessage};
 
 mod perft;
 
 pub struct Engine {
     board: Board,
+    cache: Arc<Mutex<Cache>>,
     terminator: Arc<RwLock<bool>>,
 }
 
@@ -21,6 +22,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::new(Self::START_FEN).unwrap(),
+            cache: Arc::new(Mutex::new(Cache::new(2))),
             terminator: Default::default(),
         }
     }
@@ -77,6 +79,7 @@ impl Engine {
     fn reset(&mut self) {
         self.board = Board::new(Self::START_FEN).unwrap();
         self.set_terminator(false);
+        self.cache.lock().unwrap().clear();
     }
 
     /// Sets the state of the terminator. If set to `true`, the current search will
@@ -98,10 +101,11 @@ impl Engine {
 
         let mut board = self.board.clone();
         let terminator = self.terminator.clone();
+        let cache = self.cache.clone();
 
         thread::spawn(move || {
             let tc = TimeControl::generate(main, inc, moves, movetime, depth);
-            let thread = SearchThread::new(tc, terminator);
+            let thread = SearchThread::new(tc, terminator, cache);
             search::search(&mut board, thread);
         });
     }

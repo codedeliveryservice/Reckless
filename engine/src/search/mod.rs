@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
 use game::{Board, Move, Score};
@@ -21,31 +21,39 @@ pub use time_control::*;
 pub struct SearchThread {
     tc: TimeControl,
     terminator: Arc<RwLock<bool>>,
+    cache: Arc<Mutex<Cache>>,
     nodes: u32,
     killers: KillerMoves,
-    pv_length: [usize; 64],
-    pv_table: [[Move; 64]; 64],
 }
 
 impl SearchThread {
-    pub fn new(tc: TimeControl, terminator: Arc<RwLock<bool>>) -> Self {
+    pub fn new(tc: TimeControl, terminator: Arc<RwLock<bool>>, cache: Arc<Mutex<Cache>>) -> Self {
         Self {
             tc,
             terminator,
+            cache,
             nodes: Default::default(),
             killers: KillerMoves::new(),
-            pv_length: [Default::default(); 64],
-            pv_table: [[Default::default(); 64]; 64],
         }
     }
 
     #[inline(always)]
-    pub fn update_pv(&mut self, ply: usize, mv: Move) {
-        self.pv_table[ply][ply] = mv;
-        for index in (ply + 1)..self.pv_length[ply + 1] {
-            self.pv_table[ply][index] = self.pv_table[ply + 1][index];
+    fn extract_pv_line(&self, board: &mut Board, depth: usize, pv: &mut Vec<Move>) {
+        if depth == 0 {
+            return;
         }
-        self.pv_length[ply] = self.pv_length[ply + 1];
+        if let Some(mv) = self.extract_pv_move(board) {
+            pv.push(mv);
+            board.make_move(mv).unwrap();
+            self.extract_pv_line(board, depth - 1, pv);
+            board.take_back();
+        }
+    }
+
+    #[inline(always)]
+    fn extract_pv_move(&self, board: &Board) -> Option<Move> {
+        let entry = self.cache.lock().unwrap().read(board.hash_key);
+        entry.map(|e| e.best)
     }
 
     #[inline(always)]
@@ -95,13 +103,15 @@ pub fn search(board: &mut Board, mut thread: SearchThread) {
             return;
         }
 
-        last_best = thread.pv_table[0][0];
+        let mut pv = vec![];
+        thread.extract_pv_line(board, depth, &mut pv);
+        last_best = pv[0];
 
         uci::send(UciMessage::SearchReport {
             depth,
             score,
             duration,
-            pv: &thread.pv_table[0][..thread.pv_length[0]],
+            pv: &pv,
             nodes: thread.nodes,
         });
     }

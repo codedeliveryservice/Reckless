@@ -1,6 +1,6 @@
 use game::Score;
 
-use super::{ordering, quiescence, SearchParams, SearchThread};
+use super::{ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 /// Performs a `negamax` search with alpha-beta pruning in a fail-hard environment.
 ///
@@ -25,8 +25,17 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         return quiescence::quiescence_search(p, thread);
     }
 
-    thread.pv_length[p.ply] = p.ply;
     thread.nodes += 1;
+
+    if let Some(entry) = thread.cache.lock().unwrap().read(p.board.hash_key) {
+        if let Some(score) = entry.get_score(&p) {
+            return score;
+        }
+    }
+
+    let mut best_score = Score::NEGATIVE_INFINITY;
+    let mut best_move = Default::default();
+    let mut kind = NodeKind::All;
 
     let mut legal_moves = 0;
 
@@ -45,9 +54,19 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         p.board.take_back();
         p.ply -= 1;
 
+        if score > best_score {
+            best_score = score;
+            best_move = mv;
+        }
+
         // The opponent can force the score as low as beta, so if the move is "too good"
         // we perform a fail-high beta cutoff as the opponent is expected to avoid this position
         if score >= p.beta {
+            if !thread.tc.is_time_over() && !thread.requested_termination() {
+                let entry = CacheEntry::new(p.board.hash_key, p.depth, score, NodeKind::Cut, mv);
+                thread.cache.lock().unwrap().write(entry);
+            }
+
             // The killer heuristic is intended only for ordering quiet moves
             if mv.is_quiet() {
                 thread.killers.add(mv, p.ply);
@@ -59,12 +78,17 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         // Found a better move that raises alpha closer to beta
         if score > p.alpha {
             p.alpha = score;
-            thread.update_pv(p.ply, mv);
+            kind = NodeKind::PV;
         }
     }
 
     if let Some(score) = is_game_over(legal_moves, in_check, &p) {
         return score;
+    }
+
+    if !thread.tc.is_time_over() && !thread.requested_termination() {
+        let entry = CacheEntry::new(p.board.hash_key, p.depth, best_score, kind, best_move);
+        thread.cache.lock().unwrap().write(entry);
     }
 
     // The variation is useless, so it's a fail-low node
