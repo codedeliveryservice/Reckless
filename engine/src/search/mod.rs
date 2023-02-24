@@ -104,10 +104,6 @@ pub fn search(board: &mut Board, mut thread: SearchThread) {
             pv: &thread.pv_table[0][..thread.pv_length[0]],
             nodes: thread.nodes,
         });
-
-        if !thread.tc.exactly && !thread.tc.can_search_deeper(duration) {
-            break;
-        }
     }
 
     uci::send(UciMessage::BestMove(last_best));

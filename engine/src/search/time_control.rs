@@ -7,8 +7,6 @@ pub struct TimeControl {
 }
 
 impl TimeControl {
-    const ESTIMATED_BRANCHING_FACTOR: u32 = 4;
-
     /// Generates a new `TimeControl`.
     pub fn generate(
         main: Option<u32>,
@@ -28,18 +26,6 @@ impl TimeControl {
     #[inline(always)]
     pub fn is_time_over(&self) -> bool {
         Instant::now() >= self.stop_time
-    }
-
-    /// Returns `true` if the time prediction exceeds the remaining time, which
-    /// makes it impractical to start a new search.
-    #[inline(always)]
-    pub fn can_search_deeper(&self, last_duration: Duration) -> bool {
-        assert!(!self.exactly);
-
-        let time_left = self.stop_time - Instant::now();
-        let prediction = last_duration * Self::ESTIMATED_BRANCHING_FACTOR;
-
-        time_left >= prediction
     }
 }
 
