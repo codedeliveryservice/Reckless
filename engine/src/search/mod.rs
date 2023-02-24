@@ -12,7 +12,10 @@ mod negamax;
 mod ordering;
 mod quiescence;
 
+pub mod cache;
 pub mod time_control;
+
+pub use cache::*;
 pub use time_control::*;
 
 pub struct SearchThread {

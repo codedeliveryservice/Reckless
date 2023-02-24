@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
 /// Represents an *almost* unique hash key encoded as a 64-bit unsigned integer.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
-pub struct Zobrist(u64);
+pub struct Zobrist(pub u64);
 
 impl Zobrist {
     /// Generates a new `Zobrist` hash key from scratch for the `Board`.
