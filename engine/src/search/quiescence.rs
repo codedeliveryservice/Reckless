@@ -17,6 +17,10 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
 
     thread.nodes += 1;
 
+    if p.ply > SearchParams::MAX_PLY - 1 {
+        return evaluate_statically(p.board);
+    }
+
     let evaluation = evaluate_statically(p.board);
 
     if evaluation >= p.beta {
@@ -33,7 +37,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
             continue;
         }
 
-        let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth, p.ply);
+        let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth, p.ply + 1);
         let score = -quiescence_search(child_params, thread);
         p.board.take_back();
 
@@ -51,7 +55,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
 
 /// Returns a statically evaluated `Score` relative to the side being evaluated.
 #[inline(always)]
-fn evaluate_statically(board: &Board) -> Score {
+pub fn evaluate_statically(board: &Board) -> Score {
     // `Negamax` represents the maximizing player, so the score must be relative
     // to the side being evaluated
     let evaluation = evaluation::evaluate(board);

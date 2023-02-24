@@ -14,6 +14,10 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         return Score::ZERO;
     }
 
+    if p.ply > SearchParams::MAX_PLY - 1 {
+        return quiescence::evaluate_statically(&p.board);
+    }
+
     // Static evaluation is unreliable when the king is under check,
     // so increase the search depth in this case
     let in_check = p.board.is_in_check();
@@ -46,13 +50,11 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         }
 
         legal_moves += 1;
-        p.ply += 1;
 
-        let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth - 1, p.ply);
+        let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth - 1, p.ply + 1);
         let score = -negamax_search(child_params, thread);
 
         p.board.take_back();
-        p.ply -= 1;
 
         if score > best_score {
             best_score = score;
