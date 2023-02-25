@@ -15,7 +15,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     }
 
     if p.ply > SearchParams::MAX_PLY - 1 {
-        return quiescence::evaluate_statically(&p.board);
+        return quiescence::evaluate_statically(p.board);
     }
 
     // Static evaluation is unreliable when the king is under check,
