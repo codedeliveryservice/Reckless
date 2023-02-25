@@ -22,7 +22,7 @@ pub struct Board {
 pub struct IllegalMoveError;
 
 impl Board {
-    const MAX_PLY: usize = 512;
+    const MAX_PLY: usize = 1024;
 
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
