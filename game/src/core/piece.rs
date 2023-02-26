@@ -13,6 +13,7 @@ impl Piece {
 }
 
 impl From<u8> for Piece {
+    #[inline(always)]
     fn from(value: u8) -> Self {
         match value {
             0 => Self::Pawn,

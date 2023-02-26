@@ -34,6 +34,7 @@ impl Board {
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
+    #[inline(always)]
     pub fn generate_moves(&self) -> MoveList {
         generator::Generator::generate_moves(self)
     }
@@ -244,6 +245,7 @@ impl Board {
     /// in the board's history.
     ///
     /// This method does not count the number of encounters.
+    #[inline(always)]
     pub fn is_repetition(&self) -> bool {
         for index in (0..self.ply).rev() {
             if self.history[index].hash_key == self.state().hash_key {

@@ -59,6 +59,7 @@ impl Square {
     }
 
     /// Returns a `Square` shifted by the specified offset.
+    #[inline(always)]
     pub fn shift(self, offset: i8) -> Self {
         Self((self.0 as i8 + offset) as u8)
     }
