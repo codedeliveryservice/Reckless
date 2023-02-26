@@ -185,25 +185,25 @@ impl Board {
     /// Returns a `Bitboard` with friendly pieces for the current state.
     #[inline(always)]
     pub fn us(&self) -> Bitboard {
-        self.colors[self.turn as usize]
+        self.colors[self.turn]
     }
 
     /// Returns a `Bitboard` with enemy pieces for the current state.
     #[inline(always)]
     pub fn them(&self) -> Bitboard {
-        self.colors[self.turn.opposite() as usize]
+        self.colors[self.turn.opposite()]
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
     #[inline(always)]
     pub fn our(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece as usize] & self.us()
+        self.pieces[piece] & self.us()
     }
 
     /// Returns a `Bitboard` with enemy pieces of the specified `Piece` type.
     #[inline(always)]
     pub fn their(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece as usize] & self.them()
+        self.pieces[piece] & self.them()
     }
 
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
