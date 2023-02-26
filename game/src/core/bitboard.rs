@@ -9,7 +9,7 @@ use super::{
 /// See [Chess Programming Wiki article](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
-pub struct Bitboard(pub u64);
+pub struct Bitboard(pub(crate) u64);
 
 impl Bitboard {
     pub const RANK_1: Self = Self(0b1111_1111);
