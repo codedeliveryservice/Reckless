@@ -7,7 +7,6 @@ use self::killer_moves::KillerMoves;
 use crate::uci::{self, UciMessage};
 
 mod killer_moves;
-mod mvv_lva;
 mod negamax;
 mod ordering;
 mod quiescence;
