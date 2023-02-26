@@ -2,7 +2,7 @@ use super::Bitboard;
 
 /// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
 ///
-/// See [Chess Programming Wiki article](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
+/// See [LERFM](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Square(pub u8);

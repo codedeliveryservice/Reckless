@@ -8,7 +8,7 @@ pub struct MoveList {
 }
 
 impl MoveList {
-    /// According to the [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
+    /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
     /// the maximum number of chess moves in a certain position *appears* to be 218.
     /// So make sure the list of moves never gets corrupted.
     const MAX_MOVES: usize = 256;

@@ -1,7 +1,7 @@
 //! Perft used for testing, debugging and benchmarking the move generator.
 //! This is achieved by enumerating the number of leaf nodes for a given depth.
 //!
-//! See [Chess Programming Wiki article](https://www.chessprogramming.org/Perft) for more information.
+//! See [Perft](https://www.chessprogramming.org/Perft) for more information.
 
 use std::time::Instant;
 

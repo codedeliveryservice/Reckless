@@ -3,13 +3,13 @@ use super::{Piece, Square};
 /// Represents a chess move containing the starting and target squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
 ///
-/// See [Chess Programming Wiki article](https://www.chessprogramming.org/Encoding_Moves) for more information.
+/// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
 /// 
-/// See [Chess Programming Wiki Article](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
+/// See [From-To Based](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[rustfmt::skip]
 pub enum MoveKind {

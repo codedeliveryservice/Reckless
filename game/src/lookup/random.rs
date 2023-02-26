@@ -1,6 +1,6 @@
-//! Pseudo random number generator based on the XORSHIFT64 algorithm.
-//!
-//! See [Xorshift](https://en.wikipedia.org/wiki/Xorshift) for more information.
+/// Pseudo random number generator based on the XORSHIFT64 algorithm.
+///
+/// See [Xorshift](https://en.wikipedia.org/wiki/Xorshift) for more information.
 pub struct Random(u64);
 
 impl Random {

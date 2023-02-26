@@ -14,7 +14,7 @@ pub enum ParseFenError {
 /// Implements interaction with the Forsyth–Edwards notation which is a standard way for describing
 /// a particular board position of a chess game.
 ///
-/// See [Wikipedia article](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for more information.
+/// See [Forsyth–Edwards notation](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) for more information.
 pub(super) struct Fen;
 
 impl Fen {

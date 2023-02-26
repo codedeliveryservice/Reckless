@@ -176,7 +176,7 @@ impl Board {
         &mut self.history[self.ply]
     }
 
-    /// Returns a `Bitboard` of `Piece` of the specified `Color`.
+    /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
     #[inline(always)]
     pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
         self.pieces[piece] & self.colors[color]
@@ -214,7 +214,6 @@ impl Board {
                 return Some(Piece::from(index as u8));
             }
         }
-
         None
     }
 
