@@ -9,11 +9,11 @@ pub struct Ordering {
 
 impl Ordering {
     /// Creates a rated list of moves and returns `Ordering` wrapper over it.
-    pub fn generate(p: &SearchParams, thread: &SearchThread) -> Self {
+    pub fn generate(p: &SearchParams, thread: &SearchThread, tt_move: Option<Move>) -> Self {
         let moves = p.board.generate_moves();
         let mut items = Vec::with_capacity(moves.len());
         for mv in moves {
-            items.push((mv, score_move(mv, p, thread)));
+            items.push((mv, score_move(mv, p, thread, tt_move)));
         }
 
         Self { items, index: 0 }
@@ -39,7 +39,11 @@ impl Ordering {
 }
 
 /// Returns a move score based on heuristic analysis.
-fn score_move(mv: Move, p: &SearchParams, thread: &SearchThread) -> u32 {
+fn score_move(mv: Move, p: &SearchParams, thread: &SearchThread, tt_move: Option<Move>) -> u32 {
+    if Some(mv) == tt_move {
+        return 700;
+    }
+
     if mv.is_capture() {
         return mvv_lva::score_mvv_lva(p.board, mv);
     }

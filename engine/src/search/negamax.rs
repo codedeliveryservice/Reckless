@@ -31,10 +31,12 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
     thread.nodes += 1;
 
+    let mut tt_move = None;
     if let Some(entry) = thread.cache.lock().unwrap().read(p.board.hash_key) {
         if let Some(score) = entry.get_score(&p) {
             return score;
         }
+        tt_move = Some(entry.best);
     }
 
     let mut best_score = Score::NEGATIVE_INFINITY;
@@ -43,7 +45,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
     let mut legal_moves = 0;
 
-    let mut ordering = Ordering::generate(&p, thread);
+    let mut ordering = Ordering::generate(&p, thread, tt_move);
     while let Some(mv) = ordering.next() {
         if p.board.make_move(mv).is_err() {
             continue;
