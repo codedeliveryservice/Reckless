@@ -1,25 +1,41 @@
-use game::{Move, MoveList};
+use game::Move;
 
 use super::{mvv_lva, SearchParams, SearchThread};
 
-pub fn order_moves(p: &SearchParams, thread: &SearchThread) -> MoveList {
-    let mut moves = p.board.generate_moves();
+pub struct Ordering {
+    items: Vec<(Move, u32)>,
+    index: usize,
+}
 
-    let mut scores = vec![0; moves.len()];
-    for index in 0..moves.len() {
-        scores[index] = score_move(moves[index], p, thread);
+impl Ordering {
+    /// Creates a rated list of moves and returns `Ordering` wrapper over it.
+    pub fn generate(p: &SearchParams, thread: &SearchThread) -> Self {
+        let moves = p.board.generate_moves();
+        let mut items = Vec::with_capacity(moves.len());
+        for mv in moves {
+            items.push((mv, score_move(mv, p, thread)));
+        }
+
+        Self { items, index: 0 }
     }
 
-    for current in 0..moves.len() {
-        for compared in (current + 1)..moves.len() {
-            if scores[current] < scores[compared] {
-                scores.swap(current, compared);
-                moves.swap(current, compared);
+    /// Returns the next most rated `Move` or `None` if there are no moves left.
+    pub fn next(&mut self) -> Option<Move> {
+        if self.index == self.items.len() {
+            return None;
+        }
+
+        // Compare the current move rating with all others and swap if it's lower
+        for next in (self.index + 1)..self.items.len() {
+            if self.items[self.index].1 < self.items[next].1 {
+                self.items.swap(self.index, next);
             }
         }
-    }
 
-    moves
+        let best = self.items[self.index].0;
+        self.index += 1;
+        Some(best)
+    }
 }
 
 /// Returns a move score based on heuristic analysis.

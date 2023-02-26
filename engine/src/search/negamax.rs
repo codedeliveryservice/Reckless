@@ -1,6 +1,6 @@
 use game::Score;
 
-use super::{ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
+use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 /// Performs a `negamax` search with alpha-beta pruning in a fail-hard environment.
 ///
@@ -43,8 +43,8 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
     let mut legal_moves = 0;
 
-    let moves = ordering::order_moves(&p, thread);
-    for mv in moves {
+    let mut ordering = Ordering::generate(&p, thread);
+    while let Some(mv) = ordering.next() {
         if p.board.make_move(mv).is_err() {
             continue;
         }
