@@ -2,10 +2,9 @@ use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square, Zobr
 
 use self::{fen::ParseFenError, state::State};
 
-pub mod state;
-
 mod fen;
 mod generator;
+mod state;
 
 /// Data structure representing the board and the location of its pieces.
 #[derive(Clone)]
