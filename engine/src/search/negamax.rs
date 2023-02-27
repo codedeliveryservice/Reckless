@@ -11,7 +11,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     }
 
     if p.ply > 0 && p.board.is_repetition() {
-        return Score::ZERO;
+        return Score::DRAW;
     }
 
     if p.ply > SearchParams::MAX_PLY - 1 {
@@ -106,10 +106,10 @@ fn is_game_over(legal_moves: i32, in_check: bool, p: &SearchParams) -> Option<Sc
         return None;
     }
 
-    Some(match in_check {
+    match in_check {
         // Since negamax evaluates positions from the point of view of the maximizing player,
         // we choose the longest path to checkmate by adding the depth (maximizing the score)
-        true => Score::CHECKMATE + p.ply as i32,
-        false => Score::STALEMATE,
-    })
+        true => Some(Score::CHECKMATE + p.ply as i32),
+        false => Some(Score::DRAW),
+    }
 }

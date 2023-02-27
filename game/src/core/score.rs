@@ -6,12 +6,13 @@ use super::macros::{impl_assign_op, impl_binary_op, impl_unary_op};
 pub struct Score(pub i32);
 
 impl Score {
+    pub const INVALID: Self = Self(0);
+
     pub const INFINITY: Self = Self(50000);
     pub const NEGATIVE_INFINITY: Self = Self(-50000);
+
     pub const CHECKMATE: Self = Self(-48000);
-    pub const STALEMATE: Self = Self(0);
-    pub const ZERO: Self = Self(0);
-    pub const INVALID: Self = Self(0);
+    pub const DRAW: Self = Self(0);
 
     /// Creates a new `Score`.
     pub fn new(score: i32) -> Self {

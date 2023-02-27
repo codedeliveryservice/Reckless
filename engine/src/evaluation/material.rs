@@ -15,7 +15,7 @@ struct MaterialScore {
 }
 
 pub fn evaluate_material(board: &Board) -> Score {
-    let mut score = Score::ZERO;
+    let mut score = Score::DRAW;
 
     score += get_score_for_side(board, Color::White);
     score -= get_score_for_side(board, Color::Black);
