@@ -45,6 +45,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     let mut kind = NodeKind::All;
 
     let mut legal_moves = 0;
+    let mut pv_found = false;
 
     let mut ordering = Ordering::generate(&p, thread, tt_move);
     while let Some(mv) = ordering.next() {
@@ -54,8 +55,10 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
         legal_moves += 1;
 
-        let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth - 1, p.ply + 1);
-        let score = -negamax_search(child_params, thread);
+        let score = match pv_found {
+            true => dive_pvs(&mut p, thread),
+            false => dive_normal(&mut p, thread),
+        };
 
         p.board.take_back();
 
@@ -83,6 +86,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         if score > p.alpha {
             p.alpha = score;
             kind = NodeKind::PV;
+            pv_found = true;
         }
     }
 
@@ -95,6 +99,27 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
     // The variation is useless, so it's a fail-low node
     p.alpha
+}
+
+#[inline(always)]
+fn dive_normal(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
+    let params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth - 1, p.ply + 1);
+    -negamax_search(params, thread)
+}
+
+#[inline(always)]
+fn dive_pvs(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
+    // Search with a closed window around alpha
+    let params = SearchParams::new(p.board, -p.alpha - 1, -p.alpha, p.depth - 1, p.ply + 1);
+    let score = -negamax_search(params, thread);
+
+    // Prove that any other move is worse than the PV move we've already found
+    if p.alpha >= score || score >= p.beta {
+        return score;
+    }
+
+    // Perform a normal search if we find that our assumption was wrong
+    dive_normal(p, thread)
 }
 
 #[inline(always)]

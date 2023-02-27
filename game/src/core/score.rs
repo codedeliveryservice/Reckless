@@ -37,6 +37,15 @@ impl std::ops::Add<i32> for Score {
     }
 }
 
+impl std::ops::Sub<i32> for Score {
+    type Output = Score;
+
+    #[inline(always)]
+    fn sub(self, rhs: i32) -> Self::Output {
+        Score(self.0 - rhs)
+    }
+}
+
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
