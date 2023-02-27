@@ -55,7 +55,7 @@ pub enum NodeKind {
 #[derive(Copy, Clone)]
 pub struct CacheEntry {
     pub hash: Zobrist,
-    pub depth: usize,
+    pub depth: u8,
     pub score: Score,
     pub kind: NodeKind,
     pub best: Move,
@@ -65,8 +65,8 @@ impl CacheEntry {
     /// Creates a new `CacheEntry`.
     pub fn new(hash: Zobrist, depth: usize, score: Score, kind: NodeKind, best: Move) -> Self {
         Self {
+            depth: depth as u8,
             hash,
-            depth,
             score,
             kind,
             best,
@@ -75,7 +75,7 @@ impl CacheEntry {
 
     /// Returns `Some(Score)` if the `CacheEntry` is good enough compared to the `SearchParams`.
     pub fn get_score(&self, params: &SearchParams) -> Option<Score> {
-        if self.depth < params.depth {
+        if self.depth < params.depth as u8 {
             return None;
         }
 
