@@ -41,6 +41,8 @@ impl SearchThread {
         if depth == 0 {
             return;
         }
+
+        // Recursively fill the vector by going through the chain of moves in the TT
         if let Some(mv) = self.extract_pv_move(board) {
             pv.push(mv);
             board.make_move(mv).unwrap();
