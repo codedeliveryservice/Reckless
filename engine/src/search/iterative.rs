@@ -10,11 +10,10 @@ pub fn iterative_search(board: &mut Board, mut thread: SearchThread) {
 
     for depth in 1..=thread.tc.max_depth {
         thread.nodes = 0;
+        thread.start_time = Instant::now();
 
-        let now = Instant::now();
         let params = SearchParams::new(board, Score::NEGATIVE_INFINITY, Score::INFINITY, depth, 0);
         let score = negamax::negamax_search(params, &mut thread);
-        let duration = now.elapsed();
 
         if thread.tc.is_time_over() || thread.requested_termination() {
             uci::send(UciMessage::BestMove(last_best));
@@ -28,9 +27,9 @@ pub fn iterative_search(board: &mut Board, mut thread: SearchThread) {
         uci::send(UciMessage::SearchReport {
             depth,
             score,
-            duration,
             pv: &pv,
             nodes: thread.nodes,
+            duration: thread.start_time.elapsed(),
         });
     }
 

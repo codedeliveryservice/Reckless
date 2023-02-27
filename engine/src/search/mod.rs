@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex, RwLock};
+use std::time::Instant;
 
 use game::{Board, Move, Score};
 
@@ -21,6 +22,7 @@ pub struct SearchThread {
     tc: TimeControl,
     terminator: Arc<RwLock<bool>>,
     cache: Arc<Mutex<Cache>>,
+    start_time: Instant,
     nodes: u32,
     killers: KillerMoves,
 }
@@ -31,6 +33,7 @@ impl SearchThread {
             tc,
             terminator,
             cache,
+            start_time: Instant::now(),
             nodes: Default::default(),
             killers: KillerMoves::new(),
         }
