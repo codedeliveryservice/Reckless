@@ -106,7 +106,7 @@ impl Engine {
         thread::spawn(move || {
             let tc = TimeControl::generate(main, inc, moves, movetime, depth);
             let thread = SearchThread::new(tc, terminator, cache);
-            search::search(&mut board, thread);
+            search::iterative_search(&mut board, thread);
         });
     }
 
