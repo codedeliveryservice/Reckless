@@ -1,4 +1,4 @@
-use game::Score;
+use game::{Move, Score, Zobrist};
 
 use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
 
@@ -31,16 +31,17 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
     thread.nodes += 1;
 
-    let mut tt_move = None;
-    if let Some(entry) = thread.cache.lock().unwrap().read(p.board.hash_key) {
-        if let Some(score) = entry.get_score(&p) {
-            return score;
-        }
-        tt_move = Some(entry.best);
+    // If the cache contains a relevant score, return it immediately
+    let (tt_move, tt_score) = read_cache(&p, thread);
+    if let Some(score) = tt_score {
+        return score;
     }
 
+    // Values that are used to insert an entry into the TT. An empty move should will never
+    // enter the TT, since the score of making any first move is greater than negative
+    // infinity, otherwise there're no legal moves and the search will return earlier
     let mut best_score = Score::NEGATIVE_INFINITY;
-    let mut best_move = Default::default();
+    let mut best_move = Move::default();
     let mut kind = NodeKind::All;
 
     let mut legal_moves = 0;
@@ -58,18 +59,17 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
 
         p.board.take_back();
 
+        // Update the TT entry information if the move is better than what we've found so far
         if score > best_score {
             best_score = score;
             best_move = mv;
         }
 
-        // The opponent can force the score as low as beta, so if the move is "too good"
-        // we perform a fail-high beta cutoff as the opponent is expected to avoid this position
+        // The move is too good for the opponent which makes the position not interesting for us,
+        // as we're expected to avoid a bad position, so we can perform a beta cutoff
         if score >= p.beta {
-            if !thread.tc.is_time_over() && !thread.requested_termination() {
-                let entry = CacheEntry::new(p.board.hash_key, p.depth, score, NodeKind::Cut, mv);
-                thread.cache.lock().unwrap().write(entry);
-            }
+            let entry = CacheEntry::new(p.board.hash_key, p.depth, score, NodeKind::Cut, mv);
+            write_cache_entry(entry, thread);
 
             // The killer heuristic is intended only for ordering quiet moves
             if mv.is_quiet() {
@@ -79,7 +79,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
             return p.beta;
         }
 
-        // Found a better move that raises alpha closer to beta
+        // Found a better move that raises alpha
         if score > p.alpha {
             p.alpha = score;
             kind = NodeKind::PV;
@@ -90,13 +90,32 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         return score;
     }
 
-    if !thread.tc.is_time_over() && !thread.requested_termination() {
-        let entry = CacheEntry::new(p.board.hash_key, p.depth, best_score, kind, best_move);
-        thread.cache.lock().unwrap().write(entry);
-    }
+    let entry = CacheEntry::new(p.board.hash_key, p.depth, best_score, kind, best_move);
+    write_cache_entry(entry, thread);
 
     // The variation is useless, so it's a fail-low node
     p.alpha
+}
+
+#[inline(always)]
+fn read_cache(p: &SearchParams, thread: &SearchThread) -> (Option<Move>, Option<Score>) {
+    match read_cache_entry(p.board.hash_key, thread) {
+        Some(entry) => (Some(entry.best), entry.get_score(&p)),
+        _ => (None, None),
+    }
+}
+
+#[inline(always)]
+fn read_cache_entry(hash: Zobrist, thread: &SearchThread) -> Option<CacheEntry> {
+    thread.cache.lock().unwrap().read(hash)
+}
+
+#[inline(always)]
+fn write_cache_entry(entry: CacheEntry, thread: &mut SearchThread) {
+    // Caching when search has been aborted will result in invalid data in the TT
+    if !thread.tc.is_time_over() && !thread.requested_termination() {
+        thread.cache.lock().unwrap().write(entry);
+    }
 }
 
 /// Returns `true` if the game is considered to be over either due to checkmate or stalemate.
