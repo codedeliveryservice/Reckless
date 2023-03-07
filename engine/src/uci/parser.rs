@@ -2,15 +2,15 @@ use crate::engine::Engine;
 
 use super::UciCommand;
 
-pub struct Parser {
-    tokens: Vec<String>,
+pub struct Parser<'a> {
+    tokens: Vec<&'a str>,
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     /// Creates a new `Parser`.
-    pub fn new(str: String) -> Self {
+    pub fn new(str: &'a str) -> Self {
         Self {
-            tokens: str.split_whitespace().map(|t| t.to_string()).collect(),
+            tokens: str.split_whitespace().collect(),
         }
     }
 
@@ -24,7 +24,7 @@ impl Parser {
             return Err(());
         }
 
-        match self.tokens[0].as_str() {
+        match self.tokens[0] {
             "uci" => Ok(UciCommand::Info),
             "isready" => Ok(UciCommand::IsReady),
             "ucinewgame" => Ok(UciCommand::NewGame),
@@ -35,13 +35,13 @@ impl Parser {
             "eval" => Ok(UciCommand::Eval),
 
             "position" if self.tokens.len() >= 2 => {
-                let fen = match &*self.tokens[1] {
-                    "startpos" => Engine::START_FEN.to_string(),
+                let fen = match self.tokens[1] {
+                    "startpos" => Engine::START_FEN.to_owned(),
                     "fen" if self.tokens.len() >= 8 => self.tokens[2..8].join(" "),
                     _ => return Err(()),
                 };
 
-                let moves = match self.tokens.iter().position(|t| t == "moves") {
+                let moves = match self.tokens.iter().position(|&t| t == "moves") {
                     Some(index) => self.tokens[(index + 1)..].to_vec(),
                     None => vec![],
                 };
@@ -77,7 +77,7 @@ impl Parser {
     }
 
     fn try_parse_token<T: std::str::FromStr>(&self, token: &str) -> Option<T> {
-        let index = self.tokens.iter().position(|t| t == token)?;
+        let index = self.tokens.iter().position(|&t| t == token)?;
         let token = self.tokens.get(index + 1)?;
         token.parse::<T>().ok()
     }

@@ -56,7 +56,7 @@ impl Engine {
     }
 
     /// Sets the position of this `Engine`.
-    fn set_position(&mut self, fen: String, moves: Vec<String>) {
+    fn set_position(&mut self, fen: String, moves: Vec<&str>) {
         // TODO: Validate `fen`
         self.board = Board::new(&fen).unwrap();
         for uci_move in moves {
@@ -65,7 +65,7 @@ impl Engine {
     }
 
     /// Makes the specified UCI move on the board.
-    fn make_uci_move(&mut self, uci_move: String) {
+    fn make_uci_move(&mut self, uci_move: &str) {
         for mv in self.board.generate_moves() {
             if mv.to_string() == uci_move {
                 // TODO: Validate the legality of the move

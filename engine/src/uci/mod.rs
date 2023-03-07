@@ -14,7 +14,7 @@ use std::time::Duration;
 
 /// Represents a command sent from `GUI` to `Engine`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UciCommand {
+pub enum UciCommand<'a> {
     Info,
     IsReady,
     NewGame,
@@ -32,7 +32,7 @@ pub enum UciCommand {
     },
     Position {
         fen: String,
-        moves: Vec<String>,
+        moves: Vec<&'a str>,
     },
     Eval,
     Stop,
