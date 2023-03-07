@@ -65,7 +65,7 @@ fn write_zobrist(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
 fn get_buf(file: &str) -> BufWriter<File> {
     let dir = env::var("OUT_DIR").unwrap();
     let path = Path::new(&dir).join(file);
-    let out = File::create(&path).unwrap();
+    let out = File::create(path).unwrap();
     BufWriter::new(out)
 }
 
