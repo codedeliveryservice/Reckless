@@ -7,7 +7,7 @@ use crate::uci::{self, UciMessage};
 
 const WINDOW_MARGIN: Score = Score(50);
 
-pub fn iterative_search(board: &mut Board, mut thread: SearchThread) {
+pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
     let mut last_best = Default::default();
 
     let mut alpha = Score::NEGATIVE_INFINITY;
@@ -15,7 +15,7 @@ pub fn iterative_search(board: &mut Board, mut thread: SearchThread) {
     let mut depth = 1;
 
     while depth <= thread.tc.max_depth {
-        let params = SearchParams::new(board, alpha, beta, depth, 0);
+        let params = SearchParams::new(&mut board, alpha, beta, depth, 0);
         let score = negamax::negamax_search(params, &mut thread);
 
         if interrupted(&thread) {
@@ -34,7 +34,7 @@ pub fn iterative_search(board: &mut Board, mut thread: SearchThread) {
         beta = score + WINDOW_MARGIN;
 
         let mut pv = vec![];
-        thread.extract_pv_line(board, depth, &mut pv);
+        thread.extract_pv_line(&mut board, depth, &mut pv);
 
         report_search_result(depth, score, &pv, &thread);
 

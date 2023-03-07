@@ -99,14 +99,14 @@ impl Engine {
     ) {
         self.set_terminator(false);
 
-        let mut board = self.board.clone();
+        let board = self.board.clone();
         let terminator = self.terminator.clone();
         let cache = self.cache.clone();
 
         thread::spawn(move || {
             let tc = TimeControl::generate(main, inc, moves, movetime, depth);
             let thread = SearchThread::new(tc, terminator, cache);
-            search::iterative_search(&mut board, thread);
+            search::iterative_search(board, thread);
         });
     }
 
