@@ -76,26 +76,12 @@ impl_binary_op!(Bitboard, BitAnd, bitand);
 impl_binary_op!(Bitboard, BitOr, bitor);
 impl_unary_op!(Bitboard, Not, not);
 
-pub struct BitboardIter {
-    bitboard: Bitboard,
-}
-
-impl Iterator for BitboardIter {
+impl Iterator for Bitboard {
     type Item = Square;
 
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        self.bitboard.pop()
-    }
-}
-
-impl IntoIterator for Bitboard {
-    type Item = Square;
-    type IntoIter = BitboardIter;
-
-    #[inline(always)]
-    fn into_iter(self) -> Self::IntoIter {
-        BitboardIter { bitboard: self }
+        self.pop()
     }
 }
 
