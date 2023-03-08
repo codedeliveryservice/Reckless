@@ -20,6 +20,17 @@ macro_rules! impl_binary_op {
             }
         }
     };
+
+    ($type:ident, $generic_type:ident, $trait:ident, $fn:ident) => {
+        impl std::ops::$trait<$generic_type> for $type {
+            type Output = $type;
+
+            #[inline(always)]
+            fn $fn(self, rhs: $generic_type) -> Self::Output {
+                $type(std::ops::$trait::$fn(self.0, rhs))
+            }
+        }
+    };
 }
 
 macro_rules! impl_unary_op {

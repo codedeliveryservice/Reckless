@@ -28,23 +28,8 @@ impl_binary_op!(Score, Div, div);
 impl_assign_op!(Score, AddAssign, add_assign);
 impl_assign_op!(Score, SubAssign, sub_assign);
 
-impl std::ops::Add<i32> for Score {
-    type Output = Score;
-
-    #[inline(always)]
-    fn add(self, rhs: i32) -> Self::Output {
-        Score(self.0 + rhs)
-    }
-}
-
-impl std::ops::Sub<i32> for Score {
-    type Output = Score;
-
-    #[inline(always)]
-    fn sub(self, rhs: i32) -> Self::Output {
-        Score(self.0 - rhs)
-    }
-}
+impl_binary_op!(Score, i32, Add, add);
+impl_binary_op!(Score, i32, Sub, sub);
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
