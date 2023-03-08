@@ -21,13 +21,13 @@ pub fn perft(board: &mut Board, depth: u32) -> u32 {
 }
 
 macro_rules! assert_perft {
-        ($($name:ident: ($fen:tt, $depth:tt, $expected:tt),)*) => {$(
-            #[test]
-            fn $name() {
-                let actual = common::perft(&mut game::board::Board::new($fen).unwrap(), $depth);
-                assert_eq!(actual, $expected)
-            }
-        )*};
-    }
+    ($($name:ident: ($fen:tt, $depth:tt, $expected:tt),)*) => {$(
+        #[test]
+        fn $name() {
+            let actual = common::perft(&mut game::board::Board::new($fen).unwrap(), $depth);
+            assert_eq!(actual, $expected)
+        }
+    )*};
+}
 
 pub(crate) use assert_perft;
