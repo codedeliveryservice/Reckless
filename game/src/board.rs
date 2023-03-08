@@ -295,7 +295,28 @@ impl Board {
     /// For further reference, use `self.hash_key` to get a key that is
     /// incrementally updated during the game due to performance considerations.
     pub fn generate_hash_key(&self) -> Zobrist {
-        Zobrist::new(self)
+        let mut hash = Zobrist::default();
+
+        for piece in 0..Piece::NUM {
+            let piece = Piece::from(piece as u8);
+
+            for square in self.of(piece, Color::White) {
+                hash.update_piece(piece, Color::White, square);
+            }
+
+            for square in self.of(piece, Color::Black) {
+                hash.update_piece(piece, Color::Black, square);
+            }
+        }
+
+        hash.update_en_passant(self.state().en_passant);
+        hash.update_castling(self.state().castling);
+
+        if self.turn == Color::White {
+            hash.update_side();
+        }
+
+        hash
     }
 }
 

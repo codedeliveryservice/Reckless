@@ -2,7 +2,7 @@
 //!
 //! See (Zobrist Hashing)[https://www.chessprogramming.org/Zobrist_Hashing]
 //! for more information.
-use crate::{Board, Castling, Color, Piece, Square};
+use super::{Castling, Color, Piece, Square};
 
 include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
 
@@ -12,32 +12,6 @@ include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
 pub struct Zobrist(pub u64);
 
 impl Zobrist {
-    /// Generates a new `Zobrist` hash key from scratch for the `Board`.
-    pub(crate) fn new(board: &Board) -> Self {
-        let mut hash = Zobrist::default();
-
-        for piece in 0..Piece::NUM {
-            let piece = Piece::from(piece as u8);
-
-            for square in board.of(piece, Color::White) {
-                hash.update_piece(piece, Color::White, square);
-            }
-
-            for square in board.of(piece, Color::Black) {
-                hash.update_piece(piece, Color::Black, square);
-            }
-        }
-
-        hash.update_en_passant(board.state().en_passant);
-        hash.update_castling(board.state().castling);
-
-        if board.turn == Color::White {
-            hash.update_side();
-        }
-
-        hash
-    }
-
     #[inline(always)]
     pub(crate) fn update_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.0 ^= PIECE_KEYS[color][piece][square.0 as usize];
