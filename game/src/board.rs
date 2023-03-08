@@ -1,9 +1,10 @@
 use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square, Zobrist};
 
-use self::{fen::ParseFenError, state::State};
+use self::{fen::ParseFenError, repetitions::Repetitions, state::State};
 
 mod fen;
 mod generator;
+mod repetitions;
 mod state;
 
 /// Data structure representing the board and the location of its pieces.
@@ -14,6 +15,7 @@ pub struct Board {
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     history: [State; Self::MAX_PLY],
+    repetitions: Repetitions,
     ply: usize,
 }
 
@@ -46,6 +48,8 @@ impl Board {
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.history[self.ply + 1] = *self.state();
         self.ply += 1;
+
+        self.repetitions.push(self.hash_key);
 
         self.hash_key.update_side();
         self.hash_key.update_castling(self.state().castling);
@@ -108,8 +112,6 @@ impl Board {
             return Err(IllegalMoveError);
         }
 
-        self.state_mut().hash_key = self.hash_key;
-
         Ok(())
     }
 
@@ -162,6 +164,8 @@ impl Board {
                 Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
             }
         }
+
+        self.hash_key = self.repetitions.pop();
     }
 
     /// Returns a reference to the current state of this `Board`.
@@ -246,12 +250,7 @@ impl Board {
     /// This method does not count the number of encounters.
     #[inline(always)]
     pub fn is_repetition(&self) -> bool {
-        for index in (0..self.ply).rev() {
-            if self.history[index].hash_key == self.state().hash_key {
-                return true;
-            }
-        }
-        false
+        self.repetitions.is_repetition(self.hash_key)
     }
 
     /// Returns `true` if the king of the current turn color is in check.
@@ -308,6 +307,7 @@ impl Default for Board {
             pieces: Default::default(),
             colors: Default::default(),
             hash_key: Default::default(),
+            repetitions: Default::default(),
             history: [Default::default(); Self::MAX_PLY],
         }
     }
