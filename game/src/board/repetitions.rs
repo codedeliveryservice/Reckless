@@ -1,4 +1,4 @@
-use crate::Zobrist;
+use super::Zobrist;
 
 #[derive(Clone)]
 pub(super) struct Repetitions {
@@ -16,10 +16,7 @@ impl Repetitions {
         self.index += 1;
     }
 
-    /// Returns the last hash from the repetition table.
-    ///
-    /// This method does not remove the hash from the table itself. The `push` method
-    /// can safely overwrite the useless hash.
+    /// Removes the last hash from the repetition table and returns it.
     pub fn pop(&mut self) -> Zobrist {
         self.index -= 1;
         self.table[self.index]
