@@ -1,4 +1,4 @@
-use crate::{Board, Color, Move, MoveKind, Piece, Square};
+use crate::{Board, Move, MoveKind, Piece, Square};
 
 #[derive(Debug, Clone, Copy)]
 pub struct IllegalMoveError;
@@ -11,7 +11,6 @@ impl Board {
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.history.push(self.state);
-
         self.repetitions.push(self.hash_key);
 
         self.hash_key.update_side();
@@ -33,25 +32,19 @@ impl Board {
             self.state.captured_piece = Some(capture);
         }
 
+        let piece = self.get_piece(start).unwrap();
+        self.remove_piece(piece, self.turn, start);
+
         if mv.is_promotion() {
-            let piece = self.get_piece(start).unwrap();
-            self.remove_piece(piece, self.turn, start);
             self.add_piece(mv.get_promotion_piece(), self.turn, target);
         } else {
-            let piece = self.get_piece(start).unwrap();
-            self.move_piece(piece, self.turn, start, target);
+            self.add_piece(piece, self.turn, target);
         }
 
-        if kind == MoveKind::KingCastling {
-            match self.turn {
-                Color::White => self.move_piece(Piece::Rook, Color::White, Square::H1, Square::F1),
-                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::H8, Square::F8),
-            }
-        } else if kind == MoveKind::QueenCastling {
-            match self.turn {
-                Color::White => self.move_piece(Piece::Rook, Color::White, Square::A1, Square::D1),
-                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::A8, Square::D8),
-            }
+        if mv.is_castling() {
+            let (rook_start, rook_target) = get_rook_move(target);
+            self.add_piece(Piece::Rook, self.turn, rook_target);
+            self.remove_piece(Piece::Rook, self.turn, rook_start);
         }
 
         self.state.en_passant = match kind == MoveKind::DoublePush {
@@ -102,11 +95,12 @@ impl Board {
         let kind = mv.kind();
 
         if mv.is_promotion() {
-            self.remove_piece(mv.get_promotion_piece(), self.turn, target);
             self.add_piece(Piece::Pawn, self.turn, start);
+            self.remove_piece(mv.get_promotion_piece(), self.turn, target);
         } else {
             let piece = self.get_piece(target).unwrap();
-            self.move_piece(piece, self.turn, target, start);
+            self.add_piece(piece, self.turn, start);
+            self.remove_piece(piece, self.turn, target);
         }
 
         if kind == MoveKind::EnPassant {
@@ -116,18 +110,22 @@ impl Board {
             self.add_piece(capture.unwrap(), self.turn.opposite(), target);
         }
 
-        if kind == MoveKind::KingCastling {
-            match self.turn {
-                Color::White => self.move_piece(Piece::Rook, Color::White, Square::F1, Square::H1),
-                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::F8, Square::H8),
-            }
-        } else if kind == MoveKind::QueenCastling {
-            match self.turn {
-                Color::White => self.move_piece(Piece::Rook, Color::White, Square::D1, Square::A1),
-                Color::Black => self.move_piece(Piece::Rook, Color::Black, Square::D8, Square::A8),
-            }
+        if mv.is_castling() {
+            let (rook_start, rook_target) = get_rook_move(target);
+            self.add_piece(Piece::Rook, self.turn, rook_start);
+            self.remove_piece(Piece::Rook, self.turn, rook_target);
         }
 
         self.hash_key = self.repetitions.pop();
+    }
+}
+
+fn get_rook_move(king_target: Square) -> (Square, Square) {
+    match king_target {
+        Square::G1 => (Square::H1, Square::F1),
+        Square::C1 => (Square::A1, Square::D1),
+        Square::G8 => (Square::H8, Square::F8),
+        Square::C8 => (Square::A8, Square::D8),
+        _ => panic!("Unexpected king target square '{}'", king_target),
     }
 }

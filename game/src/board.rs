@@ -94,13 +94,6 @@ impl Board {
         self.hash_key.update_piece(piece, color, square);
     }
 
-    /// Moves a piece of the specified type and color from the starting square to the target square.
-    #[inline(always)]
-    pub fn move_piece(&mut self, piece: Piece, color: Color, start: Square, target: Square) {
-        self.add_piece(piece, color, target);
-        self.remove_piece(piece, color, start);
-    }
-
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
     ///
