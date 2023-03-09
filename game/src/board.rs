@@ -1,30 +1,29 @@
 use crate::core::{Bitboard, Color, Move, MoveKind, MoveList, Piece, Square, Zobrist};
 
-use self::{fen::ParseFenError, repetitions::Repetitions, state::State};
+use self::{fen::ParseFenError, history::History, repetitions::Repetitions, state::State};
 
 mod fen;
 mod generator;
+mod history;
 mod repetitions;
 mod state;
 
 /// Data structure representing the board and the location of its pieces.
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct Board {
     pub turn: Color,
     pub hash_key: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
-    history: [State; Self::MAX_PLY],
     repetitions: Repetitions,
-    ply: usize,
+    history: History,
+    state: State,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct IllegalMoveError;
 
 impl Board {
-    const MAX_PLY: usize = 1024;
-
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
     /// # Errors
@@ -46,16 +45,15 @@ impl Board {
     ///
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.history[self.ply + 1] = *self.state();
-        self.ply += 1;
+        self.history.push(self.state);
 
         self.repetitions.push(self.hash_key);
 
         self.hash_key.update_side();
-        self.hash_key.update_castling(self.state().castling);
-        self.hash_key.update_en_passant(self.state().en_passant);
+        self.hash_key.update_castling(self.state.castling);
+        self.hash_key.update_en_passant(self.state.en_passant);
 
-        self.state_mut().previous_move = Some(mv);
+        self.state.previous_move = Some(mv);
 
         let start = mv.start();
         let target = mv.target();
@@ -67,7 +65,7 @@ impl Board {
         } else if mv.is_capture() {
             let capture = self.get_piece(target).unwrap();
             self.remove_piece(capture, self.turn.opposite(), target);
-            self.state_mut().captured_piece = Some(capture);
+            self.state.captured_piece = Some(capture);
         }
 
         if mv.is_promotion() {
@@ -91,7 +89,7 @@ impl Board {
             }
         }
 
-        self.state_mut().en_passant = match kind == MoveKind::DoublePush {
+        self.state.en_passant = match kind == MoveKind::DoublePush {
             true => {
                 let square = Square((start.0 + target.0) / 2);
                 self.hash_key.update_en_passant_square(square);
@@ -100,9 +98,9 @@ impl Board {
             false => None,
         };
 
-        self.state_mut().castling.update_for_square(start);
-        self.state_mut().castling.update_for_square(target);
-        self.hash_key.update_castling(self.state().castling);
+        self.state.castling.update_for_square(start);
+        self.state.castling.update_for_square(target);
+        self.hash_key.update_castling(self.state.castling);
         self.turn.reverse();
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
@@ -122,17 +120,17 @@ impl Board {
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn take_back(&mut self) {
         self.hash_key.update_side();
-        self.hash_key.update_castling(self.state().castling);
-        self.hash_key.update_en_passant(self.state().en_passant);
+        self.hash_key.update_castling(self.state.castling);
+        self.hash_key.update_en_passant(self.state.en_passant);
 
-        let mv = self.state().previous_move.unwrap();
-        let capture = self.state().captured_piece;
+        let mv = self.state.previous_move.unwrap();
+        let capture = self.state.captured_piece;
 
         self.turn.reverse();
-        self.ply -= 1;
+        self.state = self.history.pop();
 
-        self.hash_key.update_castling(self.state().castling);
-        self.hash_key.update_en_passant(self.state().en_passant);
+        self.hash_key.update_castling(self.state.castling);
+        self.hash_key.update_en_passant(self.state.en_passant);
 
         let start = mv.start();
         let target = mv.target();
@@ -166,18 +164,6 @@ impl Board {
         }
 
         self.hash_key = self.repetitions.pop();
-    }
-
-    /// Returns a reference to the current state of this `Board`.
-    #[inline(always)]
-    pub fn state(&self) -> &State {
-        &self.history[self.ply]
-    }
-
-    /// Returns a mutable reference to the current state of this `Board`.
-    #[inline(always)]
-    pub fn state_mut(&mut self) -> &mut State {
-        &mut self.history[self.ply]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
@@ -309,27 +295,13 @@ impl Board {
             }
         }
 
-        hash.update_en_passant(self.state().en_passant);
-        hash.update_castling(self.state().castling);
+        hash.update_en_passant(self.state.en_passant);
+        hash.update_castling(self.state.castling);
 
         if self.turn == Color::White {
             hash.update_side();
         }
 
         hash
-    }
-}
-
-impl Default for Board {
-    fn default() -> Self {
-        Self {
-            turn: Default::default(),
-            ply: Default::default(),
-            pieces: Default::default(),
-            colors: Default::default(),
-            hash_key: Default::default(),
-            repetitions: Default::default(),
-            history: [Default::default(); Self::MAX_PLY],
-        }
     }
 }

@@ -28,7 +28,7 @@ impl<'a> InnerGenerator<'a> {
     fn new(board: &'a Board) -> Self {
         Self {
             board,
-            state: board.state(),
+            state: &board.state,
             turn: board.turn,
             all: board.us() | board.them(),
             us: board.us(),

@@ -111,7 +111,7 @@ impl InnerFen {
     }
 
     fn set_castling(&mut self, text: &str) -> Result<(), ParseFenError> {
-        let castling = &mut self.board.state_mut().castling;
+        let castling = &mut self.board.state.castling;
         for c in text.chars() {
             match c {
                 'K' => castling.allow(CastlingKind::WhiteShort),
@@ -127,7 +127,7 @@ impl InnerFen {
     }
 
     fn set_en_passant(&mut self, text: &str) -> Result<(), ParseFenError> {
-        self.board.state_mut().en_passant = match text {
+        self.board.state.en_passant = match text {
             "-" => None,
             _ => Some(
                 Square::try_from(text).map_err(|_| ParseFenError::InvalidEnPassant {
