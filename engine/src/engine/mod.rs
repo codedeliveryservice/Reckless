@@ -5,7 +5,7 @@ use game::{Board, Color};
 
 use crate::evaluation;
 use crate::search::{self, Cache, SearchThread, TimeControl};
-use crate::uci::{self, UciCommand, UciMessage};
+use crate::uci::UciCommand;
 
 mod perft;
 
@@ -30,8 +30,13 @@ impl Engine {
     /// Executes `UciCommand` for this `Engine`.
     pub fn execute(&mut self, command: UciCommand) {
         match command {
-            UciCommand::Info => uci::send(UciMessage::Info),
-            UciCommand::IsReady => uci::send(UciMessage::Ready),
+            UciCommand::Info => {
+                println!("id name Reckless");
+                println!("uciok");
+            }
+            UciCommand::IsReady => {
+                println!("readyok");
+            }
 
             UciCommand::NewGame => self.reset(),
             UciCommand::Perft { depth } => self.perft(depth),
@@ -117,6 +122,6 @@ impl Engine {
 
     /// Statically evaluates the current position and sends a UCI report.
     fn evaluate(&self) {
-        uci::send(UciMessage::Eval(evaluation::evaluate(&self.board)));
+        println!("evaluation {}", evaluation::evaluate(&self.board));
     }
 }

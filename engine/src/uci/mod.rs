@@ -4,13 +4,8 @@
 //! See [UCI](https://www.chessprogramming.org/UCI) for more information.
 
 pub mod parser;
-pub mod sender;
 
 pub use parser::*;
-pub use sender::*;
-
-use game::{Move, Score};
-use std::time::Duration;
 
 /// Represents a command sent from `GUI` to `Engine`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,19 +32,4 @@ pub enum UciCommand<'a> {
     Eval,
     Stop,
     Quit,
-}
-
-/// Represents a message sent from `Engine` to `GUI`.
-pub enum UciMessage<'a> {
-    Info,
-    Ready,
-    Eval(Score),
-    BestMove(Move),
-    SearchReport {
-        pv: &'a [Move],
-        depth: usize,
-        score: Score,
-        nodes: u32,
-        duration: Duration,
-    },
 }

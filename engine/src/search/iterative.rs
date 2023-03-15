@@ -3,7 +3,6 @@ use std::time::Instant;
 use game::{Board, Move, Score};
 
 use super::{negamax, SearchParams, SearchThread};
-use crate::uci::{self, UciMessage};
 
 const WINDOW_MARGIN: Score = Score(50);
 
@@ -45,7 +44,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
         thread.start_time = Instant::now();
     }
 
-    uci::send(UciMessage::BestMove(last_best));
+    println!("bestmove {}", last_best);
 }
 
 fn interrupted(thread: &SearchThread) -> bool {
@@ -53,11 +52,15 @@ fn interrupted(thread: &SearchThread) -> bool {
 }
 
 fn report_search_result(depth: usize, score: Score, pv: &Vec<Move>, thread: &SearchThread) {
-    uci::send(UciMessage::SearchReport {
-        pv,
-        depth,
-        score,
-        nodes: thread.nodes,
-        duration: thread.start_time.elapsed(),
-    });
+    let duration = thread.start_time.elapsed();
+
+    let nps = thread.nodes as f32 / duration.as_secs_f32();
+    let ms = duration.as_millis();
+
+    print!(
+        "info depth {} score cp {} nodes {} time {} nps {:.0} pv",
+        depth, score, thread.nodes, ms, nps
+    );
+    pv.iter().for_each(|mv| print!(" {}", mv));
+    println!();
 }
