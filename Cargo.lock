@@ -6,6 +6,14 @@ version = 3
 name = "engine"
 version = "0.1.0"
 dependencies = [
+ "evaluation",
+ "game",
+]
+
+[[package]]
+name = "evaluation"
+version = "0.1.0"
+dependencies = [
  "game",
 ]
 

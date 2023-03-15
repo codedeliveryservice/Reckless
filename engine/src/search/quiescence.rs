@@ -1,7 +1,6 @@
 use game::{Board, Color, Score};
 
 use super::{ordering::Ordering, SearchParams, SearchThread};
-use crate::evaluation;
 
 /// `Quiescence Search` performs a `negamax` search from the root node until the position
 /// becomes stable to evaluate it statically. This minimizes the horizon effect for volatile

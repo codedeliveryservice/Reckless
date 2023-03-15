@@ -3,7 +3,6 @@ use std::thread;
 
 use game::{Board, Color};
 
-use crate::evaluation;
 use crate::search::{self, Cache, SearchThread, TimeControl};
 use crate::uci::UciCommand;
 
