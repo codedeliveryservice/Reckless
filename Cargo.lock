@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "evaluation",
  "game",
+ "search",
 ]
 
 [[package]]
@@ -20,3 +21,11 @@ dependencies = [
 [[package]]
 name = "game"
 version = "0.1.0"
+
+[[package]]
+name = "search"
+version = "0.1.0"
+dependencies = [
+ "evaluation",
+ "game",
+]

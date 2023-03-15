@@ -2,7 +2,6 @@ use engine::Engine;
 use uci::{Parser, UciCommand};
 
 mod engine;
-mod search;
 mod uci;
 
 fn main() {

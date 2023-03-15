@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 
 use game::{Board, Color};
+use search::{self, Cache, SearchThread, TimeControl};
 
-use crate::search::{self, Cache, SearchThread, TimeControl};
 use crate::uci::UciCommand;
 
 mod perft;
