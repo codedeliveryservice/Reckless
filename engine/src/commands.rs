@@ -2,11 +2,6 @@
 //! chess engines to communicate with other programs including Graphical User Interfaces.
 //!
 //! See [UCI](https://www.chessprogramming.org/UCI) for more information.
-
-pub mod parser;
-
-pub use parser::*;
-
 /// Represents a command sent from `GUI` to `Engine`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UciCommand<'a> {

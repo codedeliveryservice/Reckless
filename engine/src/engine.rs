@@ -4,9 +4,8 @@ use std::thread;
 use game::{Board, Color};
 use search::{self, Cache, SearchThread, TimeControl};
 
-use crate::uci::UciCommand;
-
-mod perft;
+use crate::perft;
+use crate::commands::UciCommand;
 
 pub struct Engine {
     board: Board,

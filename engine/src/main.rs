@@ -1,8 +1,11 @@
-use engine::Engine;
-use uci::{Parser, UciCommand};
-
+mod commands;
 mod engine;
-mod uci;
+mod parser;
+mod perft;
+
+use commands::UciCommand;
+use engine::Engine;
+use parser::Parser;
 
 fn main() {
     let mut engine = Engine::new();
