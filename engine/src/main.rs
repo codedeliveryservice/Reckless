@@ -5,7 +5,6 @@ mod perft;
 
 use commands::UciCommand;
 use engine::Engine;
-use parser::Parser;
 
 fn main() {
     let mut engine = Engine::new();
@@ -14,7 +13,7 @@ fn main() {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer).unwrap();
 
-        if let Ok(command) = Parser::new(&buffer).parse_command() {
+        if let Ok(command) = parser::parse_command(&buffer) {
             if command == UciCommand::Quit {
                 break;
             }
