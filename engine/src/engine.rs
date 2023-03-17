@@ -4,8 +4,8 @@ use std::thread;
 use game::{Board, Color};
 use search::{self, Cache, SearchThread, TimeControl};
 
-use crate::perft;
 use crate::commands::UciCommand;
+use crate::perft::run_perft;
 
 pub struct Engine {
     board: Board,
@@ -115,7 +115,7 @@ impl Engine {
 
     /// Runs a node enumeration performance test for the current position.
     fn perft(&mut self, depth: usize) {
-        perft::run(depth, &mut self.board);
+        run_perft(depth, &mut self.board);
     }
 
     /// Statically evaluates the current position and sends a UCI report.

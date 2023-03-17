@@ -8,10 +8,12 @@ use std::time::Instant;
 use game::Board;
 
 /// Runs a performance test on the `Board` with the specified depth.
-#[rustfmt::skip]
-pub fn run(depth: usize, board: &mut Board) -> u64 {
+pub fn run_perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
-    println!("{:>12} {:>12} {:>13} {:>15}", "Move", "Nodes", "Elapsed", "NPS");
+    println!(
+        "{:>12} {:>12} {:>13} {:>15}",
+        "Move", "Nodes", "Elapsed", "NPS"
+    );
     println!("{}", "-".repeat(60));
 
     let now = Instant::now();
@@ -35,17 +37,21 @@ pub fn run(depth: usize, board: &mut Board) -> u64 {
         let seconds = now.elapsed().as_secs_f32();
         let knps = count as f32 / seconds / 1000f32;
 
-        println!("{:>3} {:>8} {:>12} {:>12.3}s {:>15.3} kN/s", index, mv, count, seconds, knps);
+        println!(
+            "{:>3} {:>8} {:>12} {:>12.3}s {:>15.3} kN/s",
+            index, mv, count, seconds, knps
+        );
     }
 
     let seconds = now.elapsed().as_secs_f32();
     let knps = nodes as f32 / seconds / 1000f32;
 
     println!("{}", "-".repeat(60));
-    println!("{:>12} {:>12} {:>12.3}s {:>15.3} kN/s", "Total", nodes, seconds, knps);
+    println!(
+        "{:>12} {:>12} {:>12.3}s {:>15.3} kN/s",
+        "Total", nodes, seconds, knps
+    );
     println!("{}", "-".repeat(60));
-
-    nodes
 }
 
 #[inline(always)]
@@ -57,12 +63,10 @@ fn perft(depth: usize, board: &mut Board) -> u64 {
     let mut nodes = 0;
 
     for mv in board.generate_moves() {
-        if board.make_move(mv).is_err() {
-            continue;
+        if board.make_move(mv).is_ok() {
+            nodes += perft(depth - 1, board);
+            board.take_back();
         }
-
-        nodes += perft(depth - 1, board);
-        board.take_back();
     }
 
     nodes
