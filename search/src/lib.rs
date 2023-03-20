@@ -67,7 +67,12 @@ impl SearchThread {
 
     #[inline(always)]
     pub fn check_on(&self) -> bool {
-        self.nodes % 4096 == 0 && (self.tc.is_time_over() || self.requested_termination())
+        self.nodes % 4096 == 0 && (self.is_time_over() || self.requested_termination())
+    }
+
+    #[inline(always)]
+    pub fn is_time_over(&self) -> bool {
+        self.tc.is_time_over(self.start_time.elapsed())
     }
 }
 

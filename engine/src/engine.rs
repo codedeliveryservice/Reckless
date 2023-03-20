@@ -1,16 +1,16 @@
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 
-use game::{Board, Color};
+use game::Board;
 use search::{self, Cache, SearchThread, TimeControl};
 
 use crate::commands::UciCommand;
 use crate::perft::run_perft;
 
 pub struct Engine {
-    board: Board,
-    cache: Arc<Mutex<Cache>>,
-    terminator: Arc<RwLock<bool>>,
+    pub board: Board,
+    pub cache: Arc<Mutex<Cache>>,
+    pub terminator: Arc<RwLock<bool>>,
 }
 
 impl Engine {
@@ -37,24 +37,14 @@ impl Engine {
             }
 
             UciCommand::NewGame => self.reset(),
-            UciCommand::Perft { depth } => self.perft(depth),
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
-            UciCommand::Eval => self.evaluate(),
+            UciCommand::Search { time_control } => self.search(time_control),
 
             UciCommand::Stop | UciCommand::Quit => self.set_terminator(true),
 
-            UciCommand::Search {
-                white_time,
-                black_time,
-                white_inc,
-                black_inc,
-                moves,
-                movetime,
-                depth,
-            } => match self.board.turn {
-                Color::White => self.search(white_time, white_inc, moves, movetime, depth),
-                Color::Black => self.search(black_time, black_inc, moves, movetime, depth),
-            },
+            // Non-UCI commands
+            UciCommand::Eval => self.evaluate(),
+            UciCommand::Perft { depth } => self.perft(depth),
         }
     }
 
@@ -92,14 +82,7 @@ impl Engine {
     }
 
     /// Runs an iterative deepening search on a separate thread.
-    fn search(
-        &mut self,
-        main: Option<u32>,
-        inc: Option<u32>,
-        moves: Option<u32>,
-        movetime: Option<u32>,
-        depth: Option<usize>,
-    ) {
+    fn search(&mut self, time_control: TimeControl) {
         self.set_terminator(false);
 
         let board = self.board.clone();
@@ -107,8 +90,7 @@ impl Engine {
         let cache = self.cache.clone();
 
         thread::spawn(move || {
-            let tc = TimeControl::generate(main, inc, moves, movetime, depth);
-            let thread = SearchThread::new(tc, terminator, cache);
+            let thread = SearchThread::new(time_control, terminator, cache);
             search::iterative_search(board, thread);
         });
     }

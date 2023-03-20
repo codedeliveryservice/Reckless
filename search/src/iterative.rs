@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use game::{Board, Move, Score};
 
 use super::{negamax, SearchParams, SearchThread};
@@ -13,7 +11,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
     let mut beta = Score::INFINITY;
     let mut depth = 1;
 
-    while depth <= thread.tc.max_depth {
+    while depth <= thread.tc.get_max_depth() {
         let params = SearchParams::new(&mut board, alpha, beta, depth, 0);
         let score = negamax::negamax_search(params, &mut thread);
 
@@ -40,18 +38,18 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
         last_best = pv[0];
         depth += 1;
 
-        thread.nodes = 0;
-        thread.start_time = Instant::now();
+        // thread.nodes = 0;
+        // thread.start_time = Instant::now();
     }
 
     println!("bestmove {}", last_best);
 }
 
 fn interrupted(thread: &SearchThread) -> bool {
-    thread.tc.is_time_over() || thread.requested_termination()
+    thread.is_time_over() || thread.requested_termination()
 }
 
-fn report_search_result(depth: usize, score: Score, pv: &Vec<Move>, thread: &SearchThread) {
+fn report_search_result(depth: usize, score: Score, pv: &[Move], thread: &SearchThread) {
     let duration = thread.start_time.elapsed();
 
     let nps = thread.nodes as f32 / duration.as_secs_f32();

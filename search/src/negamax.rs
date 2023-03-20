@@ -138,7 +138,7 @@ fn read_cache_entry(hash: Zobrist, thread: &SearchThread) -> Option<CacheEntry> 
 #[inline(always)]
 fn write_cache_entry(entry: CacheEntry, thread: &mut SearchThread) {
     // Caching when search has been aborted will result in invalid data in the TT
-    if !thread.tc.is_time_over() && !thread.requested_termination() {
+    if !thread.is_time_over() && !thread.requested_termination() {
         thread.cache.lock().unwrap().write(entry);
     }
 }
