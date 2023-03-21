@@ -28,7 +28,7 @@ impl Board {
     ///
     /// This function will return an error if the given notation is invalid.
     pub fn new(fen: &str) -> Result<Self, ParseFenError> {
-        fen::Fen::parse(fen)
+        fen::parse(fen)
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
