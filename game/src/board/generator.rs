@@ -5,16 +5,12 @@ use crate::{
 
 use super::{Board, State};
 
-pub(crate) struct Generator;
-
-impl Generator {
-    /// Generates pseudo legal moves for the current state of the board.
-    pub fn generate_moves(board: &Board) -> MoveList {
-        InnerGenerator::new(board).generate()
-    }
+/// Generates pseudo legal moves for the current state of the board.
+pub fn generate_moves(board: &Board) -> MoveList {
+    Generator::new(board).generate()
 }
 
-struct InnerGenerator<'a> {
+struct Generator<'a> {
     board: &'a Board,
     state: &'a State,
     turn: Color,
@@ -24,7 +20,7 @@ struct InnerGenerator<'a> {
     list: MoveList,
 }
 
-impl<'a> InnerGenerator<'a> {
+impl<'a> Generator<'a> {
     fn new(board: &'a Board) -> Self {
         Self {
             board,

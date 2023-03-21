@@ -34,7 +34,7 @@ impl Board {
     /// Generates all possible pseudo legal moves for the current state of `self`.
     #[inline(always)]
     pub fn generate_moves(&self) -> MoveList {
-        generator::Generator::generate_moves(self)
+        generator::generate_moves(self)
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
