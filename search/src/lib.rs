@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use game::{Board, Move, Score};
@@ -20,7 +21,7 @@ pub use time_control::*;
 
 pub struct SearchThread {
     tc: TimeControl,
-    terminator: Arc<RwLock<bool>>,
+    terminator: Arc<AtomicBool>,
     cache: Arc<Mutex<Cache>>,
     start_time: Instant,
     nodes: u32,
@@ -28,7 +29,7 @@ pub struct SearchThread {
 }
 
 impl SearchThread {
-    pub fn new(tc: TimeControl, terminator: Arc<RwLock<bool>>, cache: Arc<Mutex<Cache>>) -> Self {
+    pub fn new(tc: TimeControl, terminator: Arc<AtomicBool>, cache: Arc<Mutex<Cache>>) -> Self {
         Self {
             tc,
             terminator,
@@ -62,7 +63,7 @@ impl SearchThread {
 
     #[inline(always)]
     pub fn requested_termination(&self) -> bool {
-        *self.terminator.read().unwrap()
+        self.terminator.load(Ordering::Relaxed)
     }
 
     #[inline(always)]

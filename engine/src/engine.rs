@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use game::Board;
@@ -10,7 +11,7 @@ use crate::perft::run_perft;
 pub struct Engine {
     pub board: Board,
     pub cache: Arc<Mutex<Cache>>,
-    pub terminator: Arc<RwLock<bool>>,
+    pub terminator: Arc<AtomicBool>,
 }
 
 impl Engine {
@@ -40,7 +41,7 @@ impl Engine {
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
             UciCommand::Search { time_control } => self.search(time_control),
 
-            UciCommand::Stop | UciCommand::Quit => self.set_terminator(true),
+            UciCommand::Stop | UciCommand::Quit => self.write_terminator(true),
 
             // Non-UCI commands
             UciCommand::Eval => self.evaluate(),
@@ -71,19 +72,19 @@ impl Engine {
     /// Resets the `Engine` to its original state.
     fn reset(&mut self) {
         self.board = Board::new(Self::START_FEN).unwrap();
-        self.set_terminator(false);
+        self.write_terminator(false);
         self.cache.lock().unwrap().clear();
     }
 
     /// Sets the state of the terminator. If set to `true`, the current search will
     /// be stopped as soon as possible.
-    fn set_terminator(&mut self, is_set: bool) {
-        *self.terminator.write().unwrap() = is_set;
+    fn write_terminator(&mut self, value: bool) {
+        self.terminator.store(value, Ordering::Relaxed);
     }
 
     /// Runs an iterative deepening search on a separate thread.
     fn search(&mut self, time_control: TimeControl) {
-        self.set_terminator(false);
+        self.write_terminator(false);
 
         let board = self.board.clone();
         let terminator = self.terminator.clone();
