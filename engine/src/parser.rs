@@ -22,34 +22,49 @@ pub fn parse_command(str: &str, turn: Color) -> Result<UciCommand, ()> {
         "stop" => Ok(UciCommand::Stop),
         "quit" => Ok(UciCommand::Quit),
 
+        "position" => parse_position_command(tokens),
+        "go" => parse_go_command(tokens, turn),
+
+        // Non-UCI commands
         "eval" => Ok(UciCommand::Eval),
-
-        "position" if tokens.len() >= 2 => {
-            let fen = match tokens[1] {
-                "startpos" => Engine::START_FEN.to_owned(),
-                "fen" if tokens.len() >= 8 => tokens[2..8].join(" "),
-                _ => return Err(()),
-            };
-
-            let moves = match tokens.iter().position(|&t| t == "moves") {
-                Some(index) => tokens[(index + 1)..].to_vec(),
-                None => vec![],
-            };
-
-            Ok(UciCommand::Position { fen, moves })
-        }
-
-        "go" => Ok(UciCommand::Search {
-            time_control: parse_time_control(&tokens[1..], turn)?,
-        }),
-
-        "perft" => match try_parse_token::<usize>(&tokens, "perft") {
-            Some(depth) => Ok(UciCommand::Perft { depth }),
-            None => Err(()),
-        },
+        "perft" => parse_perft_command(tokens),
 
         _ => Err(()),
     }
+}
+
+fn parse_perft_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
+    if let Some(token) = tokens.get(2) {
+        if let Ok(depth) = token.parse::<usize>() {
+            return Ok(UciCommand::Perft { depth });
+        }
+    }
+    Err(())
+}
+
+fn parse_position_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
+    if tokens.len() < 2 {
+        return Err(());
+    }
+
+    let fen = match tokens[1] {
+        "startpos" => Engine::START_FEN.to_owned(),
+        "fen" if tokens.len() >= 8 => tokens[2..8].join(" "),
+        _ => return Err(()),
+    };
+
+    let moves = match tokens.iter().position(|&t| t == "moves") {
+        Some(index) => tokens[(index + 1)..].to_vec(),
+        None => vec![],
+    };
+
+    Ok(UciCommand::Position { fen, moves })
+}
+
+fn parse_go_command(tokens: Vec<&str>, turn: Color) -> Result<UciCommand, ()> {
+    Ok(UciCommand::Search {
+        time_control: parse_time_control(&tokens[1..], turn)?,
+    })
 }
 
 fn parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
@@ -60,8 +75,8 @@ fn parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
 
     let mut moves_left = None;
 
-    for chunks in tokens.chunks(2) {
-        let (token, value) = (chunks[0], chunks[1]);
+    for chunk in tokens.chunks(2) {
+        let (token, value) = (chunk[0], chunk.get(1).copied());
 
         match token {
             "infinite" => return Ok(TimeControl::Infinite),
@@ -95,13 +110,35 @@ fn parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
     })
 }
 
-fn parse<T: std::str::FromStr>(value: &str) -> Result<T, ()> {
-    value.parse().map_err(|_| ())
+fn parse<T: std::str::FromStr>(value: Option<&str>) -> Result<T, ()> {
+    match value {
+        Some(value) => value.parse().map_err(|_| ()),
+        None => Err(()),
+    }
 }
 
-/// Returns the token value if successfully parsed.
-fn try_parse_token<T: std::str::FromStr>(tokens: &[&str], token: &str) -> Option<T> {
-    let index = tokens.iter().position(|&t| t == token)?;
-    let token = tokens.get(index + 1)?;
-    token.parse::<T>().ok()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! assert_tc {
+        ($($name:ident: ($tokens:tt, $color:expr, $expected:expr),)*) => {$(
+            #[test]
+            fn $name() {
+                let actual = parse_time_control(&$tokens, $color);
+                assert_eq!(actual, $expected)
+            }
+        )*};
+    }
+
+    assert_tc! {
+        go_empty: ([], Color::White, Ok(TimeControl::Infinite)),
+        go_infinite: (["infinite"], Color::White, Ok(TimeControl::Infinite)),
+        go_depth: (["depth", "10"], Color::White, Ok(TimeControl::FixedDepth(10))),
+        go_move_time: (["movetime", "5000"], Color::White, Ok(TimeControl::FixedTime(5000))),
+        go_wtime_btime: (["wtime", "2000", "btime", "1000"], Color::Black, Ok(TimeControl::Incremental(1000, 0))),
+        go_winc_binc: (["winc", "500", "binc", "1000"], Color::White, Ok(TimeControl::Incremental(0, 500))),
+        go_full: (["wtime", "2500", "btime", "2100", "winc", "500", "binc", "100", "movestogo", "12"], Color::Black, Ok(TimeControl::Tournament(2100, 100, 12))),
+        go_invalid: (["invalid"], Color::White, Err(())),
+    }
 }
