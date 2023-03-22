@@ -8,6 +8,8 @@ use super::Bitboard;
 pub struct Square(pub u8);
 
 impl Square {
+    pub const NUM: usize = 64;
+
     pub const A1: Self = Self(0);
     pub const B1: Self = Self(1);
     pub const C1: Self = Self(2);
@@ -28,7 +30,7 @@ impl Square {
 
     /// Contains little-endian rank-file square mappings.
     #[rustfmt::skip]
-    const NOTATION: [&str; 64] = [
+    const NOTATION: [&str; Square::NUM] = [
         "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
         "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
         "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",

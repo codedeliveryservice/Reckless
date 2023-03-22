@@ -26,7 +26,7 @@ impl Castling {
     /// 1111      15       leave unchanged
     /// ```
     #[rustfmt::skip]
-    const UPDATES: [u8; 64] = [
+    const UPDATES: [u8; Square::NUM] = [
         13, 15, 15, 15, 12, 15, 15, 14,
         15, 15, 15, 15, 15, 15, 15, 15,
         15, 15, 15, 15, 15, 15, 15, 15,

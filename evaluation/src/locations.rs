@@ -4,10 +4,10 @@
 //! See [Simplified Evaluation Function](https://www.chessprogramming.org/Simplified_Evaluation_Function#Piece-Square_Tables)
 //! for more information.
 
-use game::{Board, Color, Piece, Score};
+use game::{Board, Color, Piece, Score, Square};
 
 #[rustfmt::skip]
-const PAWNS: [i32; 64] = [
+const PAWNS: [i32; Square::NUM] = [
      0,  0,  0,  0,  0,  0,  0,  0,
     50, 50, 50, 50, 50, 50, 50, 50,
     10, 10, 20, 30, 30, 20, 10, 10,
@@ -19,7 +19,7 @@ const PAWNS: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const KNIGHTS: [i32; 64] = [
+const KNIGHTS: [i32; Square::NUM] = [
     -50,-40,-30,-30,-30,-30,-40,-50,
     -40,-20,  0,  0,  0,  0,-20,-40,
     -30,  0, 10, 15, 15, 10,  0,-30,
@@ -31,7 +31,7 @@ const KNIGHTS: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const BISHOPS: [i32; 64] = [
+const BISHOPS: [i32; Square::NUM] = [
     -20,-10,-10,-10,-10,-10,-10,-20,
     -10,  0,  0,  0,  0,  0,  0,-10,
     -10,  0,  5, 10, 10,  5,  0,-10,
@@ -43,7 +43,7 @@ const BISHOPS: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const ROOKS: [i32; 64] = [
+const ROOKS: [i32; Square::NUM] = [
       0,  0,  0,  0,  0,  0,  0,  0,
       5, 10, 10, 10, 10, 10, 10,  5,
      -5,  0,  0,  0,  0,  0,  0, -5,
@@ -55,7 +55,7 @@ const ROOKS: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const QUEENS: [i32; 64] = [
+const QUEENS: [i32; Square::NUM] = [
     -20,-10,-10, -5, -5,-10,-10,-20,
     -10,  0,  0,  0,  0,  0,  0,-10,
     -10,  0,  5,  5,  5,  5,  0,-10,
@@ -67,7 +67,7 @@ const QUEENS: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MIRRORED: [usize; 64] = [
+const MIRRORED: [usize; Square::NUM] = [
     56, 57, 58, 59, 60, 61, 62, 63,
     48, 49, 50, 51, 52, 53, 54, 55,
     40, 41, 42, 43, 44, 45, 46, 47,
@@ -89,7 +89,7 @@ const LOCATION_SCORES: [LocationScore; 5] = [
 
 struct LocationScore {
     piece: Piece,
-    table: [i32; 64],
+    table: [i32; Square::NUM],
 }
 
 pub fn evaluate_locations(board: &Board) -> Score {
