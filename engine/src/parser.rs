@@ -34,7 +34,7 @@ pub fn parse_command(str: &str, turn: Color) -> Result<UciCommand, ()> {
 }
 
 fn parse_perft_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
-    if let Some(token) = tokens.get(2) {
+    if let Some(token) = tokens.get(1) {
         if let Ok(depth) = token.parse::<usize>() {
             return Ok(UciCommand::Perft { depth });
         }
