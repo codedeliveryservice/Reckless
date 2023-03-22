@@ -1,7 +1,7 @@
-use game::Color;
+use game::{Color, STARTING_FEN};
 use search::TimeControl;
 
-use crate::{commands::UciCommand, engine::Engine};
+use crate::commands::UciCommand;
 
 /// Returns a statically typed `UciCommand` parsed from the `String`.
 ///
@@ -48,7 +48,7 @@ fn parse_position_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
     }
 
     let fen = match tokens[1] {
-        "startpos" => Engine::START_FEN.to_owned(),
+        "startpos" => STARTING_FEN.to_owned(),
         "fen" if tokens.len() >= 8 => tokens[2..8].join(" "),
         _ => return Err(()),
     };

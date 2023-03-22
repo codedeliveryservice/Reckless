@@ -1,4 +1,4 @@
-use game::{Board, Color, Score};
+use game::{Board, Color, Score, MAX_SEARCH_DEPTH};
 
 use super::{ordering::Ordering, SearchParams, SearchThread};
 
@@ -16,7 +16,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
 
     thread.nodes += 1;
 
-    if p.ply > SearchParams::MAX_PLY - 1 {
+    if p.ply > MAX_SEARCH_DEPTH - 1 {
         return evaluate_statically(p.board);
     }
 

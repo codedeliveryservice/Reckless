@@ -22,6 +22,11 @@ pub struct Board {
 }
 
 impl Board {
+    /// Returns the board corresponding to the starting position.
+    pub fn starting_position() -> Self {
+        Self::new(crate::STARTING_FEN).unwrap()
+    }
+
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     ///
     /// # Errors

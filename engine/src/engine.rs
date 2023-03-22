@@ -15,12 +15,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
     /// Creates a new `Engine` with the initial position set.
     pub fn new() -> Self {
         Self {
-            board: Board::new(Self::START_FEN).unwrap(),
+            board: Board::starting_position(),
             cache: Arc::new(Mutex::new(Cache::new(2))),
             terminator: Default::default(),
         }
@@ -71,7 +69,7 @@ impl Engine {
 
     /// Resets the `Engine` to its original state.
     fn reset(&mut self) {
-        self.board = Board::new(Self::START_FEN).unwrap();
+        self.board = Board::starting_position();
         self.write_terminator(false);
         self.cache.lock().unwrap().clear();
     }

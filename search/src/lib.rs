@@ -86,8 +86,6 @@ pub struct SearchParams<'a> {
 }
 
 impl<'a> SearchParams<'a> {
-    pub const MAX_PLY: usize = 64;
-
     pub fn new(board: &'a mut Board, alpha: Score, beta: Score, depth: usize, ply: usize) -> Self {
         Self {
             board,

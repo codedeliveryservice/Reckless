@@ -1,4 +1,4 @@
-use game::{Move, Score, Zobrist};
+use game::{Move, Score, Zobrist, MAX_SEARCH_DEPTH};
 
 use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
 
@@ -14,7 +14,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         return Score::DRAW;
     }
 
-    if p.ply > SearchParams::MAX_PLY - 1 {
+    if p.ply > MAX_SEARCH_DEPTH - 1 {
         return quiescence::evaluate_statically(p.board);
     }
 

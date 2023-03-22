@@ -1,15 +1,14 @@
+use crate::MAX_GAME_PLIES;
+
 use super::state::State;
 
 #[derive(Clone)]
 pub(super) struct History {
-    list: [State; Self::MAX_GAME_PLIES],
+    list: [State; MAX_GAME_PLIES],
     index: usize,
 }
 
 impl History {
-    /// The maximum number of plies that can occur in a game.
-    const MAX_GAME_PLIES: usize = 1024;
-
     /// Adds a state to the history list.
     pub fn push(&mut self, state: State) {
         self.list[self.index] = state;
@@ -26,7 +25,7 @@ impl History {
 impl Default for History {
     fn default() -> Self {
         Self {
-            list: [Default::default(); Self::MAX_GAME_PLIES],
+            list: [Default::default(); MAX_GAME_PLIES],
             index: 0,
         }
     }
