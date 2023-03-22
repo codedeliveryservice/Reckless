@@ -51,7 +51,7 @@ impl SearchThread {
             pv.push(mv);
             board.make_move(mv).unwrap();
             self.extract_pv_line(board, depth - 1, pv);
-            board.take_back();
+            board.undo_move();
         }
     }
 

@@ -60,7 +60,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
             false => dive_normal(&mut p, thread),
         };
 
-        p.board.take_back();
+        p.board.undo_move();
 
         // Update the TT entry information if the move is better than what we've found so far
         if score > best_score {

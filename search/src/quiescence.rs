@@ -38,7 +38,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
 
         let child_params = SearchParams::new(p.board, -p.beta, -p.alpha, p.depth, p.ply + 1);
         let score = -quiescence_search(child_params, thread);
-        p.board.take_back();
+        p.board.undo_move();
 
         if score >= p.beta {
             return p.beta;

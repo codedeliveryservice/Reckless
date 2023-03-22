@@ -13,7 +13,7 @@ pub fn perft(board: &mut Board, depth: u32) -> u32 {
             assert_eq!(expected_hash_key, board.hash_key);
 
             nodes += perft(board, depth - 1);
-            board.take_back();
+            board.undo_move();
         }
     }
 

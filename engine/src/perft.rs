@@ -32,7 +32,7 @@ pub fn run_perft(depth: usize, board: &mut Board) {
         nodes += count;
         index += 1;
 
-        board.take_back();
+        board.undo_move();
 
         let seconds = now.elapsed().as_secs_f32();
         let knps = count as f32 / seconds / 1000f32;
@@ -65,7 +65,7 @@ fn perft(depth: usize, board: &mut Board) -> u64 {
     for mv in board.generate_moves() {
         if board.make_move(mv).is_ok() {
             nodes += perft(depth - 1, board);
-            board.take_back();
+            board.undo_move();
         }
     }
 

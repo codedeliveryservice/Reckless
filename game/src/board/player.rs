@@ -64,7 +64,7 @@ impl Board {
         // The move is considered illegal if it exposes the king to an attack after it has been made
         let king = self.their(Piece::King).pop().unwrap();
         if self.is_square_attacked(king, self.turn) {
-            self.take_back();
+            self.undo_move();
             return Err(IllegalMoveError);
         }
 
@@ -76,7 +76,7 @@ impl Board {
     /// # Panics
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
-    pub fn take_back(&mut self) {
+    pub fn undo_move(&mut self) {
         self.hash_key.update_side();
         self.hash_key.update_castling(self.state.castling);
         self.hash_key.update_en_passant(self.state.en_passant);
