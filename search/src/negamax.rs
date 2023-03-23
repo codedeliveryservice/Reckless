@@ -37,6 +37,13 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
         return score;
     }
 
+    if p.depth >= 3 && p.allow_nmp && !in_check {
+        let score = null_move_pruning(&mut p, thread);
+        if score >= p.beta {
+            return p.beta;
+        }
+    }
+
     // Values that are used to insert an entry into the TT. An empty move should will never
     // enter the TT, since the score of making any first move is greater than negative
     // infinity, otherwise there're no legal moves and the search will return earlier
@@ -120,6 +127,18 @@ fn dive_pvs(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
 
     // Perform a normal search if we find that our assumption was wrong
     dive_normal(p, thread)
+}
+
+fn null_move_pruning(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
+    p.board.make_null_move();
+
+    let mut params = SearchParams::new(p.board, -p.beta, -p.beta + 1, p.depth - 3, p.ply + 1);
+    params.allow_nmp = false;
+
+    let score = -negamax_search(params, thread);
+    p.board.undo_null_move();
+
+    score
 }
 
 #[inline(always)]

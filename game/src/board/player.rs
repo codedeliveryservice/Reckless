@@ -4,6 +4,28 @@ use crate::{Board, Move, MoveKind, Piece, Square};
 pub struct IllegalMoveError;
 
 impl Board {
+    /// Updates the board representation by making a null move.
+    pub fn make_null_move(&mut self) {
+        self.history.push(self.state);
+        self.repetitions.push(self.hash_key);
+
+        self.hash_key.update_side();
+        self.hash_key.update_castling(self.state.castling);
+        self.hash_key.update_en_passant(self.state.en_passant);
+
+        self.state.previous_move = None;
+        self.state.en_passant = None;
+
+        self.turn.reverse();
+    }
+
+    /// Restores the board to the previous state after the last null move made.
+    pub fn undo_null_move(&mut self) {
+        self.turn.reverse();
+        self.state = self.history.pop();
+        self.hash_key = self.repetitions.pop();
+    }
+
     /// Updates the board representation by making the specified `Move`.
     ///
     /// # Errors

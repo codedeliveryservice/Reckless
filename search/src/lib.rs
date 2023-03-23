@@ -83,6 +83,7 @@ pub struct SearchParams<'a> {
     beta: Score,
     depth: usize,
     ply: usize,
+    allow_nmp: bool,
 }
 
 impl<'a> SearchParams<'a> {
@@ -93,6 +94,7 @@ impl<'a> SearchParams<'a> {
             beta,
             depth,
             ply,
+            allow_nmp: true,
         }
     }
 }
