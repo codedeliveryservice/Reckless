@@ -1,3 +1,5 @@
+use crate::macros::impl_binary_op;
+
 use super::Bitboard;
 
 /// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
@@ -67,6 +69,9 @@ impl Square {
     }
 }
 
+impl_binary_op!(Square, Add, add);
+impl_binary_op!(Square, u8, Div, div);
+    
 impl TryFrom<&str> for Square {
     type Error = ();
 

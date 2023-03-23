@@ -49,7 +49,7 @@ impl Board {
 
         self.state.en_passant = match kind == MoveKind::DoublePush {
             true => {
-                let square = Square((start.0 + target.0) / 2);
+                let square = (start + target) / 2;
                 self.hash_key.update_en_passant_square(square);
                 Some(square)
             }
