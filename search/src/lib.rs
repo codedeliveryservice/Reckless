@@ -4,8 +4,10 @@ use std::time::Instant;
 
 use game::{Board, Move, Score};
 
+use self::history_moves::HistoryMoves;
 use self::killer_moves::KillerMoves;
 
+mod history_moves;
 mod killer_moves;
 mod negamax;
 mod ordering;
@@ -26,6 +28,7 @@ pub struct SearchThread {
     start_time: Instant,
     nodes: u32,
     killers: KillerMoves,
+    history: HistoryMoves,
 }
 
 impl SearchThread {
@@ -37,6 +40,7 @@ impl SearchThread {
             start_time: Instant::now(),
             nodes: Default::default(),
             killers: Default::default(),
+            history: Default::default(),
         }
     }
 

@@ -94,6 +94,11 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
             p.alpha = score;
             kind = NodeKind::PV;
             pv_found = true;
+
+            // The history heuristic is intended only for ordering quiet moves
+            if mv.is_quiet() {
+                thread.history.store(mv.start(), mv.target(), p.depth);
+            }
         }
     }
 

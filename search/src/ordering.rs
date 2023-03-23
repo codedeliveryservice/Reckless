@@ -41,22 +41,28 @@ impl Ordering {
 }
 
 /// Move from TT is likely to be the best and should be rated higher all others
-const TT_MOVE: Rating = 700;
+const TT_MOVE: Rating = 2000;
 
 /// Quiet killer move is rated below any capture move from MVV-LVA
-const KILLER_MOVE: Rating = 90;
+const KILLER_MOVE: Rating = 1000;
 
 /// Most Valuable Victim – Least Valuable Attacker heuristic table indexed by `[attacker][victim]`.
 const MVV_LVA: [[Rating; Piece::NUM]; Piece::NUM] = [
-    [105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600],
+    [1015, 1025, 1035, 1045, 1055, 1065],
+    [1014, 1024, 1034, 1044, 1054, 1064],
+    [1013, 1023, 1033, 1043, 1053, 1063],
+    [1012, 1022, 1032, 1042, 1052, 1062],
+    [1011, 1021, 1031, 1041, 1051, 1061],
+    [1010, 1020, 1030, 1040, 1050, 1060],
 ];
 
 /// Returns a move score based on heuristic analysis.
+///
+/// Order of importance:
+/// 1. Move from TT
+/// 2. Capture move from MVV-LVA (best captures first)
+/// 3. Killer move
+/// 4. History move
 fn score_move(mv: Move, p: &SearchParams, thread: &SearchThread, tt_move: Option<Move>) -> Rating {
     if Some(mv) == tt_move {
         return TT_MOVE;
@@ -70,7 +76,7 @@ fn score_move(mv: Move, p: &SearchParams, thread: &SearchThread, tt_move: Option
         return KILLER_MOVE;
     }
 
-    Default::default()
+    thread.history.get_score(mv.start(), mv.target())
 }
 
 /// Scores capture move based on the MVV LVA heuristic.
