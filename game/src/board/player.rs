@@ -77,18 +77,11 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn undo_move(&mut self) {
-        self.hash_key.update_side();
-        self.hash_key.update_castling(self.state.castling);
-        self.hash_key.update_en_passant(self.state.en_passant);
-
         let mv = self.state.previous_move.unwrap();
         let capture = self.state.captured_piece;
 
         self.turn.reverse();
         self.state = self.history.pop();
-
-        self.hash_key.update_castling(self.state.castling);
-        self.hash_key.update_en_passant(self.state.en_passant);
 
         let start = mv.start();
         let target = mv.target();
@@ -108,9 +101,7 @@ impl Board {
             self.add_piece(Piece::Pawn, self.turn.opposite(), target);
         } else if mv.is_capture() {
             self.add_piece(capture.unwrap(), self.turn.opposite(), target);
-        }
-
-        if mv.is_castling() {
+        } else if mv.is_castling() {
             let (rook_start, rook_target) = get_rook_move(target);
             self.add_piece(Piece::Rook, self.turn, rook_start);
             self.remove_piece(Piece::Rook, self.turn, rook_target);
