@@ -36,7 +36,7 @@ impl SearchThread {
             cache,
             start_time: Instant::now(),
             nodes: Default::default(),
-            killers: KillerMoves::new(),
+            killers: Default::default(),
         }
     }
 

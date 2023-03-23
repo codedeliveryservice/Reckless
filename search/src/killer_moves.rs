@@ -11,14 +11,6 @@ pub struct KillerMoves {
 }
 
 impl KillerMoves {
-    /// Creates a new `KillerMoves`.
-    pub fn new() -> Self {
-        Self {
-            primary: [Default::default(); MAX_SEARCH_DEPTH],
-            secondary: [Default::default(); MAX_SEARCH_DEPTH],
-        }
-    }
-
     /// Prepends the `Move` to the list of killer moves.
     #[inline(always)]
     pub fn add(&mut self, mv: Move, ply: usize) {
@@ -30,5 +22,14 @@ impl KillerMoves {
     #[inline(always)]
     pub fn contains(&self, mv: Move, ply: usize) -> bool {
         self.primary[ply] == mv || self.secondary[ply] == mv
+    }
+}
+
+impl Default for KillerMoves {
+    fn default() -> Self {
+        Self {
+            primary: [Default::default(); MAX_SEARCH_DEPTH],
+            secondary: [Default::default(); MAX_SEARCH_DEPTH],
+        }
     }
 }
