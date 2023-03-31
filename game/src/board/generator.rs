@@ -49,6 +49,7 @@ impl<'a> Generator<'a> {
         self.list
     }
 
+    /// Adds move for the piece type using the specified move generator function.
     fn collect_for<T: Fn(Square) -> Bitboard>(&mut self, piece: Piece, gen: T) {
         for start in self.board.our(piece) {
             let targets = gen(start) & !self.us;
@@ -58,6 +59,7 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds castling moves for the current side to move.
     fn collect_castling(&mut self) {
         match self.turn {
             Color::White => self.collect_white_castling(),
@@ -65,6 +67,10 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds white castling moves, if allowed.
+    ///
+    /// This method does not check if the king is in check after the castling,
+    /// as this will be checked by the `make_move` method.
     fn collect_white_castling(&mut self) {
         if self.state.castling.is_allowed(CastlingKind::WhiteShort)
             && (self.all & Bitboard::F1_G1).is_empty()
@@ -83,6 +89,10 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds black castling moves, if allowed.
+    ///
+    /// This method does not check if the king is in check after the castling,
+    /// as this will be checked by the `make_move` method.
     fn collect_black_castling(&mut self) {
         if self.state.castling.is_allowed(CastlingKind::BlackShort)
             && (self.all & Bitboard::F8_G8).is_empty()
@@ -101,6 +111,7 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds all pawn moves to the move list.
     fn collect_pawn_moves(&mut self) {
         let bb = self.board.our(Piece::Pawn);
 
@@ -115,39 +126,39 @@ impl<'a> Generator<'a> {
         self.collect_en_passant_moves(bb);
     }
 
+    /// Adds one square pawn pushes and regular captures to the move list.
     #[inline(always)]
     fn collect_regular_pawn_moves(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
         for start in bb {
-            // Captures
-            let targets = pawn_attacks(start, self.turn) & self.them;
-            self.add_many(start, targets, MoveKind::Capture);
+            let captures = pawn_attacks(start, self.turn) & self.them;
+            self.add_many(start, captures, MoveKind::Capture);
 
-            // One square pawn push
-            let target = start.shift(offset);
-            if !self.all.contains(target) {
-                self.list.add(start, target, MoveKind::Quiet);
+            let pawn_push = start.shift(offset);
+            if !self.all.contains(pawn_push) {
+                self.list.add(start, pawn_push, MoveKind::Quiet);
             }
         }
     }
 
+    /// Adds promotions and capture promotions to the move list.
     #[inline(always)]
     fn collect_promotions(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
         for start in bb {
-            // Promotion with a capture
-            for target in pawn_attacks(start, self.turn) & self.them {
+            let captures = pawn_attacks(start, self.turn) & self.them;
+            for target in captures {
                 self.add_promotion_captures(start, target);
             }
 
-            // Push promotion
-            let target = start.shift(offset);
-            if !self.all.contains(target) {
-                self.add_promotions(start, target);
+            let promotion = start.shift(offset);
+            if !self.all.contains(promotion) {
+                self.add_promotions(start, promotion);
             }
         }
     }
 
+    // Adds double pawn pushes to the move list.
     #[inline(always)]
     fn collect_double_pushes(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
@@ -161,15 +172,18 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds en passant captures to the move list.
     #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         if let Some(en_passant) = self.state.en_passant {
-            for start in pawn_attacks(en_passant, self.turn.opposite()) & bb {
-                self.list.add(start, en_passant, MoveKind::EnPassant);
+            let pawns = pawn_attacks(en_passant, self.turn.opposite()) & bb;
+            for pawn in pawns {
+                self.list.add(pawn, en_passant, MoveKind::EnPassant);
             }
         }
     }
 
+    /// Adds all possible moves from the given starting square to the squares of the `targets` bitboard.
     #[inline(always)]
     fn add_many(&mut self, start: Square, targets: Bitboard, move_kind: MoveKind) {
         for target in targets {
@@ -177,6 +191,7 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Adds all possible promotion moves to the move list.
     #[inline(always)]
     fn add_promotions(&mut self, start: Square, target: Square) {
         self.list.add(start, target, MoveKind::PromotionQ);
@@ -185,6 +200,7 @@ impl<'a> Generator<'a> {
         self.list.add(start, target, MoveKind::PromotionN);
     }
 
+    /// Adds all possible promotion captures to the move list.
     #[inline(always)]
     fn add_promotion_captures(&mut self, start: Square, target: Square) {
         self.list.add(start, target, MoveKind::PromotionCaptureQ);
