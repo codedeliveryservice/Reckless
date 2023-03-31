@@ -18,26 +18,27 @@ Please note that the very idea of the project is mostly educational for explorin
 -   Magic numbers are pre-generated using [Reckless Magics][reckless-magics]
 -   Compile time generation of move maps using a [build script](/game/src/lookup/build.rs)
 
-## Static evaluation
-
--   [Material](https://www.chessprogramming.org/Material)
--   [Piece-Square Tables](https://www.chessprogramming.org/Piece-Square_Tables)
-
 ## Search
 
--   [Negamax search](https://www.chessprogramming.org/Negamax)
--   [Alpha-Beta pruning](https://www.chessprogramming.org/Alpha-Beta)
+-   Negamax search
+-   Alpha-Beta pruning
 -   Iterative Deepening
 -   Aspiration Windows
 -   Principle Variation Search
 -   Transposition Table
--   [Quiescence search](https://www.chessprogramming.org/Quiescence_Search)
+-   Quiescence search
 
 ## Move ordering
 
 -   TT-move ordering
--   [MVV-LVA](https://www.chessprogramming.org/MVV-LVA)
+-   MVV-LVA
 -   Killer Heuristic
+-   History Heuristic
+
+## Static evaluation
+
+-   Material
+-   Piece-Square Tables
 
 ## Getting started
 
