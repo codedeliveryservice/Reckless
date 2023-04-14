@@ -63,16 +63,21 @@ fn parse_position_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
 
 fn parse_go_command(tokens: Vec<&str>, turn: Color) -> Result<UciCommand, ()> {
     Ok(UciCommand::Search {
-        time_control: parse_time_control(&tokens[1..], turn)?,
+        time_control: parse_time_control(&tokens[1..], turn),
     })
 }
 
-fn parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
-    let mut wtime = None;
-    let mut winc = None;
-    let mut btime = None;
-    let mut binc = None;
+/// Parses a time control command from a list of tokens and returns a `TimeControl` instance.
+///
+/// If the tokens are invalid, returns `TimeControl::Infinite`.
+fn parse_time_control(tokens: &[&str], turn: Color) -> TimeControl {
+    try_parse_time_control(tokens, turn).unwrap_or(TimeControl::Infinite)
+}
 
+/// Tries to parse the given list of tokens into a `TimeControl` based on the given turn color.
+fn try_parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
+    let mut main = 0;
+    let mut inc = 0;
     let mut moves_left = None;
 
     for chunk in tokens.chunks(2) {
@@ -83,38 +88,30 @@ fn parse_time_control(tokens: &[&str], turn: Color) -> Result<TimeControl, ()> {
             "depth" => return Ok(TimeControl::FixedDepth(parse(value)?)),
             "movetime" => return Ok(TimeControl::FixedTime(parse(value)?)),
 
-            "wtime" => wtime = Some(parse(value)?),
-            "btime" => btime = Some(parse(value)?),
-
-            "winc" => winc = Some(parse(value)?),
-            "binc" => binc = Some(parse(value)?),
-
+            "wtime" if turn == Color::White => main = parse(value)?,
+            "btime" if turn == Color::Black => main = parse(value)?,
+            "winc" if turn == Color::White => inc = parse(value)?,
+            "binc" if turn == Color::Black => inc = parse(value)?,
             "movestogo" => moves_left = Some(parse(value)?),
 
-            _ => return Err(()),
+            _ => continue,
         }
     }
 
-    let (main, inc) = match turn {
-        Color::White => (wtime, winc),
-        Color::Black => (btime, binc),
-    };
-
-    if main.is_none() && inc.is_none() {
-        return Ok(TimeControl::Infinite);
+    let is_invalid_time_control = main == 0 && inc == 0;
+    if is_invalid_time_control {
+        return Err(());
     }
 
-    Ok(match moves_left {
-        Some(moves) => TimeControl::Tournament(main.unwrap_or(0), inc.unwrap_or(0), moves),
-        None => TimeControl::Incremental(main.unwrap_or(0), inc.unwrap_or(0)),
-    })
+    match moves_left {
+        Some(moves) => Ok(TimeControl::Tournament(main, inc, moves)),
+        None => Ok(TimeControl::Incremental(main, inc)),
+    }
 }
 
+/// Parse a string into a type that implements `FromStr`.
 fn parse<T: std::str::FromStr>(value: Option<&str>) -> Result<T, ()> {
-    match value {
-        Some(value) => value.parse().map_err(|_| ()),
-        None => Err(()),
-    }
+    value.and_then(|v| v.parse().ok()).ok_or(())
 }
 
 #[cfg(test)]
@@ -126,19 +123,19 @@ mod tests {
             #[test]
             fn $name() {
                 let actual = parse_time_control(&$tokens, $color);
-                assert_eq!(actual, $expected)
+                assert_eq!(actual, $expected);
             }
         )*};
     }
 
     assert_tc! {
-        go_empty: ([], Color::White, Ok(TimeControl::Infinite)),
-        go_infinite: (["infinite"], Color::White, Ok(TimeControl::Infinite)),
-        go_depth: (["depth", "10"], Color::White, Ok(TimeControl::FixedDepth(10))),
-        go_move_time: (["movetime", "5000"], Color::White, Ok(TimeControl::FixedTime(5000))),
-        go_wtime_btime: (["wtime", "2000", "btime", "1000"], Color::Black, Ok(TimeControl::Incremental(1000, 0))),
-        go_winc_binc: (["winc", "500", "binc", "1000"], Color::White, Ok(TimeControl::Incremental(0, 500))),
-        go_full: (["wtime", "2500", "btime", "2100", "winc", "500", "binc", "100", "movestogo", "12"], Color::Black, Ok(TimeControl::Tournament(2100, 100, 12))),
-        go_invalid: (["invalid"], Color::White, Err(())),
+        go_empty: ([], Color::White, TimeControl::Infinite),
+        go_infinite: (["infinite"], Color::White, TimeControl::Infinite),
+        go_depth: (["depth", "10"], Color::White, TimeControl::FixedDepth(10)),
+        go_move_time: (["movetime", "5000"], Color::White, TimeControl::FixedTime(5000)),
+        go_wtime_btime: (["wtime", "2000", "btime", "1000"], Color::Black, TimeControl::Incremental(1000, 0)),
+        go_winc_binc: (["winc", "500", "binc", "1000"], Color::White, TimeControl::Incremental(0, 500)),
+        go_full: (["wtime", "2500", "btime", "2100", "winc", "500", "binc", "100", "movestogo", "12"], Color::Black, TimeControl::Tournament(2100, 100, 12)),
+        go_invalid: (["invalid"], Color::White, TimeControl::Infinite),
     }
 }
