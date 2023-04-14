@@ -149,7 +149,7 @@ fn null_move_pruning(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
 #[inline(always)]
 fn read_cache(p: &SearchParams, thread: &SearchThread) -> (Option<Move>, Option<Score>) {
     match read_cache_entry(p.board.hash_key, thread) {
-        Some(entry) => (Some(entry.best), entry.get_score(p)),
+        Some(entry) => (Some(entry.best), entry.get_score(p.alpha, p.beta, p.depth)),
         _ => (None, None),
     }
 }

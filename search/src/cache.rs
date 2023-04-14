@@ -1,7 +1,5 @@
 use game::{Move, Score, Zobrist};
 
-use super::SearchParams;
-
 /// The transposition hash table is used to cache previously performed search results.
 pub struct Cache {
     vector: Vec<Option<CacheEntry>>,
@@ -74,15 +72,15 @@ impl CacheEntry {
     }
 
     /// Returns `Some(Score)` if the `CacheEntry` is good enough compared to the `SearchParams`.
-    pub fn get_score(&self, params: &SearchParams) -> Option<Score> {
-        if self.depth < params.depth as u8 {
+    pub fn get_score(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
+        if self.depth < depth as u8 {
             return None;
         }
 
         match self.kind {
             NodeKind::PV => Some(self.score),
-            NodeKind::All if self.score <= params.alpha => Some(params.alpha),
-            NodeKind::Cut if self.score >= params.beta => Some(params.beta),
+            NodeKind::All if self.score <= alpha => Some(alpha),
+            NodeKind::Cut if self.score >= beta => Some(beta),
             _ => None,
         }
     }
