@@ -71,7 +71,7 @@ impl Square {
 
 impl_binary_op!(Square, Add, add);
 impl_binary_op!(Square, u8, Div, div);
-    
+
 impl TryFrom<&str> for Square {
     type Error = ();
 
