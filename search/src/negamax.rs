@@ -47,7 +47,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     // Values that are used to insert an entry into the TT. An empty move should will never
     // enter the TT, since the score of making any first move is greater than negative
     // infinity, otherwise there're no legal moves and the search will return earlier
-    let mut best_score = Score::NEGATIVE_INFINITY;
+    let mut best_score = -Score::INFINITY;
     let mut best_move = Move::default();
     let mut kind = NodeKind::All;
 
@@ -177,7 +177,7 @@ fn is_game_over(legal_moves: i32, in_check: bool, p: &SearchParams) -> Option<Sc
     match in_check {
         // Since negamax evaluates positions from the point of view of the maximizing player,
         // we choose the longest path to checkmate by adding the depth (maximizing the score)
-        true => Some(Score::CHECKMATE + p.ply as i32),
+        true => Some(-Score::CHECKMATE + p.ply as i32),
         false => Some(Score::DRAW),
     }
 }

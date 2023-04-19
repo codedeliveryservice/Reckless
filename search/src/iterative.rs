@@ -7,7 +7,7 @@ const WINDOW_MARGIN: Score = Score(50);
 pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
     let mut last_best = Default::default();
 
-    let mut alpha = Score::NEGATIVE_INFINITY;
+    let mut alpha = -Score::INFINITY;
     let mut beta = Score::INFINITY;
     let mut depth = 1;
 
@@ -21,7 +21,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
 
         // Reset the window on failure and try again at the same depth with a full width window
         if score <= alpha || score >= beta {
-            alpha = Score::NEGATIVE_INFINITY;
+            alpha = -Score::INFINITY;
             beta = Score::INFINITY;
             continue;
         }

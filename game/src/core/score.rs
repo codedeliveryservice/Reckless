@@ -7,11 +7,10 @@ pub struct Score(pub i32);
 
 impl Score {
     pub const INVALID: Self = Self(0);
-
     pub const INFINITY: Self = Self(50000);
-    pub const NEGATIVE_INFINITY: Self = Self(-50000);
 
-    pub const CHECKMATE: Self = Self(-48000);
+    pub const CHECKMATE: Self = Self(48000);
+
     pub const DRAW: Self = Self(0);
 
     /// Creates a new `Score`.
