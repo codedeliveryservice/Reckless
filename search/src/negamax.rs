@@ -6,8 +6,14 @@ use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, 
 ///
 /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
 pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
-    if thread.check_on() {
-        return Score::INVALID;
+    if thread.nodes % 4096 == 0 {
+        if thread.is_time_over() {
+            thread.set_terminator(true);
+        }
+
+        if thread.get_terminator() {
+            return Score::INVALID;
+        }
     }
 
     if p.ply > 0 && p.board.is_repetition() {
@@ -162,7 +168,7 @@ fn read_cache_entry(hash: Zobrist, thread: &SearchThread) -> Option<CacheEntry> 
 #[inline(always)]
 fn write_cache_entry(entry: CacheEntry, thread: &mut SearchThread) {
     // Caching when search has been aborted will result in invalid data in the TT
-    if !thread.is_time_over() && !thread.requested_termination() {
+    if !thread.is_time_over() && !thread.get_terminator() {
         thread.cache.lock().unwrap().write(entry);
     }
 }

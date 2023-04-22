@@ -66,13 +66,13 @@ impl SearchThread {
     }
 
     #[inline(always)]
-    pub fn requested_termination(&self) -> bool {
+    pub fn get_terminator(&self) -> bool {
         self.terminator.load(Ordering::Relaxed)
     }
 
     #[inline(always)]
-    pub fn check_on(&self) -> bool {
-        self.nodes % 4096 == 0 && (self.is_time_over() || self.requested_termination())
+    pub fn set_terminator(&mut self, value: bool) {
+        self.terminator.store(value, Ordering::Relaxed);
     }
 
     #[inline(always)]

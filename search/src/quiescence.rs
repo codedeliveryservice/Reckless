@@ -10,7 +10,7 @@ use super::{ordering::Ordering, SearchParams, SearchThread};
 /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
 /// for more information.
 pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
-    if thread.check_on() {
+    if thread.get_terminator() {
         return Score::INVALID;
     }
 

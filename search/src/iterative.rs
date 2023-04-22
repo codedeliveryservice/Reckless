@@ -46,7 +46,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
 }
 
 fn interrupted(thread: &SearchThread) -> bool {
-    thread.is_time_over() || thread.requested_termination()
+    thread.is_time_over() || thread.get_terminator()
 }
 
 fn report_search_result(depth: usize, score: Score, pv: &[Move], thread: &SearchThread) {
