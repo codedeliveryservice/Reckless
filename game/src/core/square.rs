@@ -49,7 +49,7 @@ impl Square {
     ///
     /// Panics if rank or file is not in the range of `0..8`.
     #[inline(always)]
-    pub fn from_axes(rank: u32, file: u32) -> Self {
+    pub fn from_coords(rank: u32, file: u32) -> Self {
         assert!((0..8).contains(&rank));
         assert!((0..8).contains(&file));
 
@@ -118,11 +118,11 @@ mod tests {
 
     #[test]
     fn from_axes() {
-        assert_eq!(Square::from_axes(0, 3), Square(3));
-        assert_eq!(Square::from_axes(2, 7), Square(23));
+        assert_eq!(Square::from_coords(0, 3), Square(3));
+        assert_eq!(Square::from_coords(2, 7), Square(23));
 
-        assert!(catch_unwind(|| Square::from_axes(0, 8)).is_err());
-        assert!(catch_unwind(|| Square::from_axes(8, 0)).is_err());
+        assert!(catch_unwind(|| Square::from_coords(0, 8)).is_err());
+        assert!(catch_unwind(|| Square::from_coords(8, 0)).is_err());
     }
 
     #[test]

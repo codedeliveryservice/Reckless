@@ -64,7 +64,7 @@ impl Fen {
             } else {
                 let piece = self.parse_piece(c)?;
                 let color = self.parse_color(c);
-                let square = Square::from_axes(rank, file);
+                let square = Square::from_coords(rank, file);
 
                 self.board.add_piece(piece, color, square);
 
