@@ -1,32 +1,16 @@
 use game::{Board, Color, Piece, Score};
 
-#[rustfmt::skip]
-const MATERIAL_SCORES: [MaterialScore; 5] = [
-    MaterialScore { piece: Piece::Pawn,   weight: 100 },
-    MaterialScore { piece: Piece::Knight, weight: 300 },
-    MaterialScore { piece: Piece::Bishop, weight: 325 },
-    MaterialScore { piece: Piece::Rook,   weight: 500 },
-    MaterialScore { piece: Piece::Queen,  weight: 900 },
-];
-
-struct MaterialScore {
-    piece: Piece,
-    weight: i32,
-}
+const SCORES: [i32; 5] = [100, 300, 325, 500, 900];
 
 pub fn evaluate_material(board: &Board) -> Score {
-    let mut score = Score::DRAW;
-
-    score += get_score_for_side(board, Color::White);
-    score -= get_score_for_side(board, Color::Black);
-
-    score
+    evaluate(board, Color::White) - evaluate(board, Color::Black)
 }
 
-fn get_score_for_side(board: &Board, color: Color) -> Score {
+fn evaluate(board: &Board, color: Color) -> Score {
     let mut score = 0;
-    for pair in MATERIAL_SCORES {
-        score += board.of(pair.piece, color).count() as i32 * pair.weight;
+    for index in 0..5 {
+        let piece = Piece::from(index);
+        score += board.of(piece, color).count() as i32 * SCORES[piece];
     }
-    Score::new(score)
+    Score(score)
 }
