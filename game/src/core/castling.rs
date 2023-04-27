@@ -40,7 +40,7 @@ impl Castling {
     /// Updates castling rights when interacting with the `Square`.
     #[inline(always)]
     pub fn update_for_square(&mut self, square: Square) {
-        self.0 &= Self::UPDATES[square.0 as usize];
+        self.0 &= Self::UPDATES[square];
     }
 
     /// Allows the specified `CastlingKind`.

@@ -12,12 +12,12 @@ pub struct HistoryMoves {
 impl HistoryMoves {
     /// Increases the score of a move by the given depth.
     pub fn store(&mut self, start: Square, target: Square, depth: usize) {
-        self.table[start.0 as usize][target.0 as usize] += depth as u16;
+        self.table[start][target] += depth as u16;
     }
 
     /// Returns the score of a move.
     pub fn get_score(&self, start: Square, target: Square) -> u16 {
-        self.table[start.0 as usize][target.0 as usize]
+        self.table[start][target]
     }
 }
 

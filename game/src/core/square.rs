@@ -102,6 +102,22 @@ impl TryFrom<&str> for Square {
     }
 }
 
+impl<T> std::ops::Index<Square> for [T] {
+    type Output = T;
+
+    #[inline(always)]
+    fn index(&self, square: Square) -> &Self::Output {
+        &self[square.0 as usize]
+    }
+}
+
+impl<T> std::ops::IndexMut<Square> for [T] {
+    #[inline(always)]
+    fn index_mut(&mut self, square: Square) -> &mut Self::Output {
+        &mut self[square.0 as usize]
+    }
+}
+
 impl std::fmt::Display for Square {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", Self::NOTATION[self.0 as usize])

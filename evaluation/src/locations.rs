@@ -100,7 +100,7 @@ fn get_score_for_white(board: &Board) -> Score {
     let mut score = 0;
     for pair in LOCATION_SCORES {
         for square in board.of(pair.piece, Color::White) {
-            score += pair.table[MIRRORED[square.0 as usize]];
+            score += pair.table[MIRRORED[square]];
         }
     }
     Score::new(score)
@@ -110,7 +110,7 @@ fn get_score_for_black(board: &Board) -> Score {
     let mut score = 0;
     for pair in LOCATION_SCORES {
         for square in board.of(pair.piece, Color::Black) {
-            score += pair.table[square.0 as usize];
+            score += pair.table[square];
         }
     }
     Score::new(score)

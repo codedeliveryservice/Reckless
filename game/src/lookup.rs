@@ -5,24 +5,24 @@ include!(concat!(env!("OUT_DIR"), "/lookup.rs"));
 #[inline(always)]
 pub fn pawn_attacks(square: Square, color: Color) -> Bitboard {
     Bitboard(match color {
-        Color::White => WHITE_PAWN_MAP[square.0 as usize],
-        Color::Black => BLACK_PAWN_MAP[square.0 as usize],
+        Color::White => WHITE_PAWN_MAP[square],
+        Color::Black => BLACK_PAWN_MAP[square],
     })
 }
 
 #[inline(always)]
 pub fn king_attacks(square: Square) -> Bitboard {
-    Bitboard(KING_MAP[square.0 as usize])
+    Bitboard(KING_MAP[square])
 }
 
 #[inline(always)]
 pub fn knight_attacks(square: Square) -> Bitboard {
-    Bitboard(KNIGHT_MAP[square.0 as usize])
+    Bitboard(KNIGHT_MAP[square])
 }
 
 #[inline(always)]
 pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
-    let entry = &ROOK_MAGICS[square.0 as usize];
+    let entry = &ROOK_MAGICS[square];
     let index = magic_index(occupancies, entry);
 
     Bitboard(ROOK_MAP[index as usize])
@@ -30,7 +30,7 @@ pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
 
 #[inline(always)]
 pub fn bishop_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
-    let entry = &BISHOP_MAGICS[square.0 as usize];
+    let entry = &BISHOP_MAGICS[square];
     let index = magic_index(occupancies, entry);
 
     Bitboard(BISHOP_MAP[index as usize])
