@@ -1,7 +1,7 @@
 use game::{Board, Move, Piece};
 
 use self::OrderingStage::*;
-use super::{SearchParams, SearchThread};
+use super::SearchThread;
 
 type Rating = u16;
 type OrderingMap = Vec<(Move, Rating)>;
@@ -22,26 +22,27 @@ pub struct Ordering {
 }
 
 impl Ordering {
-    pub fn normal(p: &SearchParams, thread: &SearchThread) -> Self {
-        let hash = p.board.hash_key;
+    pub fn normal(board: &Board, ply: usize, thread: &SearchThread) -> Self {
+        let hash = board.hash_key;
         let cache_move = thread.cache.lock().unwrap().read(hash).map(|e| e.best);
-        Self::build(NORMAL_STAGES, p, thread, cache_move)
+        Self::build(NORMAL_STAGES, board, ply, thread, cache_move)
     }
 
-    pub fn quiescence(p: &SearchParams, thread: &SearchThread) -> Self {
-        Self::build(QUIESCENCE_STAGES, p, thread, None)
+    pub fn quiescence(board: &Board, ply: usize, thread: &SearchThread) -> Self {
+        Self::build(QUIESCENCE_STAGES, board, ply, thread, None)
     }
 
     /// Builds a new `Ordering` object sorted by rating for a given set of stages.
     fn build(
         stages: &[OrderingStage],
-        p: &SearchParams,
+        board: &Board,
+        ply: usize,
         thread: &SearchThread,
         cache_move: Option<Move>,
     ) -> Self {
         let builder = OrderingBuilder {
-            board: p.board,
-            ply: p.ply,
+            board,
+            ply,
             thread,
             cache_move,
         };
