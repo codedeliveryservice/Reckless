@@ -22,7 +22,9 @@ pub struct Ordering {
 }
 
 impl Ordering {
-    pub fn normal(p: &SearchParams, thread: &SearchThread, cache_move: Option<Move>) -> Self {
+    pub fn normal(p: &SearchParams, thread: &SearchThread) -> Self {
+        let hash = p.board.hash_key;
+        let cache_move = thread.cache.lock().unwrap().read(hash).map(|e| e.best);
         Self::build(NORMAL_STAGES, p, thread, cache_move)
     }
 
@@ -30,6 +32,7 @@ impl Ordering {
         Self::build(QUIESCENCE_STAGES, p, thread, None)
     }
 
+    /// Builds a new `Ordering` object sorted by rating for a given set of stages.
     fn build(
         stages: &[OrderingStage],
         p: &SearchParams,

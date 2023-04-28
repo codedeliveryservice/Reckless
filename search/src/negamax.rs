@@ -38,8 +38,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     thread.nodes += 1;
 
     // If the cache contains a relevant score, return it immediately
-    let (tt_move, tt_score) = read_cache(&p, thread);
-    if let Some(score) = tt_score {
+    if let Some(score) = read_cache(&p, thread) {
         return score;
     }
 
@@ -60,7 +59,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     let mut legal_moves = 0;
     let mut pv_found = false;
 
-    let mut ordering = Ordering::normal(&p, thread, tt_move);
+    let mut ordering = Ordering::normal(&p, thread);
     while let Some(mv) = ordering.next() {
         if p.board.make_move(mv).is_err() {
             continue;
@@ -153,10 +152,10 @@ fn null_move_pruning(p: &mut SearchParams, thread: &mut SearchThread) -> Score {
 }
 
 #[inline(always)]
-fn read_cache(p: &SearchParams, thread: &SearchThread) -> (Option<Move>, Option<Score>) {
+fn read_cache(p: &SearchParams, thread: &SearchThread) -> Option<Score> {
     match read_cache_entry(p.board.hash_key, thread) {
-        Some(entry) => (Some(entry.best), entry.get_score(p.alpha, p.beta, p.depth)),
-        _ => (None, None),
+        Some(entry) => entry.get_score(p.alpha, p.beta, p.depth),
+        _ => None,
     }
 }
 
