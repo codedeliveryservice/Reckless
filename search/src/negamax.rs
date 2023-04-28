@@ -1,5 +1,7 @@
 use game::{Move, Score, Zobrist, MAX_SEARCH_DEPTH};
 
+use crate::quiescence::QuiescenceSearch;
+
 use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 /// Performs a `negamax` search with alpha-beta pruning in a fail-hard environment.
@@ -32,7 +34,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     }
 
     if p.depth == 0 {
-        return quiescence::quiescence_search(p, thread);
+        return QuiescenceSearch::new(p.board, thread).search(p.alpha, p.beta, p.ply);
     }
 
     thread.nodes += 1;
