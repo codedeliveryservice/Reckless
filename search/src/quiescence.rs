@@ -30,7 +30,7 @@ pub fn quiescence_search(mut p: SearchParams, thread: &mut SearchThread) -> Scor
         p.alpha = evaluation;
     }
 
-    let mut ordering = Ordering::generate(&p, thread, None);
+    let mut ordering = Ordering::quiescence(&p, thread);
     while let Some(mv) = ordering.next() {
         if !mv.is_capture() || p.board.make_move(mv).is_err() {
             continue;

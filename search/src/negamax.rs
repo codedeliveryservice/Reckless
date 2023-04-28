@@ -60,7 +60,7 @@ pub fn negamax_search(mut p: SearchParams, thread: &mut SearchThread) -> Score {
     let mut legal_moves = 0;
     let mut pv_found = false;
 
-    let mut ordering = Ordering::generate(&p, thread, tt_move);
+    let mut ordering = Ordering::normal(&p, thread, tt_move);
     while let Some(mv) = ordering.next() {
         if p.board.make_move(mv).is_err() {
             continue;
