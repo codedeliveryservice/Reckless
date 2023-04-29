@@ -96,7 +96,7 @@ impl<'a> AlphaBetaSearch<'a> {
             // The move is too good for the opponent which makes the position not interesting for us,
             // as we're expected to avoid a bad position, so we can perform a beta cutoff
             if score >= p.beta {
-                let entry = CacheEntry::new(self.board.hash_key, p.depth, score, NodeKind::Cut, mv);
+                let entry = CacheEntry::new(self.board.hash, p.depth, score, NodeKind::Cut, mv);
                 self.write_cache_entry(entry);
 
                 // The killer heuristic is intended only for ordering quiet moves
@@ -124,7 +124,7 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        let entry = CacheEntry::new(self.board.hash_key, p.depth, best_score, kind, best_move);
+        let entry = CacheEntry::new(self.board.hash, p.depth, best_score, kind, best_move);
         self.write_cache_entry(entry);
 
         // The variation is useless, so it's a fail-low node
@@ -166,7 +166,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     #[inline(always)]
     fn read_cache(&self, p: &SearchParams) -> Option<Score> {
-        match self.read_cache_entry(self.board.hash_key) {
+        match self.read_cache_entry(self.board.hash) {
             Some(entry) => entry.get_score(p.alpha, p.beta, p.depth),
             _ => None,
         }

@@ -7,11 +7,11 @@ impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
         self.history.push(self.state);
-        self.repetitions.push(self.hash_key);
+        self.repetitions.push(self.hash);
 
-        self.hash_key.update_side();
-        self.hash_key.update_castling(self.state.castling);
-        self.hash_key.update_en_passant(self.state.en_passant);
+        self.hash.update_side();
+        self.hash.update_castling(self.state.castling);
+        self.hash.update_en_passant(self.state.en_passant);
 
         self.state.previous_move = None;
         self.state.en_passant = None;
@@ -23,7 +23,7 @@ impl Board {
     pub fn undo_null_move(&mut self) {
         self.turn.reverse();
         self.state = self.history.pop();
-        self.hash_key = self.repetitions.pop();
+        self.hash = self.repetitions.pop();
     }
 
     /// Updates the board representation by making the specified `Move`.
@@ -33,11 +33,11 @@ impl Board {
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.history.push(self.state);
-        self.repetitions.push(self.hash_key);
+        self.repetitions.push(self.hash);
 
-        self.hash_key.update_side();
-        self.hash_key.update_castling(self.state.castling);
-        self.hash_key.update_en_passant(self.state.en_passant);
+        self.hash.update_side();
+        self.hash.update_castling(self.state.castling);
+        self.hash.update_en_passant(self.state.en_passant);
 
         self.state.previous_move = Some(mv);
 
@@ -72,7 +72,7 @@ impl Board {
         self.state.en_passant = match kind == MoveKind::DoublePush {
             true => {
                 let square = (start + target) / 2;
-                self.hash_key.update_en_passant_square(square);
+                self.hash.update_en_passant_square(square);
                 Some(square)
             }
             false => None,
@@ -80,7 +80,7 @@ impl Board {
 
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
-        self.hash_key.update_castling(self.state.castling);
+        self.hash.update_castling(self.state.castling);
         self.turn.reverse();
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
@@ -129,7 +129,7 @@ impl Board {
             self.remove_piece(Piece::Rook, self.turn, rook_target);
         }
 
-        self.hash_key = self.repetitions.pop();
+        self.hash = self.repetitions.pop();
     }
 }
 

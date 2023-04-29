@@ -13,7 +13,7 @@ mod state;
 #[derive(Default, Clone)]
 pub struct Board {
     pub turn: Color,
-    pub hash_key: Zobrist,
+    pub hash: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     repetitions: Repetitions,
@@ -88,7 +88,7 @@ impl Board {
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].set(square);
         self.colors[color as usize].set(square);
-        self.hash_key.update_piece(piece, color, square);
+        self.hash.update_piece(piece, color, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -96,7 +96,7 @@ impl Board {
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.pieces[piece as usize].clear(square);
         self.colors[color as usize].clear(square);
-        self.hash_key.update_piece(piece, color, square);
+        self.hash.update_piece(piece, color, square);
     }
 
     /// Returns `true` if the current position has already been present at least once
@@ -105,7 +105,7 @@ impl Board {
     /// This method does not count the number of encounters.
     #[inline(always)]
     pub fn is_repetition(&self) -> bool {
-        self.repetitions.is_repetition(self.hash_key)
+        self.repetitions.is_repetition(self.hash)
     }
 
     /// Returns `true` if the king of the current turn color is in check.
