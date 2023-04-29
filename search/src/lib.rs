@@ -81,8 +81,7 @@ impl SearchThread {
     }
 }
 
-pub struct SearchParams<'a> {
-    board: &'a mut Board,
+pub struct SearchParams {
     alpha: Score,
     beta: Score,
     depth: usize,
@@ -90,10 +89,9 @@ pub struct SearchParams<'a> {
     allow_nmp: bool,
 }
 
-impl<'a> SearchParams<'a> {
-    pub fn new(board: &'a mut Board, alpha: Score, beta: Score, depth: usize, ply: usize) -> Self {
+impl SearchParams {
+    pub fn new(alpha: Score, beta: Score, depth: usize, ply: usize) -> Self {
         Self {
-            board,
             alpha,
             beta,
             depth,
