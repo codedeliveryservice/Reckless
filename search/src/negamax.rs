@@ -1,8 +1,8 @@
-use game::{Board, Move, Score, Zobrist, MAX_SEARCH_DEPTH};
-
-use crate::quiescence::QuiescenceSearch;
+use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
 use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
+
+use crate::quiescence::QuiescenceSearch;
 
 pub struct AlphaBetaSearch<'a> {
     board: &'a mut Board,
@@ -19,57 +19,47 @@ impl<'a> AlphaBetaSearch<'a> {
     ///
     /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
     pub fn negamax_search(&mut self, mut p: SearchParams) -> Score {
-        if self.thread.nodes % 4096 == 0 {
-            if self.thread.is_time_over() {
-                self.thread.set_terminator(true);
-            }
-
-            if self.thread.get_terminator() {
-                return Score::INVALID;
-            }
+        if let Some(value) = self.check_on() {
+            return value;
         }
 
-        if p.ply > 0 && self.board.is_repetition() {
+        let repetition = p.ply > 0 && self.board.is_repetition();
+        if repetition {
             return Score::DRAW;
         }
 
-        if p.ply > MAX_SEARCH_DEPTH - 1 {
+        let max_depth_reached = p.ply > MAX_SEARCH_DEPTH - 1;
+        if max_depth_reached {
             return quiescence::evaluate_statically(self.board);
         }
 
-        // Static evaluation is unreliable when the king is under check,
-        // so increase the search depth in this case
+        // Static evaluation is unreliable when the king is under check
         let in_check = self.board.is_in_check();
         if in_check {
             p.depth += 1;
         }
 
-        if p.depth == 0 {
+        let root_node = p.depth == 0;
+        if root_node {
             return QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, p.ply);
         }
 
         self.thread.nodes += 1;
 
-        // If the cache contains a relevant score, return it immediately
-        if let Some(score) = self.read_cache(&p) {
+        if let Some(score) = self.read_cache_entry(&p) {
             return score;
         }
 
-        if p.depth >= 3 && p.allow_nmp && !in_check {
-            let score = self.null_move_pruning(&mut p);
-            if score >= p.beta {
-                return p.beta;
-            }
+        if let Some(score) = self.null_move_pruning(&mut p, in_check) {
+            return score;
         }
 
-        // Values that are used to insert an entry into the TT. An empty move should will never
-        // enter the TT, since the score of making any first move is greater than negative
-        // infinity, otherwise there're no legal moves and the search will return earlier
+        // Values that are used to insert an entry into the cache
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::default();
         let mut kind = NodeKind::All;
 
-        let mut legal_moves = 0;
+        let mut legal_move_found = false;
         let mut pv_found = false;
 
         let mut ordering = Ordering::normal(self.board, p.ply, self.thread);
@@ -78,7 +68,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            legal_moves += 1;
+            legal_move_found = true;
 
             let score = match pv_found {
                 true => self.dive_pvs(&mut p),
@@ -120,7 +110,7 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        if let Some(score) = Self::is_game_over(legal_moves, in_check, &p) {
+        if let Some(score) = self.is_game_over(legal_move_found, in_check, p.ply) {
             return score;
         }
 
@@ -129,6 +119,19 @@ impl<'a> AlphaBetaSearch<'a> {
 
         // The variation is useless, so it's a fail-low node
         p.alpha
+    }
+
+    #[inline(always)]
+    fn check_on(&mut self) -> Option<Score> {
+        if self.thread.nodes % 4096 != 0 {
+            return None;
+        }
+
+        if self.thread.is_time_over() {
+            self.thread.set_terminator(true);
+        }
+
+        self.thread.get_terminator().then_some(Score::INVALID)
     }
 
     #[inline(always)]
@@ -152,50 +155,49 @@ impl<'a> AlphaBetaSearch<'a> {
         self.dive_normal(p)
     }
 
-    fn null_move_pruning(&mut self, p: &mut SearchParams) -> Score {
-        self.board.make_null_move();
-
-        let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3, p.ply + 1);
-        params.allow_nmp = false;
-
-        let score = -self.negamax_search(params);
-        self.board.undo_null_move();
-
-        score
-    }
-
     #[inline(always)]
-    fn read_cache(&self, p: &SearchParams) -> Option<Score> {
-        match self.read_cache_entry(self.board.hash) {
-            Some(entry) => entry.get_score(p.alpha, p.beta, p.depth),
-            _ => None,
+    fn null_move_pruning(&mut self, p: &mut SearchParams, in_check: bool) -> Option<Score> {
+        if p.depth >= 3 && p.allow_nmp && !in_check {
+            self.board.make_null_move();
+
+            let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3, p.ply + 1);
+            params.allow_nmp = false;
+
+            let score = -self.negamax_search(params);
+            self.board.undo_null_move();
+
+            if score >= p.beta {
+                return Some(p.beta);
+            }
         }
+        None
     }
 
     #[inline(always)]
-    fn read_cache_entry(&self, hash: Zobrist) -> Option<CacheEntry> {
-        self.thread.cache.lock().unwrap().read(hash)
+    fn read_cache_entry(&self, p: &SearchParams) -> Option<Score> {
+        let entry = self.thread.cache.lock().unwrap().read(self.board.hash);
+        entry.and_then(|entry| entry.get_score(p.alpha, p.beta, p.depth))
     }
 
     #[inline(always)]
     fn write_cache_entry(&mut self, entry: CacheEntry) {
-        // Caching when search has been aborted will result in invalid data in the TT
-        if !self.thread.is_time_over() && !self.thread.get_terminator() {
+        // Caching on an interrupted search will result in invalid results being written
+        if !self.thread.get_terminator() {
             self.thread.cache.lock().unwrap().write(entry);
         }
     }
 
     /// Returns `true` if the game is considered to be over either due to checkmate or stalemate.
     #[inline(always)]
-    fn is_game_over(legal_moves: i32, in_check: bool, p: &SearchParams) -> Option<Score> {
-        if legal_moves > 0 {
+    fn is_game_over(&self, legal_move_found: bool, in_check: bool, ply: usize) -> Option<Score> {
+        if legal_move_found {
             return None;
         }
 
         match in_check {
             // Since negamax evaluates positions from the point of view of the maximizing player,
             // we choose the longest path to checkmate by adding the depth (maximizing the score)
-            true => Some(-Score::CHECKMATE + p.ply as i32),
+            true => Some(-Score::CHECKMATE + ply as i32),
             false => Some(Score::DRAW),
         }
     }
