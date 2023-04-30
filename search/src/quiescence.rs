@@ -8,14 +8,15 @@ pub struct QuiescenceSearch<'a> {
 }
 
 impl<'a> QuiescenceSearch<'a> {
+    /// Creates a new `QuiescenceSearch` instance.
     pub fn new(board: &'a mut Board, thread: &'a mut SearchThread) -> Self {
         Self { board, thread }
     }
 
-    /// `Quiescence Search` performs a `negamax` search from the root node until the position
-    /// becomes stable to evaluate it statically. This minimizes the horizon effect for volatile
-    /// positions when threads and opportunities that go beyond the fixed depth of the search
-    /// will remain undetected.
+    /// Performs a `negamax` search from the root node until the position becomes stable
+    /// to evaluate it statically. This minimizes the horizon effect for volatile positions
+    /// when threads and opportunities that go beyond the fixed depth of the search will
+    /// remain undetected.
     ///
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
