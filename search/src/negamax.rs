@@ -1,10 +1,12 @@
+use std::time::Instant;
+
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::{ordering::Ordering, quiescence, CacheEntry, NodeKind, SearchParams, SearchThread};
-
-use crate::quiescence::QuiescenceSearch;
+use super::quiescence::{self, QuiescenceSearch};
+use super::{ordering::Ordering, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 pub struct AlphaBetaSearch<'a> {
+    pub(crate) start_time: Instant,
     board: &'a mut Board,
     thread: &'a mut SearchThread,
 }
@@ -12,7 +14,11 @@ pub struct AlphaBetaSearch<'a> {
 impl<'a> AlphaBetaSearch<'a> {
     /// Creates a new `AlphaBetaSearch` instance.
     pub fn new(board: &'a mut Board, thread: &'a mut SearchThread) -> Self {
-        Self { board, thread }
+        Self {
+            start_time: Instant::now(),
+            board,
+            thread,
+        }
     }
 
     /// Performs a `negamax` search with alpha-beta pruning in a fail-hard environment.
