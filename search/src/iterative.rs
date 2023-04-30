@@ -18,7 +18,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
         let score = search.negamax_search(SearchParams::new(alpha, beta, depth, 0));
         let stopwatch = search.start_time;
 
-        if interrupted(&thread) {
+        if thread.get_terminator() {
             break;
         }
 
@@ -41,13 +41,10 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
         last_best = pv[0];
         thread.nodes = 0;
         depth += 1;
+        thread.current_depth = depth;
     }
 
     println!("bestmove {}", last_best);
-}
-
-fn interrupted(thread: &SearchThread) -> bool {
-    thread.is_time_over() || thread.get_terminator()
 }
 
 fn report_search_result(depth: usize, score: Score, pv: &[Move], stopwatch: Instant, nodes: u32) {

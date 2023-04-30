@@ -129,7 +129,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     #[inline(always)]
     fn check_on(&mut self) -> Option<Score> {
-        if self.thread.nodes % 4096 != 0 {
+        if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {
             return None;
         }
 

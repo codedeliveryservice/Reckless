@@ -27,6 +27,7 @@ pub struct SearchThread {
     cache: Arc<Mutex<Cache>>,
     start_time: Instant,
     nodes: u32,
+    current_depth: usize,
     killers: KillerMoves,
     history: HistoryMoves,
 }
@@ -39,6 +40,7 @@ impl SearchThread {
             cache,
             start_time: Instant::now(),
             nodes: Default::default(),
+            current_depth: Default::default(),
             killers: Default::default(),
             history: Default::default(),
         }
