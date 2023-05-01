@@ -92,7 +92,7 @@ struct LocationScore {
     table: [i32; Square::NUM],
 }
 
-pub fn evaluate_locations(board: &Board) -> Score {
+pub fn evaluate(board: &Board) -> Score {
     get_score_for_white(board) - get_score_for_black(board)
 }
 
