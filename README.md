@@ -10,7 +10,8 @@ Please note that the very idea of the project is mostly educational for explorin
 
 ## Board representation
 
--   Bitboards with Little-Endian Rank-File Mapping (LERF)
+-   Bitboards with Little-Endian Rank-File Mapping
+-   Magic Bitboards for sliding pieces
 -   Make/undo approach
 
 ## Move generation
@@ -25,13 +26,15 @@ Please note that the very idea of the project is mostly educational for explorin
 
 ## Search
 
--   Negamax search
--   Alpha-Beta pruning
 -   Iterative Deepening
 -   Aspiration Windows
 -   Principle Variation Search
 -   Transposition Table
--   Quiescence search
+-   Quiescence Search
+
+## Pruning techniques
+
+-   Null Move Pruning
 
 ## Move ordering
 
@@ -43,11 +46,13 @@ Please note that the very idea of the project is mostly educational for explorin
 ## Static evaluation
 
 -   Material
+-   Mobility
 -   Piece-Square Tables
 
 ## Getting started
 
-To get started, download the source code and compile it with Rust. Once compiled, you can start playing against the engine by running the executable with the UCI protocol or, more preferably, with an external GUI such as Arena Chess GUI, Cute Chess, ChessBase or another GUI of your choice.
+To get started, download the source code and build it using Rust `1.64` or later.
+Once compiled, you can start using the engine with any UCI-compatible chess GUI, such as ChessBase, Cute Chess, or Arena Chess GUI.
 
 ## License
 
