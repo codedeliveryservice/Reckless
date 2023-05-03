@@ -1,5 +1,9 @@
 use game::{lookup, Bitboard, Board, Color, Piece, Score, Square};
 
+/// Evaluates the mobility difference between the two players.
+///
+/// The player's mobility depends on the number of squares that their pieces can move to.
+/// It can also be thought of as a square control.
 pub fn evaluate(board: &Board) -> Score {
     evaluate_color(board, Color::White) - evaluate_color(board, Color::Black)
 }
@@ -15,19 +19,20 @@ fn evaluate_piece<F>(board: &Board, color: Color, piece: Piece, f: F) -> Score
 where
     F: Fn(i32) -> i32,
 {
+    let occupancies = board.them() | board.us();
     let mut score = 0;
     for square in board.of(piece, color) {
-        score += f(get_attacks(board, square, piece).count() as i32);
+        score += f(get_attacks(square, piece, occupancies).count() as i32);
     }
     Score(score)
 }
 
-fn get_attacks(board: &Board, square: Square, piece: Piece) -> Bitboard {
+fn get_attacks(square: Square, piece: Piece, occupancies: Bitboard) -> Bitboard {
     match piece {
         Piece::Knight => lookup::knight_attacks(square),
-        Piece::Bishop => lookup::bishop_attacks(square, board.them() | board.us()),
-        Piece::Rook => lookup::rook_attacks(square, board.them() | board.us()),
-        Piece::Queen => lookup::queen_attacks(square, board.them() | board.us()),
+        Piece::Bishop => lookup::bishop_attacks(square, occupancies),
+        Piece::Rook => lookup::rook_attacks(square, occupancies),
+        Piece::Queen => lookup::queen_attacks(square, occupancies),
         _ => panic!("Invalid piece"),
     }
 }
