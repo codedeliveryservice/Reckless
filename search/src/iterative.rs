@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use game::{Board, Move, Score};
 
-use super::{negamax::AlphaBetaSearch, SearchParams, SearchThread};
+use super::{alphabeta::AlphaBetaSearch, SearchParams, SearchThread};
 
 const WINDOW_MARGIN: Score = Score(50);
 
@@ -15,7 +15,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
 
     while depth <= thread.tc.get_max_depth() {
         let mut search = AlphaBetaSearch::new(&mut board, &mut thread);
-        let score = search.negamax_search(SearchParams::new(alpha, beta, depth, 0));
+        let score = search.search(SearchParams::new(alpha, beta, depth, 0));
         let stopwatch = search.start_time;
 
         if thread.get_terminator() {

@@ -7,9 +7,9 @@ use game::{Board, Move, Score};
 use self::history_moves::HistoryMoves;
 use self::killer_moves::KillerMoves;
 
+mod alphabeta;
 mod history_moves;
 mod killer_moves;
-mod negamax;
 mod ordering;
 mod quiescence;
 

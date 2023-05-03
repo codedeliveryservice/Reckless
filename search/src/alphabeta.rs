@@ -21,10 +21,8 @@ impl<'a> AlphaBetaSearch<'a> {
         }
     }
 
-    /// Performs a `negamax` search with alpha-beta pruning in a fail-hard environment.
-    ///
-    /// See [Negamax](https://www.chessprogramming.org/Negamax) for more information.
-    pub fn negamax_search(&mut self, mut p: SearchParams) -> Score {
+    /// Performs a search using alpha-beta pruning in a fail-hard environment.
+    pub fn search(&mut self, mut p: SearchParams) -> Score {
         if let Some(value) = self.check_on() {
             return value;
         }
@@ -143,14 +141,14 @@ impl<'a> AlphaBetaSearch<'a> {
     #[inline(always)]
     fn dive_normal(&mut self, p: &mut SearchParams) -> Score {
         let params = SearchParams::new(-p.beta, -p.alpha, p.depth - 1, p.ply + 1);
-        -self.negamax_search(params)
+        -self.search(params)
     }
 
     #[inline(always)]
     fn dive_pvs(&mut self, p: &mut SearchParams) -> Score {
         // Search with a closed window around alpha
         let params = SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1, p.ply + 1);
-        let score = -self.negamax_search(params);
+        let score = -self.search(params);
 
         // Prove that any other move is worse than the PV move we've already found
         if p.alpha >= score || score >= p.beta {
@@ -169,7 +167,7 @@ impl<'a> AlphaBetaSearch<'a> {
             let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3, p.ply + 1);
             params.allow_nmp = false;
 
-            let score = -self.negamax_search(params);
+            let score = -self.search(params);
             self.board.undo_null_move();
 
             if score >= p.beta {
