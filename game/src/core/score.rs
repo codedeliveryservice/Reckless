@@ -12,11 +12,6 @@ impl Score {
     pub const CHECKMATE: Self = Self(48000);
 
     pub const DRAW: Self = Self(0);
-
-    /// Creates a new `Score`.
-    pub fn new(score: i32) -> Self {
-        Self(score)
-    }
 }
 
 impl_unary_op!(Score, Neg, neg);
