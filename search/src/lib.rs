@@ -87,18 +87,16 @@ pub struct SearchParams {
     alpha: Score,
     beta: Score,
     depth: usize,
-    ply: usize,
-    allow_nmp: bool,
+    null_move_allowed: bool,
 }
 
 impl SearchParams {
-    pub fn new(alpha: Score, beta: Score, depth: usize, ply: usize) -> Self {
+    pub fn new(alpha: Score, beta: Score, depth: usize) -> Self {
         Self {
             alpha,
             beta,
             depth,
-            ply,
-            allow_nmp: true,
+            null_move_allowed: true,
         }
     }
 }

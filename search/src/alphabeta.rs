@@ -9,6 +9,7 @@ pub struct AlphaBetaSearch<'a> {
     pub(crate) start_time: Instant,
     board: &'a mut Board,
     thread: &'a mut SearchThread,
+    ply: usize,
 }
 
 impl<'a> AlphaBetaSearch<'a> {
@@ -18,6 +19,7 @@ impl<'a> AlphaBetaSearch<'a> {
             start_time: Instant::now(),
             board,
             thread,
+            ply: Default::default(),
         }
     }
 
@@ -27,12 +29,12 @@ impl<'a> AlphaBetaSearch<'a> {
             return value;
         }
 
-        let repetition = p.ply > 0 && self.board.is_repetition();
+        let repetition = self.ply > 0 && self.board.is_repetition();
         if repetition {
             return Score::DRAW;
         }
 
-        let max_depth_reached = p.ply > MAX_SEARCH_DEPTH - 1;
+        let max_depth_reached = self.ply > MAX_SEARCH_DEPTH - 1;
         if max_depth_reached {
             return evaluation::evaluate_relative_score(self.board);
         }
@@ -45,7 +47,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         let root_node = p.depth == 0;
         if root_node {
-            return QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, p.ply);
+            return QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, self.ply);
         }
 
         self.thread.nodes += 1;
@@ -54,7 +56,7 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        if let Some(score) = self.null_move_pruning(&mut p, in_check) {
+        if let Some(score) = self.null_move_pruning(&p, in_check) {
             return score;
         }
 
@@ -66,19 +68,21 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut legal_move_found = false;
         let mut pv_found = false;
 
-        let mut ordering = Ordering::normal(self.board, p.ply, self.thread);
+        let mut ordering = Ordering::normal(self.board, self.ply, self.thread);
         while let Some(mv) = ordering.next() {
             if self.board.make_move(mv).is_err() {
                 continue;
             }
 
             legal_move_found = true;
+            self.ply += 1;
 
             let score = match pv_found {
-                true => self.dive_pvs(&mut p),
-                false => self.dive_normal(&mut p),
+                true => self.dive_pvs(&p),
+                false => self.dive_normal(&p),
             };
 
+            self.ply -= 1;
             self.board.undo_move();
 
             // Update the TT entry information if the move is better than what we've found so far
@@ -95,7 +99,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
                 // The killer heuristic is intended only for ordering quiet moves
                 if mv.is_quiet() {
-                    self.thread.killers.add(mv, p.ply);
+                    self.thread.killers.add(mv, self.ply);
                 }
 
                 return p.beta;
@@ -114,7 +118,7 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        if let Some(score) = self.is_game_over(legal_move_found, in_check, p.ply) {
+        if let Some(score) = self.is_game_over(legal_move_found, in_check) {
             return score;
         }
 
@@ -139,16 +143,14 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     #[inline(always)]
-    fn dive_normal(&mut self, p: &mut SearchParams) -> Score {
-        let params = SearchParams::new(-p.beta, -p.alpha, p.depth - 1, p.ply + 1);
-        -self.search(params)
+    fn dive_normal(&mut self, p: &SearchParams) -> Score {
+        -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
     }
 
     #[inline(always)]
-    fn dive_pvs(&mut self, p: &mut SearchParams) -> Score {
+    fn dive_pvs(&mut self, p: &SearchParams) -> Score {
         // Search with a closed window around alpha
-        let params = SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1, p.ply + 1);
-        let score = -self.search(params);
+        let score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1));
 
         // Prove that any other move is worse than the PV move we've already found
         if p.alpha >= score || score >= p.beta {
@@ -160,21 +162,23 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     #[inline(always)]
-    fn null_move_pruning(&mut self, p: &mut SearchParams, in_check: bool) -> Option<Score> {
-        if p.depth >= 3 && p.allow_nmp && !in_check {
-            self.board.make_null_move();
-
-            let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3, p.ply + 1);
-            params.allow_nmp = false;
-
-            let score = -self.search(params);
-            self.board.undo_null_move();
-
-            if score >= p.beta {
-                return Some(p.beta);
-            }
+    fn null_move_pruning(&mut self, p: &SearchParams, in_check: bool) -> Option<Score> {
+        let can_prune = p.null_move_allowed && !in_check && p.depth >= 3;
+        if !can_prune {
+            return None;
         }
-        None
+
+        self.board.make_null_move();
+        self.ply += 1;
+
+        let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3);
+        params.null_move_allowed = false;
+        let score = -self.search(params);
+
+        self.ply -= 1;
+        self.board.undo_null_move();
+
+        (score >= p.beta).then_some(p.beta)
     }
 
     #[inline(always)]
@@ -193,7 +197,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Returns `true` if the game is considered to be over either due to checkmate or stalemate.
     #[inline(always)]
-    fn is_game_over(&self, legal_move_found: bool, in_check: bool, ply: usize) -> Option<Score> {
+    fn is_game_over(&self, legal_move_found: bool, in_check: bool) -> Option<Score> {
         if legal_move_found {
             return None;
         }
@@ -201,7 +205,7 @@ impl<'a> AlphaBetaSearch<'a> {
         match in_check {
             // Since negamax evaluates positions from the point of view of the maximizing player,
             // we choose the longest path to checkmate by adding the depth (maximizing the score)
-            true => Some(-Score::CHECKMATE + ply as i32),
+            true => Some(-Score::CHECKMATE + self.ply as i32),
             false => Some(Score::DRAW),
         }
     }
