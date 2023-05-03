@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::quiescence::{self, QuiescenceSearch};
+use super::quiescence::QuiescenceSearch;
 use super::{ordering::Ordering, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 pub struct AlphaBetaSearch<'a> {
@@ -34,7 +34,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         let max_depth_reached = p.ply > MAX_SEARCH_DEPTH - 1;
         if max_depth_reached {
-            return quiescence::evaluate_statically(self.board);
+            return evaluation::evaluate_relative_score(self.board);
         }
 
         // Static evaluation is unreliable when the king is under check

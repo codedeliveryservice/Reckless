@@ -101,6 +101,7 @@ impl Engine {
 
     /// Statically evaluates the current position and sends a UCI report.
     fn evaluate(&self) {
-        println!("evaluation {}", evaluation::evaluate(&self.board));
+        let score = evaluation::evaluate_absolute_score(&self.board);
+        println!("evaluation {}", score);
     }
 }

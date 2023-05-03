@@ -1,4 +1,4 @@
-use game::{Board, Color, Score, MAX_SEARCH_DEPTH};
+use game::{Board, Score, MAX_SEARCH_DEPTH};
 
 use super::{ordering::Ordering, SearchThread};
 
@@ -28,10 +28,10 @@ impl<'a> QuiescenceSearch<'a> {
         self.thread.nodes += 1;
 
         if ply > MAX_SEARCH_DEPTH - 1 {
-            return evaluate_statically(self.board);
+            return evaluation::evaluate_relative_score(self.board);
         }
 
-        let evaluation = evaluate_statically(self.board);
+        let evaluation = evaluation::evaluate_relative_score(self.board);
 
         if evaluation >= beta {
             return beta;
@@ -58,17 +58,5 @@ impl<'a> QuiescenceSearch<'a> {
         }
 
         alpha
-    }
-}
-
-/// Returns a statically evaluated `Score` relative to the side being evaluated.
-#[inline(always)]
-pub fn evaluate_statically(board: &Board) -> Score {
-    // `Negamax` represents the maximizing player, so the score must be relative
-    // to the side being evaluated
-    let evaluation = evaluation::evaluate(board);
-    match board.turn {
-        Color::White => evaluation,
-        Color::Black => -evaluation,
     }
 }
