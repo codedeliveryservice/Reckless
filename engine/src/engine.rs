@@ -5,7 +5,7 @@ use std::thread;
 use game::Board;
 use search::{self, Cache, SearchThread, TimeControl};
 
-use crate::commands::UciCommand;
+use crate::commands::{OptionUciCommand, UciCommand};
 use crate::perft::run_perft;
 
 pub struct Engine {
@@ -19,7 +19,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::starting_position(),
-            cache: Arc::new(Mutex::new(Cache::new(2))),
+            cache: Default::default(),
             terminator: Default::default(),
         }
     }
@@ -29,6 +29,13 @@ impl Engine {
         match command {
             UciCommand::Info => {
                 println!("id name Reckless");
+                println!(
+                    "option name Hash type spin default {} min {} max {}",
+                    Cache::DEFAULT_SIZE,
+                    Cache::MIN_SIZE,
+                    Cache::MAX_SIZE
+                );
+                println!("option name ClearHash type button");
                 println!("uciok");
             }
             UciCommand::IsReady => {
@@ -38,6 +45,7 @@ impl Engine {
             UciCommand::NewGame => self.reset(),
             UciCommand::Position { fen, moves } => self.set_position(fen, moves),
             UciCommand::Search { time_control } => self.search(time_control),
+            UciCommand::Option { option } => self.set_option(option),
 
             UciCommand::Stop | UciCommand::Quit => self.write_terminator(true),
 
@@ -45,6 +53,21 @@ impl Engine {
             UciCommand::Eval => self.evaluate(),
             UciCommand::Perft { depth } => self.perft(depth),
         }
+    }
+
+    fn set_option(&mut self, option: OptionUciCommand) {
+        match option {
+            OptionUciCommand::Hash(size) => self.set_cache_size(size),
+            OptionUciCommand::ClearHash => self.cache.lock().unwrap().clear(),
+        }
+    }
+
+    /// Sets the size of the transposition table, clearing it in the process.
+    ///
+    /// This function will clamp the size to the range of `Cache::MIN_SIZE` to `Cache::MAX_SIZE`.
+    fn set_cache_size(&mut self, megabytes: usize) {
+        let size = megabytes.min(Cache::MAX_SIZE).max(Cache::MIN_SIZE);
+        self.cache = Arc::new(Mutex::new(Cache::new(size)));
     }
 
     /// Sets the position of this `Engine`.

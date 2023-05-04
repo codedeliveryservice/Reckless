@@ -1,7 +1,7 @@
 use game::{Color, STARTING_FEN};
 use search::TimeControl;
 
-use crate::commands::UciCommand;
+use crate::commands::{OptionUciCommand, UciCommand};
 
 /// Returns a statically typed `UciCommand` parsed from the `String`.
 ///
@@ -22,6 +22,7 @@ pub fn parse_command(str: &str, turn: Color) -> Result<UciCommand, ()> {
         "stop" => Ok(UciCommand::Stop),
         "quit" => Ok(UciCommand::Quit),
 
+        "setoption" => parse_option_command(tokens),
         "position" => parse_position_command(tokens),
         "go" => parse_go_command(tokens, turn),
 
@@ -31,6 +32,21 @@ pub fn parse_command(str: &str, turn: Color) -> Result<UciCommand, ()> {
 
         _ => Err(()),
     }
+}
+
+fn parse_option_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
+    let (name, value) = (tokens.get(2), tokens.get(4));
+
+    let option = match name {
+        Some(&"Hash") => {
+            let size = value.and_then(|v| v.parse().ok()).ok_or(())?;
+            OptionUciCommand::Hash(size)
+        }
+        Some(&"ClearHash") => OptionUciCommand::ClearHash,
+        _ => return Err(()),
+    };
+
+    Ok(UciCommand::Option { option })
 }
 
 fn parse_perft_command(tokens: Vec<&str>) -> Result<UciCommand, ()> {
@@ -137,5 +153,22 @@ mod tests {
         go_winc_binc: (["winc", "500", "binc", "1000"], Color::White, TimeControl::Incremental(0, 500)),
         go_full: (["wtime", "2500", "btime", "2100", "winc", "500", "binc", "100", "movestogo", "12"], Color::Black, TimeControl::Tournament(2100, 100, 12)),
         go_invalid: (["invalid"], Color::White, TimeControl::Infinite),
+    }
+
+    #[test]
+    fn option_command() {
+        assert_eq!(
+            parse_option_command(vec!["setoption", "name", "Hash", "value", "128"]),
+            Ok(UciCommand::Option {
+                option: OptionUciCommand::Hash(128)
+            })
+        );
+
+        assert_eq!(
+            parse_option_command(vec!["setoption", "name", "ClearHash"]),
+            Ok(UciCommand::Option {
+                option: OptionUciCommand::ClearHash
+            })
+        );
     }
 }

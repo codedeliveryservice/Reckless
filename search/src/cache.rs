@@ -6,6 +6,10 @@ pub struct Cache {
 }
 
 impl Cache {
+    pub const DEFAULT_SIZE: usize = 16;
+    pub const MAX_SIZE: usize = 512;
+    pub const MIN_SIZE: usize = 1;
+
     /// Creates a new `Cache<T>` with a total allocated size in megabytes.
     pub fn new(megabytes: usize) -> Self {
         let length = megabytes * 1024 * 1024 / std::mem::size_of::<CacheEntry>();
@@ -40,6 +44,12 @@ impl Cache {
     #[inline(always)]
     fn get_key(&self, hash: Zobrist) -> usize {
         hash.0 as usize % self.vector.len()
+    }
+}
+
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new(Self::DEFAULT_SIZE)
     }
 }
 
