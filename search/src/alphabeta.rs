@@ -25,37 +25,30 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Performs a search using alpha-beta pruning in a fail-hard environment.
     pub fn search(&mut self, mut p: SearchParams) -> Score {
-        if let Some(value) = self.check_on() {
-            return value;
+        if let Some(score) = self.check_on() {
+            return score;
+        }
+        if let Some(score) = self.detect_repetition() {
+            return score;
+        }
+        if let Some(score) = self.validate_depth() {
+            return score;
         }
 
-        let repetition = self.ply > 0 && self.board.is_repetition();
-        if repetition {
-            return Score::DRAW;
-        }
-
-        let max_depth_reached = self.ply > MAX_SEARCH_DEPTH - 1;
-        if max_depth_reached {
-            return evaluation::evaluate_relative_score(self.board);
-        }
-
-        // Static evaluation is unreliable when the king is under check
+        // Increase the search depth to avoid a horizon effect when evaluating the position
         let in_check = self.board.is_in_check();
         if in_check {
             p.depth += 1;
         }
 
-        let root_node = p.depth == 0;
-        if root_node {
-            return QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, self.ply);
-        }
-
         self.thread.nodes += 1;
 
+        if let Some(score) = self.evaluate(&p) {
+            return score;
+        }
         if let Some(score) = self.read_cache_entry(&p) {
             return score;
         }
-
         if let Some(score) = self.null_move_pruning(&p, in_check) {
             return score;
         }
@@ -78,8 +71,8 @@ impl<'a> AlphaBetaSearch<'a> {
             self.ply += 1;
 
             let score = match pv_found {
-                true => self.dive_pvs(&p),
-                false => self.dive_normal(&p),
+                true => self.principle_variation_search(&p),
+                false => -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1)),
             };
 
             self.ply -= 1;
@@ -91,13 +84,10 @@ impl<'a> AlphaBetaSearch<'a> {
                 best_move = mv;
             }
 
-            // The move is too good for the opponent which makes the position not interesting for us,
-            // as we're expected to avoid a bad position, so we can perform a beta cutoff
+            // The move is too good for the opponent, so ignore an uninteresting branch and perform a beta cutoff
             if score >= p.beta {
-                let entry = CacheEntry::new(self.board.hash, p.depth, score, NodeKind::Cut, mv);
-                self.write_cache_entry(entry);
+                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
 
-                // The killer heuristic is intended only for ordering quiet moves
                 if mv.is_quiet() {
                     self.thread.killers.add(mv, self.ply);
                 }
@@ -111,7 +101,6 @@ impl<'a> AlphaBetaSearch<'a> {
                 kind = NodeKind::PV;
                 pv_found = true;
 
-                // The history heuristic is intended only for ordering quiet moves
                 if mv.is_quiet() {
                     self.thread.history.store(mv.start(), mv.target(), p.depth);
                 }
@@ -122,13 +111,37 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        let entry = CacheEntry::new(self.board.hash, p.depth, best_score, kind, best_move);
-        self.write_cache_entry(entry);
+        self.write_cache_entry(p.depth, best_score, kind, best_move);
 
         // The variation is useless, so it's a fail-low node
         p.alpha
     }
 
+    /// Returns the score of the current position if it's at the root node.
+    fn evaluate(&mut self, p: &SearchParams) -> Option<Score> {
+        if p.depth > 0 {
+            return None;
+        }
+        Some(QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, self.ply))
+    }
+
+    /// Returns the score of the current position if the search depth is too high.
+    fn validate_depth(&mut self) -> Option<Score> {
+        if self.ply > MAX_SEARCH_DEPTH - 1 {
+            return Some(evaluation::evaluate_relative_score(self.board));
+        }
+        None
+    }
+
+    /// Returns a draw score if the current position is a repetition.
+    fn detect_repetition(&mut self) -> Option<Score> {
+        if self.ply > 0 && self.board.is_repetition() {
+            return Some(Score::DRAW);
+        }
+        None
+    }
+
+    /// Checks if the search should be interrupted.
     #[inline(always)]
     fn check_on(&mut self) -> Option<Score> {
         if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {
@@ -139,26 +152,21 @@ impl<'a> AlphaBetaSearch<'a> {
             self.thread.set_terminator(true);
         }
 
-        self.thread.get_terminator().then_some(Score::INVALID)
+        self.thread.get_terminator().then(|| Score::INVALID)
     }
 
+    /// Performs a principle variation search with a closed window around alpha.
     #[inline(always)]
-    fn dive_normal(&mut self, p: &SearchParams) -> Score {
-        -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
-    }
-
-    #[inline(always)]
-    fn dive_pvs(&mut self, p: &SearchParams) -> Score {
-        // Search with a closed window around alpha
+    fn principle_variation_search(&mut self, p: &SearchParams) -> Score {
         let score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1));
 
-        // Prove that any other move is worse than the PV move we've already found
-        if p.alpha >= score || score >= p.beta {
+        let pv_mode_is_best = p.alpha >= score || score >= p.beta;
+        if pv_mode_is_best {
             return score;
         }
 
-        // Perform a normal search if we find that our assumption was wrong
-        self.dive_normal(p)
+        // Perform a normal search since our assumption was wrong
+        -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
     }
 
     #[inline(always)]
@@ -178,19 +186,24 @@ impl<'a> AlphaBetaSearch<'a> {
         self.ply -= 1;
         self.board.undo_null_move();
 
-        (score >= p.beta).then_some(p.beta)
+        (score >= p.beta).then(|| p.beta)
     }
 
+    /// Reads a cache entry from the transposition table.
     #[inline(always)]
     fn read_cache_entry(&self, p: &SearchParams) -> Option<Score> {
         let entry = self.thread.cache.lock().unwrap().read(self.board.hash);
         entry.and_then(|entry| entry.get_score(p.alpha, p.beta, p.depth))
     }
 
+    /// Writes a new cache entry to the transposition table.
+    ///
+    /// Caching is skipped if the search was interrupted, in which case the results of the
+    /// search may be invalid and should not be cached.
     #[inline(always)]
-    fn write_cache_entry(&mut self, entry: CacheEntry) {
-        // Caching on an interrupted search will result in invalid results being written
+    fn write_cache_entry(&mut self, depth: usize, score: Score, kind: NodeKind, best: Move) {
         if !self.thread.get_terminator() {
+            let entry = CacheEntry::new(self.board.hash, depth, score, kind, best);
             self.thread.cache.lock().unwrap().write(entry);
         }
     }
