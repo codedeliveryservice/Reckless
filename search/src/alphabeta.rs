@@ -95,7 +95,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 return p.beta;
             }
 
-            // Found a better move that raises alpha
+            // The move raises the lower bound (a better move was found), so update the alpha value
             if score > p.alpha {
                 p.alpha = score;
                 kind = NodeKind::PV;
@@ -113,7 +113,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         self.write_cache_entry(p.depth, best_score, kind, best_move);
 
-        // The variation is useless, so it's a fail-low node
+        // Fail-low node (all moves were too good for the opponent)
         p.alpha
     }
 

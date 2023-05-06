@@ -56,8 +56,8 @@ impl Default for Cache {
 #[derive(Copy, Clone)]
 pub enum NodeKind {
     PV,  // Principle variation node (exact score)
-    Cut, // Fail-high node (beta upper bound)
-    All, // Fail-low node (alpha lower bound)
+    Cut, // Fail-high node (upper bound of the score)
+    All, // Fail-low node (lower bound of the score)
 }
 
 #[derive(Copy, Clone)]
@@ -81,7 +81,7 @@ impl CacheEntry {
         }
     }
 
-    /// Returns `Some(Score)` if the `CacheEntry` is good enough compared to the `SearchParams`.
+    /// Returns `Some(Score)` if the `CacheEntry` is good enough compared to the current search.
     pub fn get_score(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
         if self.depth < depth as u8 {
             return None;
@@ -89,8 +89,8 @@ impl CacheEntry {
 
         match self.kind {
             NodeKind::PV => Some(self.score),
-            NodeKind::All if self.score <= alpha => Some(alpha),
             NodeKind::Cut if self.score >= beta => Some(beta),
+            NodeKind::All if self.score <= alpha => Some(alpha),
             _ => None,
         }
     }
