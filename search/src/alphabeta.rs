@@ -58,8 +58,8 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut best_move = Move::default();
         let mut kind = NodeKind::All;
 
-        let mut legal_move_found = false;
-        let mut pv_found = false;
+        let mut moves_searched = 0;
+        let pv_node = p.alpha != p.beta - 1;
 
         let mut ordering = Ordering::normal(self.board, self.ply, self.thread);
         while let Some(mv) = ordering.next() {
@@ -67,13 +67,18 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            legal_move_found = true;
             self.ply += 1;
 
-            let score = match pv_found {
-                true => self.principle_variation_search(&p),
-                false => -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1)),
+            let score = if moves_searched == 0 {
+                // Perform a full-width search on the first move
+                -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
+            } else {
+                let late_search_stage = moves_searched >= 4 && p.depth >= 3;
+                let simple_move = mv.is_quiet() && !mv.is_promotion();
+                let is_lmr_applicable = late_search_stage && simple_move && !in_check && !pv_node;
+                self.late_move_reduction(is_lmr_applicable, &p)
             };
+            moves_searched += 1;
 
             self.ply -= 1;
             self.board.undo_move();
@@ -99,7 +104,6 @@ impl<'a> AlphaBetaSearch<'a> {
             if score > p.alpha {
                 p.alpha = score;
                 kind = NodeKind::PV;
-                pv_found = true;
 
                 if mv.is_quiet() {
                     self.thread.history.store(mv.start(), mv.target(), p.depth);
@@ -107,7 +111,7 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        if let Some(score) = self.is_game_over(legal_move_found, in_check) {
+        if let Some(score) = self.is_game_over(moves_searched > 0, in_check) {
             return score;
         }
 
@@ -153,6 +157,20 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         self.thread.get_terminator().then(|| Score::INVALID)
+    }
+
+    /// Perform a reduced-depth search for an uninteresting move.
+    fn late_move_reduction(&mut self, is_lmr_applicable: bool, p: &SearchParams) -> Score {
+        if is_lmr_applicable {
+            let lmr_score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 2));
+            // LMR assumes that the move is bad
+            if lmr_score <= p.alpha {
+                return lmr_score;
+            }
+        }
+
+        // Fall back to a full-depth search if LMR failed
+        self.principle_variation_search(p)
     }
 
     /// Performs a principle variation search with a closed window around alpha.
