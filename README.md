@@ -32,9 +32,10 @@ Please note that the very idea of the project is mostly educational for explorin
 -   Transposition Table
 -   Quiescence Search
 
-## Pruning techniques
+## Selectivity
 
 -   Null Move Pruning
+-   Late Move Reduction
 
 ## Move ordering
 
