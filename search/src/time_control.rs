@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use game::MAX_SEARCH_DEPTH;
+
 #[derive(Debug, PartialEq)]
 pub enum TimeControl {
     Infinite,
@@ -13,9 +15,6 @@ pub enum TimeControl {
 /// This results in slower play at the beginning and faster towards the end.
 const MOVES_TO_GO: u64 = 25;
 
-/// Diving to a depth of 64 will take years, so it's considered infinite.
-const INFINITE_DEPTH: usize = 64;
-
 /// Safe margin for move time overhead.
 const TIME_MARGIN_MS: u64 = 25;
 
@@ -26,7 +25,7 @@ impl TimeControl {
     pub fn get_max_depth(&self) -> usize {
         match self {
             Self::FixedDepth(depth) => *depth,
-            _ => INFINITE_DEPTH,
+            _ => MAX_SEARCH_DEPTH,
         }
     }
 
