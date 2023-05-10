@@ -156,7 +156,7 @@ impl<'a> AlphaBetaSearch<'a> {
             self.thread.set_terminator(true);
         }
 
-        self.thread.get_terminator().then(|| Score::INVALID)
+        self.thread.get_terminator().then_some(Score::INVALID)
     }
 
     /// Perform a reduced-depth search for an uninteresting move.
@@ -204,7 +204,7 @@ impl<'a> AlphaBetaSearch<'a> {
         self.ply -= 1;
         self.board.undo_null_move();
 
-        (score >= p.beta).then(|| p.beta)
+        (score >= p.beta).then_some(p.beta)
     }
 
     /// Reads a cache entry from the transposition table.
