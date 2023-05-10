@@ -11,28 +11,24 @@ pub enum ParseFenError {
     UnexpectedCastling { char: char },
 }
 
-/// Returns the board corresponding to the specified Forsyth–Edwards notation which
-/// is a standard way for describing a particular board position of a chess game.
-///
-/// See [Forsyth–Edwards notation](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
-/// for more information.
-///
-/// # Errors
-///
-/// This function will return an error if the given notation is not valid.
-pub fn parse(fen: &str) -> Result<Board, ParseFenError> {
-    Fen::default().parse(fen)
-}
-
 #[derive(Default)]
-struct Fen {
+pub(crate) struct Fen {
     board: Board,
 }
 
 impl Fen {
     const SEPARATOR: char = '/';
 
-    fn parse(mut self, fen: &str) -> Result<Board, ParseFenError> {
+    /// Returns the board corresponding to the specified Forsyth–Edwards notation which
+    /// is a standard way for describing a particular board position of a chess game.
+    ///
+    /// See [Forsyth–Edwards notation](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
+    /// for more information.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the given notation is not valid.
+    pub fn parse(mut self, fen: &str) -> Result<Board, ParseFenError> {
         let parts: Vec<&str> = fen.split_whitespace().collect();
 
         if parts.len() != 6 {

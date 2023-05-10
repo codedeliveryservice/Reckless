@@ -5,12 +5,7 @@ use crate::{
 
 use super::{Board, State};
 
-/// Generates pseudo legal moves for the current state of the board.
-pub fn generate_moves(board: &Board) -> MoveList {
-    Generator::new(board).generate()
-}
-
-struct Generator<'a> {
+pub(crate) struct Generator<'a> {
     board: &'a Board,
     state: &'a State,
     turn: Color,
@@ -21,7 +16,7 @@ struct Generator<'a> {
 }
 
 impl<'a> Generator<'a> {
-    fn new(board: &'a Board) -> Self {
+    pub fn new(board: &'a Board) -> Self {
         Self {
             board,
             state: &board.state,
@@ -33,7 +28,8 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn generate(mut self) -> MoveList {
+    /// Generates pseudo legal moves for the current state of the board.
+    pub fn generate(mut self) -> MoveList {
         let occupancies = self.all;
 
         self.collect_pawn_moves();

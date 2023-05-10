@@ -1,6 +1,6 @@
 use crate::core::{Bitboard, Color, MoveList, Piece, Square, Zobrist};
 
-use self::{fen::ParseFenError, history::History, repetitions::Repetitions, state::State};
+use self::{history::History, repetitions::Repetitions, state::State};
 
 mod fen;
 mod generator;
@@ -32,14 +32,14 @@ impl Board {
     /// # Errors
     ///
     /// This function will return an error if the given notation is invalid.
-    pub fn new(fen: &str) -> Result<Self, ParseFenError> {
-        fen::parse(fen)
+    pub fn new(fen: &str) -> Result<Self, fen::ParseFenError> {
+        fen::Fen::default().parse(fen)
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
     #[inline(always)]
     pub fn generate_moves(&self) -> MoveList {
-        generator::generate_moves(self)
+        generator::Generator::new(self).generate()
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
