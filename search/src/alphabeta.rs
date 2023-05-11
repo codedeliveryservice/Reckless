@@ -210,7 +210,8 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Reads a cache entry from the transposition table.
     #[inline(always)]
     fn read_cache_entry(&self, p: &SearchParams) -> Option<Score> {
-        let entry = self.thread.cache.lock().unwrap().read(self.board.hash);
+        let cache = self.thread.cache.lock().unwrap();
+        let entry = cache.read(self.board.hash, self.ply);
         entry.and_then(|entry| entry.get_score(p.alpha, p.beta, p.depth))
     }
 
@@ -222,7 +223,7 @@ impl<'a> AlphaBetaSearch<'a> {
     fn write_cache_entry(&mut self, depth: usize, score: Score, kind: NodeKind, best: Move) {
         if !self.thread.get_terminator() {
             let entry = CacheEntry::new(self.board.hash, depth, score, kind, best);
-            self.thread.cache.lock().unwrap().write(entry);
+            self.thread.cache.lock().unwrap().write(entry, self.ply);
         }
     }
 

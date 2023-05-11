@@ -24,7 +24,7 @@ pub struct Ordering {
 impl Ordering {
     pub fn normal(board: &Board, ply: usize, thread: &SearchThread) -> Self {
         let hash = board.hash;
-        let cache_move = thread.cache.lock().unwrap().read(hash).map(|e| e.best);
+        let cache_move = thread.cache.lock().unwrap().read(hash, ply).map(|e| e.best);
         Self::build(NORMAL_STAGES, board, ply, thread, cache_move)
     }
 

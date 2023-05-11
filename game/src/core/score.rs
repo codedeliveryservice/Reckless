@@ -10,8 +10,19 @@ impl Score {
     pub const INFINITY: Self = Self(50000);
 
     pub const CHECKMATE: Self = Self(48000);
+    pub const CHECKMATE_LOWER_BOUND: Self = Self(47500);
 
     pub const DRAW: Self = Self(0);
+
+    /// Returns `true` if the score represents mating the opponent.
+    pub fn is_mating(self) -> bool {
+        self > Self::CHECKMATE_LOWER_BOUND
+    }
+
+    /// Returns `true` if the score represents getting mated by the opponent.
+    pub fn is_getting_mated(self) -> bool {
+        self < -Self::CHECKMATE_LOWER_BOUND
+    }
 }
 
 impl_unary_op!(Score, Neg, neg);

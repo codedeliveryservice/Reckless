@@ -63,7 +63,7 @@ impl SearchThread {
 
     #[inline(always)]
     fn extract_pv_move(&self, board: &Board) -> Option<Move> {
-        let entry = self.cache.lock().unwrap().read(board.hash);
+        let entry = self.cache.lock().unwrap().read(board.hash, 0);
         entry.map(|e| e.best)
     }
 

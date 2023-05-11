@@ -25,18 +25,21 @@ impl Cache {
 
     /// Returns `Some(T)` if the entry was found; otherwise `None`.
     #[inline(always)]
-    pub fn read(&self, hash: Zobrist) -> Option<CacheEntry> {
+    pub fn read(&self, hash: Zobrist, ply: usize) -> Option<CacheEntry> {
         let key = self.get_key(hash);
-        match self.vector[key] {
-            // Several positions can refer to one key, so check that this is it
-            Some(entry) if entry.hash == hash => Some(entry),
-            _ => None,
+        if let Some(mut entry) = self.vector[key] {
+            if entry.hash == hash {
+                entry.adjust_mating_score(-(ply as i32));
+                return Some(entry);
+            }
         }
+        None
     }
 
     /// Writes an entry to the `Cache` overwriting an existing one.
     #[inline(always)]
-    pub fn write(&mut self, entry: CacheEntry) {
+    pub fn write(&mut self, mut entry: CacheEntry, ply: usize) {
+        entry.adjust_mating_score(ply as i32);
         let key = self.get_key(entry.hash);
         self.vector[key] = Some(entry);
     }
@@ -92,6 +95,17 @@ impl CacheEntry {
             NodeKind::Cut if self.score >= beta => Some(beta),
             NodeKind::All if self.score <= alpha => Some(alpha),
             _ => None,
+        }
+    }
+
+    /// Adjusts the mating score of the `CacheEntry` by the given adjustment.
+    ///
+    /// This is used to ensure that the mating score is always the same distance from the root.
+    pub fn adjust_mating_score(&mut self, adjustment: i32) {
+        if self.score.is_mating() {
+            self.score.0 += adjustment;
+        } else if self.score.is_getting_mated() {
+            self.score.0 -= adjustment;
         }
     }
 }
