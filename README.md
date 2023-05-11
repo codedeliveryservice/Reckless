@@ -53,7 +53,12 @@ Please note that the very idea of the project is mostly educational for explorin
 ## Getting started
 
 To get started, download the source code and build it using Rust `1.64` or later.
-Once compiled, you can start using the engine with any UCI-compatible chess GUI, such as ChessBase, Cute Chess, or Arena Chess GUI.
+
+Once compiled, you can start using the engine with any UCI-compatible chess GUI,
+such as ChessBase (Paid), [Cute Chess][cute-chess] (Free), or [Arena][arena-chess] (Free).
+
+[cute-chess]: https://github.com/cutechess/cutechess
+[arena-chess]: http://www.playwitharena.de/
 
 ## License
 
