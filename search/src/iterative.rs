@@ -52,8 +52,13 @@ fn report_search_result(depth: usize, score: Score, pv: &[Move], stopwatch: Inst
     let nps = nodes as f32 / duration.as_secs_f32();
     let ms = duration.as_millis();
 
+    let score = match score.checkmate_in() {
+        Some(moves) => format!("mate {}", moves),
+        None => format!("cp {}", score),
+    };
+
     print!(
-        "info depth {} score cp {} nodes {} time {} nps {:.0} pv",
+        "info depth {} score {} nodes {} time {} nps {:.0} pv",
         depth, score, nodes, ms, nps
     );
     pv.iter().for_each(|mv| print!(" {}", mv));
