@@ -79,11 +79,11 @@ impl TryFrom<&str> for Square {
     ///
     /// The first character is defined to be only `a-h` / `A-H`.
     /// The second character is defined to be only `1-8`.
-
+    ///
     /// # Examples
     ///
-    /// ```
-    /// use game::core::square::Square;
+    /// ```rust
+    /// use game::Square;
     ///
     /// assert_eq!(Square::try_from("a1"), Ok(Square(0)));
     /// assert_eq!(Square::try_from("C8"), Ok(Square(58)));
