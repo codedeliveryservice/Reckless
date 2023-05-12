@@ -1,5 +1,7 @@
 use game::{lookup, Bitboard, Board, Color, Piece, Score, Square};
 
+use crate::weights::MOBILITY_SCORES;
+
 /// Evaluates the mobility difference between the two players.
 ///
 /// The player's mobility depends on the number of squares that their pieces can move to.
@@ -9,20 +11,18 @@ pub fn evaluate(board: &Board) -> Score {
 }
 
 fn evaluate_color(board: &Board, color: Color) -> Score {
-    evaluate_piece(board, color, Piece::Knight, |count| (count - 4) * 4)
-        + evaluate_piece(board, color, Piece::Bishop, |count| (count - 6) * 5)
-        + evaluate_piece(board, color, Piece::Rook, |count| (count - 7) * 2)
-        + evaluate_piece(board, color, Piece::Queen, |count| (count - 10) * 2)
+    evaluate_piece(board, color, Piece::Knight)
+        + evaluate_piece(board, color, Piece::Bishop)
+        + evaluate_piece(board, color, Piece::Rook)
+        + evaluate_piece(board, color, Piece::Queen)
 }
 
-fn evaluate_piece<F>(board: &Board, color: Color, piece: Piece, f: F) -> Score
-where
-    F: Fn(i32) -> i32,
-{
+fn evaluate_piece(board: &Board, color: Color, piece: Piece) -> Score {
     let occupancies = board.them() | board.us();
     let mut score = 0;
     for square in board.of(piece, color) {
-        score += f(get_attacks(square, piece, occupancies).count() as i32);
+        let count = get_attacks(square, piece, occupancies).count();
+        score += MOBILITY_SCORES[piece as usize - 1][count as usize];
     }
     Score(score)
 }
