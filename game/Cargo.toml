@@ -1,6 +1,6 @@
 [package]
 name = "game"
-version = "0.1.0"
-edition = "2021"
 build = "src/lookup/build.rs"
-publish = false
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
