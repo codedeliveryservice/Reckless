@@ -8,6 +8,7 @@ use std::{
 mod attacks;
 mod magics;
 mod maps;
+mod psqt;
 mod random;
 
 macro_rules! write_map {
@@ -24,6 +25,7 @@ macro_rules! write_map {
 fn main() {
     write_lookup(get_buf("lookup.rs")).unwrap();
     write_zobrist(get_buf("zobrist.rs")).unwrap();
+    write_psqt(get_buf("psqt.rs")).unwrap();
 }
 
 fn write_lookup(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
@@ -60,6 +62,15 @@ fn write_zobrist(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
         write!(f, "],")?;
     }
     writeln!(f, "];")
+}
+
+fn write_psqt(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
+    let items = psqt::generate_map();
+    writeln!(
+        f,
+        "pub(self) const PSQT: [[[i32; 64]; 6]; 2] = {:?};",
+        items
+    )
 }
 
 fn get_buf(file: &str) -> BufWriter<File> {

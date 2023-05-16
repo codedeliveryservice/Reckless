@@ -1,7 +1,8 @@
-use crate::core::{Bitboard, Color, MoveList, Piece, Square, Zobrist};
+use crate::{Bitboard, Color, MoveList, Piece, Score, Square, Zobrist};
 
-use self::{history::History, repetitions::Repetitions, state::State};
+use self::{evaluation::Evaluation, history::History, repetitions::Repetitions, state::State};
 
+mod evaluation;
 mod fen;
 mod generator;
 mod history;
@@ -16,6 +17,7 @@ pub struct Board {
     pub hash: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
+    evaluation: Evaluation,
     repetitions: Repetitions,
     history: History,
     state: State,
@@ -89,6 +91,7 @@ impl Board {
         self.pieces[piece as usize].set(square);
         self.colors[color as usize].set(square);
         self.hash.update_piece(piece, color, square);
+        self.evaluation.add_piece(piece, color, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -97,6 +100,12 @@ impl Board {
         self.pieces[piece as usize].clear(square);
         self.colors[color as usize].clear(square);
         self.hash.update_piece(piece, color, square);
+        self.evaluation.remove_piece(piece, color, square);
+    }
+
+    /// Returns an incrementally updated `Score` based on the piece-square tables.
+    pub fn psq_score(&self) -> Score {
+        self.evaluation.score
     }
 
     /// Returns `true` if the current position has already been present at least once

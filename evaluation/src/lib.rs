@@ -1,4 +1,3 @@
-mod location;
 mod material;
 mod mobility;
 mod weights;
@@ -11,7 +10,7 @@ use game::{Board, Color, Score};
 /// Positive values indicate an advantage for white, negative values
 /// indicate an advantage for black.
 pub fn evaluate_absolute_score(board: &Board) -> Score {
-    material::evaluate(board) + location::evaluate(board) + mobility::evaluate(board)
+    board.psq_score() + material::evaluate(board) + mobility::evaluate(board)
 }
 
 /// Returns a statically evaluated `Score` relative to the color
