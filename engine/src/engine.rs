@@ -28,7 +28,7 @@ impl Engine {
     pub fn execute(&mut self, command: UciCommand) {
         match command {
             UciCommand::Info => {
-                println!("id name Reckless 0.1.0");
+                println!("id name Reckless 0.1.1-alpha");
                 println!(
                     "option name Hash type spin default {} min {} max {}",
                     Cache::DEFAULT_SIZE,

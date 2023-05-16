@@ -4,18 +4,18 @@ version = 3
 
 [[package]]
 name = "evaluation"
-version = "0.1.0"
+version = "0.1.1-alpha"
 dependencies = [
  "game",
 ]
 
 [[package]]
 name = "game"
-version = "0.1.0"
+version = "0.1.1-alpha"
 
 [[package]]
 name = "reckless"
-version = "0.1.0"
+version = "0.1.1-alpha"
 dependencies = [
  "evaluation",
  "game",
@@ -24,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "search"
-version = "0.1.0"
+version = "0.1.1-alpha"
 dependencies = [
  "evaluation",
  "game",
