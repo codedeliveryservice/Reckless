@@ -49,6 +49,8 @@ impl_assign_op!(Score, SubAssign, sub_assign);
 
 impl_binary_op!(Score, i32, Add, add);
 impl_binary_op!(Score, i32, Sub, sub);
+impl_binary_op!(Score, i32, Mul, mul);
+impl_binary_op!(Score, i32, Div, div);
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

@@ -1,14 +1,20 @@
 use game::{Board, Color, Piece, Score};
 
-const MATERIAL: [i32; Piece::NUM - 1] = [100, 300, 325, 500, 900];
+#[rustfmt::skip]
+const MATERIAL: [(i32, i32); Piece::NUM - 1] = [(100, 100), (300, 300), (325, 325), (500, 500), (900, 900)];
 
 /// Evaluates the material difference between the two players in favor of `Color::White`.
-pub fn evaluate(board: &Board) -> Score {
-    let mut score = 0;
-    for index in 0..5 {
-        let piece = Piece::from(index);
-        let count = board.of(piece, Color::White).count() - board.of(piece, Color::Black).count();
-        score += count as i32 * MATERIAL[piece];
+pub fn evaluate(board: &Board) -> (Score, Score) {
+    let mut mg = 0;
+    let mut eg = 0;
+
+    for (index, (mg_value, eg_value)) in (0..5).zip(MATERIAL) {
+        let white = board.of(index.into(), Color::White).count() as i32;
+        let black = board.of(index.into(), Color::Black).count() as i32;
+        let count = white - black;
+        mg += count * mg_value;
+        eg += count * eg_value;
     }
-    Score(score)
+
+    (Score(mg), Score(eg))
 }

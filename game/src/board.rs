@@ -50,6 +50,12 @@ impl Board {
         self.pieces[piece] & self.colors[color]
     }
 
+    /// Returns a `Bitboard` for the specified `Piece` type.
+    #[inline(always)]
+    pub fn pieces(&self, piece: Piece) -> Bitboard {
+        self.pieces[piece]
+    }
+
     /// Returns a `Bitboard` with friendly pieces for the current state.
     #[inline(always)]
     pub fn us(&self) -> Bitboard {
@@ -103,9 +109,10 @@ impl Board {
         self.evaluation.remove_piece(piece, color, square);
     }
 
-    /// Returns an incrementally updated `Score` based on the piece-square tables.
-    pub fn psq_score(&self) -> Score {
-        self.evaluation.score
+    /// Returns an incrementally updated scores for both middle game and endgame
+    /// phases based on the piece-square tables.
+    pub fn psq_score(&self) -> (Score, Score) {
+        self.evaluation.score()
     }
 
     /// Returns `true` if the current position has already been present at least once

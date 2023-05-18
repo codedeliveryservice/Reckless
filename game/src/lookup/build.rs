@@ -68,7 +68,7 @@ fn write_psqt(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
     let items = psqt::generate_map();
     writeln!(
         f,
-        "pub(self) const PSQT: [[[i32; 64]; 6]; 2] = {:?};",
+        "pub(self) const PSQT: [[[(i32, i32); 64]; 6]; 2] = {:?};",
         items
     )
 }
