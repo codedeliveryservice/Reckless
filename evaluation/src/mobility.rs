@@ -1,6 +1,14 @@
 use game::{lookup, Bitboard, Board, Color, Piece, Score, Square};
 
-use crate::weights::MOBILITY_SCORES;
+#[rustfmt::skip]
+const MOBILITY: [&[i32]; Piece::NUM] = [
+    &[],
+    &[-16, -12, -8, -4, 0, 4, 8, 12, 16],
+    &[-30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35],
+    &[-14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12, 14],
+    &[-20, -18, -16, -14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34],
+    &[],
+];
 
 /// Evaluates the mobility difference between the two players.
 ///
@@ -22,7 +30,7 @@ fn evaluate_piece(board: &Board, color: Color, piece: Piece) -> Score {
     let mut score = 0;
     for square in board.of(piece, color) {
         let count = get_attacks(square, piece, occupancies).count();
-        score += MOBILITY_SCORES[piece as usize - 1][count as usize];
+        score += MOBILITY[piece][count as usize];
     }
     Score(score)
 }

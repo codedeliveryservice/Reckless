@@ -1,6 +1,5 @@
 mod material;
 mod mobility;
-mod weights;
 
 use game::{Board, Color, Score};
 
