@@ -1,7 +1,7 @@
 use game::{Board, Color, Piece, Score};
 
 #[rustfmt::skip]
-const MATERIAL: [(i32, i32); Piece::NUM - 1] = [(100, 100), (300, 300), (325, 325), (500, 500), (900, 900)];
+const MATERIAL: [(i32, i32); Piece::NUM - 1] = [(55, 167), (280, 341), (314, 347), (386, 805), (939, 1395)];
 
 /// Evaluates the material difference between the two players in favor of `Color::White`.
 pub fn evaluate(board: &Board) -> (Score, Score) {
