@@ -14,16 +14,15 @@ const TOTAL_PHASE: i32 = 24;
 pub fn evaluate_absolute_score(board: &Board) -> Score {
     let (mg_psq, eg_psq) = board.psq_score();
     let (mg_material, eg_material) = material::evaluate(board);
-    let mobility = mobility::evaluate(board);
+    let (mg_mobility, eg_mobility) = mobility::evaluate(board);
 
-    let mg_score = mg_psq + mg_material;
-    let eg_score = eg_psq + eg_material;
+    let mg_score = mg_psq + mg_material + mg_mobility;
+    let eg_score = eg_psq + eg_material + eg_mobility;
 
     let mg_phase = get_phase(board);
     let eg_phase = TOTAL_PHASE - mg_phase;
 
-    let total_score = (mg_score * mg_phase + eg_score * eg_phase) / TOTAL_PHASE;
-    total_score + mobility
+    (mg_score * mg_phase + eg_score * eg_phase) / TOTAL_PHASE
 }
 
 /// Returns a statically evaluated `Score` relative to the color
