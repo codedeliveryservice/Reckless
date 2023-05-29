@@ -39,13 +39,14 @@ Please note that the very idea of the project is mostly educational for explorin
 
 ## Move ordering
 
--   TT-move ordering
+-   Hash Move
 -   MVV-LVA
 -   Killer Heuristic
 -   History Heuristic
 
 ## Static evaluation
 
+-   Tapered Evaluation
 -   Material
 -   Mobility
 -   Piece-Square Tables
