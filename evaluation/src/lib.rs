@@ -36,8 +36,8 @@ pub fn evaluate_relative_score(board: &Board) -> Score {
 
 /// Calculates the current phase of the game based on the number of pieces on the board.
 ///
-/// The phase is a number between 0 and 24, where 0 means the game is in the opening
-/// and 24 means the game is in the endgame.
+/// The phase is a number between `0` and `24`, where `24` means the game is in the opening
+/// and `0` means the game is in the endgame.
 fn get_phase(board: &Board) -> i32 {
     [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen]
         .iter()
