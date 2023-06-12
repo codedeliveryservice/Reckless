@@ -33,6 +33,66 @@ pub fn evaluate_relative_score(board: &Board) -> Score {
     }
 }
 
+/// Returns a `String` containing a human-readable representation of the evaluation.
+///
+/// # Examples
+///
+/// ```
+/// use game::Board;
+/// use evaluation::evaluate_debug;
+///
+/// let board = Board::new("b3rrk1/3q1ppp/p1N3n1/1pRP4/3N4/8/PP3PPP/3Q1RK1 b - - 8 23").unwrap();
+/// println!("{}", evaluate_debug(&board));
+/// ```
+///
+/// Output:
+///
+/// ```plaintext
+///     TERM    |    MG     EG    TOTAL
+/// ------------|----------------------
+///    Material |   0.51   1.36   0.65
+///    Mobility |   0.25   1.66   0.48
+///        PSQT |   0.44   0.75   0.49
+/// ------------|----------------------
+///       Total |   1.20   3.77   1.62
+///  Game Phase |    83%    17%    --
+/// ```
+pub fn evaluate_debug(board: &Board) -> String {
+    let mut result = String::new();
+
+    let (mg_material, eg_material) = material::evaluate(board);
+    let (mg_mobility, eg_mobility) = mobility::evaluate(board);
+    let (mg_psq, eg_psq) = board.psq_score();
+
+    result.push_str(&format!("    TERM    |    MG     EG    TOTAL\n",));
+    result.push_str(&format!("------------|----------------------\n",));
+    format_score(&mut result, board, "Material", mg_material, eg_material);
+    format_score(&mut result, board, "Mobility", mg_mobility, eg_mobility);
+    format_score(&mut result, board, "PSQT", mg_psq, eg_psq);
+    result.push_str(&format!("------------|----------------------\n",));
+
+    let mg = mg_material + mg_mobility + mg_psq;
+    let eg = eg_material + eg_mobility + eg_psq;
+    format_score(&mut result, board, "Total", mg, eg);
+
+    let mg = get_phase(board) * 100 / MAX_PHASE;
+    let eg = 100 - mg;
+    result.push_str(&format!(" Game Phase | {:>5}% {:>5}%    --\n", mg, eg));
+
+    result
+}
+
+/// Formats the scores and appends them to the result string.
+fn format_score(result: &mut String, board: &Board, term: &str, mg: Score, eg: Score) {
+    result.push_str(&format!(
+        "{:>11} | {:>6.2} {:>6.2} {:>6.2}\n",
+        term,
+        mg.0 as f64 / 100.0,
+        eg.0 as f64 / 100.0,
+        interpolate_score(board, mg, eg).0 as f64 / 100.0,
+    ));
+}
+
 /// Interpolates the midgame and endgame scores based on the current phase of the game.
 fn interpolate_score(board: &Board, mg_score: Score, eg_score: Score) -> Score {
     let phase = get_phase(board);
