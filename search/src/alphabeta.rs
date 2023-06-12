@@ -2,13 +2,12 @@ use std::time::Instant;
 
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::quiescence::QuiescenceSearch;
 use super::{ordering::Ordering, CacheEntry, NodeKind, SearchParams, SearchThread};
 
 pub struct AlphaBetaSearch<'a> {
     pub(crate) start_time: Instant,
-    board: &'a mut Board,
-    thread: &'a mut SearchThread,
+    pub(super) board: &'a mut Board,
+    pub(super) thread: &'a mut SearchThread,
     ply: usize,
 }
 
@@ -126,7 +125,7 @@ impl<'a> AlphaBetaSearch<'a> {
         if p.depth > 0 {
             return None;
         }
-        Some(QuiescenceSearch::new(self.board, self.thread).search(p.alpha, p.beta, self.ply))
+        Some(self.quiescence_search(p.alpha, p.beta, self.ply))
     }
 
     /// Returns the score of the current position if the search depth is too high.
