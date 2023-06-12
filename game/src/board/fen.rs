@@ -56,11 +56,11 @@ impl Fen {
                 rank -= 1;
                 file = 0;
             } else if let Some(skip) = c.to_digit(10) {
-                file += skip;
+                file += skip as u8;
             } else {
                 let piece = self.parse_piece(c)?;
                 let color = self.parse_color(c);
-                let square = Square::from_coords(rank, file);
+                let square = Square::from_rank_file(rank, file);
 
                 self.board.add_piece(piece, color, square);
 
