@@ -1,6 +1,6 @@
 use game::{Score, MAX_SEARCH_DEPTH};
 
-use super::{alphabeta::AlphaBetaSearch, ordering::Ordering};
+use super::alphabeta::AlphaBetaSearch;
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Performs a `negamax` search from the root node until the position becomes stable
@@ -31,7 +31,7 @@ impl<'a> AlphaBetaSearch<'a> {
             alpha = evaluation;
         }
 
-        let mut ordering = Ordering::quiescence(self.board, ply, self.thread);
+        let mut ordering = self.build_quiescence_ordering();
         while let Some(mv) = ordering.next() {
             if mv.is_capture() && self.board.make_move(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha, ply + 1);

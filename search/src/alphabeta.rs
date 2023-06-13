@@ -2,13 +2,13 @@ use std::time::Instant;
 
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::{ordering::Ordering, CacheEntry, NodeKind, SearchParams, SearchThread};
+use super::{CacheEntry, NodeKind, SearchParams, SearchThread};
 
 pub struct AlphaBetaSearch<'a> {
     pub(crate) start_time: Instant,
     pub(super) board: &'a mut Board,
     pub(super) thread: &'a mut SearchThread,
-    ply: usize,
+    pub(super) ply: usize,
 }
 
 impl<'a> AlphaBetaSearch<'a> {
@@ -60,7 +60,7 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut moves_searched = 0;
         let pv_node = p.alpha != p.beta - 1;
 
-        let mut ordering = Ordering::normal(self.board, self.ply, self.thread);
+        let mut ordering = self.build_normal_ordering();
         while let Some(mv) = ordering.next() {
             if self.board.make_move(mv).is_err() {
                 continue;
