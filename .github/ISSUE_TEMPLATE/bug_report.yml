@@ -1,0 +1,58 @@
+name: Bug report
+description: File a bug report
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: textarea
+    attributes:
+      label: Bug description
+      description: A clear and concise description of the bug you encountered.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+      description:  |
+        A detailed description of the steps that can reproduce the behavior.
+        It should include any relevant command line input and output, such as sent UCI commands.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: Operating system
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Version
+      description: |
+        e.g., Reckless 0.1.1, Commit SHA: e9b341b
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Any other context about the problem.
