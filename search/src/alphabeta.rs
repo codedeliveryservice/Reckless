@@ -57,10 +57,9 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut best_move = Move::default();
         let mut kind = NodeKind::All;
 
-        let mut moves_searched = 0;
-        let pv_node = p.alpha != p.beta - 1;
-
+        let mut move_index = 0;
         let mut ordering = self.build_normal_ordering();
+
         while let Some(mv) = ordering.next() {
             if self.board.make_move(mv).is_err() {
                 continue;
@@ -68,25 +67,12 @@ impl<'a> AlphaBetaSearch<'a> {
 
             self.ply += 1;
 
-            let score = if moves_searched == 0 {
-                // Perform a full-width search on the first move
-                -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
-            } else {
-                let late_search_stage = moves_searched >= 4 && p.depth >= 3;
-                let simple_move = mv.is_quiet() && !mv.is_promotion();
-                let is_lmr_applicable = late_search_stage && simple_move && !in_check && !pv_node;
-                self.late_move_reduction(is_lmr_applicable, &p)
-            };
-            moves_searched += 1;
+            let score = self.compute_score(&p, mv, move_index, in_check);
 
             self.ply -= 1;
             self.board.undo_move();
 
-            // Update the TT entry information if the move is better than what we've found so far
-            if score > best_score {
-                best_score = score;
-                best_move = mv;
-            }
+            move_index += 1;
 
             // The move is too good for the opponent, so ignore an uninteresting branch and perform a beta cutoff
             if score >= p.beta {
@@ -108,29 +94,51 @@ impl<'a> AlphaBetaSearch<'a> {
                     self.thread.history.store(mv.start(), mv.target(), p.depth);
                 }
             }
+
+            if score > best_score {
+                best_score = score;
+                best_move = mv;
+            }
         }
 
-        if let Some(score) = self.is_game_over(moves_searched > 0, in_check) {
+        if let Some(score) = self.is_game_over(move_index > 0, in_check) {
             return score;
         }
 
         self.write_cache_entry(p.depth, best_score, kind, best_move);
-
-        // Fail-low node (all moves were too good for the opponent)
         p.alpha
+    }
+
+    /// Computes the score of the current position.
+    fn compute_score(&mut self, p: &SearchParams, mv: Move, index: usize, in_check: bool) -> Score {
+        if index == 0 {
+            return -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1));
+        }
+
+        let pv_node = p.alpha != p.beta - 1;
+        let tactical_move = mv.is_capture() || mv.is_promotion();
+
+        if !in_check && !pv_node && !tactical_move {
+            if let Some(score) = self.late_move_reduction(p, index) {
+                return score;
+            }
+        }
+
+        // Fall back to a full-depth search
+        self.principle_variation_search(p)
     }
 
     /// Returns the score of the current position if it's at the root node.
     fn evaluate(&mut self, p: &SearchParams) -> Option<Score> {
-        if p.depth > 0 {
-            return None;
+        if p.depth == 0 {
+            return Some(self.quiescence_search(p.alpha, p.beta, self.ply));
         }
-        Some(self.quiescence_search(p.alpha, p.beta, self.ply))
+        None
     }
 
     /// Returns the score of the current position if the search depth is too high.
     fn validate_depth(&mut self) -> Option<Score> {
-        if self.ply > MAX_SEARCH_DEPTH - 1 {
+        if self.ply >= MAX_SEARCH_DEPTH {
             return Some(evaluation::evaluate_relative_score(self.board));
         }
         None
@@ -159,17 +167,12 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Perform a reduced-depth search for an uninteresting move.
-    fn late_move_reduction(&mut self, is_lmr_applicable: bool, p: &SearchParams) -> Score {
-        if is_lmr_applicable {
+    fn late_move_reduction(&mut self, p: &SearchParams, move_index: usize) -> Option<Score> {
+        if move_index >= 4 && p.depth >= 3 {
             let lmr_score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 2));
-            // LMR assumes that the move is bad
-            if lmr_score <= p.alpha {
-                return lmr_score;
-            }
+            return (lmr_score <= p.alpha).then_some(lmr_score);
         }
-
-        // Fall back to a full-depth search if LMR failed
-        self.principle_variation_search(p)
+        None
     }
 
     /// Performs a principle variation search with a closed window around alpha.
@@ -177,8 +180,8 @@ impl<'a> AlphaBetaSearch<'a> {
     fn principle_variation_search(&mut self, p: &SearchParams) -> Score {
         let score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1));
 
-        let pv_mode_is_best = p.alpha >= score || score >= p.beta;
-        if pv_mode_is_best {
+        let is_pv_move_better = p.alpha >= score || score >= p.beta;
+        if is_pv_move_better {
             return score;
         }
 
