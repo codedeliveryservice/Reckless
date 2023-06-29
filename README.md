@@ -2,9 +2,10 @@
 
 [![Build and Test](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 
-An attempt to create a simple yet playable [UCI][uci] chess engine.
-
-Please note that the very idea of the project is mostly educational for exploring the Rust programming language.
+Reckless is a lightweight [UCI][uci] chess engine developed as a pet project to explore the Rust
+programming language. While not designed to be a competitive engine, it provides a playable chess
+engine with a reasonable strength. Please note that it is a learning experiment, and as such,
+it may not follow the best practices or conventions typically found in high-quality engines.
 
 [uci]: https://en.wikipedia.org/wiki/Universal_Chess_Interface
 
@@ -53,13 +54,35 @@ Please note that the very idea of the project is mostly educational for explorin
 
 ## Getting started
 
-To get started, download the source code and build it using Rust `1.64` or later.
+### Precompiled binaries
 
-Once compiled, you can start using the engine with any UCI-compatible chess GUI,
-such as ChessBase (Paid), [Cute Chess][cute-chess] (Free), or [Arena][arena-chess] (Free).
+You can download precompiled builds from the [GitHub Releases page][releases].
+
+[releases]: https://github.com/codedeliveryservice/Reckless/releases
+
+### Building from source
+
+To build the engine from source, make sure you have `Rust 1.64` or a later version installed.
+If you don't have Rust, follow the [official Rust installation guide][rust-guide].
+
+[rust-guide]: https://www.rust-lang.org/tools/install
+
+### Usage
+
+Once you have the engine compiled or downloaded, you can use it with a UCI-compatible chess GUI.
+Some popular options include:
+
+-   ChessBase (Paid)
+-   [Cute Chess][cute-chess] (Free)
+-   [Arena Chess GUI][arena-chess] (Free)
 
 [cute-chess]: https://github.com/cutechess/cutechess
 [arena-chess]: http://www.playwitharena.de/
+
+## Contributing
+
+Contributions are welcome! If you find any issues or have suggestions for improvements,
+please open an issue or submit a pull request.
 
 ## License
 
