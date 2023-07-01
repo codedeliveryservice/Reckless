@@ -64,12 +64,12 @@ pub fn evaluate_debug(board: &Board) -> String {
     let (mg_mobility, eg_mobility) = mobility::evaluate(board);
     let (mg_psq, eg_psq) = board.psq_score();
 
-    result.push_str(&format!("    TERM    |    MG     EG    TOTAL\n",));
-    result.push_str(&format!("------------|----------------------\n",));
+    result.push_str("    TERM    |    MG     EG    TOTAL\n");
+    result.push_str("------------|----------------------\n");
     format_score(&mut result, board, "Material", mg_material, eg_material);
     format_score(&mut result, board, "Mobility", mg_mobility, eg_mobility);
     format_score(&mut result, board, "PSQT", mg_psq, eg_psq);
-    result.push_str(&format!("------------|----------------------\n",));
+    result.push_str("------------|----------------------\n");
 
     let mg = mg_material + mg_mobility + mg_psq;
     let eg = eg_material + eg_mobility + eg_psq;
