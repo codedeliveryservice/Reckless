@@ -57,6 +57,8 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut best_move = Move::default();
         let mut kind = NodeKind::All;
 
+        let pv_node = p.alpha != p.beta - 1;
+
         let mut move_index = 0;
         let mut ordering = self.build_normal_ordering();
 
@@ -67,7 +69,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             self.ply += 1;
 
-            let score = self.compute_score(&p, mv, move_index, in_check);
+            let score = self.calculate_score(&p, mv, move_index, in_check, pv_node);
 
             self.ply -= 1;
             self.board.undo_move();
@@ -109,17 +111,23 @@ impl<'a> AlphaBetaSearch<'a> {
         p.alpha
     }
 
-    /// Computes the score of the current position.
-    fn compute_score(&mut self, p: &SearchParams, mv: Move, index: usize, in_check: bool) -> Score {
-        if index == 0 {
+    /// Calculates the score of the current position.
+    fn calculate_score(
+        &mut self,
+        p: &SearchParams,
+        mv: Move,
+        move_index: usize,
+        in_check: bool,
+        pv_node: bool,
+    ) -> Score {
+        if move_index == 0 {
             return -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1));
         }
 
-        let pv_node = p.alpha != p.beta - 1;
         let tactical_move = mv.is_capture() || mv.is_promotion();
 
         if !in_check && !pv_node && !tactical_move {
-            if let Some(score) = self.late_move_reduction(p, index) {
+            if let Some(score) = self.late_move_reduction(p, move_index) {
                 return score;
             }
         }
