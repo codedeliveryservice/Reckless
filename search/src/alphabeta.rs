@@ -4,6 +4,11 @@ use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
 use super::{CacheEntry, NodeKind, SearchParams, SearchThread};
 
+enum SearchResult {
+    Full(Score, Option<Move>, NodeKind),
+    BetaCutOff(Score, Move),
+}
+
 pub struct AlphaBetaSearch<'a> {
     pub(crate) start_time: Instant,
     pub(super) board: &'a mut Board,
@@ -52,12 +57,29 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        // Values that are used to insert an entry into the cache
-        let mut best_score = -Score::INFINITY;
-        let mut best_move = Move::default();
-        let mut kind = NodeKind::All;
+        match self.search_moves(&mut p, in_check) {
+            SearchResult::Full(score, mv, kind) => {
+                if let Some(score) = self.is_game_over(mv.is_some(), in_check) {
+                    return score;
+                }
 
+                self.write_cache_entry(p.depth, score, kind, mv.unwrap());
+                p.alpha
+            }
+
+            SearchResult::BetaCutOff(score, mv) => {
+                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
+                p.beta
+            }
+        }
+    }
+
+    fn search_moves(&mut self, p: &mut SearchParams, in_check: bool) -> SearchResult {
         let pv_node = p.alpha != p.beta - 1;
+
+        let mut best_score = -Score::INFINITY;
+        let mut best_move = None;
+        let mut kind = NodeKind::All;
 
         let mut move_index = 0;
         let mut ordering = self.build_normal_ordering();
@@ -69,25 +91,21 @@ impl<'a> AlphaBetaSearch<'a> {
 
             self.ply += 1;
 
-            let score = self.calculate_score(&p, mv, move_index, in_check, pv_node);
+            let score = self.calculate_score(&*p, mv, move_index, in_check, pv_node);
 
             self.ply -= 1;
             self.board.undo_move();
 
             move_index += 1;
 
-            // The move is too good for the opponent, so ignore an uninteresting branch and perform a beta cutoff
             if score >= p.beta {
-                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
-
                 if mv.is_quiet() {
                     self.thread.killers.add(mv, self.ply);
                 }
 
-                return p.beta;
+                return SearchResult::BetaCutOff(score, mv);
             }
 
-            // The move raises the lower bound (a better move was found), so update the alpha value
             if score > p.alpha {
                 p.alpha = score;
                 kind = NodeKind::PV;
@@ -99,16 +117,11 @@ impl<'a> AlphaBetaSearch<'a> {
 
             if score > best_score {
                 best_score = score;
-                best_move = mv;
+                best_move = Some(mv);
             }
         }
 
-        if let Some(score) = self.is_game_over(move_index > 0, in_check) {
-            return score;
-        }
-
-        self.write_cache_entry(p.depth, best_score, kind, best_move);
-        p.alpha
+        SearchResult::Full(best_score, best_move, kind)
     }
 
     /// Calculates the score of the current position.
