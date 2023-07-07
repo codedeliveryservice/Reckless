@@ -16,12 +16,6 @@ impl Bitboard {
     pub const RANK_2: Self = Self(Self::RANK_1.0 << 8);
     pub const RANK_7: Self = Self(Self::RANK_1.0 << (8 * 6));
 
-    pub const F1_G1: Self = Self(0b0110_0000);
-    pub const F8_G8: Self = Self(Self::F1_G1.0 << (8 * 7));
-
-    pub const B1_C1_D1: Self = Self(0b0000_1110);
-    pub const B8_C8_D8: Self = Self(Self::B1_C1_D1.0 << (8 * 7));
-
     /// Returns `true` if `self` has zero bits set.
     #[inline(always)]
     pub fn is_empty(self) -> bool {

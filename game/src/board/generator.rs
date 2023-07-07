@@ -5,6 +5,12 @@ use crate::{
 
 use super::{Board, State};
 
+const WHITE_SHORT_CASTLING_MASK: Bitboard = Bitboard(0b0110_0000);
+const WHITE_LONG_CASTLING_MASK: Bitboard = Bitboard(0b0000_1110);
+
+const BLACK_SHORT_CASTLING_MASK: Bitboard = Bitboard(WHITE_SHORT_CASTLING_MASK.0 << (8 * 7));
+const BLACK_LONG_CASTLING_MASK: Bitboard = Bitboard(WHITE_LONG_CASTLING_MASK.0 << (8 * 7));
+
 pub(crate) struct Generator<'a> {
     board: &'a Board,
     state: &'a State,
@@ -69,7 +75,7 @@ impl<'a> Generator<'a> {
     /// as this will be checked by the `make_move` method.
     fn collect_white_castling(&mut self) {
         if self.state.castling.is_allowed(CastlingKind::WhiteShort)
-            && (self.all & Bitboard::F1_G1).is_empty()
+            && (self.all & WHITE_SHORT_CASTLING_MASK).is_empty()
             && !self.board.is_under_attack(Square::E1)
             && !self.board.is_under_attack(Square::F1)
         {
@@ -77,7 +83,7 @@ impl<'a> Generator<'a> {
         }
 
         if self.state.castling.is_allowed(CastlingKind::WhiteLong)
-            && (self.all & Bitboard::B1_C1_D1).is_empty()
+            && (self.all & WHITE_LONG_CASTLING_MASK).is_empty()
             && !self.board.is_under_attack(Square::E1)
             && !self.board.is_under_attack(Square::D1)
         {
@@ -91,7 +97,7 @@ impl<'a> Generator<'a> {
     /// as this will be checked by the `make_move` method.
     fn collect_black_castling(&mut self) {
         if self.state.castling.is_allowed(CastlingKind::BlackShort)
-            && (self.all & Bitboard::F8_G8).is_empty()
+            && (self.all & BLACK_SHORT_CASTLING_MASK).is_empty()
             && !self.board.is_under_attack(Square::E8)
             && !self.board.is_under_attack(Square::F8)
         {
@@ -99,7 +105,7 @@ impl<'a> Generator<'a> {
         }
 
         if self.state.castling.is_allowed(CastlingKind::BlackLong)
-            && (self.all & Bitboard::B8_C8_D8).is_empty()
+            && (self.all & BLACK_LONG_CASTLING_MASK).is_empty()
             && !self.board.is_under_attack(Square::E8)
             && !self.board.is_under_attack(Square::D8)
         {
