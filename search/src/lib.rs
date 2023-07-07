@@ -41,25 +41,24 @@ impl SearchThread {
         }
     }
 
-    #[inline(always)]
-    fn extract_pv_line(&self, board: &mut Board, depth: usize, pv: &mut Vec<Move>) {
-        if depth == 0 {
-            return;
+    /// Extract the principal variation line from the transposition table limited to the given depth.
+    fn get_principal_variation(&self, board: &mut Board, depth: usize) -> Vec<Move> {
+        let mut pv_line = Vec::with_capacity(depth);
+        let mut current_depth = depth;
+
+        let cache = self.cache.lock().unwrap();
+        while let Some(entry) = cache.read(board.hash, 0) {
+            pv_line.push(entry.best);
+            board.make_move(entry.best).unwrap();
+
+            current_depth -= 1;
+            if current_depth == 0 {
+                break;
+            }
         }
 
-        // Recursively fill the vector by going through the chain of moves in the TT
-        if let Some(mv) = self.extract_pv_move(board) {
-            pv.push(mv);
-            board.make_move(mv).unwrap();
-            self.extract_pv_line(board, depth - 1, pv);
-            board.undo_move();
-        }
-    }
-
-    #[inline(always)]
-    fn extract_pv_move(&self, board: &Board) -> Option<Move> {
-        let entry = self.cache.lock().unwrap().read(board.hash, 0);
-        entry.map(|e| e.best)
+        pv_line.iter().for_each(|_| board.undo_move());
+        pv_line
     }
 
     #[inline(always)]

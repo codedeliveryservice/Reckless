@@ -33,8 +33,7 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
         alpha = score - WINDOW_MARGIN;
         beta = score + WINDOW_MARGIN;
 
-        let mut pv = vec![];
-        thread.extract_pv_line(&mut board, depth, &mut pv);
+        let pv = thread.get_principal_variation(&mut board, depth);
 
         report_search_result(depth, score, &pv, stopwatch, thread.nodes);
 
