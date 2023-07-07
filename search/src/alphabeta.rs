@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::{CacheEntry, NodeKind, SearchParams, SearchThread};
+use super::{CacheEntry, HistoryMoves, KillerMoves, NodeKind, SearchParams, SearchThread};
 
 enum SearchResult {
     Full(Score, Option<Move>, NodeKind),
@@ -14,6 +14,8 @@ pub struct AlphaBetaSearch<'a> {
     pub(super) board: &'a mut Board,
     pub(super) thread: &'a mut SearchThread,
     pub(super) ply: usize,
+    pub(super) killers: KillerMoves,
+    pub(super) history: HistoryMoves,
 }
 
 impl<'a> AlphaBetaSearch<'a> {
@@ -24,6 +26,8 @@ impl<'a> AlphaBetaSearch<'a> {
             board,
             thread,
             ply: Default::default(),
+            killers: Default::default(),
+            history: Default::default(),
         }
     }
 
@@ -100,7 +104,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             if score >= p.beta {
                 if mv.is_quiet() {
-                    self.thread.killers.add(mv, self.ply);
+                    self.killers.add(mv, self.ply);
                 }
 
                 return SearchResult::BetaCutOff(score, mv);
@@ -111,7 +115,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 kind = NodeKind::PV;
 
                 if mv.is_quiet() {
-                    self.thread.history.store(mv.start(), mv.target(), p.depth);
+                    self.history.store(mv.start(), mv.target(), p.depth);
                 }
             }
 

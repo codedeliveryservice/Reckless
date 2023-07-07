@@ -98,12 +98,12 @@ impl<'a> AlphaBetaSearch<'a> {
                     }
                 }
                 OrderingStage::Killer => {
-                    if self.thread.killers.contains(mv, self.ply) {
+                    if self.killers.contains(mv, self.ply) {
                         return Self::KILLER_MOVE;
                     }
                 }
                 OrderingStage::History => {
-                    return self.thread.history.get_score(mv.start(), mv.target());
+                    return self.history.get_score(mv.start(), mv.target());
                 }
             }
         }

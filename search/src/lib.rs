@@ -4,9 +4,6 @@ use std::time::Instant;
 
 use game::{Board, Move, Score};
 
-use self::history_moves::HistoryMoves;
-use self::killer_moves::KillerMoves;
-
 mod alphabeta;
 mod history_moves;
 mod killer_moves;
@@ -18,7 +15,9 @@ pub mod iterative;
 pub mod time_control;
 
 pub use cache::*;
+pub use history_moves::*;
 pub use iterative::*;
+pub use killer_moves::*;
 pub use time_control::*;
 
 pub struct SearchThread {
@@ -28,8 +27,6 @@ pub struct SearchThread {
     start_time: Instant,
     nodes: u32,
     current_depth: usize,
-    killers: KillerMoves,
-    history: HistoryMoves,
 }
 
 impl SearchThread {
@@ -41,8 +38,6 @@ impl SearchThread {
             start_time: Instant::now(),
             nodes: Default::default(),
             current_depth: Default::default(),
-            killers: Default::default(),
-            history: Default::default(),
         }
     }
 
