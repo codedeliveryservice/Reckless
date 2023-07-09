@@ -14,9 +14,9 @@ pub fn iterative_search(mut board: Board, mut thread: SearchThread) {
     let mut depth = 1;
 
     while depth <= thread.tc.get_max_depth() {
+        let stopwatch = Instant::now();
         let mut search = AlphaBetaSearch::new(&mut board, &mut thread);
         let score = search.search(SearchParams::new(alpha, beta, depth));
-        let stopwatch = search.start_time;
 
         if thread.get_terminator() {
             break;

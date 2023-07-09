@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
 use super::{CacheEntry, HistoryMoves, KillerMoves, NodeKind, SearchParams, SearchThread};
@@ -10,7 +8,6 @@ enum SearchResult {
 }
 
 pub struct AlphaBetaSearch<'a> {
-    pub(crate) start_time: Instant,
     pub(super) board: &'a mut Board,
     pub(super) thread: &'a mut SearchThread,
     pub(super) ply: usize,
@@ -22,7 +19,6 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Creates a new `AlphaBetaSearch` instance.
     pub fn new(board: &'a mut Board, thread: &'a mut SearchThread) -> Self {
         Self {
-            start_time: Instant::now(),
             board,
             thread,
             ply: Default::default(),
