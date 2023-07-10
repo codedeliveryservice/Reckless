@@ -1,6 +1,6 @@
 use game::{Move, Piece};
 
-use super::alphabeta::AlphaBetaSearch;
+use super::AlphaBetaSearch;
 
 use self::OrderingStage::*;
 

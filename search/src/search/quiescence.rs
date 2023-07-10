@@ -1,6 +1,6 @@
 use game::{Score, MAX_SEARCH_DEPTH};
 
-use super::alphabeta::AlphaBetaSearch;
+use super::AlphaBetaSearch;
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Performs a `negamax` search from the root node until the position becomes stable

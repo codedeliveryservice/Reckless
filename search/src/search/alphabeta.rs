@@ -1,6 +1,6 @@
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
-use super::{CacheEntry, HistoryMoves, KillerMoves, NodeKind, SearchParams, SearchThread};
+use crate::{CacheEntry, HistoryMoves, KillerMoves, NodeKind, SearchParams, SearchThread};
 
 enum SearchResult {
     Full(Score, Option<Move>, NodeKind),

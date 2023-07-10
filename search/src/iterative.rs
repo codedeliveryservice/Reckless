@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use game::{Board, Move, Score};
 
-use super::{alphabeta::AlphaBetaSearch, SearchParams, SearchThread};
+use crate::{AlphaBetaSearch, SearchParams, SearchThread};
 
 const WINDOW_MARGIN: Score = Score(50);
 
