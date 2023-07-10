@@ -5,8 +5,7 @@ use std::time::Instant;
 use game::{Board, Move, Score};
 
 mod alphabeta;
-mod history_moves;
-mod killer_moves;
+mod heuristics;
 mod ordering;
 mod quiescence;
 
@@ -15,9 +14,8 @@ pub mod iterative;
 pub mod time_control;
 
 pub use cache::*;
-pub use history_moves::*;
+pub use heuristics::*;
 pub use iterative::*;
-pub use killer_moves::*;
 pub use time_control::*;
 
 pub struct SearchThread {
