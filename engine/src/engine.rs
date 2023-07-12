@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use game::Board;
-use search::{self, Cache, SearchThread, TimeControl};
+use search::{self, Cache, IterativeSearch, SearchThread, TimeControl};
 
 use crate::commands::{OptionUciCommand, UciCommand};
 use crate::perft::run_perft;
@@ -113,7 +113,7 @@ impl Engine {
 
         thread::spawn(move || {
             let thread = SearchThread::new(time_control, terminator, cache);
-            search::iterative_search(board, thread);
+            IterativeSearch::new(board, thread).search();
         });
     }
 
