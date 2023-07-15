@@ -17,7 +17,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         self.thread.nodes += 1;
 
-        if ply > MAX_SEARCH_DEPTH - 1 {
+        if ply >= MAX_SEARCH_DEPTH {
             return evaluation::evaluate_relative_score(self.board);
         }
 
