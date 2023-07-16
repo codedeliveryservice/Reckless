@@ -92,7 +92,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             self.ply += 1;
 
-            let score = self.calculate_score(&*p, mv, move_index, in_check, pv_node);
+            let score = self.calculate_score(p, mv, move_index, in_check, pv_node);
 
             self.ply -= 1;
             self.board.undo_move();
