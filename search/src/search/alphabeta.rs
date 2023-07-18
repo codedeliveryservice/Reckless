@@ -1,7 +1,7 @@
 use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 
 use super::{SearchParams, SearchThread};
-use crate::{CacheEntry, HistoryMoves, KillerMoves, NodeKind};
+use crate::{heuristics::*, CacheEntry, NodeKind};
 
 /// Represents the internal result of a search.
 enum SearchResult {

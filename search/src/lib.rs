@@ -1,11 +1,8 @@
+mod cache;
 mod heuristics;
 mod search;
+mod time_control;
 
-pub mod cache;
-pub mod time_control;
-
+pub use crate::search::*;
 pub use cache::*;
-pub use heuristics::*;
-pub use search::*;
-pub use search::*;
 pub use time_control::*;
