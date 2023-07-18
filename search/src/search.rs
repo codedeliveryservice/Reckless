@@ -16,6 +16,16 @@ mod thread;
 
 const ASPIRATION_WINDOW_MARGIN: Score = Score(50);
 
+/// Iterative deepening is a search algorithm that incrementally explores deeper levels of
+/// the search space by iteratively calling a depth-limited version of the depth-first search.
+///
+/// It continues to increase the depth with each iteration until the time limit is reached
+/// or the search is terminated by the user.
+///
+/// Despite intuitively appearing inefficient, iterative deepening is essential in implementing
+/// time management. By utilizing dynamic move ordering techniques, it effectively leads to
+/// numerous alpha-beta cutoffs, resulting in a significant reduction in the number of nodes
+/// that need to be searched again.
 pub struct IterativeSearch {
     board: Board,
     thread: SearchThread,
@@ -34,7 +44,7 @@ impl IterativeSearch {
         }
     }
 
-    /// Performs an iterative deepening search to find the best move.
+    /// Performs an iterative deepening search until the time limit is reached or the search is terminated.
     pub fn search(&mut self) {
         let mut last_best = Default::default();
         let mut depth = 1;

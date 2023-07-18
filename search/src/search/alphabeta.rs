@@ -3,11 +3,15 @@ use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 use super::{SearchParams, SearchThread};
 use crate::{CacheEntry, HistoryMoves, KillerMoves, NodeKind};
 
+/// Represents the internal result of a search.
 enum SearchResult {
+    /// All moves were searched to completion.
     Full(Score, Option<Move>, NodeKind),
+    /// The search was stopped due to a beta cutoff.
     BetaCutOff(Score, Move),
 }
 
+/// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
     pub(super) board: &'a mut Board,
     pub(super) thread: &'a mut SearchThread,
