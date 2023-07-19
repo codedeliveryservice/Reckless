@@ -34,7 +34,7 @@ impl Board {
     /// # Errors
     ///
     /// This function will return an error if the given notation is invalid.
-    pub fn new(fen: &str) -> Result<Self, fen::ParseFenError> {
+    pub fn new(fen: &str) -> Result<Self, Box<dyn std::error::Error>> {
         fen::Fen::default().parse(fen)
     }
 

@@ -2,14 +2,7 @@ use crate::core::{CastlingKind, Color, Piece, Square};
 
 use super::Board;
 
-#[derive(Debug)]
-pub enum ParseFenError {
-    InvalidEnPassant { text: String },
-    InvalidNumberOfSections { length: usize },
-    UnexpectedTurnColor { color: String },
-    UnexpectedPiece { piece: char },
-    UnexpectedCastling { char: char },
-}
+type Error = Box<dyn std::error::Error>;
 
 #[derive(Default)]
 pub(crate) struct Fen {
@@ -28,13 +21,11 @@ impl Fen {
     /// # Errors
     ///
     /// This function will return an error if the given notation is not valid.
-    pub fn parse(mut self, fen: &str) -> Result<Board, ParseFenError> {
+    pub fn parse(mut self, fen: &str) -> Result<Board, Error> {
         let parts: Vec<&str> = fen.split_whitespace().collect();
 
         if parts.len() != 6 {
-            return Err(ParseFenError::InvalidNumberOfSections {
-                length: parts.len(),
-            });
+            return Err(format!("Invalid number of sections: '{}'", parts.len()).into());
         }
 
         self.set_pieces(parts[0])?;
@@ -47,7 +38,7 @@ impl Fen {
         Ok(self.board)
     }
 
-    fn set_pieces(&mut self, text: &str) -> Result<(), ParseFenError> {
+    fn set_pieces(&mut self, text: &str) -> Result<(), Error> {
         let mut rank = 7;
         let mut file = 0;
 
@@ -71,7 +62,7 @@ impl Fen {
         Ok(())
     }
 
-    fn parse_piece(&self, c: char) -> Result<Piece, ParseFenError> {
+    fn parse_piece(&self, c: char) -> Result<Piece, Error> {
         match c {
             'P' | 'p' => Ok(Piece::Pawn),
             'N' | 'n' => Ok(Piece::Knight),
@@ -79,7 +70,7 @@ impl Fen {
             'R' | 'r' => Ok(Piece::Rook),
             'Q' | 'q' => Ok(Piece::Queen),
             'K' | 'k' => Ok(Piece::King),
-            _ => Err(ParseFenError::UnexpectedPiece { piece: c }),
+            _ => Err(format!("Unexpected piece: '{}'", c).into()),
         }
     }
 
@@ -90,19 +81,16 @@ impl Fen {
         }
     }
 
-    fn set_turn(&mut self, text: &str) -> Result<(), ParseFenError> {
+    fn set_turn(&mut self, text: &str) -> Result<(), Error> {
         self.board.turn = match text {
-            "w" => Ok(Color::White),
-            "b" => Ok(Color::Black),
-            _ => Err(ParseFenError::UnexpectedTurnColor {
-                color: text.to_string(),
-            }),
-        }?;
-
+            "w" => Color::White,
+            "b" => Color::Black,
+            _ => return Err(format!("Unexpected turn: '{}'", text).into()),
+        };
         Ok(())
     }
 
-    fn set_castling(&mut self, text: &str) -> Result<(), ParseFenError> {
+    fn set_castling(&mut self, text: &str) -> Result<(), Error> {
         let castling = &mut self.board.state.castling;
         for c in text.chars() {
             match c {
@@ -111,23 +99,23 @@ impl Fen {
                 'k' => castling.allow(CastlingKind::BlackShort),
                 'q' => castling.allow(CastlingKind::BlackLong),
                 '-' => {}
-                _ => return Err(ParseFenError::UnexpectedCastling { char: c }),
+                _ => return Err(format!("Unexpected castling: '{}'", c).into()),
             };
         }
 
         Ok(())
     }
 
-    fn set_en_passant(&mut self, text: &str) -> Result<(), ParseFenError> {
-        self.board.state.en_passant = match text {
-            "-" => None,
-            _ => Some(
-                Square::try_from(text).map_err(|_| ParseFenError::InvalidEnPassant {
-                    text: text.to_string(),
-                })?,
-            ),
-        };
+    fn set_en_passant(&mut self, text: &str) -> Result<(), Error> {
+        if text == "-" {
+            return Ok(());
+        }
 
-        Ok(())
+        if let Ok(square) = Square::try_from(text) {
+            self.board.state.en_passant = Some(square);
+            Ok(())
+        } else {
+            Err(format!("Unexpected en passant: '{}'", text).into())
+        }
     }
 }
