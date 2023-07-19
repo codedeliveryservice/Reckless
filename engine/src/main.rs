@@ -13,12 +13,10 @@ fn main() {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer).unwrap();
 
-        if let Ok(command) = parser::parse_command(&buffer, engine.board.turn) {
-            if command == UciCommand::Quit {
-                break;
-            }
-
-            engine.execute(command);
+        match parser::parse_command(&buffer, engine.board.turn) {
+            Ok(UciCommand::Quit) => break,
+            Ok(command) => engine.execute(command),
+            _ => eprintln!("Unknown command: '{}'", buffer.trim_end()),
         }
     }
 }
