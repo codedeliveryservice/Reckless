@@ -15,7 +15,11 @@ fn main() {
 
         match parser::parse_command(&buffer, engine.board.turn) {
             Ok(UciCommand::Quit) => break,
-            Ok(command) => engine.execute(command),
+            Ok(command) => {
+                if let Err(e) = engine.execute(command) {
+                    eprintln!("{}", e);
+                }
+            }
             _ => eprintln!("Unknown command: '{}'", buffer.trim_end()),
         }
     }

@@ -8,6 +8,8 @@ use search::{self, Cache, IterativeSearch, SearchThread, TimeControl};
 use crate::commands::{OptionUciCommand, UciCommand};
 use crate::perft::run_perft;
 
+type Error = Box<dyn std::error::Error>;
+
 pub struct Engine {
     pub board: Board,
     pub cache: Arc<Mutex<Cache>>,
@@ -25,7 +27,7 @@ impl Engine {
     }
 
     /// Executes `UciCommand` for this `Engine`.
-    pub fn execute(&mut self, command: UciCommand) {
+    pub fn execute(&mut self, command: UciCommand) -> Result<(), Error> {
         match command {
             UciCommand::Info => {
                 println!("id name Reckless 0.1.1-alpha");
@@ -43,7 +45,7 @@ impl Engine {
             }
 
             UciCommand::NewGame => self.reset(),
-            UciCommand::Position { fen, moves } => self.set_position(fen, moves),
+            UciCommand::Position { fen, moves } => self.set_position(fen, moves)?,
             UciCommand::Search { time_control } => self.search(time_control),
             UciCommand::Option { option } => self.set_option(option),
 
@@ -53,6 +55,7 @@ impl Engine {
             UciCommand::Eval => self.evaluate(),
             UciCommand::Perft { depth } => self.perft(depth),
         }
+        Ok(())
     }
 
     fn set_option(&mut self, option: OptionUciCommand) {
@@ -71,23 +74,23 @@ impl Engine {
     }
 
     /// Sets the position of this `Engine`.
-    fn set_position(&mut self, fen: String, moves: Vec<&str>) {
-        // TODO: Validate `fen`
-        self.board = Board::new(&fen).unwrap();
+    fn set_position(&mut self, fen: String, moves: Vec<&str>) -> Result<(), Error> {
+        self.board = Board::new(&fen)?;
         for uci_move in moves {
-            self.make_uci_move(uci_move);
+            self.make_uci_move(uci_move)?;
         }
+        Ok(())
     }
 
     /// Makes the specified UCI move on the board.
-    fn make_uci_move(&mut self, uci_move: &str) {
-        for mv in self.board.generate_moves() {
-            if mv.to_string() == uci_move {
-                // TODO: Validate the legality of the move
-                self.board.make_move(mv).unwrap();
-                break;
+    fn make_uci_move(&mut self, uci_move: &str) -> Result<(), Error> {
+        let moves = self.board.generate_moves();
+        if let Some(mv) = moves.into_iter().find(|mv| mv.to_string() == uci_move) {
+            if self.board.make_move(mv).is_ok() {
+                return Ok(());
             }
         }
+        Err(format!("Illegal move: '{}'", uci_move).into())
     }
 
     /// Resets the `Engine` to its original state.
