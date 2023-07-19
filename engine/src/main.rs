@@ -17,10 +17,10 @@ fn main() {
             Ok(UciCommand::Quit) => break,
             Ok(command) => {
                 if let Err(e) = engine.execute(command) {
-                    eprintln!("{}", e);
+                    eprintln!("info string {}", e);
                 }
             }
-            _ => eprintln!("Unknown command: '{}'", buffer.trim_end()),
+            _ => eprintln!("info string Unknown command: '{}'", buffer.trim_end()),
         }
     }
 }
