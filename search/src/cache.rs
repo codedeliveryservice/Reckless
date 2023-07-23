@@ -23,6 +23,17 @@ impl Cache {
         self.vector.iter_mut().for_each(|entry| *entry = None);
     }
 
+    /// Returns the approximate load factor of the `Cache` on a scale of `[0, 1000]`
+    /// where `0` means empty and `1000` means 100% full.
+    pub fn get_load_factor(&self) -> usize {
+        const BATCH_SIZE: usize = 10_000;
+
+        let iter = self.vector.iter().take(BATCH_SIZE);
+        let occupied_slots = iter.filter(|slot| slot.is_some()).count();
+
+        occupied_slots * 1000 / BATCH_SIZE
+    }
+
     /// Returns `Some(T)` if the entry was found; otherwise `None`.
     #[inline(always)]
     pub fn read(&self, hash: Zobrist, ply: usize) -> Option<CacheEntry> {

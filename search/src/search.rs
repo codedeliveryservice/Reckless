@@ -106,14 +106,15 @@ impl IterativeSearch {
         let nps = nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
+        let hashfull = self.thread.cache.lock().unwrap().get_load_factor();
         let score = match score.checkmate_in() {
             Some(moves) => format!("mate {}", moves),
             None => format!("cp {}", score),
         };
 
         print!(
-            "info depth {} score {} nodes {} time {} nps {:.0} pv",
-            depth, score, nodes, ms, nps
+            "info depth {} score {} nodes {} time {} nps {:.0} hashfull {} pv",
+            depth, score, nodes, ms, nps, hashfull,
         );
         pv.iter().for_each(|mv| print!(" {}", mv));
         println!();
