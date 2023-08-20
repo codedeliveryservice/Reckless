@@ -75,7 +75,7 @@ impl Move {
     /// Returns `true` if the current move is quiet.
     #[inline(always)]
     pub const fn is_quiet(self) -> bool {
-        (self.0 >> 14) & 1 == 0
+        !self.is_capture()
     }
 
     /// Returns `true` if the current move is a pawn promotion.
