@@ -13,7 +13,7 @@ impl Board {
         self.hash.update_castling(self.state.castling);
         self.hash.update_en_passant(self.state.en_passant);
 
-        self.state.previous_move = None;
+        self.state.previous_move = Move::default();
         self.state.en_passant = None;
 
         self.turn.reverse();
@@ -39,44 +39,42 @@ impl Board {
         self.hash.update_castling(self.state.castling);
         self.hash.update_en_passant(self.state.en_passant);
 
-        self.state.previous_move = Some(mv);
+        self.state.previous_move = mv;
+        self.state.captured_piece = None;
+        self.state.en_passant = None;
 
         let start = mv.start();
         let target = mv.target();
-        let kind = mv.kind();
-
-        if kind == MoveKind::EnPassant {
-            let target = target.shift(-self.turn.offset());
-            self.remove_piece(Piece::Pawn, self.turn.opposite(), target);
-        } else if mv.is_capture() {
-            let capture = self.get_piece(target).unwrap();
-            self.remove_piece(capture, self.turn.opposite(), target);
-            self.state.captured_piece = Some(capture);
-        }
-
         let piece = self.get_piece(start).unwrap();
+
+        if let Some(piece) = self.get_piece(target) {
+            self.remove_piece(piece, self.turn.opposite(), target);
+            self.state.captured_piece = Some(piece);
+        }
+
         self.remove_piece(piece, self.turn, start);
+        self.add_piece(piece, self.turn, target);
 
-        if mv.is_promotion() {
-            self.add_piece(mv.get_promotion_piece(), self.turn, target);
-        } else {
-            self.add_piece(piece, self.turn, target);
-        }
-
-        if mv.is_castling() {
-            let (rook_start, rook_target) = get_rook_move(target);
-            self.add_piece(Piece::Rook, self.turn, rook_target);
-            self.remove_piece(Piece::Rook, self.turn, rook_start);
-        }
-
-        self.state.en_passant = match kind == MoveKind::DoublePush {
-            true => {
+        match mv.kind() {
+            MoveKind::DoublePush => {
                 let square = (start + target) / 2;
                 self.hash.update_en_passant_square(square);
-                Some(square)
+                self.state.en_passant = Some(square);
             }
-            false => None,
-        };
+            MoveKind::EnPassant => {
+                self.remove_piece(Piece::Pawn, self.turn.opposite(), target ^ 8);
+            }
+            MoveKind::KingCastling | MoveKind::QueenCastling => {
+                let (rook_start, rook_target) = get_rook_move(target);
+                self.remove_piece(Piece::Rook, self.turn, rook_start);
+                self.add_piece(Piece::Rook, self.turn, rook_target);
+            }
+            _ if mv.is_promotion() => {
+                self.remove_piece(Piece::Pawn, self.turn, target);
+                self.add_piece(mv.get_promotion_piece(), self.turn, target);
+            }
+            _ => (),
+        }
 
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
@@ -99,7 +97,7 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn undo_move(&mut self) {
-        let mv = self.state.previous_move.unwrap();
+        let mv = self.state.previous_move;
         let capture = self.state.captured_piece;
 
         self.turn.reverse();
@@ -107,26 +105,29 @@ impl Board {
 
         let start = mv.start();
         let target = mv.target();
-        let kind = mv.kind();
+        let piece = self.get_piece(target).unwrap();
 
-        if mv.is_promotion() {
-            self.add_piece(Piece::Pawn, self.turn, start);
-            self.remove_piece(mv.get_promotion_piece(), self.turn, target);
-        } else {
-            let piece = self.get_piece(target).unwrap();
-            self.add_piece(piece, self.turn, start);
-            self.remove_piece(piece, self.turn, target);
+        self.add_piece(piece, self.turn, start);
+        self.remove_piece(piece, self.turn, target);
+
+        if let Some(piece) = capture {
+            self.add_piece(piece, self.turn.opposite(), target);
         }
 
-        if kind == MoveKind::EnPassant {
-            let target = target.shift(-self.turn.offset());
-            self.add_piece(Piece::Pawn, self.turn.opposite(), target);
-        } else if mv.is_capture() {
-            self.add_piece(capture.unwrap(), self.turn.opposite(), target);
-        } else if mv.is_castling() {
-            let (rook_start, rook_target) = get_rook_move(target);
-            self.add_piece(Piece::Rook, self.turn, rook_start);
-            self.remove_piece(Piece::Rook, self.turn, rook_target);
+        match mv.kind() {
+            MoveKind::EnPassant => {
+                self.add_piece(Piece::Pawn, self.turn.opposite(), target ^ 8);
+            }
+            MoveKind::KingCastling | MoveKind::QueenCastling => {
+                let (rook_start, rook_target) = get_rook_move(target);
+                self.add_piece(Piece::Rook, self.turn, rook_start);
+                self.remove_piece(Piece::Rook, self.turn, rook_target);
+            }
+            _ if mv.is_promotion() => {
+                self.remove_piece(piece, self.turn, start);
+                self.add_piece(Piece::Pawn, self.turn, start);
+            }
+            _ => (),
         }
 
         self.hash = self.repetitions.pop();
