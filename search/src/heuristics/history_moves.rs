@@ -1,4 +1,4 @@
-use game::Square;
+use game::{Move, Square};
 
 /// The history heuristic is a table that keep track of how successful a move has been in the past.
 /// The idea is that if a move has been successful in the past, it's likely to be successful in the
@@ -6,18 +6,18 @@ use game::Square;
 ///
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 pub struct HistoryMoves {
-    table: [[u16; Square::NUM]; Square::NUM],
+    table: [[u32; Square::NUM]; Square::NUM],
 }
 
 impl HistoryMoves {
     /// Increases the score of a move by the given depth.
-    pub fn store(&mut self, start: Square, target: Square, depth: usize) {
-        self.table[start][target] += depth as u16;
+    pub fn store(&mut self, mv: Move, depth: usize) {
+        self.table[mv.start()][mv.target()] += depth as u32 * depth as u32;
     }
 
     /// Returns the score of a move.
-    pub fn get_score(&self, start: Square, target: Square) -> u16 {
-        self.table[start][target]
+    pub fn get_score(&self, mv: Move) -> u32 {
+        self.table[mv.start()][mv.target()]
     }
 }
 

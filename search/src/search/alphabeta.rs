@@ -103,26 +103,23 @@ impl<'a> AlphaBetaSearch<'a> {
 
             move_index += 1;
 
-            if score >= p.beta {
-                if mv.is_quiet() {
-                    self.killers.add(mv, self.ply);
-                }
-
-                return SearchResult::BetaCutOff(score, mv);
+            if score > best_score {
+                best_score = score;
+                best_move = Some(mv);
             }
 
             if score > p.alpha {
                 p.alpha = score;
                 kind = NodeKind::PV;
-
-                if mv.is_quiet() {
-                    self.history.store(mv.start(), mv.target(), p.depth);
-                }
             }
 
-            if score > best_score {
-                best_score = score;
-                best_move = Some(mv);
+            if score >= p.beta {
+                if mv.is_quiet() {
+                    self.killers.add(mv, self.ply);
+                    self.history.store(mv, p.depth);
+                }
+
+                return SearchResult::BetaCutOff(score, mv);
             }
         }
 

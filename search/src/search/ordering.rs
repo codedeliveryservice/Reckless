@@ -16,7 +16,7 @@ enum OrderingStage {
 
 /// Container for the ordering of moves to be searched.
 pub struct Ordering {
-    items: Vec<(Move, u16)>,
+    items: Vec<(Move, u32)>,
     index: usize,
 }
 
@@ -41,11 +41,11 @@ impl Ordering {
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Move from TT is likely to be the best and should be rated higher all others.
-    const CACHE_MOVE: u16 = 3000;
+    const CACHE_MOVE: u32 = 3_000_000;
     /// Most Valuable Victim – Least Valuable Attacker heuristic.
-    const MVV_LVA: u16 = 2000;
+    const MVV_LVA: u32 = 2_000_000;
     /// Moves that caused a beta cutoff in the previous search.
-    const KILLER_MOVE: u16 = 1000;
+    const KILLER_MOVE: u32 = 1_000_000;
 
     /// Builds the ordering of moves to be searched in the normal search.
     pub(super) fn build_normal_ordering(&self) -> Ordering {
@@ -71,7 +71,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Compute a rating for the specified move based on the given stages.
-    fn get_move_rating(&self, mv: Move, stages: &[OrderingStage], cache_move: Option<Move>) -> u16 {
+    fn get_move_rating(&self, mv: Move, stages: &[OrderingStage], cache_move: Option<Move>) -> u32 {
         for stage in stages {
             return match stage {
                 OrderingStage::CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
@@ -79,10 +79,10 @@ impl<'a> AlphaBetaSearch<'a> {
                     let attacker = self.board.get_piece(mv.start()).unwrap();
                     // Handles en passant captures, assuming the victim is a pawn if the target is empty
                     let victim = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
-                    Self::MVV_LVA + victim as u16 * 10 - attacker as u16
+                    Self::MVV_LVA + victim as u32 * 10 - attacker as u32
                 }
                 OrderingStage::Killer if self.killers.contains(mv, self.ply) => Self::KILLER_MOVE,
-                OrderingStage::History => self.history.get_score(mv.start(), mv.target()),
+                OrderingStage::History => self.history.get_score(mv),
                 _ => continue,
             };
         }
