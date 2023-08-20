@@ -134,12 +134,12 @@ impl Board {
     }
 }
 
-fn get_rook_move(king_target: Square) -> (Square, Square) {
+const fn get_rook_move(king_target: Square) -> (Square, Square) {
     match king_target {
         Square::G1 => (Square::H1, Square::F1),
         Square::C1 => (Square::A1, Square::D1),
         Square::G8 => (Square::H8, Square::F8),
         Square::C8 => (Square::A8, Square::D8),
-        _ => panic!("Unexpected king target square '{}'", king_target),
+        _ => panic!("Unexpected king target square"),
     }
 }
