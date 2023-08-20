@@ -27,7 +27,6 @@ impl Ordering {
             return None;
         }
 
-        // Compare the current move rating with all others and swap if it's lower
         for next in (self.index + 1)..self.items.len() {
             if self.items[self.index].1 < self.items[next].1 {
                 self.items.swap(self.index, next);
@@ -42,16 +41,9 @@ impl Ordering {
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Move from TT is likely to be the best and should be rated higher all others.
-    const TT_MOVE: u16 = 2000;
-    /// Most Valuable Victim – Least Valuable Attacker heuristic table indexed by `[attacker][victim]`.
-    const MVV_LVA: [[u16; Piece::NUM]; Piece::NUM] = [
-        [1015, 1025, 1035, 1045, 1055, 1065],
-        [1014, 1024, 1034, 1044, 1054, 1064],
-        [1013, 1023, 1033, 1043, 1053, 1063],
-        [1012, 1022, 1032, 1042, 1052, 1062],
-        [1011, 1021, 1031, 1041, 1051, 1061],
-        [1010, 1020, 1030, 1040, 1050, 1060],
-    ];
+    const CACHE_MOVE: u16 = 3000;
+    /// Most Valuable Victim – Least Valuable Attacker heuristic.
+    const MVV_LVA: u16 = 2000;
     /// Moves that caused a beta cutoff in the previous search.
     const KILLER_MOVE: u16 = 1000;
 
@@ -75,39 +67,25 @@ impl<'a> AlphaBetaSearch<'a> {
             let rating = self.get_move_rating(mv, stages, cache_move);
             items.push((mv, rating));
         }
-
         Ordering { items, index: 0 }
     }
 
     /// Compute a rating for the specified move based on the given stages.
     fn get_move_rating(&self, mv: Move, stages: &[OrderingStage], cache_move: Option<Move>) -> u16 {
         for stage in stages {
-            match stage {
-                OrderingStage::CacheMove => {
-                    if Some(mv) == cache_move {
-                        return Self::TT_MOVE;
-                    }
+            return match stage {
+                OrderingStage::CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
+                OrderingStage::MvvLva if mv.is_capture() => {
+                    let attacker = self.board.get_piece(mv.start()).unwrap();
+                    // Handles en passant captures, assuming the victim is a pawn if the target is empty
+                    let victim = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
+                    Self::MVV_LVA + victim as u16 * 10 - attacker as u16
                 }
-                OrderingStage::MvvLva => {
-                    if mv.is_capture() {
-                        let start = self.board.get_piece(mv.start()).unwrap();
-                        // Handles en passant captures by treating the default piece as a pawn since
-                        // the target square of the capturing piece is different from the move's target square
-                        let target = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
-                        return Self::MVV_LVA[start][target];
-                    }
-                }
-                OrderingStage::Killer => {
-                    if self.killers.contains(mv, self.ply) {
-                        return Self::KILLER_MOVE;
-                    }
-                }
-                OrderingStage::History => {
-                    return self.history.get_score(mv.start(), mv.target());
-                }
-            }
+                OrderingStage::Killer if self.killers.contains(mv, self.ply) => Self::KILLER_MOVE,
+                OrderingStage::History => self.history.get_score(mv.start(), mv.target()),
+                _ => continue,
+            };
         }
-
         Default::default()
     }
 }
