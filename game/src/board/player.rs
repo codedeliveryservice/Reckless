@@ -6,8 +6,7 @@ pub struct IllegalMoveError;
 impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
-        self.history.push(self.state);
-        self.repetitions.push(self.hash);
+        self.history.push(self.state, self.hash);
 
         self.hash.update_side();
         self.hash.update_castling(self.state.castling);
@@ -22,8 +21,7 @@ impl Board {
     /// Restores the board to the previous state after the last null move made.
     pub fn undo_null_move(&mut self) {
         self.turn.reverse();
-        self.state = self.history.pop();
-        self.hash = self.repetitions.pop();
+        (self.state, self.hash) = self.history.pop();
     }
 
     /// Updates the board representation by making the specified `Move`.
@@ -32,8 +30,7 @@ impl Board {
     ///
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.history.push(self.state);
-        self.repetitions.push(self.hash);
+        self.history.push(self.state, self.hash);
 
         self.hash.update_side();
         self.hash.update_castling(self.state.castling);
@@ -97,12 +94,9 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn undo_move(&mut self) {
-        let mv = self.state.previous_move;
-        let capture = self.state.captured_piece;
-
         self.turn.reverse();
-        self.state = self.history.pop();
 
+        let mv = self.state.previous_move;
         let start = mv.start();
         let target = mv.target();
         let piece = self.get_piece(target).unwrap();
@@ -110,7 +104,7 @@ impl Board {
         self.add_piece(piece, self.turn, start);
         self.remove_piece(piece, self.turn, target);
 
-        if let Some(piece) = capture {
+        if let Some(piece) = self.state.captured_piece {
             self.add_piece(piece, self.turn.opposite(), target);
         }
 
@@ -130,7 +124,7 @@ impl Board {
             _ => (),
         }
 
-        self.hash = self.repetitions.pop();
+        (self.state, self.hash) = self.history.pop();
     }
 }
 

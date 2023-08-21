@@ -1,13 +1,12 @@
 use crate::{Bitboard, Color, MoveList, Piece, Score, Square, Zobrist};
 
-use self::{evaluation::Evaluation, history::History, repetitions::Repetitions, state::State};
+use self::{evaluation::Evaluation, history::History, state::State};
 
 mod evaluation;
 mod fen;
 mod generator;
 mod history;
 mod player;
-mod repetitions;
 mod state;
 
 /// Data structure representing the board and the location of its pieces.
@@ -18,7 +17,6 @@ pub struct Board {
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     evaluation: Evaluation,
-    repetitions: Repetitions,
     history: History,
     state: State,
 }
@@ -121,7 +119,7 @@ impl Board {
     /// This method does not count the number of encounters.
     #[inline(always)]
     pub fn is_repetition(&self) -> bool {
-        self.repetitions.is_repetition(self.hash)
+        self.history.is_repetition(self.hash)
     }
 
     /// Returns `true` if the king of the current turn color is in check.
