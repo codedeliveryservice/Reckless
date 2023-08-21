@@ -3,14 +3,6 @@ use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
 use super::{SearchParams, SearchThread};
 use crate::{heuristics::*, CacheEntry, NodeKind};
 
-/// Represents the internal result of a search.
-enum SearchResult {
-    /// All moves were searched to completion.
-    Full(Score, Option<Move>, NodeKind),
-    /// The search was stopped due to a beta cutoff.
-    BetaCutOff(Score, Move),
-}
-
 /// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
     pub(super) board: &'a mut Board,
@@ -62,24 +54,10 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        match self.search_moves(&mut p, in_check) {
-            SearchResult::Full(score, mv, kind) => {
-                if let Some(score) = self.is_game_over(mv.is_some(), in_check) {
-                    return score;
-                }
-
-                self.write_cache_entry(p.depth, score, kind, mv.unwrap());
-                p.alpha
-            }
-
-            SearchResult::BetaCutOff(score, mv) => {
-                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
-                p.beta
-            }
-        }
+        self.search_moves(&mut p, in_check)
     }
 
-    fn search_moves(&mut self, p: &mut SearchParams, in_check: bool) -> SearchResult {
+    fn search_moves(&mut self, p: &mut SearchParams, in_check: bool) -> Score {
         let pv_node = p.alpha != p.beta - 1;
 
         let mut best_score = -Score::INFINITY;
@@ -119,11 +97,17 @@ impl<'a> AlphaBetaSearch<'a> {
                     self.history.store(mv, p.depth);
                 }
 
-                return SearchResult::BetaCutOff(score, mv);
+                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
+                return p.beta;
             }
         }
 
-        SearchResult::Full(best_score, best_move, kind)
+        if let Some(score) = self.is_game_over(best_move.is_some(), in_check) {
+            return score;
+        }
+
+        self.write_cache_entry(p.depth, best_score, kind, best_move.unwrap());
+        best_score
     }
 
     /// Calculates the score of the current position.
