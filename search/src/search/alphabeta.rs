@@ -36,9 +36,8 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        // Increase the search depth to avoid a horizon effect when evaluating the position
-        let in_check = self.board.is_in_check();
-        if in_check {
+        // Check extension
+        if self.board.is_in_check() {
             p.depth += 1;
         }
 
@@ -50,14 +49,14 @@ impl<'a> AlphaBetaSearch<'a> {
         if let Some(score) = self.read_cache_entry(&p) {
             return score;
         }
-        if let Some(score) = self.null_move_pruning(&p, in_check) {
+        if let Some(score) = self.null_move_pruning(&p) {
             return score;
         }
 
-        self.search_moves(&mut p, in_check)
+        self.search_moves(&mut p)
     }
 
-    fn search_moves(&mut self, p: &mut SearchParams, in_check: bool) -> Score {
+    fn search_moves(&mut self, p: &mut SearchParams) -> Score {
         let pv_node = p.alpha != p.beta - 1;
 
         let mut best_score = -Score::INFINITY;
@@ -74,7 +73,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             self.ply += 1;
 
-            let score = self.calculate_score(p, mv, move_index, in_check, pv_node);
+            let score = self.calculate_score(p, mv, move_index, pv_node);
 
             self.ply -= 1;
             self.board.undo_move();
@@ -102,7 +101,7 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        if let Some(score) = self.is_game_over(best_move.is_some(), in_check) {
+        if let Some(score) = self.is_game_over(best_move.is_some()) {
             return score;
         }
 
@@ -116,7 +115,6 @@ impl<'a> AlphaBetaSearch<'a> {
         p: &SearchParams,
         mv: Move,
         move_index: usize,
-        in_check: bool,
         pv_node: bool,
     ) -> Score {
         if move_index == 0 {
@@ -125,7 +123,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         let tactical_move = mv.is_capture() || mv.is_promotion();
 
-        if !in_check && !pv_node && !tactical_move {
+        if !pv_node && !tactical_move && !self.board.is_in_check() {
             if let Some(score) = self.late_move_reduction(p, move_index) {
                 return score;
             }
@@ -197,8 +195,8 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     #[inline(always)]
-    fn null_move_pruning(&mut self, p: &SearchParams, in_check: bool) -> Option<Score> {
-        let can_prune = !self.board.is_last_move_null() && !in_check && p.depth >= 3;
+    fn null_move_pruning(&mut self, p: &SearchParams) -> Option<Score> {
+        let can_prune = !self.board.is_last_move_null() && !self.board.is_in_check() && p.depth >= 3;
         if !can_prune {
             return None;
         }
@@ -236,12 +234,12 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Returns `true` if the game is considered to be over either due to checkmate or stalemate.
     #[inline(always)]
-    fn is_game_over(&self, legal_move_found: bool, in_check: bool) -> Option<Score> {
+    fn is_game_over(&mut self, legal_move_found: bool) -> Option<Score> {
         if legal_move_found {
             return None;
         }
 
-        match in_check {
+        match self.board.is_in_check() {
             // Since negamax evaluates positions from the point of view of the maximizing player,
             // we choose the longest path to checkmate by adding the depth (maximizing the score)
             true => Some(-Score::CHECKMATE + self.ply as i32),
