@@ -39,6 +39,7 @@ impl Board {
         self.state.previous_move = mv;
         self.state.captured_piece = None;
         self.state.en_passant = None;
+        self.state.in_check = None;
 
         let start = mv.start();
         let target = mv.target();

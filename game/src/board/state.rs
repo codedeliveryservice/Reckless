@@ -8,5 +8,6 @@ pub(super) struct State {
     pub previous_move: Move,
     pub captured_piece: Option<Piece>,
     pub en_passant: Option<Square>,
+    pub in_check: Option<bool>,
     pub castling: Castling,
 }

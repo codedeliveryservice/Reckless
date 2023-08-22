@@ -133,9 +133,13 @@ impl Board {
     ///
     /// Panics if there is no king on the board.
     #[inline(always)]
-    pub fn is_in_check(&self) -> bool {
-        let king = self.our(Piece::King).pop().unwrap();
-        self.is_under_attack(king)
+    pub fn is_in_check(&mut self) -> bool {
+        if self.state.in_check.is_none() {
+            let king = self.our(Piece::King).pop().unwrap();
+            self.state.in_check = Some(self.is_under_attack(king));
+        }
+
+        self.state.in_check.unwrap()
     }
 
     /// Returns `true` if any enemy piece can attack the `Square`.    
