@@ -1,4 +1,4 @@
-use crate::{Zobrist, MAX_GAME_PLIES};
+use crate::{Move, Zobrist, MAX_GAME_PLIES};
 
 use super::state::State;
 
@@ -26,6 +26,11 @@ impl History {
     /// Returns `true` if the current position has been repeated at least once before.
     pub fn is_repetition(&self, hash: Zobrist) -> bool {
         (0..self.index).rev().any(|i| self.hashes[i] == hash)
+    }
+
+    /// Returns `true` if the last move made was a null move.
+    pub fn is_last_move_null(&self) -> bool {
+        self.index > 0 && self.states[self.index - 1].previous_move == Move::default()
     }
 }
 

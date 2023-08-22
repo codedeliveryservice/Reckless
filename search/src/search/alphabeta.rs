@@ -198,7 +198,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     #[inline(always)]
     fn null_move_pruning(&mut self, p: &SearchParams, in_check: bool) -> Option<Score> {
-        let can_prune = p.null_move_allowed && !in_check && p.depth >= 3;
+        let can_prune = !self.board.is_last_move_null() && !in_check && p.depth >= 3;
         if !can_prune {
             return None;
         }
@@ -206,9 +206,7 @@ impl<'a> AlphaBetaSearch<'a> {
         self.board.make_null_move();
         self.ply += 1;
 
-        let mut params = SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3);
-        params.null_move_allowed = false;
-        let score = -self.search(params);
+        let score = -self.search(SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3));
 
         self.ply -= 1;
         self.board.undo_null_move();
