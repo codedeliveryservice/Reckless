@@ -10,6 +10,3 @@ pub const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ
 
 /// The maximum number of plies that can occur in a game.
 pub const MAX_GAME_PLIES: usize = 1024;
-
-/// The maximum number of plies that can be searched.
-pub const MAX_SEARCH_DEPTH: usize = 64;

@@ -1,4 +1,4 @@
-use game::{Move, MAX_SEARCH_DEPTH};
+use game::{Move, MAX_GAME_PLIES};
 
 /// Provides an implementation of the killer heuristic used as a dynamic move
 /// ordering technique for quiet moves that caused a beta cutoff.
@@ -6,8 +6,8 @@ use game::{Move, MAX_SEARCH_DEPTH};
 /// See [Killer Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
 /// for more information.
 pub struct KillerMoves {
-    primary: [Move; MAX_SEARCH_DEPTH],
-    secondary: [Move; MAX_SEARCH_DEPTH],
+    primary: [Move; MAX_GAME_PLIES],
+    secondary: [Move; MAX_GAME_PLIES],
 }
 
 impl KillerMoves {
@@ -28,8 +28,8 @@ impl KillerMoves {
 impl Default for KillerMoves {
     fn default() -> Self {
         Self {
-            primary: [Default::default(); MAX_SEARCH_DEPTH],
-            secondary: [Default::default(); MAX_SEARCH_DEPTH],
+            primary: [Default::default(); MAX_GAME_PLIES],
+            secondary: [Default::default(); MAX_GAME_PLIES],
         }
     }
 }

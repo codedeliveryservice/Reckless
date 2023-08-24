@@ -1,4 +1,4 @@
-use game::{Board, Move, Score, MAX_SEARCH_DEPTH};
+use game::{Board, Move, Score};
 
 use super::{SearchParams, SearchThread};
 use crate::{heuristics::*, CacheEntry, NodeKind};
@@ -30,9 +30,6 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
         if let Some(score) = self.detect_repetition() {
-            return score;
-        }
-        if let Some(score) = self.validate_depth() {
             return score;
         }
 
@@ -136,15 +133,7 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Returns the score of the current position if it's at the root node.
     fn evaluate(&mut self, p: &SearchParams) -> Option<Score> {
         if p.depth == 0 {
-            return Some(self.quiescence_search(p.alpha, p.beta, self.ply));
-        }
-        None
-    }
-
-    /// Returns the score of the current position if the search depth is too high.
-    fn validate_depth(&mut self) -> Option<Score> {
-        if self.ply >= MAX_SEARCH_DEPTH {
-            return Some(evaluation::evaluate_relative_score(self.board));
+            return Some(self.quiescence_search(p.alpha, p.beta));
         }
         None
     }
@@ -196,7 +185,8 @@ impl<'a> AlphaBetaSearch<'a> {
 
     #[inline(always)]
     fn null_move_pruning(&mut self, p: &SearchParams) -> Option<Score> {
-        let can_prune = !self.board.is_last_move_null() && !self.board.is_in_check() && p.depth >= 3;
+        let can_prune =
+            !self.board.is_last_move_null() && !self.board.is_in_check() && p.depth >= 3;
         if !can_prune {
             return None;
         }

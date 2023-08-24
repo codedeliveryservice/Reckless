@@ -1,4 +1,4 @@
-use game::{Score, MAX_SEARCH_DEPTH};
+use game::Score;
 
 use super::AlphaBetaSearch;
 
@@ -10,16 +10,12 @@ impl<'a> AlphaBetaSearch<'a> {
     ///
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
-    pub fn quiescence_search(&mut self, mut alpha: Score, beta: Score, ply: usize) -> Score {
+    pub fn quiescence_search(&mut self, mut alpha: Score, beta: Score) -> Score {
         if self.thread.get_terminator() {
             return Score::INVALID;
         }
 
         self.thread.nodes += 1;
-
-        if ply >= MAX_SEARCH_DEPTH {
-            return evaluation::evaluate_relative_score(self.board);
-        }
 
         let evaluation = evaluation::evaluate_relative_score(self.board);
 
@@ -34,7 +30,7 @@ impl<'a> AlphaBetaSearch<'a> {
         let mut ordering = self.build_quiescence_ordering();
         while let Some(mv) = ordering.next() {
             if mv.is_capture() && self.board.make_move(mv).is_ok() {
-                let score = -self.quiescence_search(-beta, -alpha, ply + 1);
+                let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();
 
                 if score >= beta {

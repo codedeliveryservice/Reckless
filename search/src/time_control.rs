@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use game::MAX_SEARCH_DEPTH;
-
 #[derive(Debug, PartialEq)]
 pub enum TimeControl {
     Infinite,
@@ -10,6 +8,9 @@ pub enum TimeControl {
     Incremental(u64, u64),
     Tournament(u64, u64, u64),
 }
+
+/// The maximum number of plies that can be searched.
+const MAX_SEARCH_DEPTH: usize = 64;
 
 /// The default number of moves left.
 /// This results in slower play at the beginning and faster towards the end.
