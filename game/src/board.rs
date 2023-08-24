@@ -14,6 +14,7 @@ mod state;
 pub struct Board {
     pub turn: Color,
     pub hash: Zobrist,
+    pub ply: usize,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     evaluation: Evaluation,

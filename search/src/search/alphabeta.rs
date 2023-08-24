@@ -7,7 +7,6 @@ use crate::{heuristics::*, CacheEntry, NodeKind};
 pub struct AlphaBetaSearch<'a> {
     pub(super) board: &'a mut Board,
     pub(super) thread: &'a mut SearchThread,
-    pub(super) ply: usize,
     pub(super) killers: KillerMoves,
     pub(super) history: HistoryMoves,
 }
@@ -18,7 +17,6 @@ impl<'a> AlphaBetaSearch<'a> {
         Self {
             board,
             thread,
-            ply: Default::default(),
             killers: Default::default(),
             history: Default::default(),
         }
@@ -68,11 +66,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            self.ply += 1;
-
             let score = self.calculate_score(p, mv, move_index, pv_node);
-
-            self.ply -= 1;
             self.board.undo_move();
 
             move_index += 1;
@@ -89,7 +83,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             if score >= p.beta {
                 if mv.is_quiet() {
-                    self.killers.add(mv, self.ply);
+                    self.killers.add(mv, self.board.ply);
                     self.history.store(mv, p.depth);
                 }
 
@@ -140,7 +134,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Returns a draw score if the current position is a repetition.
     fn detect_repetition(&mut self) -> Option<Score> {
-        if self.ply > 0 && self.board.is_repetition() {
+        if self.board.ply > 0 && self.board.is_repetition() {
             return Some(Score::DRAW);
         }
         None
@@ -192,11 +186,7 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         self.board.make_null_move();
-        self.ply += 1;
-
         let score = -self.search(SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3));
-
-        self.ply -= 1;
         self.board.undo_null_move();
 
         (score >= p.beta).then_some(p.beta)
@@ -206,7 +196,7 @@ impl<'a> AlphaBetaSearch<'a> {
     #[inline(always)]
     fn read_cache_entry(&self, p: &SearchParams) -> Option<Score> {
         let cache = self.thread.cache.lock().unwrap();
-        let entry = cache.read(self.board.hash, self.ply);
+        let entry = cache.read(self.board.hash, self.board.ply);
         entry.and_then(|entry| entry.get_score(p.alpha, p.beta, p.depth))
     }
 
@@ -218,7 +208,7 @@ impl<'a> AlphaBetaSearch<'a> {
     fn write_cache_entry(&mut self, depth: usize, score: Score, kind: NodeKind, best: Move) {
         if !self.thread.get_terminator() {
             let entry = CacheEntry::new(self.board.hash, depth, score, kind, best);
-            self.thread.cache.lock().unwrap().write(entry, self.ply);
+            self.thread.cache.lock().unwrap().write(entry, self.board.ply);
         }
     }
 
@@ -232,7 +222,7 @@ impl<'a> AlphaBetaSearch<'a> {
         match self.board.is_in_check() {
             // Since negamax evaluates positions from the point of view of the maximizing player,
             // we choose the longest path to checkmate by adding the depth (maximizing the score)
-            true => Some(-Score::CHECKMATE + self.ply as i32),
+            true => Some(-Score::CHECKMATE + self.board.ply as i32),
             false => Some(Score::DRAW),
         }
     }

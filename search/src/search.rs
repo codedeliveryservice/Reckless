@@ -50,6 +50,10 @@ impl IterativeSearch {
         let mut depth = 1;
 
         while depth <= self.thread.tc.get_max_depth() {
+            self.board.ply = 0;
+            self.thread.nodes = 0;
+            self.thread.current_depth = depth;
+
             let stopwatch = Instant::now();
             let score = self.alphabeta_search(depth);
 
@@ -69,9 +73,6 @@ impl IterativeSearch {
 
             last_best = pv[0];
             depth += 1;
-
-            self.thread.nodes = 0;
-            self.thread.current_depth = depth;
         }
 
         println!("bestmove {}", last_best);

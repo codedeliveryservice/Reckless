@@ -50,7 +50,7 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Builds the ordering of moves to be searched in the normal search.
     pub(super) fn build_normal_ordering(&self) -> Ordering {
         let cache = &self.thread.cache.lock().unwrap();
-        let cache_move = cache.read(self.board.hash, self.ply).map(|e| e.best);
+        let cache_move = cache.read(self.board.hash, self.board.ply).map(|e| e.best);
         self.build_ordering(NORMAL_STAGES, cache_move)
     }
 
@@ -81,7 +81,7 @@ impl<'a> AlphaBetaSearch<'a> {
                     let victim = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
                     Self::MVV_LVA + victim as u32 * 10 - attacker as u32
                 }
-                OrderingStage::Killer if self.killers.contains(mv, self.ply) => Self::KILLER_MOVE,
+                OrderingStage::Killer if self.killers.contains(mv, self.board.ply) => Self::KILLER_MOVE,
                 OrderingStage::History => self.history.get_score(mv),
                 _ => continue,
             };

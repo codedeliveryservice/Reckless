@@ -6,6 +6,7 @@ pub struct IllegalMoveError;
 impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
+        self.ply += 1;
         self.history.push(self.state, self.hash);
 
         self.hash.update_side();
@@ -20,6 +21,7 @@ impl Board {
 
     /// Restores the board to the previous state after the last null move made.
     pub fn undo_null_move(&mut self) {
+        self.ply -= 1;
         self.turn.reverse();
         (self.state, self.hash) = self.history.pop();
     }
@@ -30,6 +32,7 @@ impl Board {
     ///
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+        self.ply += 1;
         self.history.push(self.state, self.hash);
 
         self.hash.update_side();
@@ -95,6 +98,7 @@ impl Board {
     ///
     /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
     pub fn undo_move(&mut self) {
+        self.ply -= 1;
         self.turn.reverse();
 
         let mv = self.state.previous_move;
