@@ -4,13 +4,11 @@ use game::{Board, Move, Score};
 
 pub use alphabeta::*;
 pub use ordering::*;
-pub use params::*;
 pub use quiescence::*;
 pub use thread::*;
 
 mod alphabeta;
 mod ordering;
-mod params;
 mod quiescence;
 mod thread;
 
@@ -81,7 +79,7 @@ impl IterativeSearch {
     /// Performs a search at the given depth.
     fn alphabeta_search(&mut self, depth: usize) -> Score {
         let mut search = AlphaBetaSearch::new(&mut self.board, &mut self.thread);
-        search.search(SearchParams::new(self.alpha, self.beta, depth))
+        search.search(self.alpha, self.beta, depth)
     }
 
     /// Returns `true` if the given score is within the aspiration window.

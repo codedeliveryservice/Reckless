@@ -1,6 +1,6 @@
 use game::{Board, Move, Score};
 
-use super::{SearchParams, SearchThread};
+use super::SearchThread;
 use crate::{heuristics::*, CacheEntry, NodeKind};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
@@ -23,7 +23,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Performs a search using alpha-beta pruning in a fail-hard environment.
-    pub fn search(&mut self, mut p: SearchParams) -> Score {
+    pub fn search(&mut self, alpha: Score, beta: Score, mut depth: usize) -> Score {
         if let Some(score) = self.check_on() {
             return score;
         }
@@ -33,26 +33,26 @@ impl<'a> AlphaBetaSearch<'a> {
 
         // Check extension
         if self.board.is_in_check() {
-            p.depth += 1;
+            depth += 1;
         }
 
         self.thread.nodes += 1;
 
-        if let Some(score) = self.evaluate(&p) {
+        if let Some(score) = self.evaluate(alpha, beta, depth) {
             return score;
         }
-        if let Some(score) = self.read_cache_entry(&p) {
+        if let Some(score) = self.read_cache_entry(alpha, beta, depth) {
             return score;
         }
-        if let Some(score) = self.null_move_pruning(&p) {
+        if let Some(score) = self.null_move_pruning(beta, depth) {
             return score;
         }
 
-        self.search_moves(&mut p)
+        self.search_moves(alpha, beta, depth)
     }
 
-    fn search_moves(&mut self, p: &mut SearchParams) -> Score {
-        let pv_node = p.alpha != p.beta - 1;
+    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize) -> Score {
+        let pv_node = alpha != beta - 1;
 
         let mut best_score = -Score::INFINITY;
         let mut best_move = None;
@@ -66,7 +66,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            let score = self.calculate_score(p, mv, move_index, pv_node);
+            let score = self.calculate_score(alpha, beta, depth, mv, move_index, pv_node);
             self.board.undo_move();
 
             move_index += 1;
@@ -76,19 +76,19 @@ impl<'a> AlphaBetaSearch<'a> {
                 best_move = Some(mv);
             }
 
-            if score > p.alpha {
-                p.alpha = score;
+            if score > alpha {
+                alpha = score;
                 kind = NodeKind::PV;
             }
 
-            if score >= p.beta {
+            if score >= beta {
                 if mv.is_quiet() {
                     self.killers.add(mv, self.board.ply);
-                    self.history.store(mv, p.depth);
+                    self.history.store(mv, depth);
                 }
 
-                self.write_cache_entry(p.depth, score, NodeKind::Cut, mv);
-                return p.beta;
+                self.write_cache_entry(depth, score, NodeKind::Cut, mv);
+                return beta;
             }
         }
 
@@ -96,38 +96,40 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        self.write_cache_entry(p.depth, best_score, kind, best_move.unwrap());
+        self.write_cache_entry(depth, best_score, kind, best_move.unwrap());
         best_score
     }
 
     /// Calculates the score of the current position.
     fn calculate_score(
         &mut self,
-        p: &SearchParams,
+        alpha: Score,
+        beta: Score,
+        depth: usize,
         mv: Move,
         move_index: usize,
         pv_node: bool,
     ) -> Score {
         if move_index == 0 {
-            return -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1));
+            return -self.search(-beta, -alpha, depth - 1);
         }
 
         let tactical_move = mv.is_capture() || mv.is_promotion();
 
         if !pv_node && !tactical_move && !self.board.is_in_check() {
-            if let Some(score) = self.late_move_reduction(p, move_index) {
+            if let Some(score) = self.late_move_reduction(alpha, depth, move_index) {
                 return score;
             }
         }
 
         // Fall back to a full-depth search
-        self.principle_variation_search(p)
+        self.principle_variation_search(alpha, beta, depth)
     }
 
     /// Returns the score of the current position if it's at the root node.
-    fn evaluate(&mut self, p: &SearchParams) -> Option<Score> {
-        if p.depth == 0 {
-            return Some(self.quiescence_search(p.alpha, p.beta));
+    fn evaluate(&mut self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
+        if depth == 0 {
+            return Some(self.quiescence_search(alpha, beta));
         }
         None
     }
@@ -155,49 +157,48 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Perform a reduced-depth search for an uninteresting move.
-    fn late_move_reduction(&mut self, p: &SearchParams, move_index: usize) -> Option<Score> {
-        if move_index >= 4 && p.depth >= 3 {
-            let lmr_score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 2));
-            return (lmr_score <= p.alpha).then_some(lmr_score);
+    fn late_move_reduction(&mut self, alpha: Score, depth: usize, move_index: usize) -> Option<Score> {
+        if move_index >= 4 && depth >= 3 {
+            let lmr_score = -self.search(-alpha - 1, -alpha, depth - 2);
+            return (lmr_score <= alpha).then_some(lmr_score);
         }
         None
     }
 
     /// Performs a principle variation search with a closed window around alpha.
     #[inline(always)]
-    fn principle_variation_search(&mut self, p: &SearchParams) -> Score {
-        let score = -self.search(SearchParams::new(-p.alpha - 1, -p.alpha, p.depth - 1));
+    fn principle_variation_search(&mut self, alpha: Score, beta: Score, depth: usize) -> Score {
+        let score = -self.search(-alpha - 1, -alpha, depth - 1);
 
-        let is_pv_move_better = p.alpha >= score || score >= p.beta;
+        let is_pv_move_better = alpha >= score || score >= beta;
         if is_pv_move_better {
             return score;
         }
 
         // Perform a normal search since our assumption was wrong
-        -self.search(SearchParams::new(-p.beta, -p.alpha, p.depth - 1))
+        -self.search(-beta, -alpha, depth - 1)
     }
 
     #[inline(always)]
-    fn null_move_pruning(&mut self, p: &SearchParams) -> Option<Score> {
-        let can_prune =
-            !self.board.is_last_move_null() && !self.board.is_in_check() && p.depth >= 3;
+    fn null_move_pruning(&mut self, beta: Score, depth: usize) -> Option<Score> {
+        let can_prune = !self.board.is_last_move_null() && !self.board.is_in_check() && depth >= 3;
         if !can_prune {
             return None;
         }
 
         self.board.make_null_move();
-        let score = -self.search(SearchParams::new(-p.beta, -p.beta + 1, p.depth - 3));
+        let score = -self.search(-beta, -beta + 1, depth - 3);
         self.board.undo_null_move();
 
-        (score >= p.beta).then_some(p.beta)
+        (score >= beta).then_some(beta)
     }
 
     /// Reads a cache entry from the transposition table.
     #[inline(always)]
-    fn read_cache_entry(&self, p: &SearchParams) -> Option<Score> {
+    fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
         let cache = self.thread.cache.lock().unwrap();
         let entry = cache.read(self.board.hash, self.board.ply);
-        entry.and_then(|entry| entry.get_score(p.alpha, p.beta, p.depth))
+        entry.and_then(|entry| entry.get_score(alpha, beta, depth))
     }
 
     /// Writes a new cache entry to the transposition table.
