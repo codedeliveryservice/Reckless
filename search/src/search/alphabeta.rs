@@ -52,8 +52,6 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize) -> Score {
-        let pv_node = alpha != beta - 1;
-
         let mut best_score = -Score::INFINITY;
         let mut best_move = None;
         let mut kind = NodeKind::All;
@@ -66,9 +64,10 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            let score = self.calculate_score(alpha, beta, depth, mv, move_index, pv_node);
-            self.board.undo_move();
+            let reduction = self.calculate_reduction(mv, move_index, depth);
+            let score = self.calculate_score(alpha, beta, depth, reduction, move_index);
 
+            self.board.undo_move();
             move_index += 1;
 
             if score > best_score {
@@ -106,24 +105,35 @@ impl<'a> AlphaBetaSearch<'a> {
         alpha: Score,
         beta: Score,
         depth: usize,
-        mv: Move,
+        reduction: usize,
         move_index: usize,
-        pv_node: bool,
     ) -> Score {
         if move_index == 0 {
             return -self.search(-beta, -alpha, depth - 1);
         }
 
-        let tactical_move = mv.is_capture() || mv.is_promotion();
+        // Null window search with possible late move reduction
+        let mut score = -self.search(-alpha - 1, -alpha, depth - reduction);
 
-        if !pv_node && !tactical_move && !self.board.is_in_check() {
-            if let Some(score) = self.late_move_reduction(alpha, depth, move_index) {
-                return score;
-            }
+        // If the search fails and reduction applied, re-search with full depth
+        if alpha < score && reduction > 1 {
+            score = -self.search(-alpha - 1, -alpha, depth - 1);
         }
 
-        // Fall back to a full-depth search
-        self.principle_variation_search(alpha, beta, depth)
+        // If the search fails again, proceed to a full window search with full depth
+        if alpha < score && score < beta {
+            score = -self.search(-beta, -alpha, depth - 1);
+        }
+
+        score
+    }
+
+    /// Calculates the reduction to be applied to the current move.
+    fn calculate_reduction(&mut self, mv: Move, move_index: usize, depth: usize) -> usize {
+        let tactical = mv.is_capture() || mv.is_promotion() || self.board.is_in_check();
+        let can_reduce = move_index >= 4 && depth >= 3 && !tactical;
+        let reduction = if can_reduce { 3 } else { 1 };
+        reduction
     }
 
     /// Returns the score of the current position if it's at the root node.
@@ -154,29 +164,6 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         self.thread.get_terminator().then_some(Score::INVALID)
-    }
-
-    /// Perform a reduced-depth search for an uninteresting move.
-    fn late_move_reduction(&mut self, alpha: Score, depth: usize, move_index: usize) -> Option<Score> {
-        if move_index >= 4 && depth >= 3 {
-            let lmr_score = -self.search(-alpha - 1, -alpha, depth - 2);
-            return (lmr_score <= alpha).then_some(lmr_score);
-        }
-        None
-    }
-
-    /// Performs a principle variation search with a closed window around alpha.
-    #[inline(always)]
-    fn principle_variation_search(&mut self, alpha: Score, beta: Score, depth: usize) -> Score {
-        let score = -self.search(-alpha - 1, -alpha, depth - 1);
-
-        let is_pv_move_better = alpha >= score || score >= beta;
-        if is_pv_move_better {
-            return score;
-        }
-
-        // Perform a normal search since our assumption was wrong
-        -self.search(-beta, -alpha, depth - 1)
     }
 
     #[inline(always)]
