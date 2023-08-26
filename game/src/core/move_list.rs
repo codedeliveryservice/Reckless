@@ -89,9 +89,6 @@ impl IntoIterator for MoveList {
 
     #[inline(always)]
     fn into_iter(self) -> Self::IntoIter {
-        MoveListIter {
-            list: self,
-            index: 0,
-        }
+        MoveListIter { list: self, index: 0 }
     }
 }

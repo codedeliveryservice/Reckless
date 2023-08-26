@@ -95,11 +95,7 @@ impl TryFrom<&str> for Square {
     ///
     /// This function will return an error if the given notation is invalid.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::NOTATION
-            .iter()
-            .position(|&v| v == value.to_lowercase())
-            .map(|i| Square(i as u8))
-            .ok_or(())
+        Self::NOTATION.iter().position(|&v| v == value.to_lowercase()).map(|i| Square(i as u8)).ok_or(())
     }
 }
 

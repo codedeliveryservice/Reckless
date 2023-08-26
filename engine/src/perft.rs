@@ -10,10 +10,7 @@ use game::Board;
 /// Runs a performance test on the `Board` with the specified depth.
 pub fn run_perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
-    println!(
-        "{:>12} {:>12} {:>13} {:>15}",
-        "Move", "Nodes", "Elapsed", "NPS"
-    );
+    println!("{:>12} {:>12} {:>13} {:>15}", "Move", "Nodes", "Elapsed", "NPS");
     println!("{}", "-".repeat(60));
 
     let now = Instant::now();
@@ -37,20 +34,14 @@ pub fn run_perft(depth: usize, board: &mut Board) {
         let seconds = now.elapsed().as_secs_f32();
         let knps = count as f32 / seconds / 1000f32;
 
-        println!(
-            "{:>3} {:>8} {:>12} {:>12.3}s {:>15.3} kN/s",
-            index, mv, count, seconds, knps
-        );
+        println!("{:>3} {:>8} {:>12} {:>12.3}s {:>15.3} kN/s", index, mv, count, seconds, knps);
     }
 
     let seconds = now.elapsed().as_secs_f32();
     let knps = nodes as f32 / seconds / 1000f32;
 
     println!("{}", "-".repeat(60));
-    println!(
-        "{:>12} {:>12} {:>12.3}s {:>15.3} kN/s",
-        "Total", nodes, seconds, knps
-    );
+    println!("{:>12} {:>12} {:>12.3}s {:>15.3} kN/s", "Total", nodes, seconds, knps);
     println!("{}", "-".repeat(60));
 }
 

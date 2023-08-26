@@ -41,7 +41,10 @@ fn write_lookup(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
     write_map!(f, "ROOK_MAGICS", "MagicEntry", magics::ROOK_MAGICS);
     write_map!(f, "BISHOP_MAGICS", "MagicEntry", magics::BISHOP_MAGICS);
 
-    writeln!(f, "pub(self) struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}")
+    writeln!(
+        f,
+        "pub(self) struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}"
+    )
 }
 
 fn write_zobrist(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
@@ -66,11 +69,7 @@ fn write_zobrist(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
 
 fn write_psqt(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
     let items = psqt::generate_map();
-    writeln!(
-        f,
-        "pub(self) const PSQT: [[[(i32, i32); 64]; 6]; 2] = {:?};",
-        items
-    )
+    writeln!(f, "pub(self) const PSQT: [[[(i32, i32); 64]; 6]; 2] = {:?};", items)
 }
 
 fn get_buf(file: &str) -> BufWriter<File> {

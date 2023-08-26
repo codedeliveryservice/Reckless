@@ -102,10 +102,7 @@ impl Move {
 
     #[inline(always)]
     pub const fn is_castling(&self) -> bool {
-        matches!(
-            self.kind(),
-            MoveKind::KingCastling | MoveKind::QueenCastling
-        )
+        matches!(self.kind(), MoveKind::KingCastling | MoveKind::QueenCastling)
     }
 }
 

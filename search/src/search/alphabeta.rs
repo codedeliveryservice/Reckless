@@ -100,14 +100,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Calculates the score of the current position.
-    fn calculate_score(
-        &mut self,
-        alpha: Score,
-        beta: Score,
-        depth: usize,
-        reduction: usize,
-        move_index: usize,
-    ) -> Score {
+    fn calculate_score(&mut self, alpha: Score, beta: Score, depth: usize, reduction: usize, move_index: usize) -> Score {
         if move_index == 0 {
             return -self.search(-beta, -alpha, depth - 1);
         }
