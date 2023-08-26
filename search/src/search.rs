@@ -111,10 +111,7 @@ impl IterativeSearch {
             None => format!("cp {}", score),
         };
 
-        print!(
-            "info depth {} score {} nodes {} time {} nps {:.0} hashfull {} pv",
-            depth, score, nodes, ms, nps, hashfull,
-        );
+        print!("info depth {depth} score {score} nodes {nodes} time {ms} nps {nps:.0} hashfull {hashfull} pv");
         pv.iter().for_each(|mv| print!(" {}", mv));
         println!();
     }
