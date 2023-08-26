@@ -53,7 +53,7 @@ impl IterativeSearch {
             self.thread.current_depth = depth;
 
             let stopwatch = Instant::now();
-            let score = self.alphabeta_search(depth);
+            let score = AlphaBetaSearch::new(&mut self.board, &mut self.thread).search(self.alpha, self.beta, depth);
 
             if self.thread.get_terminator() {
                 break;
@@ -74,12 +74,6 @@ impl IterativeSearch {
         }
 
         println!("bestmove {}", last_best);
-    }
-
-    /// Performs a search at the given depth.
-    fn alphabeta_search(&mut self, depth: usize) -> Score {
-        let mut search = AlphaBetaSearch::new(&mut self.board, &mut self.thread);
-        search.search(self.alpha, self.beta, depth)
     }
 
     /// Returns `true` if the given score is within the aspiration window.
