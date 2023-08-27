@@ -27,36 +27,30 @@ impl Cache {
     /// where `0` means empty and `1000` means 100% full.
     pub fn get_load_factor(&self) -> usize {
         const BATCH_SIZE: usize = 10_000;
-
-        let iter = self.vector.iter().take(BATCH_SIZE);
-        let occupied_slots = iter.filter(|slot| slot.is_some()).count();
-
+        let occupied_slots = self.vector.iter().take(BATCH_SIZE).filter(|slot| slot.is_some()).count();
         occupied_slots * 1000 / BATCH_SIZE
     }
 
     /// Returns `Some(T)` if the entry was found; otherwise `None`.
-    #[inline(always)]
     pub fn read(&self, hash: Zobrist, ply: usize) -> Option<CacheEntry> {
-        let key = self.get_key(hash);
-        if let Some(mut entry) = self.vector[key] {
-            if entry.hash == hash {
-                entry.adjust_mating_score(-(ply as i32));
-                return Some(entry);
-            }
+        let index = self.get_index(hash);
+        let mut entry = self.vector[index]?;
+        if entry.hash == hash {
+            entry.adjust_mating_score(-(ply as i32));
+            return Some(entry);
         }
         None
     }
 
     /// Writes an entry to the `Cache` overwriting an existing one.
-    #[inline(always)]
     pub fn write(&mut self, mut entry: CacheEntry, ply: usize) {
         entry.adjust_mating_score(ply as i32);
-        let key = self.get_key(entry.hash);
-        self.vector[key] = Some(entry);
+        let index = self.get_index(entry.hash);
+        self.vector[index] = Some(entry);
     }
 
-    #[inline(always)]
-    fn get_key(&self, hash: Zobrist) -> usize {
+    /// Returns the index of the entry in the `Cache` vector.
+    fn get_index(&self, hash: Zobrist) -> usize {
         hash.0 as usize % self.vector.len()
     }
 }
