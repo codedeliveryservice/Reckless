@@ -95,20 +95,6 @@ impl CacheEntry {
         }
     }
 
-    /// Returns `Some(Score)` if the `CacheEntry` is good enough compared to the current search.
-    pub fn get_score(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
-        if self.depth < depth as u8 {
-            return None;
-        }
-
-        match self.kind {
-            NodeKind::PV => Some(self.score),
-            NodeKind::Cut if self.score >= beta => Some(beta),
-            NodeKind::All if self.score <= alpha => Some(alpha),
-            _ => None,
-        }
-    }
-
     /// Adjusts the mating score of the `CacheEntry` by the given adjustment.
     ///
     /// This is used to ensure that the mating score is always the same distance from the root.

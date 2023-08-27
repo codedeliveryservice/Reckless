@@ -176,9 +176,17 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Reads a cache entry from the transposition table.
     #[inline(always)]
     fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
-        let cache = self.thread.cache.lock().unwrap();
-        let entry = cache.read(self.board.hash, self.board.ply);
-        entry.and_then(|entry| entry.get_score(alpha, beta, depth))
+        let entry = self.thread.cache.lock().unwrap().read(self.board.hash, self.board.ply)?;
+        if entry.depth < depth as u8 {
+            return None;
+        }
+        
+        match entry.kind {
+            NodeKind::PV => Some(entry.score),
+            NodeKind::Cut if entry.score >= beta => Some(beta),
+            NodeKind::All if entry.score <= alpha => Some(alpha),
+            _ => None,
+        }
     }
 
     /// Writes a new cache entry to the transposition table.
