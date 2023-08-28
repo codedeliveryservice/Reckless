@@ -28,7 +28,7 @@ pub fn execute(engine: &mut Engine, command: String) {
 }
 
 fn uci() {
-    println!("id name Reckless 0.1.1-alpha");
+    println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min {MIN_CACHE_SIZE} max {MAX_CACHE_SIZE}");
     println!("option name ClearHash type button");
     println!("uciok");
