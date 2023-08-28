@@ -3,8 +3,8 @@ use super::{Move, MoveKind, Square};
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
 /// on collecting and processing `Move` objects.
 pub struct MoveList {
-    data: [Move; Self::MAX_MOVES],
-    index: usize,
+    moves: [Move; Self::MAX_MOVES],
+    length: usize,
 }
 
 impl MoveList {
@@ -17,8 +17,8 @@ impl MoveList {
     #[inline(always)]
     pub(crate) fn new() -> Self {
         Self {
-            data: [Default::default(); Self::MAX_MOVES],
-            index: 0,
+            moves: [Default::default(); Self::MAX_MOVES],
+            length: 0,
         }
     }
 
@@ -31,31 +31,37 @@ impl MoveList {
     /// Appends a move to the back of the list.
     #[inline(always)]
     pub fn push(&mut self, mv: Move) {
-        self.data[self.index] = mv;
-        self.index += 1;
+        self.moves[self.length] = mv;
+        self.length += 1;
     }
 
-    /// Swaps two elements in the list.
-    #[inline(always)]
-    pub fn swap(&mut self, a: usize, b: usize) {
-        self.data.swap(a, b);
+    pub fn next(&mut self, ordering: &mut [u32]) -> Option<Move> {
+        if self.length == 0 {
+            return None;
+        }
+
+        let mut best = 0;
+        for current in 0..self.length {
+            if ordering[current] > ordering[best] {
+                best = current;
+            }
+        }
+
+        self.length -= 1;
+        ordering.swap(self.length, best);
+        self.moves.swap(self.length, best);
+        Some(self.moves[self.length])
     }
 
     /// Returns the number of moves in the list.
     #[inline(always)]
-    pub fn len(&self) -> usize {
-        self.index
+    pub fn length(&self) -> usize {
+        self.length
     }
 
     /// Returns an iterator over the list of moves.
     pub fn iter(&self) -> MoveListIter {
         MoveListIter { list: self, index: 0 }
-    }
-
-    /// Returns `true` if the list has a length of 0.
-    #[inline(always)]
-    pub const fn is_empty(&self) -> bool {
-        self.index == 0
     }
 }
 
@@ -64,7 +70,7 @@ impl std::ops::Index<usize> for MoveList {
 
     #[inline(always)]
     fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
+        &self.moves[index]
     }
 }
 
@@ -78,8 +84,8 @@ impl<'a> Iterator for MoveListIter<'a> {
 
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.list.index {
-            let mv = self.list.data[self.index];
+        if self.index < self.list.length {
+            let mv = self.list.moves[self.index];
             self.index += 1;
             return Some(mv);
         }

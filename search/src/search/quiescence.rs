@@ -1,5 +1,7 @@
 use game::Score;
 
+use crate::QUIESCENCE_STAGES;
+
 use super::AlphaBetaSearch;
 
 impl<'a> AlphaBetaSearch<'a> {
@@ -27,8 +29,10 @@ impl<'a> AlphaBetaSearch<'a> {
             alpha = evaluation;
         }
 
-        let mut ordering = self.build_quiescence_ordering();
-        while let Some(mv) = ordering.next() {
+        let mut moves = self.board.generate_moves();
+        let mut ordering = self.build_ordering(QUIESCENCE_STAGES, &moves, None);
+
+        while let Some(mv) = moves.next(&mut ordering) {
             if mv.is_capture() && self.board.make_move(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();

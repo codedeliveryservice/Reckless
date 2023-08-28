@@ -1,7 +1,7 @@
 use game::{Board, Move, Score};
 
 use super::SearchThread;
-use crate::{heuristics::*, CacheEntry, NodeKind};
+use crate::{heuristics::*, CacheEntry, NodeKind, ALPHABETA_STAGES};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
@@ -41,25 +41,29 @@ impl<'a> AlphaBetaSearch<'a> {
         if let Some(score) = self.evaluate(alpha, beta, depth) {
             return score;
         }
-        if let Some(score) = self.read_cache_entry(alpha, beta, depth) {
+
+        let (cache_score, cache_move) = self.read_cache_entry(alpha, beta, depth);
+        if let Some(score) = cache_score {
             return score;
         }
+
         if let Some(score) = self.null_move_pruning(beta, depth) {
             return score;
         }
 
-        self.search_moves(alpha, beta, depth)
+        self.search_moves(alpha, beta, depth, cache_move)
     }
 
-    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize) -> Score {
+    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, cache_move: Option<Move>) -> Score {
         let mut best_score = -Score::INFINITY;
         let mut best_move = None;
         let mut kind = NodeKind::All;
 
         let mut move_index = 0;
-        let mut ordering = self.build_normal_ordering();
+        let mut moves = self.board.generate_moves();
+        let mut ordering = self.build_ordering(ALPHABETA_STAGES, &moves, cache_move);
 
-        while let Some(mv) = ordering.next() {
+        while let Some(mv) = moves.next(&mut ordering) {
             if self.board.make_move(mv).is_err() {
                 continue;
             }
@@ -175,18 +179,21 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Reads a cache entry from the transposition table.
     #[inline(always)]
-    fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
-        let entry = self.thread.cache.lock().unwrap().read(self.board.hash, self.board.ply)?;
-        if entry.depth < depth as u8 {
-            return None;
-        }
+    fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> (Option<Score>, Option<Move>) {
+        if let Some(entry) = self.thread.cache.lock().unwrap().read(self.board.hash, self.board.ply) {
+            if entry.depth < depth as u8 {
+                return (None, Some(entry.best));
+            }
 
-        match entry.kind {
-            NodeKind::PV => Some(entry.score),
-            NodeKind::Cut if entry.score >= beta => Some(beta),
-            NodeKind::All if entry.score <= alpha => Some(alpha),
-            _ => None,
+            let score = match entry.kind {
+                NodeKind::PV => Some(entry.score),
+                NodeKind::Cut if entry.score >= beta => Some(beta),
+                NodeKind::All if entry.score <= alpha => Some(alpha),
+                _ => None,
+            };
+            return (score, Some(entry.best));
         }
+        (None, None)
     }
 
     /// Writes a new cache entry to the transposition table.
