@@ -1,4 +1,4 @@
-use crate::core::{CastlingKind, Color, Piece, Square};
+use crate::core::{CastlingKind, Color, Square};
 
 use super::Board;
 
@@ -49,7 +49,7 @@ impl Fen {
             } else if let Some(skip) = c.to_digit(10) {
                 file += skip as u8;
             } else {
-                let piece = self.parse_piece(c)?;
+                let piece = c.into();
                 let color = self.parse_color(c);
                 let square = Square::from_rank_file(rank, file);
 
@@ -60,18 +60,6 @@ impl Fen {
         }
 
         Ok(())
-    }
-
-    fn parse_piece(&self, c: char) -> Result<Piece, Error> {
-        match c {
-            'P' | 'p' => Ok(Piece::Pawn),
-            'N' | 'n' => Ok(Piece::Knight),
-            'B' | 'b' => Ok(Piece::Bishop),
-            'R' | 'r' => Ok(Piece::Rook),
-            'Q' | 'q' => Ok(Piece::Queen),
-            'K' | 'k' => Ok(Piece::King),
-            _ => Err(format!("Unexpected piece: '{}'", c).into()),
-        }
     }
 
     fn parse_color(&self, c: char) -> Color {
