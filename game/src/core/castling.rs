@@ -43,15 +43,25 @@ impl Castling {
         self.0 &= Self::UPDATES[square];
     }
 
-    /// Allows the specified `CastlingKind`.
-    #[inline(always)]
-    pub fn allow(&mut self, kind: CastlingKind) {
-        self.0 |= kind as u8
-    }
-
     /// Returns `true` if the `CastlingKind` is allowed.
     #[inline(always)]
     pub const fn is_allowed(&self, kind: CastlingKind) -> bool {
         (self.0 & kind as u8) != 0
+    }
+}
+
+impl From<&str> for Castling {
+    fn from(text: &str) -> Self {
+        let mut castling = Self::default();
+        for right in text.chars() {
+            castling.0 |= match right {
+                'K' => CastlingKind::WhiteShort,
+                'Q' => CastlingKind::WhiteLong,
+                'k' => CastlingKind::BlackShort,
+                'q' => CastlingKind::BlackLong,
+                _ => continue,
+            } as u8;
+        }
+        castling
     }
 }

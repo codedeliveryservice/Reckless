@@ -79,18 +79,7 @@ impl Fen {
     }
 
     fn set_castling(&mut self, text: &str) -> Result<(), Error> {
-        let castling = &mut self.board.state.castling;
-        for c in text.chars() {
-            match c {
-                'K' => castling.allow(CastlingKind::WhiteShort),
-                'Q' => castling.allow(CastlingKind::WhiteLong),
-                'k' => castling.allow(CastlingKind::BlackShort),
-                'q' => castling.allow(CastlingKind::BlackLong),
-                '-' => {}
-                _ => return Err(format!("Unexpected castling: '{}'", c).into()),
-            };
-        }
-
+        self.board.state.castling = text.into();
         Ok(())
     }
 
