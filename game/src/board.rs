@@ -119,6 +119,11 @@ impl Board {
         self.history.is_repetition(self.hash)
     }
 
+    /// Returns `true` if the position is a draw by the fifty-move rule.
+    pub fn is_fifty_move_draw(&self) -> bool {
+        self.state.halfmove_clock >= 100
+    }
+
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
         self.history.is_last_move_null()

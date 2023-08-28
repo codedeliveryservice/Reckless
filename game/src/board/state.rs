@@ -10,4 +10,5 @@ pub(super) struct State {
     pub en_passant: Option<Square>,
     pub in_check: Option<bool>,
     pub castling: Castling,
+    pub halfmove_clock: u8,
 }

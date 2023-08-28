@@ -48,6 +48,12 @@ impl Board {
         let target = mv.target();
         let piece = self.get_piece(start).unwrap();
 
+        if mv.is_capture() || piece == Piece::Pawn {
+            self.state.halfmove_clock = 0;
+        } else {
+            self.state.halfmove_clock += 1;
+        }
+
         if let Some(piece) = self.get_piece(target) {
             self.remove_piece(piece, self.turn.opposite(), target);
             self.state.captured_piece = Some(piece);

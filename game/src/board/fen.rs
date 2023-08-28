@@ -36,6 +36,7 @@ pub fn from_fen(fen: &str) -> Board {
 
     board.state.castling = parts.next().expect("Castling availability").into();
     board.state.en_passant = parts.next().and_then(|square| square.try_into().ok());
+    board.state.halfmove_clock = parts.next().expect("Halfmove clock").parse().unwrap();
 
     board.hash = board.generate_hash_key();
     board

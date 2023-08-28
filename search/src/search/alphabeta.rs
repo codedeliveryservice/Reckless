@@ -27,7 +27,7 @@ impl<'a> AlphaBetaSearch<'a> {
         if let Some(score) = self.check_on() {
             return score;
         }
-        if let Some(score) = self.detect_repetition() {
+        if let Some(score) = self.is_draw() {
             return score;
         }
 
@@ -137,9 +137,9 @@ impl<'a> AlphaBetaSearch<'a> {
         None
     }
 
-    /// Returns a draw score if the current position is a repetition.
-    fn detect_repetition(&mut self) -> Option<Score> {
-        if self.board.ply > 0 && self.board.is_repetition() {
+    /// Returns a draw score if the current position is a draw by repetition or fifty-move rule.
+    fn is_draw(&mut self) -> Option<Score> {
+        if self.board.ply > 0 && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
             return Some(Score::DRAW);
         }
         None
@@ -180,7 +180,7 @@ impl<'a> AlphaBetaSearch<'a> {
         if entry.depth < depth as u8 {
             return None;
         }
-        
+
         match entry.kind {
             NodeKind::PV => Some(entry.score),
             NodeKind::Cut if entry.score >= beta => Some(beta),
