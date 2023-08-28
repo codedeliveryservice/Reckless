@@ -36,9 +36,9 @@ fn uci() {
 
 fn set_option(engine: &mut Engine, tokens: &[&str]) {
     if let ["name", name, "value", value] = tokens {
-        match name {
-            &"Hash" => engine.set_cache_size(value.parse().expect("Cache size should be a number")),
-            &"ClearHash" => engine.clear_cache(),
+        match *name {
+            "Hash" => engine.set_cache_size(value.parse().expect("Cache size should be a number")),
+            "ClearHash" => engine.clear_cache(),
             _ => eprintln!("Unknown option: '{}'", name),
         }
     }
