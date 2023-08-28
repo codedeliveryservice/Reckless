@@ -75,7 +75,7 @@ impl Engine {
 
     /// Sets the position of this `Engine`.
     fn set_position(&mut self, fen: String, moves: Vec<&str>) -> Result<(), Error> {
-        self.board = Board::new(&fen)?;
+        self.board = Board::new(&fen);
         for uci_move in moves {
             self.make_uci_move(uci_move)?;
         }

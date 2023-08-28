@@ -23,18 +23,14 @@ pub struct Board {
 }
 
 impl Board {
-    /// Returns the board corresponding to the starting position.
-    pub fn starting_position() -> Self {
-        Self::new(crate::STARTING_FEN).unwrap()
+    /// Returns the board corresponding to the specified Forsyth–Edwards notation.
+    pub fn new(fen: &str) -> Self {
+        fen::from_fen(fen)
     }
 
-    /// Returns the board corresponding to the specified Forsyth–Edwards notation.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if the given notation is invalid.
-    pub fn new(fen: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        fen::Fen::default().parse(fen)
+    /// Returns the board corresponding to the starting position.
+    pub fn starting_position() -> Self {
+        fen::from_fen(crate::STARTING_FEN)
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
