@@ -1,7 +1,5 @@
 use crate::macros::impl_binary_op;
 
-use super::Bitboard;
-
 /// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
 ///
 /// See [LERFM](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
@@ -30,36 +28,12 @@ impl Square {
     pub const G8: Self = Self(62);
     pub const H8: Self = Self(63);
 
-    /// Contains little-endian rank-file square mappings.
-    #[rustfmt::skip]
-    const NOTATION: [&str; Square::NUM] = [
-        "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-        "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-        "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-        "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-        "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-        "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-        "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-        "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-    ];
-
     /// Returns a `Square` from file and rank coordinates.
-    ///
-    /// # Panics
-    ///
-    /// Panics if rank or file is not in the range of `0..8`.
     #[inline(always)]
     pub fn from_rank_file(rank: u8, file: u8) -> Self {
-        assert!((0..8).contains(&rank));
-        assert!((0..8).contains(&file));
-
+        assert!(rank < 8);
+        assert!(file < 8);
         Self(rank * 8 + file)
-    }
-
-    /// Returns the bitboard containing the set bit at the current square value.
-    #[inline(always)]
-    pub fn to_bb(self) -> Bitboard {
-        Bitboard(1 << self.0)
     }
 
     /// Returns a `Square` shifted by the specified offset.
@@ -78,24 +52,28 @@ impl TryFrom<&str> for Square {
 
     /// Performs the conversion using the algebraic notation.
     ///
-    /// The first character is defined to be only `a-h` / `A-H`.
+    /// The first character is defined to be only `a-h`.
     /// The second character is defined to be only `1-8`.
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use game::Square;
     ///
-    /// assert_eq!(Square::try_from("a1"), Ok(Square(0)));
-    /// assert_eq!(Square::try_from("C8"), Ok(Square(58)));
-    /// assert_eq!(Square::try_from("k6"), Err(()));
+    /// assert_eq!(Square::try_from("a1"), Ok(Square::A1));
+    /// assert_eq!(Square::try_from("b1"), Ok(Square::B1));
+    /// assert_eq!(Square::try_from("h8"), Ok(Square::H8));
+    /// assert_eq!(Square::try_from("i9"), Err(()));
     /// ```
     ///
     /// # Errors
     ///
     /// This function will return an error if the given notation is invalid.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::NOTATION.iter().position(|&v| v == value.to_lowercase()).map(|i| Square(i as u8)).ok_or(())
+        if let [file @ b'a'..=b'h', rank @ b'1'..=b'8'] = value.bytes().collect::<Vec<_>>().as_slice() {
+            return Ok(Self::from_rank_file(rank - b'1', file - b'a'));
+        }
+        Err(())
     }
 }
 
@@ -116,39 +94,20 @@ impl<T> std::ops::IndexMut<Square> for [T] {
 }
 
 impl std::fmt::Display for Square {
+    /// Formats the `Square` using the algebraic notation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use game::Square;
+    ///
+    /// assert_eq!(Square::A1.to_string(), "a1");
+    /// assert_eq!(Square::B1.to_string(), "b1");
+    /// assert_eq!(Square::H8.to_string(), "h8");
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", Self::NOTATION[self.0 as usize])
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::panic::catch_unwind;
-
-    use crate::core::bitboard::Bitboard;
-
-    use super::Square;
-
-    #[test]
-    fn from_axes() {
-        assert_eq!(Square::from_rank_file(0, 3), Square(3));
-        assert_eq!(Square::from_rank_file(2, 7), Square(23));
-
-        assert!(catch_unwind(|| Square::from_rank_file(0, 8)).is_err());
-        assert!(catch_unwind(|| Square::from_rank_file(8, 0)).is_err());
-    }
-
-    #[test]
-    fn to_bb() {
-        assert_eq!(Square(0).to_bb(), Bitboard(0b1));
-        assert_eq!(Square(2).to_bb(), Bitboard(0b100));
-        assert_eq!(Square(5).to_bb(), Bitboard(0b100000));
-    }
-
-    #[test]
-    fn try_from_str() {
-        assert_eq!(Square::try_from("a1"), Ok(Square(0)));
-        assert_eq!(Square::try_from("C8"), Ok(Square(58)));
-        assert_eq!(Square::try_from("k6"), Err(()));
+        let rank = self.0 / 8 + b'1';
+        let file = self.0 % 8 + b'a';
+        write!(f, "{}{}", file as char, rank as char)
     }
 }
