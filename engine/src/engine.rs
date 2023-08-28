@@ -3,10 +3,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use game::Board;
-use search::{self, Cache, IterativeSearch, SearchThread, TimeControl};
-use search::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
+use search::{self, Cache, IterativeSearch, SearchThread, TimeControl, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
 
-use crate::commands::{OptionUciCommand, UciCommand};
 use crate::perft::run_perft;
 
 pub struct Engine {
@@ -25,78 +23,39 @@ impl Engine {
         }
     }
 
-    /// Executes `UciCommand` for this `Engine`.
-    pub fn execute(&mut self, command: UciCommand) {
-        match command {
-            UciCommand::Info => {
-                println!("id name Reckless 0.1.1-alpha");
-                println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min {MIN_CACHE_SIZE} max {MAX_CACHE_SIZE}");
-                println!("option name ClearHash type button");
-                println!("uciok");
-            }
-            UciCommand::IsReady => {
-                println!("readyok");
-            }
-
-            UciCommand::NewGame => self.reset(),
-            UciCommand::Position { fen, moves } => self.set_position(fen, moves),
-            UciCommand::Search { time_control } => self.search(time_control),
-            UciCommand::Option { option } => self.set_option(option),
-
-            UciCommand::Stop | UciCommand::Quit => self.write_terminator(true),
-
-            // Non-UCI commands
-            UciCommand::Eval => self.evaluate(),
-            UciCommand::Perft { depth } => self.perft(depth),
-        }
-    }
-
-    fn set_option(&mut self, option: OptionUciCommand) {
-        match option {
-            OptionUciCommand::Hash(size) => self.set_cache_size(size),
-            OptionUciCommand::ClearHash => self.cache.lock().unwrap().clear(),
-        }
+    /// Clears the transposition table.
+    pub fn clear_cache(&mut self) {
+        self.cache.lock().unwrap().clear();
     }
 
     /// Sets the size of the transposition table, clearing it in the process.
-    ///
-    /// This function will clamp the size to the range of `MIN_CACHE_SIZE` to `MAX_CACHE_SIZE`.
-    fn set_cache_size(&mut self, megabytes: usize) {
+    pub fn set_cache_size(&mut self, megabytes: usize) {
         let size = megabytes.min(MAX_CACHE_SIZE).max(MIN_CACHE_SIZE);
         self.cache = Arc::new(Mutex::new(Cache::new(size)));
     }
 
-    /// Sets the position of this `Engine`.
-    fn set_position(&mut self, fen: String, moves: Vec<&str>) {
-        self.board = Board::new(&fen);
-        for uci_move in moves {
-            self.make_uci_move(uci_move);
+    /// Makes the specified UCI move on the board.
+    pub fn make_uci_move(&mut self, uci_move: &str) {
+        let moves = self.board.generate_moves();
+        if let Some(mv) = moves.into_iter().find(|mv| mv.to_string() == uci_move) {
+            self.board.make_move(mv).expect("UCI move should be legal")
         }
     }
 
-    /// Makes the specified UCI move on the board.
-    fn make_uci_move(&mut self, uci_move: &str) {
-        let moves = self.board.generate_moves();
-        if let Some(mv) = moves.into_iter().find(|mv| mv.to_string() == uci_move) {
-            self.board.make_move(mv).expect("Invalid move")
-        }
+    /// Stops the current search as soon as possible.
+    pub fn stop(&mut self) {
+        self.write_terminator(true);
     }
 
     /// Resets the `Engine` to its original state.
-    fn reset(&mut self) {
-        self.board = Board::starting_position();
+    pub fn reset(&mut self) {
         self.write_terminator(false);
         self.cache.lock().unwrap().clear();
-    }
-
-    /// Sets the state of the terminator. If set to `true`, the current search will
-    /// be stopped as soon as possible.
-    fn write_terminator(&mut self, value: bool) {
-        self.terminator.store(value, Ordering::Relaxed);
+        self.board = Board::starting_position();
     }
 
     /// Runs an iterative deepening search on a separate thread.
-    fn search(&mut self, time_control: TimeControl) {
+    pub fn search(&mut self, time_control: TimeControl) {
         self.write_terminator(false);
 
         let board = self.board.clone();
@@ -110,12 +69,18 @@ impl Engine {
     }
 
     /// Runs a node enumeration performance test for the current position.
-    fn perft(&mut self, depth: usize) {
+    pub fn perft(&mut self, depth: usize) {
         run_perft(depth, &mut self.board);
     }
 
     /// Statically evaluates the current position and sends a UCI report.
-    fn evaluate(&self) {
+    pub fn evaluate(&self) {
         println!("{}", evaluation::evaluate_debug(&self.board));
+    }
+
+    /// Sets the state of the terminator. If set to `true`, the current search will
+    /// be stopped as soon as possible.
+    fn write_terminator(&mut self, value: bool) {
+        self.terminator.store(value, Ordering::Relaxed);
     }
 }
