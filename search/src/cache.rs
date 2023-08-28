@@ -1,15 +1,15 @@
 use game::{Move, Score, Zobrist};
 
+pub const DEFAULT_CACHE_SIZE: usize = 16;
+pub const MAX_CACHE_SIZE: usize = 512;
+pub const MIN_CACHE_SIZE: usize = 1;
+
 /// The transposition hash table is used to cache previously performed search results.
 pub struct Cache {
     vector: Vec<Option<CacheEntry>>,
 }
 
 impl Cache {
-    pub const DEFAULT_SIZE: usize = 16;
-    pub const MAX_SIZE: usize = 512;
-    pub const MIN_SIZE: usize = 1;
-
     /// Creates a new `Cache<T>` with a total allocated size in megabytes.
     pub fn new(megabytes: usize) -> Self {
         let length = megabytes * 1024 * 1024 / std::mem::size_of::<CacheEntry>();
@@ -57,7 +57,7 @@ impl Cache {
 
 impl Default for Cache {
     fn default() -> Self {
-        Self::new(Self::DEFAULT_SIZE)
+        Self::new(DEFAULT_CACHE_SIZE)
     }
 }
 

@@ -4,6 +4,7 @@ use std::thread;
 
 use game::Board;
 use search::{self, Cache, IterativeSearch, SearchThread, TimeControl};
+use search::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
 
 use crate::commands::{OptionUciCommand, UciCommand};
 use crate::perft::run_perft;
@@ -29,12 +30,7 @@ impl Engine {
         match command {
             UciCommand::Info => {
                 println!("id name Reckless 0.1.1-alpha");
-                println!(
-                    "option name Hash type spin default {} min {} max {}",
-                    Cache::DEFAULT_SIZE,
-                    Cache::MIN_SIZE,
-                    Cache::MAX_SIZE
-                );
+                println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min {MIN_CACHE_SIZE} max {MAX_CACHE_SIZE}");
                 println!("option name ClearHash type button");
                 println!("uciok");
             }
@@ -64,9 +60,9 @@ impl Engine {
 
     /// Sets the size of the transposition table, clearing it in the process.
     ///
-    /// This function will clamp the size to the range of `Cache::MIN_SIZE` to `Cache::MAX_SIZE`.
+    /// This function will clamp the size to the range of `MIN_CACHE_SIZE` to `MAX_CACHE_SIZE`.
     fn set_cache_size(&mut self, megabytes: usize) {
-        let size = megabytes.min(Cache::MAX_SIZE).max(Cache::MIN_SIZE);
+        let size = megabytes.min(MAX_CACHE_SIZE).max(MIN_CACHE_SIZE);
         self.cache = Arc::new(Mutex::new(Cache::new(size)));
     }
 
