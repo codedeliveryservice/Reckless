@@ -41,7 +41,7 @@ pub fn evaluate_relative_score(board: &Board) -> Score {
 /// use game::Board;
 /// use evaluation::evaluate_debug;
 ///
-/// let board = Board::new("b3rrk1/3q1ppp/p1N3n1/1pRP4/3N4/8/PP3PPP/3Q1RK1 b - - 8 23").unwrap();
+/// let board = Board::new("b3rrk1/3q1ppp/p1N3n1/1pRP4/3N4/8/PP3PPP/3Q1RK1 b - - 8 23");
 /// println!("{}", evaluate_debug(&board));
 /// ```
 ///
