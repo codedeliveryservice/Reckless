@@ -63,7 +63,7 @@ impl<'a> AlphaBetaSearch<'a> {
     fn build_ordering(&self, stages: &[OrderingStage], cache_move: Option<Move>) -> Ordering {
         let moves = self.board.generate_moves();
         let mut items = Vec::with_capacity(moves.len());
-        for mv in moves {
+        for mv in moves.iter() {
             let rating = self.get_move_rating(mv, stages, cache_move);
             items.push((mv, rating));
         }

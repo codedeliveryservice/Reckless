@@ -37,7 +37,7 @@ impl Engine {
     /// Makes the specified UCI move on the board.
     pub fn make_uci_move(&mut self, uci_move: &str) {
         let moves = self.board.generate_moves();
-        if let Some(mv) = moves.into_iter().find(|mv| mv.to_string() == uci_move) {
+        if let Some(mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
             self.board.make_move(mv).expect("UCI move should be legal")
         }
     }

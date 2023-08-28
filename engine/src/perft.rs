@@ -18,7 +18,7 @@ pub fn run_perft(depth: usize, board: &mut Board) {
     let mut nodes = 0;
     let mut index = 0;
 
-    for mv in board.generate_moves() {
+    for mv in board.generate_moves().iter() {
         let now = Instant::now();
 
         if board.make_move(mv).is_err() {
@@ -53,7 +53,7 @@ fn perft(depth: usize, board: &mut Board) -> u64 {
 
     let mut nodes = 0;
 
-    for mv in board.generate_moves() {
+    for mv in board.generate_moves().iter() {
         if board.make_move(mv).is_ok() {
             nodes += perft(depth - 1, board);
             board.undo_move();

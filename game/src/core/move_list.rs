@@ -47,6 +47,11 @@ impl MoveList {
         self.index
     }
 
+    /// Returns an iterator over the list of moves.
+    pub fn iter(&self) -> MoveListIter {
+        MoveListIter { list: self, index: 0 }
+    }
+
     /// Returns `true` if the list has a length of 0.
     #[inline(always)]
     pub const fn is_empty(&self) -> bool {
@@ -63,12 +68,12 @@ impl std::ops::Index<usize> for MoveList {
     }
 }
 
-pub struct MoveListIter {
-    list: MoveList,
+pub struct MoveListIter<'a> {
+    list: &'a MoveList,
     index: usize,
 }
 
-impl Iterator for MoveListIter {
+impl<'a> Iterator for MoveListIter<'a> {
     type Item = Move;
 
     #[inline(always)]
@@ -78,17 +83,6 @@ impl Iterator for MoveListIter {
             self.index += 1;
             return Some(mv);
         }
-
         None
-    }
-}
-
-impl IntoIterator for MoveList {
-    type Item = Move;
-    type IntoIter = MoveListIter;
-
-    #[inline(always)]
-    fn into_iter(self) -> Self::IntoIter {
-        MoveListIter { list: self, index: 0 }
     }
 }
