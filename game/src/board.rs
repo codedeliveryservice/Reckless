@@ -30,7 +30,7 @@ impl Board {
 
     /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
-        fen::from_fen(crate::STARTING_FEN)
+        fen::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
