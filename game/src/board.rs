@@ -13,8 +13,8 @@ mod state;
 #[derive(Default, Clone)]
 pub struct Board {
     pub turn: Color,
-    pub hash: Zobrist,
     pub ply: usize,
+    hash: Zobrist,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
     evaluation: Evaluation,
@@ -39,10 +39,16 @@ impl Board {
         generator::Generator::new(self).generate()
     }
 
-    /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
+    /// Returns the `Zobrist` hash key for the current position.
     #[inline(always)]
-    pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
-        self.pieces[piece] & self.colors[color]
+    pub fn hash(&self) -> Zobrist {
+        self.hash
+    }
+
+    /// Returns a `Bitboard` for the specified `Color`.
+    #[inline(always)]
+    pub fn colors(&self, color: Color) -> Bitboard {
+        self.colors[color]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type.
@@ -51,28 +57,34 @@ impl Board {
         self.pieces[piece]
     }
 
+    /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
+    #[inline(always)]
+    pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
+        self.pieces(piece) & self.colors(color)
+    }
+
     /// Returns a `Bitboard` with friendly pieces for the current state.
     #[inline(always)]
     pub fn us(&self) -> Bitboard {
-        self.colors[self.turn]
+        self.colors(self.turn)
     }
 
     /// Returns a `Bitboard` with enemy pieces for the current state.
     #[inline(always)]
     pub fn them(&self) -> Bitboard {
-        self.colors[self.turn.opposite()]
+        self.colors(self.turn.opposite())
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
     #[inline(always)]
     pub fn our(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece] & self.us()
+        self.pieces(piece) & self.us()
     }
 
     /// Returns a `Bitboard` with enemy pieces of the specified `Piece` type.
     #[inline(always)]
     pub fn their(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece] & self.them()
+        self.pieces(piece) & self.them()
     }
 
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
@@ -156,16 +168,16 @@ impl Board {
 
         let occupancies = self.them() | self.us();
 
-        let bishop_queen = self.pieces[Piece::Bishop] | self.pieces[Piece::Queen];
-        let rook_queen = self.pieces[Piece::Rook] | self.pieces[Piece::Queen];
+        let bishop_queen = self.pieces(Piece::Bishop) | self.pieces(Piece::Queen);
+        let rook_queen = self.pieces(Piece::Rook) | self.pieces(Piece::Queen);
 
-        let possible_attackers = (lookup::king_attacks(square) & self.pieces[Piece::King])
-            | (lookup::knight_attacks(square) & self.pieces[Piece::Knight])
+        let possible_attackers = (lookup::king_attacks(square) & self.pieces(Piece::King))
+            | (lookup::knight_attacks(square) & self.pieces(Piece::Knight))
             | (lookup::bishop_attacks(square, occupancies) & bishop_queen)
             | (lookup::rook_attacks(square, occupancies) & rook_queen)
-            | (lookup::pawn_attacks(square, color.opposite()) & self.pieces[Piece::Pawn]);
+            | (lookup::pawn_attacks(square, color.opposite()) & self.pieces(Piece::Pawn));
 
-        (possible_attackers & self.colors[color]).is_not_empty()
+        (possible_attackers & self.colors(color)).is_not_empty()
     }
 
     /// Performs Zobrist hashing on `self`, generating an *almost* unique

@@ -33,7 +33,7 @@ impl SearchThread {
         let mut current_depth = depth;
 
         let cache = self.cache.lock().unwrap();
-        while let Some(entry) = cache.read(board.hash, 0) {
+        while let Some(entry) = cache.read(board.hash(), 0) {
             pv_line.push(entry.best);
             board.make_move(entry.best).unwrap();
 
