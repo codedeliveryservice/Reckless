@@ -17,19 +17,11 @@ impl Board {
         self.state.en_passant = None;
     }
 
-    /// Restores the board to the previous state after the last null move made.
-    pub fn undo_null_move(&mut self) {
-        self.ply -= 1;
-        self.turn.reverse();
-        self.state = self.state_stack.pop().unwrap();
-        self.move_stack.pop();
-    }
-
     /// Updates the board representation by making the specified `Move`.
     ///
     /// # Errors
     ///
-    /// This function will return an error if the `Move` is not allowed by the rules of chess.
+    /// This function will return an error if the `Move` is illegal.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.ply += 1;
         self.move_stack.push(mv);
@@ -95,15 +87,15 @@ impl Board {
         Ok(())
     }
 
-    /// Restores the board to the previous state after the last move made.
+    /// Restores the board representation to the state before the last move.
     ///
     /// # Panics
     ///
-    /// Panics if there is no previous `Move` or the `Move` is not allowed for the current `Board`.
+    /// Panics if the state stack is empty.
     pub fn undo_move(&mut self) {
         self.ply -= 1;
         self.turn.reverse();
-        self.state = self.state_stack.pop().unwrap();
+        self.state = self.state_stack.pop().expect("State stack is empty");
         self.move_stack.pop();
     }
 }

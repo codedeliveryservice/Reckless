@@ -172,7 +172,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         self.board.make_null_move();
         let score = -self.search(-beta, -beta + 1, depth - 3);
-        self.board.undo_null_move();
+        self.board.undo_move();
 
         (score >= beta).then_some(beta)
     }
