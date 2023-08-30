@@ -1,9 +1,4 @@
-use crate::{
-    core::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Square},
-    lookup::*,
-};
-
-use super::{Board, State};
+use crate::{lookup::*, Bitboard, Board, CastlingKind, Color, InternalState, Move, MoveKind, MoveList, Piece, Square};
 
 const WHITE_SHORT_CASTLING_MASK: Bitboard = Bitboard(0b0110_0000);
 const WHITE_LONG_CASTLING_MASK: Bitboard = Bitboard(0b0000_1110);
@@ -13,7 +8,7 @@ const BLACK_LONG_CASTLING_MASK: Bitboard = Bitboard(WHITE_LONG_CASTLING_MASK.0 <
 
 pub(crate) struct Generator<'a> {
     board: &'a Board,
-    state: &'a State,
+    state: &'a InternalState,
     turn: Color,
     all: Bitboard,
     us: Bitboard,

@@ -2,7 +2,7 @@ use crate::{Color, Piece, Score, Square};
 
 include!(concat!(env!("OUT_DIR"), "/psqt.rs"));
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub(crate) struct Evaluation {
     mg: Score,
     eg: Score,

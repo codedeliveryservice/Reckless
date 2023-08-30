@@ -7,23 +7,22 @@ impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
         self.ply += 1;
-        self.history.push(self.state, self.hash);
-
-        self.hash.update_side();
-        self.hash.update_castling(self.state.castling);
-        self.hash.update_en_passant(self.state.en_passant);
-
-        self.state.previous_move = Move::default();
-        self.state.en_passant = None;
-
+        self.move_stack.push(Move::default());
+        self.state_stack.push(self.state);
         self.turn.reverse();
+
+        self.state.hash.update_side();
+        self.state.hash.update_castling(self.state.castling);
+        self.state.hash.update_en_passant(self.state.en_passant);
+        self.state.en_passant = None;
     }
 
     /// Restores the board to the previous state after the last null move made.
     pub fn undo_null_move(&mut self) {
         self.ply -= 1;
         self.turn.reverse();
-        (self.state, self.hash) = self.history.pop();
+        self.state = self.state_stack.pop().unwrap();
+        self.move_stack.pop();
     }
 
     /// Updates the board representation by making the specified `Move`.
@@ -33,14 +32,13 @@ impl Board {
     /// This function will return an error if the `Move` is not allowed by the rules of chess.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.ply += 1;
-        self.history.push(self.state, self.hash);
+        self.move_stack.push(mv);
+        self.state_stack.push(self.state);
 
-        self.hash.update_side();
-        self.hash.update_castling(self.state.castling);
-        self.hash.update_en_passant(self.state.en_passant);
+        self.state.hash.update_side();
+        self.state.hash.update_castling(self.state.castling);
+        self.state.hash.update_en_passant(self.state.en_passant);
 
-        self.state.previous_move = mv;
-        self.state.captured_piece = None;
         self.state.en_passant = None;
         self.state.in_check = None;
 
@@ -56,7 +54,6 @@ impl Board {
 
         if let Some(piece) = self.get_piece(target) {
             self.remove_piece(piece, self.turn.opposite(), target);
-            self.state.captured_piece = Some(piece);
         }
 
         self.remove_piece(piece, self.turn, start);
@@ -65,7 +62,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 let square = (start + target) / 2;
-                self.hash.update_en_passant_square(square);
+                self.state.hash.update_en_passant_square(square);
                 self.state.en_passant = Some(square);
             }
             MoveKind::EnPassant => {
@@ -85,7 +82,7 @@ impl Board {
 
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
-        self.hash.update_castling(self.state.castling);
+        self.state.hash.update_castling(self.state.castling);
         self.turn.reverse();
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
@@ -106,36 +103,8 @@ impl Board {
     pub fn undo_move(&mut self) {
         self.ply -= 1;
         self.turn.reverse();
-
-        let mv = self.state.previous_move;
-        let start = mv.start();
-        let target = mv.target();
-        let piece = self.get_piece(target).unwrap();
-
-        self.add_piece(piece, self.turn, start);
-        self.remove_piece(piece, self.turn, target);
-
-        if let Some(piece) = self.state.captured_piece {
-            self.add_piece(piece, self.turn.opposite(), target);
-        }
-
-        match mv.kind() {
-            MoveKind::EnPassant => {
-                self.add_piece(Piece::Pawn, self.turn.opposite(), target ^ 8);
-            }
-            MoveKind::KingCastling | MoveKind::QueenCastling => {
-                let (rook_start, rook_target) = get_rook_move(target);
-                self.add_piece(Piece::Rook, self.turn, rook_start);
-                self.remove_piece(Piece::Rook, self.turn, rook_target);
-            }
-            _ if mv.is_promotion() => {
-                self.remove_piece(piece, self.turn, start);
-                self.add_piece(Piece::Pawn, self.turn, start);
-            }
-            _ => (),
-        }
-
-        (self.state, self.hash) = self.history.pop();
+        self.state = self.state_stack.pop().unwrap();
+        self.move_stack.pop();
     }
 }
 

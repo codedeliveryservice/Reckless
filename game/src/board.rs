@@ -1,25 +1,37 @@
-use crate::{Bitboard, Color, MoveList, Piece, Score, Square, Zobrist};
+use crate::{Bitboard, Castling, Color, Move, MoveList, Piece, Score, Square, Zobrist};
 
-use self::{evaluation::Evaluation, history::History, state::State};
+use self::evaluation::Evaluation;
 
 mod evaluation;
 mod fen;
 mod generator;
-mod history;
 mod player;
-mod state;
 
-/// Data structure representing the board and the location of its pieces.
+/// Contains the same information as a FEN string, used to describe a chess position,
+/// along with extra fields for internal use. It's designed to be used as a stack entry,
+/// suitable for copying when making/undoing moves.
+///
+/// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
+#[derive(Default, Clone, Copy)]
+pub(super) struct InternalState {
+    hash: Zobrist,
+    en_passant: Option<Square>,
+    in_check: Option<bool>,
+    castling: Castling,
+    halfmove_clock: u8,
+    pieces: [Bitboard; Piece::NUM],
+    colors: [Bitboard; Color::NUM],
+    evaluation: Evaluation,
+}
+
+/// A wrapper around the `InternalState` with historical tracking.
 #[derive(Default, Clone)]
 pub struct Board {
     pub turn: Color,
     pub ply: usize,
-    hash: Zobrist,
-    pieces: [Bitboard; Piece::NUM],
-    colors: [Bitboard; Color::NUM],
-    evaluation: Evaluation,
-    history: History,
-    state: State,
+    state: InternalState,
+    state_stack: Vec<InternalState>,
+    move_stack: Vec<Move>,
 }
 
 impl Board {
@@ -42,19 +54,19 @@ impl Board {
     /// Returns the `Zobrist` hash key for the current position.
     #[inline(always)]
     pub fn hash(&self) -> Zobrist {
-        self.hash
+        self.state.hash
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
     #[inline(always)]
     pub fn colors(&self, color: Color) -> Bitboard {
-        self.colors[color]
+        self.state.colors[color]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type.
     #[inline(always)]
     pub fn pieces(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece]
+        self.state.pieces[piece]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
@@ -91,7 +103,7 @@ impl Board {
     #[inline(always)]
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
-            if self.pieces[index].contains(square) {
+            if self.state.pieces[index].contains(square) {
                 return Some(Piece::from(index as u8));
             }
         }
@@ -101,25 +113,25 @@ impl Board {
     /// Places a piece of the specified type and color on the square.
     #[inline(always)]
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
-        self.pieces[piece as usize].set(square);
-        self.colors[color as usize].set(square);
-        self.hash.update_piece(piece, color, square);
-        self.evaluation.add_piece(piece, color, square);
+        self.state.pieces[piece as usize].set(square);
+        self.state.colors[color as usize].set(square);
+        self.state.hash.update_piece(piece, color, square);
+        self.state.evaluation.add_piece(piece, color, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
     #[inline(always)]
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
-        self.pieces[piece as usize].clear(square);
-        self.colors[color as usize].clear(square);
-        self.hash.update_piece(piece, color, square);
-        self.evaluation.remove_piece(piece, color, square);
+        self.state.pieces[piece as usize].clear(square);
+        self.state.colors[color as usize].clear(square);
+        self.state.hash.update_piece(piece, color, square);
+        self.state.evaluation.remove_piece(piece, color, square);
     }
 
     /// Returns an incrementally updated scores for both middle game and endgame
     /// phases based on the piece-square tables.
     pub fn psq_score(&self) -> (Score, Score) {
-        self.evaluation.score()
+        self.state.evaluation.score()
     }
 
     /// Returns `true` if the current position has already been present at least once
@@ -128,7 +140,7 @@ impl Board {
     /// This method does not count the number of encounters.
     #[inline(always)]
     pub fn is_repetition(&self) -> bool {
-        self.history.is_repetition(self.hash)
+        self.state_stack.iter().rev().any(|state| state.hash == self.hash())
     }
 
     /// Returns `true` if the position is a draw by the fifty-move rule.
@@ -138,7 +150,7 @@ impl Board {
 
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
-        self.history.is_last_move_null()
+        self.move_stack.last() == Some(&Move::default())
     }
 
     /// Returns `true` if the king of the current turn color is in check.
