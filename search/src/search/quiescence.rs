@@ -22,13 +22,14 @@ impl<'a> AlphaBetaSearch<'a> {
         let evaluation = evaluation::evaluate_relative_score(self.board);
 
         if evaluation >= beta {
-            return beta;
+            return evaluation;
         }
 
         if evaluation > alpha {
             alpha = evaluation;
         }
 
+        let mut best_score = evaluation;
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(QUIESCENCE_STAGES, &moves, None);
 
@@ -37,16 +38,20 @@ impl<'a> AlphaBetaSearch<'a> {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();
 
-                if score >= beta {
-                    return beta;
+                if score > best_score {
+                    best_score = score;
+
+                    if score > alpha {
+                        alpha = score;
+                    }
                 }
 
-                if score > alpha {
-                    alpha = score;
+                if score >= beta {
+                    break;
                 }
             }
         }
 
-        alpha
+        best_score
     }
 }

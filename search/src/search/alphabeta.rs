@@ -22,7 +22,7 @@ impl<'a> AlphaBetaSearch<'a> {
         }
     }
 
-    /// Performs a search using alpha-beta pruning in a fail-hard environment.
+    /// Performs an alpha-beta search in a fail-soft environment.
     pub fn search(&mut self, alpha: Score, beta: Score, mut depth: usize) -> Score {
         if let Some(score) = self.check_on() {
             return score;
@@ -85,13 +85,14 @@ impl<'a> AlphaBetaSearch<'a> {
             }
 
             if score >= beta {
+                kind = NodeKind::Cut;
+
                 if mv.is_quiet() {
                     self.killers.add(mv, self.board.ply);
                     self.history.store(mv, depth);
                 }
 
-                self.write_cache_entry(depth, score, NodeKind::Cut, mv);
-                return beta;
+                break;
             }
         }
 
@@ -185,12 +186,11 @@ impl<'a> AlphaBetaSearch<'a> {
                 return (None, Some(entry.best));
             }
 
-            let score = match entry.kind {
-                NodeKind::PV => Some(entry.score),
-                NodeKind::Cut if entry.score >= beta => Some(beta),
-                NodeKind::All if entry.score <= alpha => Some(alpha),
-                _ => None,
-            };
+            let score = (entry.kind == NodeKind::PV
+                || (entry.kind == NodeKind::Cut && entry.score >= beta)
+                || (entry.kind == NodeKind::All && entry.score <= alpha))
+                .then_some(entry.score);
+
             return (score, Some(entry.best));
         }
         (None, None)

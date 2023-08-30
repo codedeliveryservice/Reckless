@@ -61,7 +61,7 @@ impl Default for Cache {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum NodeKind {
     PV,  // Principle variation node (exact score)
     Cut, // Fail-high node (upper bound of the score)
