@@ -1,35 +1,31 @@
+use std::cmp::max;
+
 use game::Score;
 
-use crate::QUIESCENCE_STAGES;
-
-use super::AlphaBetaSearch;
+use crate::{AlphaBetaSearch, QUIESCENCE_STAGES};
 
 impl<'a> AlphaBetaSearch<'a> {
-    /// Performs a `negamax` search from the root node until the position becomes stable
-    /// to evaluate it statically. This minimizes the horizon effect for volatile positions
-    /// when threads and opportunities that go beyond the fixed depth of the search will
-    /// remain undetected.
+    /// Performs a search until the position becomes stable enough for static evaluation.
+    /// This minimizes the horizon effect for volatile positions, ensuring that threats
+    /// and opportunities extending beyond the fixed search depth are not overlooked.
     ///
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
     pub fn quiescence_search(&mut self, mut alpha: Score, beta: Score) -> Score {
+        self.thread.nodes += 1;
+
         if self.thread.get_terminator() {
             return Score::INVALID;
         }
 
-        self.thread.nodes += 1;
+        let static_score = evaluation::evaluate_relative_score(self.board);
+        alpha = max(alpha, static_score);
 
-        let evaluation = evaluation::evaluate_relative_score(self.board);
-
-        if evaluation >= beta {
-            return evaluation;
+        if alpha >= beta {
+            return static_score;
         }
 
-        if evaluation > alpha {
-            alpha = evaluation;
-        }
-
-        let mut best_score = evaluation;
+        let mut best_score = static_score;
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(QUIESCENCE_STAGES, &moves, None);
 
@@ -38,13 +34,8 @@ impl<'a> AlphaBetaSearch<'a> {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();
 
-                if score > best_score {
-                    best_score = score;
-
-                    if score > alpha {
-                        alpha = score;
-                    }
-                }
+                best_score = max(best_score, score);
+                alpha = max(alpha, score);
 
                 if score >= beta {
                     break;
