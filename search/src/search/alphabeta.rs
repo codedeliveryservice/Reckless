@@ -1,7 +1,7 @@
 use game::{Board, Move, Score};
 
 use super::SearchThread;
-use crate::{heuristics::*, CacheEntry, NodeKind, ALPHABETA_STAGES};
+use crate::{heuristics::*, Bound, CacheEntry, ALPHABETA_STAGES};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
@@ -57,7 +57,7 @@ impl<'a> AlphaBetaSearch<'a> {
     fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, cache_move: Option<Move>) -> Score {
         let mut best_score = -Score::INFINITY;
         let mut best_move = None;
-        let mut kind = NodeKind::All;
+        let mut bound = Bound::Lower;
 
         let mut move_index = 0;
         let mut moves = self.board.generate_moves();
@@ -81,11 +81,11 @@ impl<'a> AlphaBetaSearch<'a> {
 
             if score > alpha {
                 alpha = score;
-                kind = NodeKind::PV;
+                bound = Bound::Exact;
             }
 
             if score >= beta {
-                kind = NodeKind::Cut;
+                bound = Bound::Upper;
 
                 if mv.is_quiet() {
                     self.killers.add(mv, self.board.ply);
@@ -100,7 +100,7 @@ impl<'a> AlphaBetaSearch<'a> {
             return score;
         }
 
-        self.write_cache_entry(depth, best_score, kind, best_move.unwrap());
+        self.write_cache_entry(depth, best_score, bound, best_move.unwrap());
         best_score
     }
 
@@ -186,9 +186,9 @@ impl<'a> AlphaBetaSearch<'a> {
                 return (None, Some(entry.best));
             }
 
-            let score = (entry.kind == NodeKind::PV
-                || (entry.kind == NodeKind::Cut && entry.score >= beta)
-                || (entry.kind == NodeKind::All && entry.score <= alpha))
+            let score = (entry.bound == Bound::Exact
+                || (entry.bound == Bound::Upper && entry.score >= beta)
+                || (entry.bound == Bound::Lower && entry.score <= alpha))
                 .then_some(entry.score);
 
             return (score, Some(entry.best));
@@ -201,9 +201,9 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Caching is skipped if the search was interrupted, in which case the results of the
     /// search may be invalid and should not be cached.
     #[inline(always)]
-    fn write_cache_entry(&mut self, depth: usize, score: Score, kind: NodeKind, best: Move) {
+    fn write_cache_entry(&mut self, depth: usize, score: Score, bound: Bound, best: Move) {
         if !self.thread.get_terminator() {
-            let entry = CacheEntry::new(self.board.hash(), depth, score, kind, best);
+            let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
             self.thread.cache.lock().unwrap().write(entry, self.board.ply);
         }
     }

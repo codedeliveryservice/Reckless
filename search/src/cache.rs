@@ -62,10 +62,10 @@ impl Default for Cache {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-pub enum NodeKind {
-    PV,  // Principle variation node (exact score)
-    Cut, // Fail-high node (upper bound of the score)
-    All, // Fail-low node (lower bound of the score)
+pub enum Bound {
+    Exact,
+    Upper,
+    Lower,
 }
 
 #[derive(Copy, Clone)]
@@ -73,18 +73,18 @@ pub struct CacheEntry {
     pub hash: Zobrist,
     pub depth: u8,
     pub score: Score,
-    pub kind: NodeKind,
+    pub bound: Bound,
     pub best: Move,
 }
 
 impl CacheEntry {
     /// Creates a new `CacheEntry`.
-    pub fn new(hash: Zobrist, depth: usize, score: Score, kind: NodeKind, best: Move) -> Self {
+    pub fn new(hash: Zobrist, depth: usize, score: Score, bound: Bound, best: Move) -> Self {
         Self {
             depth: depth as u8,
             hash,
             score,
-            kind,
+            bound,
             best,
         }
     }
