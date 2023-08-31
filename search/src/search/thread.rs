@@ -34,8 +34,8 @@ impl SearchThread {
 
         let cache = self.cache.lock().unwrap();
         while let Some(entry) = cache.read(board.hash(), 0) {
-            pv_line.push(entry.best);
-            board.make_move(entry.best).unwrap();
+            pv_line.push(entry.mv);
+            board.make_move(entry.mv).unwrap();
 
             current_depth -= 1;
             if current_depth == 0 {

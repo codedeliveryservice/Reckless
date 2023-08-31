@@ -57,7 +57,7 @@ impl<'a> AlphaBetaSearch<'a> {
     fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, cache_move: Option<Move>) -> Score {
         let mut best_score = -Score::INFINITY;
         let mut best_move = None;
-        let mut bound = Bound::Lower;
+        let mut bound = Bound::Upper;
 
         let mut move_index = 0;
         let mut moves = self.board.generate_moves();
@@ -85,7 +85,7 @@ impl<'a> AlphaBetaSearch<'a> {
             }
 
             if score >= beta {
-                bound = Bound::Upper;
+                bound = Bound::Lower;
 
                 if mv.is_quiet() {
                     self.killers.add(mv, self.board.ply);
@@ -183,15 +183,15 @@ impl<'a> AlphaBetaSearch<'a> {
     fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> (Option<Score>, Option<Move>) {
         if let Some(entry) = self.thread.cache.lock().unwrap().read(self.board.hash(), self.board.ply) {
             if entry.depth < depth as u8 {
-                return (None, Some(entry.best));
+                return (None, Some(entry.mv));
             }
 
             let score = (entry.bound == Bound::Exact
-                || (entry.bound == Bound::Upper && entry.score >= beta)
-                || (entry.bound == Bound::Lower && entry.score <= alpha))
+                || (entry.bound == Bound::Lower && entry.score >= beta)
+                || (entry.bound == Bound::Upper && entry.score <= alpha))
                 .then_some(entry.score);
 
-            return (score, Some(entry.best));
+            return (score, Some(entry.mv));
         }
         (None, None)
     }

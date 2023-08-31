@@ -64,8 +64,8 @@ impl Default for Cache {
 #[derive(Copy, Clone, PartialEq)]
 pub enum Bound {
     Exact,
-    Upper,
     Lower,
+    Upper,
 }
 
 #[derive(Copy, Clone)]
@@ -74,18 +74,18 @@ pub struct CacheEntry {
     pub depth: u8,
     pub score: Score,
     pub bound: Bound,
-    pub best: Move,
+    pub mv: Move,
 }
 
 impl CacheEntry {
     /// Creates a new `CacheEntry`.
-    pub fn new(hash: Zobrist, depth: usize, score: Score, bound: Bound, best: Move) -> Self {
+    pub fn new(hash: Zobrist, depth: usize, score: Score, bound: Bound, mv: Move) -> Self {
         Self {
             depth: depth as u8,
             hash,
             score,
             bound,
-            best,
+            mv,
         }
     }
 
