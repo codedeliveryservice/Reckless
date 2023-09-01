@@ -13,7 +13,7 @@ it may not follow the best practices or conventions typically found in high-qual
 
 -   Bitboards with Little-Endian Rank-File Mapping
 -   Magic Bitboards for sliding pieces
--   Make/undo approach
+-   Copy-Make approach
 
 ## Move generation
 
@@ -35,6 +35,7 @@ it may not follow the best practices or conventions typically found in high-qual
 
 ## Selectivity
 
+-   Check Extensions
 -   Null Move Pruning
 -   Late Move Reduction
 
