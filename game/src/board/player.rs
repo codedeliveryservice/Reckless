@@ -30,9 +30,7 @@ impl Board {
         self.state.hash.update_side();
         self.state.hash.update_castling(self.state.castling);
         self.state.hash.update_en_passant(self.state.en_passant);
-
         self.state.en_passant = None;
-        self.state.in_check = None;
 
         let start = mv.start();
         let target = mv.target();
