@@ -1,7 +1,6 @@
 use game::{Board, Move, Score};
 
-use super::SearchThread;
-use crate::{heuristics::*, Bound, CacheEntry, ALPHABETA_STAGES};
+use crate::{heuristics::*, Bound, CacheEntry, SearchThread, ALPHABETA_STAGES};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
@@ -24,42 +23,58 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn search(&mut self, alpha: Score, beta: Score, mut depth: usize) -> Score {
-        if let Some(score) = self.check_on() {
-            return score;
-        }
-        if let Some(score) = self.is_draw() {
+        // The search has been stopped by the UCI or the time control
+        if let Some(score) = self.should_interrupt_search() {
             return score;
         }
 
-        // Check extension
-        if self.board.is_in_check() {
-            depth += 1;
+        // Draw detection, excluding the root node to ensure a valid move is returned
+        if !self.root() && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
+            return Score::DRAW;
         }
 
+        // Check extensions: extend the search depth due to low branching and the possibility of
+        // being in a forced sequence of moves
+        let in_check = self.board.is_in_check();
+        depth += in_check as usize;
+
+        // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
+        if depth == 0 {
+            return self.quiescence_search(alpha, beta);
+        }
+
+        // Update UCI statistics after the quiescence search to avoid counting the same node twice
         self.thread.nodes += 1;
 
-        if let Some(score) = self.evaluate(alpha, beta, depth) {
-            return score;
+        // Transposition table lookup and potential cutoff
+        let entry = self.read_cache_entry();
+        if let Some(entry) = entry {
+            if let Some(score) = self.transposition_table_cutoff(entry, alpha, beta, depth) {
+                return score;
+            }
         }
 
-        let (cache_score, cache_move) = self.read_cache_entry(alpha, beta, depth);
-        if let Some(score) = cache_score {
-            return score;
+        // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
+        // likely to result in a cutoff after a real move is made, so the current node can be pruned
+        if depth >= 3 && !in_check && !self.board.is_last_move_null() {
+            self.board.make_null_move();
+            let score = -self.search(-beta, -beta + 1, depth - 3);
+            self.board.undo_move();
+
+            if score >= beta {
+                return beta;
+            }
         }
 
-        if let Some(score) = self.null_move_pruning(beta, depth) {
-            return score;
-        }
-
-        self.search_moves(alpha, beta, depth, cache_move)
+        self.search_moves(alpha, beta, depth, in_check, entry.map(|entry| entry.mv))
     }
 
-    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, cache_move: Option<Move>) -> Score {
+    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, in_check: bool, cache_move: Option<Move>) -> Score {
         let mut best_score = -Score::INFINITY;
-        let mut best_move = None;
+        let mut best_move = Move::default();
         let mut bound = Bound::Upper;
 
-        let mut move_index = 0;
+        let mut moves_played = 0;
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(ALPHABETA_STAGES, &moves, cache_move);
 
@@ -68,15 +83,18 @@ impl<'a> AlphaBetaSearch<'a> {
                 continue;
             }
 
-            let reduction = self.calculate_reduction(mv, move_index, depth);
-            let score = self.calculate_score(alpha, beta, depth, reduction, move_index);
+            let is_quiet = !mv.is_capture() && !mv.is_promotion();
+            let apply_lmr = is_quiet && !in_check && moves_played >= 4 && depth >= 3;
+            let reduction = if apply_lmr { 3 } else { 1 };
+
+            let score = self.principle_variation_search(alpha, beta, depth, reduction, moves_played);
 
             self.board.undo_move();
-            move_index += 1;
+            moves_played += 1;
 
             if score > best_score {
                 best_score = score;
-                best_move = Some(mv);
+                best_move = mv;
             }
 
             if score > alpha {
@@ -96,17 +114,19 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        if let Some(score) = self.is_game_over(best_move.is_some()) {
-            return score;
+        if moves_played == 0 {
+            return self.final_score(in_check);
         }
 
-        self.write_cache_entry(depth, best_score, bound, best_move.unwrap());
+        self.write_cache_entry(depth, best_score, bound, best_move);
         best_score
     }
 
-    /// Calculates the score of the current position.
-    fn calculate_score(&mut self, alpha: Score, beta: Score, depth: usize, reduction: usize, move_index: usize) -> Score {
-        if move_index == 0 {
+    /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
+    /// with a null window and re-searching when promising. It also applies late move reductions.
+    fn principle_variation_search(&mut self, alpha: Score, beta: Score, depth: usize, reduction: usize, moves_played: usize) -> Score {
+        // The first move is likely to be the best, so it's searched with a full window
+        if moves_played == 0 {
             return -self.search(-beta, -alpha, depth - 1);
         }
 
@@ -126,100 +146,59 @@ impl<'a> AlphaBetaSearch<'a> {
         score
     }
 
-    /// Calculates the reduction to be applied to the current move.
-    fn calculate_reduction(&mut self, mv: Move, move_index: usize, depth: usize) -> usize {
-        let tactical = mv.is_capture() || mv.is_promotion() || self.board.is_in_check();
-        let can_reduce = move_index >= 4 && depth >= 3 && !tactical;
-        let reduction = if can_reduce { 3 } else { 1 };
-        reduction
-    }
-
-    /// Returns the score of the current position if it's at the root node.
-    fn evaluate(&mut self, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
-        if depth == 0 {
-            return Some(self.quiescence_search(alpha, beta));
-        }
-        None
-    }
-
-    /// Returns a draw score if the current position is a draw by repetition or fifty-move rule.
-    fn is_draw(&mut self) -> Option<Score> {
-        if self.board.ply > 0 && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
-            return Some(Score::DRAW);
-        }
-        None
-    }
-
     /// Checks if the search should be interrupted.
     #[inline(always)]
-    fn check_on(&mut self) -> Option<Score> {
+    fn should_interrupt_search(&mut self) -> Option<Score> {
+        // Ensure a valid move is returned by completing at least one iteration of iterative deepening
         if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {
             return None;
         }
 
-        if self.thread.is_time_over() {
+        self.thread.is_time_over().then(|| {
             self.thread.set_terminator(true);
-        }
-
-        self.thread.get_terminator().then_some(Score::INVALID)
+            Score::INVALID
+        })
     }
 
-    #[inline(always)]
-    fn null_move_pruning(&mut self, beta: Score, depth: usize) -> Option<Score> {
-        let can_prune = !self.board.is_last_move_null() && !self.board.is_in_check() && depth >= 3;
-        if !can_prune {
+    /// Provides a score for a transposition table cutoff, if applicable.
+    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
+        if entry.depth < depth as u8 {
             return None;
         }
-
-        self.board.make_null_move();
-        let score = -self.search(-beta, -beta + 1, depth - 3);
-        self.board.undo_move();
-
-        (score >= beta).then_some(beta)
+        // The score is outside the alpha-beta window, resulting in a cutoff
+        match entry.bound {
+            Bound::Exact => Some(entry.score),
+            Bound::Lower if entry.score >= beta => Some(entry.score),
+            Bound::Upper if entry.score <= alpha => Some(entry.score),
+            _ => None,
+        }
     }
 
     /// Reads a cache entry from the transposition table.
-    #[inline(always)]
-    fn read_cache_entry(&self, alpha: Score, beta: Score, depth: usize) -> (Option<Score>, Option<Move>) {
-        if let Some(entry) = self.thread.cache.lock().unwrap().read(self.board.hash(), self.board.ply) {
-            if entry.depth < depth as u8 {
-                return (None, Some(entry.mv));
-            }
-
-            let score = (entry.bound == Bound::Exact
-                || (entry.bound == Bound::Lower && entry.score >= beta)
-                || (entry.bound == Bound::Upper && entry.score <= alpha))
-                .then_some(entry.score);
-
-            return (score, Some(entry.mv));
-        }
-        (None, None)
+    fn read_cache_entry(&self) -> Option<CacheEntry> {
+        self.thread.cache.lock().unwrap().read(self.board.hash(), self.board.ply)
     }
 
     /// Writes a new cache entry to the transposition table.
-    ///
-    /// Caching is skipped if the search was interrupted, in which case the results of the
-    /// search may be invalid and should not be cached.
-    #[inline(always)]
     fn write_cache_entry(&mut self, depth: usize, score: Score, bound: Bound, best: Move) {
+        // Cache only if search was completed to avoid storing potentially invalid results
         if !self.thread.get_terminator() {
             let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
             self.thread.cache.lock().unwrap().write(entry, self.board.ply);
         }
     }
 
-    /// Returns `true` if the game is considered to be over either due to checkmate or stalemate.
-    #[inline(always)]
-    fn is_game_over(&mut self, legal_move_found: bool) -> Option<Score> {
-        if legal_move_found {
-            return None;
-        }
+    /// Returns `true` if the current node is the root node.
+    fn root(&mut self) -> bool {
+        self.board.ply == 0
+    }
 
-        match self.board.is_in_check() {
-            // Since negamax evaluates positions from the point of view of the maximizing player,
-            // we choose the longest path to checkmate by adding the depth (maximizing the score)
-            true => Some(-Score::CHECKMATE + self.board.ply as i32),
-            false => Some(Score::DRAW),
+    /// Calculates the final score in case of a checkmate or stalemate.
+    fn final_score(&mut self, in_check: bool) -> Score {
+        match in_check {
+            // Prioritize the longest path to checkmate
+            true => -Score::CHECKMATE + self.board.ply as i32,
+            false => Score::DRAW,
         }
     }
 }
