@@ -13,7 +13,6 @@ impl Piece {
 }
 
 impl From<u8> for Piece {
-    #[inline(always)]
     fn from(value: u8) -> Self {
         match value {
             0 => Self::Pawn,
@@ -44,7 +43,6 @@ impl From<char> for Piece {
 impl<T> std::ops::Index<Piece> for [T] {
     type Output = T;
 
-    #[inline(always)]
     fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }

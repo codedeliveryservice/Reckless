@@ -38,13 +38,11 @@ impl Castling {
     ];
 
     /// Updates castling rights when interacting with the `Square`.
-    #[inline(always)]
     pub fn update_for_square(&mut self, square: Square) {
         self.0 &= Self::UPDATES[square];
     }
 
     /// Returns `true` if the `CastlingKind` is allowed.
-    #[inline(always)]
     pub const fn is_allowed(&self, kind: CastlingKind) -> bool {
         (self.0 & kind as u8) != 0
     }

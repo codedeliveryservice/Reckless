@@ -126,7 +126,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds one square pawn pushes and regular captures to the move list.
-    #[inline(always)]
     fn collect_regular_pawn_moves(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
         for start in bb {
@@ -141,7 +140,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds promotions and capture promotions to the move list.
-    #[inline(always)]
     fn collect_promotions(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
         for start in bb {
@@ -158,7 +156,6 @@ impl<'a> Generator<'a> {
     }
 
     // Adds double pawn pushes to the move list.
-    #[inline(always)]
     fn collect_double_pushes(&mut self, bb: Bitboard) {
         let offset = self.turn.offset();
         for start in bb {
@@ -172,7 +169,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds en passant captures to the move list.
-    #[inline(always)]
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         if let Some(en_passant) = self.state.en_passant {
             let pawns = pawn_attacks(en_passant, self.turn.opposite()) & bb;
@@ -183,7 +179,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds all possible moves from the given starting square to the squares of the `targets` bitboard.
-    #[inline(always)]
     fn add_many(&mut self, start: Square, targets: Bitboard, move_kind: MoveKind) {
         for target in targets {
             self.list.add(start, target, move_kind);
@@ -191,7 +186,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds all possible promotion moves to the move list.
-    #[inline(always)]
     fn add_promotions(&mut self, start: Square, target: Square) {
         self.list.add(start, target, MoveKind::PromotionQ);
         self.list.add(start, target, MoveKind::PromotionR);
@@ -200,7 +194,6 @@ impl<'a> Generator<'a> {
     }
 
     /// Adds all possible promotion captures to the move list.
-    #[inline(always)]
     fn add_promotion_captures(&mut self, start: Square, target: Square) {
         self.list.add(start, target, MoveKind::PromotionCaptureQ);
         self.list.add(start, target, MoveKind::PromotionCaptureR);

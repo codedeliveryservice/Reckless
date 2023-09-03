@@ -45,17 +45,14 @@ impl SearchThread {
         pv_line
     }
 
-    #[inline(always)]
     pub fn get_terminator(&self) -> bool {
         self.terminator.load(Ordering::Relaxed)
     }
 
-    #[inline(always)]
     pub fn set_terminator(&mut self, value: bool) {
         self.terminator.store(value, Ordering::Relaxed);
     }
 
-    #[inline(always)]
     pub fn is_time_over(&self) -> bool {
         self.tc.is_time_over(self.start_time.elapsed())
     }

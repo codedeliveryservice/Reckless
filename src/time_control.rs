@@ -22,7 +22,6 @@ const TIME_MARGIN_MS: u64 = 25;
 impl TimeControl {
     /// Returns the maximum `depth` for the current `TimeControl`. The depth value
     /// can take the specified value or infinity if no depth limit is specified.
-    #[inline(always)]
     pub fn get_max_depth(&self) -> usize {
         match self {
             Self::FixedDepth(depth) => *depth,
@@ -31,7 +30,6 @@ impl TimeControl {
     }
 
     /// Returns `true` if the time has expired.
-    #[inline(always)]
     pub fn is_time_over(&self, elapsed: Duration) -> bool {
         let spent = elapsed.as_millis() as u64 + TIME_MARGIN_MS;
 

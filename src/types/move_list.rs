@@ -14,7 +14,6 @@ impl MoveList {
     const MAX_MOVES: usize = 256;
 
     /// Creates a new `MoveList`.
-    #[inline(always)]
     pub(crate) fn new() -> Self {
         Self {
             moves: [Default::default(); Self::MAX_MOVES],
@@ -23,13 +22,11 @@ impl MoveList {
     }
 
     /// Creates and appends a new move to the back of the list.
-    #[inline(always)]
     pub fn add(&mut self, start: Square, target: Square, move_kind: MoveKind) {
         self.push(Move::new(start, target, move_kind));
     }
 
     /// Appends a move to the back of the list.
-    #[inline(always)]
     pub fn push(&mut self, mv: Move) {
         self.moves[self.length] = mv;
         self.length += 1;
@@ -54,7 +51,6 @@ impl MoveList {
     }
 
     /// Returns the number of moves in the list.
-    #[inline(always)]
     pub fn length(&self) -> usize {
         self.length
     }
@@ -68,7 +64,6 @@ impl MoveList {
 impl std::ops::Index<usize> for MoveList {
     type Output = Move;
 
-    #[inline(always)]
     fn index(&self, index: usize) -> &Self::Output {
         &self.moves[index]
     }
@@ -82,7 +77,6 @@ pub struct MoveListIter<'a> {
 impl<'a> Iterator for MoveListIter<'a> {
     type Item = Move;
 
-    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.list.length {
             let mv = self.list.moves[self.index];

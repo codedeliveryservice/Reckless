@@ -51,61 +51,51 @@ impl Board {
     }
 
     /// Generates all possible pseudo legal moves for the current state of `self`.
-    #[inline(always)]
     pub fn generate_moves(&self) -> MoveList {
         generator::Generator::new(self).generate()
     }
 
     /// Returns the `Zobrist` hash key for the current position.
-    #[inline(always)]
     pub fn hash(&self) -> Zobrist {
         self.state.hash
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
-    #[inline(always)]
     pub fn colors(&self, color: Color) -> Bitboard {
         self.state.colors[color]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type.
-    #[inline(always)]
     pub fn pieces(&self, piece: Piece) -> Bitboard {
         self.state.pieces[piece]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
-    #[inline(always)]
     pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
         self.pieces(piece) & self.colors(color)
     }
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
-    #[inline(always)]
     pub fn us(&self) -> Bitboard {
         self.colors(self.turn)
     }
 
     /// Returns a `Bitboard` with enemy pieces for the current state.
-    #[inline(always)]
     pub fn them(&self) -> Bitboard {
         self.colors(self.turn.opposite())
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
-    #[inline(always)]
     pub fn our(&self, piece: Piece) -> Bitboard {
         self.pieces(piece) & self.us()
     }
 
     /// Returns a `Bitboard` with enemy pieces of the specified `Piece` type.
-    #[inline(always)]
     pub fn their(&self, piece: Piece) -> Bitboard {
         self.pieces(piece) & self.them()
     }
 
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
-    #[inline(always)]
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
             if self.state.pieces[index].contains(square) {
@@ -116,7 +106,6 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
-    #[inline(always)]
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].set(square);
         self.state.colors[color as usize].set(square);
@@ -125,7 +114,6 @@ impl Board {
     }
 
     /// Removes a piece of the specified type and color from the square.
-    #[inline(always)]
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].clear(square);
         self.state.colors[color as usize].clear(square);
@@ -143,7 +131,6 @@ impl Board {
     /// in the board's history.
     ///
     /// This method does not count the number of encounters.
-    #[inline(always)]
     pub fn is_repetition(&self) -> bool {
         self.state_stack.iter().rev().any(|state| state.hash == self.hash())
     }
@@ -163,14 +150,12 @@ impl Board {
     /// # Panics
     ///
     /// Panics if there is no king on the board.
-    #[inline(always)]
     pub fn is_in_check(&mut self) -> bool {
         let king = self.our(Piece::King).pop().unwrap();
         self.is_under_attack(king)
     }
 
     /// Returns `true` if any enemy piece can attack the `Square`.    
-    #[inline(always)]
     pub fn is_under_attack(&self, square: Square) -> bool {
         self.is_square_attacked(square, self.turn.opposite())
     }

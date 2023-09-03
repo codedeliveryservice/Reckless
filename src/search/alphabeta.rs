@@ -149,7 +149,6 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Checks if the search should be interrupted.
-    #[inline(always)]
     fn should_interrupt_search(&mut self) -> Option<Score> {
         // Ensure a valid move is returned by completing at least one iteration of iterative deepening
         if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {

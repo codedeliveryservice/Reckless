@@ -43,43 +43,36 @@ impl Move {
     const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 
     /// Creates a new `Move`.
-    #[inline(always)]
     pub(crate) fn new(start: Square, target: Square, kind: MoveKind) -> Self {
         Self(start.0 as u16 | (target.0 as u16) << 6 | (kind as u16) << 12)
     }
 
     /// Returns the start square of `self`.
-    #[inline(always)]
     pub const fn start(self) -> Square {
         Square((self.0 & Self::START_MASK) as u8)
     }
 
     /// Returns the target square of `self`.
-    #[inline(always)]
     pub const fn target(self) -> Square {
         Square(((self.0 & Self::TARGET_MASK) >> 6) as u8)
     }
 
     /// Returns the kind of `self`.
-    #[inline(always)]
     pub const fn kind(self) -> MoveKind {
         unsafe { std::mem::transmute((self.0 >> 12) as u8) }
     }
 
     /// Returns `true` if the current move is a capture.
-    #[inline(always)]
     pub const fn is_capture(self) -> bool {
         (self.0 >> 14) & 1 != 0
     }
 
     /// Returns `true` if the current move is quiet.
-    #[inline(always)]
     pub const fn is_quiet(self) -> bool {
         !self.is_capture()
     }
 
     /// Returns `true` if the current move is a pawn promotion.
-    #[inline(always)]
     pub const fn is_promotion(self) -> bool {
         (self.0 >> 15) != 0
     }
@@ -89,7 +82,6 @@ impl Move {
     /// # Panics
     ///
     /// Panics if the current move is not a pawn promotion.
-    #[inline(always)]
     pub const fn get_promotion_piece(self) -> Piece {
         match self.kind() {
             MoveKind::PromotionN | MoveKind::PromotionCaptureN => Piece::Knight,
@@ -100,7 +92,6 @@ impl Move {
         }
     }
 
-    #[inline(always)]
     pub const fn is_castling(&self) -> bool {
         matches!(self.kind(), MoveKind::KingCastling | MoveKind::QueenCastling)
     }

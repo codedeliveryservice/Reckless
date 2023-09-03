@@ -29,7 +29,6 @@ impl Square {
     pub const H8: Self = Self(63);
 
     /// Returns a `Square` from file and rank coordinates.
-    #[inline(always)]
     pub fn from_rank_file(rank: u8, file: u8) -> Self {
         assert!(rank < 8);
         assert!(file < 8);
@@ -37,7 +36,6 @@ impl Square {
     }
 
     /// Returns a `Square` shifted by the specified offset.
-    #[inline(always)]
     pub fn shift(self, offset: i8) -> Self {
         Self((self.0 as i8 + offset) as u8)
     }
@@ -62,14 +60,12 @@ impl TryFrom<&str> for Square {
 impl<T> std::ops::Index<Square> for [T] {
     type Output = T;
 
-    #[inline(always)]
     fn index(&self, square: Square) -> &Self::Output {
         &self[square.0 as usize]
     }
 }
 
 impl<T> std::ops::IndexMut<Square> for [T] {
-    #[inline(always)]
     fn index_mut(&mut self, square: Square) -> &mut Self::Output {
         &mut self[square.0 as usize]
     }

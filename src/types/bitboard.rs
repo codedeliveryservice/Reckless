@@ -15,43 +15,36 @@ impl Bitboard {
     pub const RANK_7: Self = Self(Self::RANK_1.0 << (8 * 6));
 
     /// Returns `true` if `self` has zero bits set.
-    #[inline(always)]
     pub fn is_empty(self) -> bool {
         self.0 == 0
     }
 
     /// Returns `true` if `self` has one or more bits set.
-    #[inline(always)]
     pub fn is_not_empty(self) -> bool {
         self.0 != 0
     }
 
     /// Returns `true` if `self` contains a set bit at the `Square` position.
-    #[inline(always)]
     pub fn contains(self, square: Square) -> bool {
         (self.0 >> square.0) & 1 != 0
     }
 
     /// Returns the number of pieces on the `Bitboard`.
-    #[inline(always)]
     pub fn count(self) -> u32 {
         self.0.count_ones()
     }
 
     /// Sets the `Square` on the `Bitboard`.
-    #[inline(always)]
     pub fn set(&mut self, square: Square) {
         self.0 |= 1 << square.0;
     }
 
     // Clears the `Square` on the `Bitboard`, if any.
-    #[inline(always)]
     pub fn clear(&mut self, square: Square) {
         self.0 &= !(1 << square.0);
     }
 
     // Returns the least significant bit of the `Bitboard` and clears it, if any.
-    #[inline(always)]
     pub fn pop(&mut self) -> Option<Square> {
         if self.is_empty() {
             return None;
@@ -71,7 +64,6 @@ impl_unary_op!(Bitboard, Not, not);
 impl Iterator for Bitboard {
     type Item = Square;
 
-    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.pop()
     }

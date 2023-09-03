@@ -45,7 +45,6 @@ pub fn run_perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
 }
 
-#[inline(always)]
 fn perft(depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;

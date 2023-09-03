@@ -12,14 +12,12 @@ pub struct KillerMoves {
 
 impl KillerMoves {
     /// Prepends the `Move` to the list of killer moves.
-    #[inline(always)]
     pub fn add(&mut self, mv: Move, ply: usize) {
         self.secondary[ply] = self.primary[ply];
         self.primary[ply] = mv;
     }
 
     /// Returns `true` if `self` contains the specified killer `Move`.
-    #[inline(always)]
     pub fn contains(&self, mv: Move, ply: usize) -> bool {
         self.primary[ply] == mv || self.secondary[ply] == mv
     }

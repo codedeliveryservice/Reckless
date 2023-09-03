@@ -10,7 +10,6 @@ pub(crate) struct Evaluation {
 
 impl Evaluation {
     /// Adds the score of a piece at a given square to the current scores using the PSQT.
-    #[inline(always)]
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         let (mg, eg) = PSQT[color][piece][square];
         self.mg += Score(mg);
@@ -18,7 +17,6 @@ impl Evaluation {
     }
 
     /// Subtracts the score of a piece at a given square from the current scores using the PSQT.
-    #[inline(always)]
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         let (mg, eg) = PSQT[color][piece][square];
         self.mg -= Score(mg);
