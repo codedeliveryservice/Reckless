@@ -3,3 +3,8 @@ name = "reckless"
 version = "0.1.1-alpha"
 edition = "2021"
 build = "src/lookup/build.rs"
+
+[profile.release]
+lto = "fat"
+panic = "abort"
+codegen-units = 1
