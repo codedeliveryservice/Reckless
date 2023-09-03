@@ -91,10 +91,6 @@ impl Move {
             _ => panic!("The move kind is not a promotion"),
         }
     }
-
-    pub const fn is_castling(&self) -> bool {
-        matches!(self.kind(), MoveKind::KingCastling | MoveKind::QueenCastling)
-    }
 }
 
 impl std::fmt::Display for Move {
