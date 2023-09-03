@@ -20,7 +20,7 @@ it may not follow the best practices or conventions typically found in high-qual
 -   Pseudo legal move generator
 -   Pre-calculated attack maps with [Fancy Magic Bitboards][fancy-bitboards]
 -   Magic numbers are pre-generated using [Reckless Magics][reckless-magics]
--   Compile time generation of move maps using a [build script](/game/src/lookup/build.rs)
+-   Compile time generation of move maps using a [build script](/src/lookup/build.rs)
 
 [fancy-bitboards]: https://www.chessprogramming.org/Magic_Bitboards#Fancy
 [reckless-magics]: https://github.com/codedeliveryservice/RecklessMagics

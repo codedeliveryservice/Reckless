@@ -1,9 +1,0 @@
-[package]
-name = "search"
-version.workspace = true
-edition.workspace = true
-publish.workspace = true
-
-[dependencies]
-game = { path = "../game" }
-evaluation = { path = "../evaluation" }

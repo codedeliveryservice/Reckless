@@ -1,7 +1,5 @@
-[workspace]
-members = ["game", "evaluation", "search", "engine"]
-
-[workspace.package]
+[package]
+name = "reckless"
 version = "0.1.1-alpha"
 edition = "2021"
-publish = false
+build = "src/lookup/build.rs"
