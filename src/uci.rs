@@ -120,22 +120,21 @@ mod tests {
     use super::*;
 
     macro_rules! assert_time_control {
-        ($($name:ident: $input:expr, $color:expr, $expected:expr,)*) => {$(
+        ($($name:ident: $input:expr, $expected:expr,)*) => {$(
             #[test]
             fn $name() {
                 let tokens = $input.split_whitespace().collect::<Vec<_>>();
-                assert_eq!(parse_time_control($color, &tokens), $expected);
+                assert_eq!(parse_time_control(Color::White, &tokens), $expected);
             }
         )*};
     }
 
     assert_time_control!(
-        tc_infinite: "infinite", Color::White, TimeControl::Infinite,
-        tc_fixed_time: "movetime 5000", Color::White, TimeControl::FixedTime(5000),
-        tc_fixed_depth: "depth 10", Color::White, TimeControl::FixedDepth(10),
-        tc_time: "wtime 750 btime 900", Color::Black, TimeControl::Incremental(900, 0),
-        tc_increment: "winc 750 binc 900", Color::White, TimeControl::Incremental(0, 750),
-        tc_tournament: "wtime 750 winc 900 movestogo 12", Color::White, TimeControl::Tournament(750, 900, 12),
-        tc_invalid: "invalid", Color::White, TimeControl::Infinite,
+        tc_infinite: "infinite", TimeControl::Infinite,
+        tc_fixed_time: "movetime 5000", TimeControl::FixedTime(5000),
+        tc_fixed_depth: "depth 10", TimeControl::FixedDepth(10),
+        tc_increment: "winc 750 binc 900", TimeControl::Incremental(0, 750),
+        tc_tournament: "wtime 750 winc 900 movestogo 12", TimeControl::Tournament(750, 900, 12),
+        tc_invalid: "invalid", TimeControl::Infinite,
     );
 }

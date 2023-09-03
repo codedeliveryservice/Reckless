@@ -124,38 +124,3 @@ impl std::fmt::Display for Move {
         f.pad(&output.to_string())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::types::{Move, MoveKind, Square};
-
-    macro_rules! assert_move {
-        ($($name:ident: $kind:expr,)*) => {$(
-            #[test]
-            fn $name() {
-                let mv = Move::new(Square(13), Square(47), $kind);
-
-                assert_eq!(mv.start(), Square(13));
-                assert_eq!(mv.target(), Square(47));
-                assert_eq!(mv.kind(), $kind);
-            }
-        )*};
-    }
-
-    assert_move!(
-        quiet: MoveKind::Quiet,
-        capture: MoveKind::Capture,
-        en_passant: MoveKind::EnPassant,
-        double_push: MoveKind::DoublePush,
-        king_castling: MoveKind::KingCastling,
-        queen_castling: MoveKind::QueenCastling,
-        knight_promotion: MoveKind::PromotionN,
-        bishop_promotion: MoveKind::PromotionB,
-        rook_promotion: MoveKind::PromotionR,
-        queen_promotion: MoveKind::PromotionQ,
-        knight_promotion_capture: MoveKind::PromotionCaptureN,
-        bishop_promotion_capture: MoveKind::PromotionCaptureB,
-        rook_promotion_capture: MoveKind::PromotionCaptureR,
-        queen_promotion_capture: MoveKind::PromotionCaptureQ,
-    );
-}

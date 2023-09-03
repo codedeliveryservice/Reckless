@@ -51,24 +51,6 @@ impl TryFrom<&str> for Square {
     type Error = ();
 
     /// Performs the conversion using the algebraic notation.
-    ///
-    /// The first character is defined to be only `a-h`.
-    /// The second character is defined to be only `1-8`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use game::Square;
-    ///
-    /// assert_eq!(Square::try_from("a1"), Ok(Square::A1));
-    /// assert_eq!(Square::try_from("b1"), Ok(Square::B1));
-    /// assert_eq!(Square::try_from("h8"), Ok(Square::H8));
-    /// assert_eq!(Square::try_from("i9"), Err(()));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if the given notation is invalid.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if let [file @ b'a'..=b'h', rank @ b'1'..=b'8'] = value.bytes().collect::<Vec<_>>().as_slice() {
             return Ok(Self::from_rank_file(rank - b'1', file - b'a'));
@@ -95,19 +77,29 @@ impl<T> std::ops::IndexMut<Square> for [T] {
 
 impl std::fmt::Display for Square {
     /// Formats the `Square` using the algebraic notation.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use game::Square;
-    ///
-    /// assert_eq!(Square::A1.to_string(), "a1");
-    /// assert_eq!(Square::B1.to_string(), "b1");
-    /// assert_eq!(Square::H8.to_string(), "h8");
-    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let rank = self.0 / 8 + b'1';
         let file = self.0 % 8 + b'a';
         write!(f, "{}{}", file as char, rank as char)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Square;
+
+    #[test]
+    fn try_from() {
+        assert_eq!(Square::try_from("a1"), Ok(Square::A1));
+        assert_eq!(Square::try_from("b1"), Ok(Square::B1));
+        assert_eq!(Square::try_from("h8"), Ok(Square::H8));
+        assert_eq!(Square::try_from("i9"), Err(()));
+    }
+
+    #[test]
+    fn display() {
+        assert_eq!(Square::A1.to_string(), "a1");
+        assert_eq!(Square::B1.to_string(), "b1");
+        assert_eq!(Square::H8.to_string(), "h8");
     }
 }

@@ -2,6 +2,9 @@ use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Score, Squa
 
 use self::evaluation::Evaluation;
 
+#[cfg(test)]
+mod perft;
+
 mod evaluation;
 mod fen;
 mod generator;

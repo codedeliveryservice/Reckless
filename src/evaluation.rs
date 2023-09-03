@@ -35,29 +35,6 @@ pub fn evaluate_relative_score(board: &Board) -> Score {
 }
 
 /// Returns a `String` containing a human-readable representation of the evaluation.
-///
-/// # Examples
-///
-/// ```
-/// use game::Board;
-/// use evaluation::evaluate_debug;
-///
-/// let board = Board::new("b3rrk1/3q1ppp/p1N3n1/1pRP4/3N4/8/PP3PPP/3Q1RK1 b - - 8 23");
-/// println!("{}", evaluate_debug(&board));
-/// ```
-///
-/// Output:
-///
-/// ```plaintext
-///     TERM    |    MG     EG    TOTAL
-/// ------------|----------------------
-///    Material |   0.51   1.36   0.65
-///    Mobility |   0.25   1.66   0.48
-///        PSQT |   0.44   0.75   0.49
-/// ------------|----------------------
-///       Total |   1.20   3.77   1.62
-///  Game Phase |    83%    17%    --
-/// ```
 pub fn evaluate_debug(board: &Board) -> String {
     let mut result = String::new();
 
