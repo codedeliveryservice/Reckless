@@ -15,22 +15,22 @@ impl Bitboard {
     pub const RANK_7: Self = Self(Self::RANK_1.0 << (8 * 6));
 
     /// Returns `true` if `self` has zero bits set.
-    pub fn is_empty(self) -> bool {
+    pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
     /// Returns `true` if `self` has one or more bits set.
-    pub fn is_not_empty(self) -> bool {
+    pub const fn is_not_empty(self) -> bool {
         self.0 != 0
     }
 
     /// Returns `true` if `self` contains a set bit at the `Square` position.
-    pub fn contains(self, square: Square) -> bool {
+    pub const fn contains(self, square: Square) -> bool {
         (self.0 >> square.0) & 1 != 0
     }
 
     /// Returns the number of pieces on the `Bitboard`.
-    pub fn count(self) -> u32 {
+    pub const fn count(self) -> u32 {
         self.0.count_ones()
     }
 

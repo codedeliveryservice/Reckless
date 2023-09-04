@@ -3,7 +3,7 @@ use crate::types::{Color, Piece, Score, Square};
 include!(concat!(env!("OUT_DIR"), "/psqt.rs"));
 
 #[derive(Debug, Default, Clone, Copy)]
-pub(crate) struct Evaluation {
+pub struct Evaluation {
     mg: Score,
     eg: Score,
 }
@@ -24,7 +24,7 @@ impl Evaluation {
     }
 
     /// Returns the current evaluation scores for both middle game and end game phases.
-    pub fn score(&self) -> (Score, Score) {
+    pub const fn score(self) -> (Score, Score) {
         (self.mg, self.eg)
     }
 }

@@ -38,7 +38,7 @@ fn set_option(engine: &mut Engine, tokens: &[&str]) {
         match *name {
             "Hash" => engine.set_cache_size(value.parse().expect("Cache size should be a number")),
             "ClearHash" => engine.clear_cache(),
-            _ => eprintln!("Unknown option: '{}'", name),
+            _ => eprintln!("Unknown option: '{name}'"),
         }
     }
 }

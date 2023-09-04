@@ -43,7 +43,7 @@ impl Move {
     const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 
     /// Creates a new `Move`.
-    pub(crate) fn new(start: Square, target: Square, kind: MoveKind) -> Self {
+    pub(crate) const fn new(start: Square, target: Square, kind: MoveKind) -> Self {
         Self(start.0 as u16 | (target.0 as u16) << 6 | (kind as u16) << 12)
     }
 

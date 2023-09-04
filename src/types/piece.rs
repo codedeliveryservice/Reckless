@@ -21,7 +21,7 @@ impl From<u8> for Piece {
             3 => Self::Rook,
             4 => Self::Queen,
             5 => Self::King,
-            _ => panic!("Unexpected piece '{}'", value),
+            _ => panic!("Unexpected piece '{value}'"),
         }
     }
 }
@@ -29,13 +29,13 @@ impl From<u8> for Piece {
 impl From<char> for Piece {
     fn from(value: char) -> Self {
         match value {
-            'P' | 'p' => Piece::Pawn,
-            'N' | 'n' => Piece::Knight,
-            'B' | 'b' => Piece::Bishop,
-            'R' | 'r' => Piece::Rook,
-            'Q' | 'q' => Piece::Queen,
-            'K' | 'k' => Piece::King,
-            _ => panic!("Unexpected piece '{}'", value),
+            'P' | 'p' => Self::Pawn,
+            'N' | 'n' => Self::Knight,
+            'B' | 'b' => Self::Bishop,
+            'R' | 'r' => Self::Rook,
+            'Q' | 'q' => Self::Queen,
+            'K' | 'k' => Self::King,
+            _ => panic!("Unexpected piece '{value}'"),
         }
     }
 }

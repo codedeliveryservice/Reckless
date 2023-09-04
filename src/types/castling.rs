@@ -43,7 +43,7 @@ impl Castling {
     }
 
     /// Returns `true` if the `CastlingKind` is allowed.
-    pub const fn is_allowed(&self, kind: CastlingKind) -> bool {
+    pub const fn is_allowed(self, kind: CastlingKind) -> bool {
         (self.0 & kind as u8) != 0
     }
 }

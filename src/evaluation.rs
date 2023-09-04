@@ -55,7 +55,7 @@ pub fn evaluate_debug(board: &Board) -> String {
 
     let mg = get_phase(board) * 100 / MAX_PHASE;
     let eg = 100 - mg;
-    result.push_str(&format!(" Game Phase | {:>5}% {:>5}%    --\n", mg, eg));
+    result.push_str(&format!(" Game Phase | {mg:>5}% {eg:>5}%    --\n"));
 
     result
 }

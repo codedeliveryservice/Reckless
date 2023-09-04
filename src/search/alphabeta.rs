@@ -18,8 +18,8 @@ impl<'a> AlphaBetaSearch<'a> {
         Self {
             board,
             thread,
-            killers: Default::default(),
-            history: Default::default(),
+            killers: KillerMoves::default(),
+            history: HistoryMoves::default(),
         }
     }
 
@@ -196,10 +196,10 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Calculates the final score in case of a checkmate or stalemate.
     fn final_score(&mut self, in_check: bool) -> Score {
-        match in_check {
-            // Prioritize the longest path to checkmate
-            true => -Score::CHECKMATE + self.board.ply as i32,
-            false => Score::DRAW,
+        if in_check {
+            -Score::CHECKMATE + self.board.ply as i32
+        } else {
+            Score::DRAW
         }
     }
 }

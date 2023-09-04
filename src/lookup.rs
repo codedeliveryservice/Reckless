@@ -35,7 +35,7 @@ pub fn queen_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
     rook_attacks(square, occupancies) | bishop_attacks(square, occupancies)
 }
 
-fn magic_index(occupancies: Bitboard, entry: &MagicEntry) -> u32 {
+const fn magic_index(occupancies: Bitboard, entry: &MagicEntry) -> u32 {
     let mut hash = occupancies.0 & entry.mask;
     hash = hash.wrapping_mul(entry.magic) >> entry.shift;
     hash as u32 + entry.offset

@@ -14,7 +14,7 @@ impl Cache {
     pub fn new(megabytes: usize) -> Self {
         let length = megabytes * 1024 * 1024 / std::mem::size_of::<CacheEntry>();
         Self {
-            vector: vec![Default::default(); length],
+            vector: vec![None; length],
         }
     }
 
@@ -61,7 +61,7 @@ impl Default for Cache {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Bound {
     Exact,
     Lower,

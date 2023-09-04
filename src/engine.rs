@@ -2,9 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::cache::{Cache, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
 use crate::search::{IterativeSearch, SearchThread};
-use crate::{board::Board, evaluation, perft::run_perft, time_control::TimeControl};
+use crate::{board::Board, cache::Cache, evaluation, perft::run_perft, time_control::TimeControl};
 
 pub struct Engine {
     pub board: Board,
@@ -17,8 +16,8 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::starting_position(),
-            cache: Default::default(),
-            terminator: Default::default(),
+            cache: Arc::default(),
+            terminator: Arc::default(),
         }
     }
 
@@ -29,15 +28,14 @@ impl Engine {
 
     /// Sets the size of the transposition table, clearing it in the process.
     pub fn set_cache_size(&mut self, megabytes: usize) {
-        let size = megabytes.min(MAX_CACHE_SIZE).max(MIN_CACHE_SIZE);
-        self.cache = Arc::new(Mutex::new(Cache::new(size)));
+        self.cache = Arc::new(Mutex::new(Cache::new(megabytes)));
     }
 
     /// Makes the specified UCI move on the board.
     pub fn make_uci_move(&mut self, uci_move: &str) {
         let moves = self.board.generate_moves();
         if let Some(mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
-            self.board.make_move(mv).expect("UCI move should be legal")
+            self.board.make_move(mv).expect("UCI move should be legal");
         }
     }
 

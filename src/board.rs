@@ -19,7 +19,7 @@ pub const MAX_GAME_PLIES: usize = 1024;
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Default, Clone, Copy)]
-pub(super) struct InternalState {
+struct InternalState {
     hash: Zobrist,
     en_passant: Option<Square>,
     castling: Castling,
@@ -56,7 +56,7 @@ impl Board {
     }
 
     /// Returns the `Zobrist` hash key for the current position.
-    pub fn hash(&self) -> Zobrist {
+    pub const fn hash(&self) -> Zobrist {
         self.state.hash
     }
 
@@ -123,7 +123,7 @@ impl Board {
 
     /// Returns an incrementally updated scores for both middle game and endgame
     /// phases based on the piece-square tables.
-    pub fn psq_score(&self) -> (Score, Score) {
+    pub const fn psq_score(&self) -> (Score, Score) {
         self.state.evaluation.score()
     }
 
@@ -136,7 +136,7 @@ impl Board {
     }
 
     /// Returns `true` if the position is a draw by the fifty-move rule.
-    pub fn is_fifty_move_draw(&self) -> bool {
+    pub const fn is_fifty_move_draw(&self) -> bool {
         self.state.halfmove_clock >= 100
     }
 

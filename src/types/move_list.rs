@@ -16,7 +16,7 @@ impl MoveList {
     /// Creates a new `MoveList`.
     pub(crate) fn new() -> Self {
         Self {
-            moves: [Default::default(); Self::MAX_MOVES],
+            moves: [Move::default(); Self::MAX_MOVES],
             length: 0,
         }
     }
@@ -51,12 +51,12 @@ impl MoveList {
     }
 
     /// Returns the number of moves in the list.
-    pub fn length(&self) -> usize {
+    pub const fn length(&self) -> usize {
         self.length
     }
 
     /// Returns an iterator over the list of moves.
-    pub fn iter(&self) -> MoveListIter {
+    pub const fn iter(&self) -> MoveListIter {
         MoveListIter { list: self, index: 0 }
     }
 }

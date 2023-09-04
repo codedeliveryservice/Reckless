@@ -8,7 +8,7 @@ const WHITE_LONG_CASTLING_MASK: Bitboard = Bitboard(0b0000_1110);
 const BLACK_SHORT_CASTLING_MASK: Bitboard = Bitboard(WHITE_SHORT_CASTLING_MASK.0 << (8 * 7));
 const BLACK_LONG_CASTLING_MASK: Bitboard = Bitboard(WHITE_LONG_CASTLING_MASK.0 << (8 * 7));
 
-pub(crate) struct Generator<'a> {
+pub struct Generator<'a> {
     board: &'a Board,
     state: &'a InternalState,
     turn: Color,

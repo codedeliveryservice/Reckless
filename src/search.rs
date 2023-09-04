@@ -44,7 +44,7 @@ impl IterativeSearch {
 
     /// Performs an iterative deepening search until the time limit is reached or the search is terminated.
     pub fn search(&mut self) {
-        let mut last_best = Default::default();
+        let mut last_best = Move::default();
         let mut depth = 1;
 
         while depth <= self.thread.tc.get_max_depth() {
@@ -73,7 +73,7 @@ impl IterativeSearch {
             depth += 1;
         }
 
-        println!("bestmove {}", last_best);
+        println!("bestmove {last_best}");
     }
 
     /// Returns `true` if the given score is within the aspiration window.
@@ -101,12 +101,14 @@ impl IterativeSearch {
 
         let hashfull = self.thread.cache.lock().unwrap().get_load_factor();
         let score = match score.checkmate_in() {
-            Some(moves) => format!("mate {}", moves),
-            None => format!("cp {}", score),
+            Some(moves) => format!("mate {moves}"),
+            None => format!("cp {score}"),
         };
 
         print!("info depth {depth} score {score} nodes {nodes} time {ms} nps {nps:.0} hashfull {hashfull} pv");
-        pv.iter().for_each(|mv| print!(" {}", mv));
+        for mv in pv {
+            print!(" {mv}");
+        }
         println!();
     }
 }

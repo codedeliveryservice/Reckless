@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TimeControl {
     Infinite,
     FixedDepth(usize),
@@ -22,7 +22,7 @@ const TIME_MARGIN_MS: u64 = 25;
 impl TimeControl {
     /// Returns the maximum `depth` for the current `TimeControl`. The depth value
     /// can take the specified value or infinity if no depth limit is specified.
-    pub fn get_max_depth(&self) -> usize {
+    pub const fn get_max_depth(&self) -> usize {
         match self {
             Self::FixedDepth(depth) => *depth,
             _ => MAX_SEARCH_DEPTH,
@@ -30,7 +30,7 @@ impl TimeControl {
     }
 
     /// Returns `true` if the time has expired.
-    pub fn is_time_over(&self, elapsed: Duration) -> bool {
+    pub const fn is_time_over(&self, elapsed: Duration) -> bool {
         let spent = elapsed.as_millis() as u64 + TIME_MARGIN_MS;
 
         match *self {

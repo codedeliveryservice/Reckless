@@ -30,10 +30,10 @@ impl Score {
     /// that the side to move is getting mated.
     pub fn checkmate_in(self) -> Option<i32> {
         if self.is_mating() {
-            return Some((Score::CHECKMATE.0 - self.0 + 1) / 2);
+            return Some((Self::CHECKMATE.0 - self.0 + 1) / 2);
         }
         if self.is_getting_mated() {
-            return Some((-Score::CHECKMATE.0 - self.0) / 2);
+            return Some((-Self::CHECKMATE.0 - self.0) / 2);
         }
         None
     }

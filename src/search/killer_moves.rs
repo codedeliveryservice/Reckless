@@ -26,8 +26,8 @@ impl KillerMoves {
 impl Default for KillerMoves {
     fn default() -> Self {
         Self {
-            primary: [Default::default(); MAX_GAME_PLIES],
-            secondary: [Default::default(); MAX_GAME_PLIES],
+            primary: [Move::default(); MAX_GAME_PLIES],
+            secondary: [Move::default(); MAX_GAME_PLIES],
         }
     }
 }

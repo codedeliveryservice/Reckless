@@ -1,6 +1,6 @@
 //! Provides function for Zobrist hashing.
 //!
-//! See (Zobrist Hashing)[https://www.chessprogramming.org/Zobrist_Hashing]
+//! See [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
 //! for more information.
 use super::{Castling, Color, Piece, Square};
 
@@ -17,20 +17,20 @@ impl Zobrist {
     }
 
     pub(crate) fn update_side(&mut self) {
-        self.0 ^= SIDE_KEY
+        self.0 ^= SIDE_KEY;
     }
 
     pub(crate) fn update_castling(&mut self, castling: Castling) {
-        self.0 ^= CASTLING_KEYS[castling.0 as usize]
+        self.0 ^= CASTLING_KEYS[castling.0 as usize];
     }
 
     pub(crate) fn update_en_passant(&mut self, square: Option<Square>) {
         if let Some(square) = square {
-            self.0 ^= EN_PASSANT_KEYS[square]
+            self.0 ^= EN_PASSANT_KEYS[square];
         }
     }
 
     pub(crate) fn update_en_passant_square(&mut self, square: Square) {
-        self.0 ^= EN_PASSANT_KEYS[square]
+        self.0 ^= EN_PASSANT_KEYS[square];
     }
 }
