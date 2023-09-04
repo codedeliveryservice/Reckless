@@ -99,7 +99,7 @@ impl Board {
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
             if self.state.pieces[index].contains(square) {
-                return Some(Piece::from(index as u8));
+                return Some(Piece::from(index));
             }
         }
         None
@@ -188,7 +188,7 @@ impl Board {
         let mut hash = Zobrist::default();
 
         for piece in 0..Piece::NUM {
-            let piece = Piece::from(piece as u8);
+            let piece = Piece::from(piece);
 
             for square in self.of(piece, Color::White) {
                 hash.update_piece(piece, Color::White, square);

@@ -12,8 +12,8 @@ impl Piece {
     pub const NUM: usize = 6;
 }
 
-impl From<u8> for Piece {
-    fn from(value: u8) -> Self {
+impl From<usize> for Piece {
+    fn from(value: usize) -> Self {
         match value {
             0 => Self::Pawn,
             1 => Self::Knight,
