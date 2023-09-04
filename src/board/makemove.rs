@@ -8,9 +8,9 @@ impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
         self.ply += 1;
+        self.turn = !self.turn;
         self.move_stack.push(Move::default());
         self.state_stack.push(self.state);
-        self.turn.reverse();
 
         self.state.hash.update_side();
         self.state.hash.update_castling(self.state.castling);
@@ -44,7 +44,7 @@ impl Board {
         }
 
         if let Some(piece) = self.get_piece(target) {
-            self.remove_piece(piece, self.turn.opposite(), target);
+            self.remove_piece(piece, !self.turn, target);
         }
 
         self.remove_piece(piece, self.turn, start);
@@ -57,7 +57,7 @@ impl Board {
                 self.state.en_passant = Some(square);
             }
             MoveKind::EnPassant => {
-                self.remove_piece(Piece::Pawn, self.turn.opposite(), target ^ 8);
+                self.remove_piece(Piece::Pawn, !self.turn, target ^ 8);
             }
             MoveKind::KingCastling | MoveKind::QueenCastling => {
                 let (rook_start, rook_target) = get_rook_move(target);
@@ -74,7 +74,7 @@ impl Board {
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
         self.state.hash.update_castling(self.state.castling);
-        self.turn.reverse();
+        self.turn = !self.turn;
 
         // The move is considered illegal if it exposes the king to an attack after it has been made
         let king = self.their(Piece::King).pop().unwrap();
@@ -93,7 +93,7 @@ impl Board {
     /// Panics if the state stack is empty.
     pub fn undo_move(&mut self) {
         self.ply -= 1;
-        self.turn.reverse();
+        self.turn = !self.turn;
         self.state = self.state_stack.pop().expect("State stack is empty");
         self.move_stack.pop();
     }

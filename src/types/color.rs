@@ -16,24 +16,22 @@ impl Color {
             Self::Black => -8,
         }
     }
-
-    /// Return the opposite color of `self`.
-    pub const fn opposite(self) -> Self {
-        match self {
-            Self::White => Self::Black,
-            Self::Black => Self::White,
-        }
-    }
-
-    /// Changes the color of `self` to the opposite.
-    pub fn reverse(&mut self) {
-        *self = self.opposite();
-    }
 }
 
 impl Default for Color {
     fn default() -> Self {
         Self::White
+    }
+}
+
+impl std::ops::Not for Color {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
     }
 }
 

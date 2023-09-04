@@ -82,7 +82,7 @@ impl Board {
 
     /// Returns a `Bitboard` with enemy pieces for the current state.
     pub fn them(&self) -> Bitboard {
-        self.colors(self.turn.opposite())
+        self.colors(!self.turn)
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
@@ -157,7 +157,7 @@ impl Board {
 
     /// Returns `true` if any enemy piece can attack the `Square`.    
     pub fn is_under_attack(&self, square: Square) -> bool {
-        self.is_square_attacked(square, self.turn.opposite())
+        self.is_square_attacked(square, !self.turn)
     }
 
     /// Returns `true` if any piece of the attacker `Color` can attack the `Square`.
@@ -173,7 +173,7 @@ impl Board {
             | (lookup::knight_attacks(square) & self.pieces(Piece::Knight))
             | (lookup::bishop_attacks(square, occupancies) & bishop_queen)
             | (lookup::rook_attacks(square, occupancies) & rook_queen)
-            | (lookup::pawn_attacks(square, color.opposite()) & self.pieces(Piece::Pawn));
+            | (lookup::pawn_attacks(square, !color) & self.pieces(Piece::Pawn));
 
         (possible_attackers & self.colors(color)).is_not_empty()
     }
