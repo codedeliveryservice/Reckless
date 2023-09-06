@@ -23,12 +23,7 @@ impl MoveList {
 
     /// Creates and appends a new move to the back of the list.
     pub fn add(&mut self, start: Square, target: Square, move_kind: MoveKind) {
-        self.push(Move::new(start, target, move_kind));
-    }
-
-    /// Appends a move to the back of the list.
-    pub fn push(&mut self, mv: Move) {
-        self.moves[self.length] = mv;
+        self.moves[self.length] = Move::new(start, target, move_kind);
         self.length += 1;
     }
 

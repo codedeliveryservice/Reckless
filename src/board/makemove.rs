@@ -59,7 +59,7 @@ impl Board {
             MoveKind::EnPassant => {
                 self.remove_piece(Piece::Pawn, !self.turn, target ^ 8);
             }
-            MoveKind::KingCastling | MoveKind::QueenCastling => {
+            MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
                 self.remove_piece(Piece::Rook, self.turn, rook_start);
                 self.add_piece(Piece::Rook, self.turn, rook_target);

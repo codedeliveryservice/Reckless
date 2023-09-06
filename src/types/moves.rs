@@ -15,9 +15,7 @@ pub struct Move(u16);
 pub enum MoveKind {
     Quiet             = 0b0000,
     DoublePush        = 0b0001,
-
-    KingCastling      = 0b0010,
-    QueenCastling     = 0b0011,
+    Castling          = 0b0010,
 
     Capture           = 0b0100,
     EnPassant         = 0b0101,
@@ -34,11 +32,6 @@ pub enum MoveKind {
 }
 
 impl Move {
-    pub const WHITE_SHORT_CASTLING: Self = Self(0b0010_0001_1000_0100);
-    pub const WHITE_LONG_CASTLING: Self = Self(0b0011_0000_1000_0100);
-    pub const BLACK_SHORT_CASTLING: Self = Self(0b0010_1111_1011_1100);
-    pub const BLACK_LONG_CASTLING: Self = Self(0b0011_1110_1011_1100);
-
     const START_MASK: u16 = 0b0000_0000_0011_1111;
     const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 

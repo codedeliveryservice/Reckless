@@ -1,6 +1,6 @@
 use super::{Board, InternalState};
 use crate::lookup::*;
-use crate::types::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Square};
+use crate::types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, Piece, Square};
 
 const WHITE_SHORT_CASTLING_MASK: Bitboard = Bitboard(0b0110_0000);
 const WHITE_LONG_CASTLING_MASK: Bitboard = Bitboard(0b0000_1110);
@@ -76,7 +76,7 @@ impl<'a> Generator<'a> {
             && !self.board.is_under_attack(Square::E1)
             && !self.board.is_under_attack(Square::F1)
         {
-            self.list.push(Move::WHITE_SHORT_CASTLING);
+            self.list.add(Square::E1, Square::G1, MoveKind::Castling);
         }
 
         if self.state.castling.is_allowed(CastlingKind::WhiteLong)
@@ -84,7 +84,7 @@ impl<'a> Generator<'a> {
             && !self.board.is_under_attack(Square::E1)
             && !self.board.is_under_attack(Square::D1)
         {
-            self.list.push(Move::WHITE_LONG_CASTLING);
+            self.list.add(Square::E1, Square::C1, MoveKind::Castling);
         }
     }
 
@@ -98,7 +98,7 @@ impl<'a> Generator<'a> {
             && !self.board.is_under_attack(Square::E8)
             && !self.board.is_under_attack(Square::F8)
         {
-            self.list.push(Move::BLACK_SHORT_CASTLING);
+            self.list.add(Square::E8, Square::G8, MoveKind::Castling);
         }
 
         if self.state.castling.is_allowed(CastlingKind::BlackLong)
@@ -106,7 +106,7 @@ impl<'a> Generator<'a> {
             && !self.board.is_under_attack(Square::E8)
             && !self.board.is_under_attack(Square::D8)
         {
-            self.list.push(Move::BLACK_LONG_CASTLING);
+            self.list.add(Square::E8, Square::C8, MoveKind::Castling);
         }
     }
 
