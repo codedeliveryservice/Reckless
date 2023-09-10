@@ -31,19 +31,18 @@ const MOBILITY: [&[(i32, i32)]; Piece::NUM] = [
 /// The player's mobility depends on the number of squares that their pieces can move to.
 /// It can also be thought of as a square control.
 pub fn evaluate(board: &Board) -> (i32, i32) {
-    let occupancies = board.them() | board.us();
     let (mut mg, mut eg) = (0, 0);
 
     for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
         for square in board.of(piece, Color::White) {
-            let count = get_attacks(square, piece, occupancies).count() as usize;
+            let count = get_attacks(square, piece, board.occupancies()).count() as usize;
             let (mg_inc, eg_inc) = MOBILITY[piece][count];
             mg += mg_inc;
             eg += eg_inc;
         }
 
         for square in board.of(piece, Color::Black) {
-            let count = get_attacks(square, piece, occupancies).count() as usize;
+            let count = get_attacks(square, piece, board.occupancies()).count() as usize;
             let (mg_inc, eg_inc) = MOBILITY[piece][count];
             mg -= mg_inc;
             eg -= eg_inc;

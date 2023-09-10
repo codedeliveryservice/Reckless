@@ -70,6 +70,11 @@ impl Board {
         self.state.pieces[piece]
     }
 
+    /// Returns a `Bitboard` for all pieces on the board.
+    pub fn occupancies(&self) -> Bitboard {
+        self.colors(Color::White) | self.colors(Color::Black)
+    }
+
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
     pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
         self.pieces(piece) & self.colors(color)
@@ -164,15 +169,13 @@ impl Board {
     pub fn is_square_attacked(&self, square: Square, color: Color) -> bool {
         use crate::lookup;
 
-        let occupancies = self.them() | self.us();
-
         let bishop_queen = self.pieces(Piece::Bishop) | self.pieces(Piece::Queen);
         let rook_queen = self.pieces(Piece::Rook) | self.pieces(Piece::Queen);
 
         let possible_attackers = (lookup::king_attacks(square) & self.pieces(Piece::King))
             | (lookup::knight_attacks(square) & self.pieces(Piece::Knight))
-            | (lookup::bishop_attacks(square, occupancies) & bishop_queen)
-            | (lookup::rook_attacks(square, occupancies) & rook_queen)
+            | (lookup::bishop_attacks(square, self.occupancies()) & bishop_queen)
+            | (lookup::rook_attacks(square, self.occupancies()) & rook_queen)
             | (lookup::pawn_attacks(square, !color) & self.pieces(Piece::Pawn));
 
         (possible_attackers & self.colors(color)).is_not_empty()

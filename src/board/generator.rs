@@ -24,7 +24,7 @@ impl<'a> Generator<'a> {
             board,
             state: &board.state,
             turn: board.turn,
-            all: board.us() | board.them(),
+            all: board.occupancies(),
             us: board.us(),
             them: board.them(),
             list: MoveList::new(),
