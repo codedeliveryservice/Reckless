@@ -81,9 +81,8 @@ impl Board {
         self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
         self.turn = !self.turn;
 
-        // The move is considered illegal if it exposes the king to an attack after it has been made
         let king = self.their(Piece::King).pop().unwrap();
-        if self.is_square_attacked(king, self.turn) {
+        if self.is_square_attacked(king, !self.turn) {
             self.undo_move();
             return Err(IllegalMoveError);
         }

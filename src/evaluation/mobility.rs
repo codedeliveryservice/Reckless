@@ -1,5 +1,5 @@
-use crate::types::{Bitboard, Color, Piece, Square};
-use crate::{board::Board, lookup};
+use crate::board::Board;
+use crate::types::{Color, Piece};
 
 #[rustfmt::skip]
 const MOBILITY: [&[(i32, i32)]; Piece::NUM] = [
@@ -35,14 +35,14 @@ pub fn evaluate(board: &Board) -> (i32, i32) {
 
     for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
         for square in board.of(piece, Color::White) {
-            let count = get_attacks(square, piece, board.occupancies()).count() as usize;
+            let count = board.get_attacks(square, piece).count() as usize;
             let (mg_inc, eg_inc) = MOBILITY[piece][count];
             mg += mg_inc;
             eg += eg_inc;
         }
 
         for square in board.of(piece, Color::Black) {
-            let count = get_attacks(square, piece, board.occupancies()).count() as usize;
+            let count = board.get_attacks(square, piece).count() as usize;
             let (mg_inc, eg_inc) = MOBILITY[piece][count];
             mg -= mg_inc;
             eg -= eg_inc;
@@ -50,14 +50,4 @@ pub fn evaluate(board: &Board) -> (i32, i32) {
     }
 
     (mg, eg)
-}
-
-fn get_attacks(square: Square, piece: Piece, occupancies: Bitboard) -> Bitboard {
-    match piece {
-        Piece::Knight => lookup::knight_attacks(square),
-        Piece::Bishop => lookup::bishop_attacks(square, occupancies),
-        Piece::Rook => lookup::rook_attacks(square, occupancies),
-        Piece::Queen => lookup::queen_attacks(square, occupancies),
-        _ => panic!("Invalid piece"),
-    }
 }
