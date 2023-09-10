@@ -6,17 +6,17 @@ use crate::types::{Move, Square};
 ///
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 pub struct HistoryMoves {
-    table: [[u32; Square::NUM]; Square::NUM],
+    table: [[i32; Square::NUM]; Square::NUM],
 }
 
 impl HistoryMoves {
     /// Increases the score of a move by the given depth.
     pub fn store(&mut self, mv: Move, depth: usize) {
-        self.table[mv.start()][mv.target()] += depth as u32 * depth as u32;
+        self.table[mv.start()][mv.target()] += depth as i32 * depth as i32;
     }
 
     /// Returns the score of a move.
-    pub fn get_score(&self, mv: Move) -> u32 {
+    pub fn get_score(&self, mv: Move) -> i32 {
         self.table[mv.start()][mv.target()]
     }
 }

@@ -27,7 +27,7 @@ impl MoveList {
         self.length += 1;
     }
 
-    pub fn next(&mut self, ordering: &mut [u32]) -> Option<Move> {
+    pub fn next(&mut self, ordering: &mut [i32]) -> Option<Move> {
         if self.length == 0 {
             return None;
         }

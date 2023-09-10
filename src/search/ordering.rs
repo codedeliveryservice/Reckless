@@ -14,12 +14,12 @@ pub enum OrderingStage {
 }
 
 impl<'a> AlphaBetaSearch<'a> {
-    const CACHE_MOVE: u32 = 3_000_000;
-    const MVV_LVA: u32 = 2_000_000;
-    const KILLERS: u32 = 1_000_000;
+    const CACHE_MOVE: i32 = 3_000_000;
+    const MVV_LVA: i32 = 2_000_000;
+    const KILLERS: i32 = 1_000_000;
 
     /// Builds the ordering of moves to be searched based on the given stages.
-    pub fn build_ordering(&self, stages: &[OrderingStage], moves: &MoveList, cache_move: Option<Move>) -> Vec<u32> {
+    pub fn build_ordering(&self, stages: &[OrderingStage], moves: &MoveList, cache_move: Option<Move>) -> Vec<i32> {
         let mut ordering = Vec::with_capacity(moves.length());
         for mv in moves.iter() {
             ordering.push(self.get_move_rating(mv, stages, cache_move));
@@ -28,7 +28,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Compute a rating for the specified move based on the given stages.
-    fn get_move_rating(&self, mv: Move, stages: &[OrderingStage], cache_move: Option<Move>) -> u32 {
+    fn get_move_rating(&self, mv: Move, stages: &[OrderingStage], cache_move: Option<Move>) -> i32 {
         for stage in stages {
             return match stage {
                 CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
@@ -42,10 +42,10 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.
-    pub(self) fn mvv_lva(&self, mv: Move) -> u32 {
+    pub(self) fn mvv_lva(&self, mv: Move) -> i32 {
         let attacker = self.board.get_piece(mv.start()).unwrap();
         // Handles en passant captures, assuming the victim is a pawn if the target is empty
         let victim = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
-        Self::MVV_LVA + victim as u32 * 10 - attacker as u32
+        Self::MVV_LVA + victim as i32 * 10 - attacker as i32
     }
 }
