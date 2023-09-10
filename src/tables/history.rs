@@ -14,7 +14,7 @@ impl HistoryMoves {
     pub fn get(&self, mv: Move) -> i32 {
         self.table[mv.start()][mv.target()]
     }
-    
+
     /// Increases the score of a move by the given depth.
     pub fn update(&mut self, mv: Move, depth: usize) {
         self.table[mv.start()][mv.target()] += depth as i32 * depth as i32;

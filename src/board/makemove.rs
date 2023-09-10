@@ -1,4 +1,4 @@
-use super::{Board, SIDE_KEY, CASTLING_KEYS, EN_PASSANT_KEYS};
+use super::{Board, CASTLING_KEYS, EN_PASSANT_KEYS, SIDE_KEY};
 use crate::types::{Move, MoveKind, Piece, Square};
 
 #[derive(Debug, Clone, Copy)]
