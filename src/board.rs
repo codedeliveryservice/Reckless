@@ -13,9 +13,6 @@ mod makemove;
 // The Zobrist hash keys are generated at compile time and stored in the `zobrist.rs` file.
 include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
 
-/// The maximum number of plies that can occur in a game.
-pub const MAX_GAME_PLIES: usize = 1024;
-
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
 /// suitable for copying when making/undoing moves.

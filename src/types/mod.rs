@@ -15,3 +15,6 @@ pub use move_list::*;
 pub use moves::*;
 pub use piece::*;
 pub use square::*;
+
+/// The maximum number of plies that can occur in a game.
+pub const MAX_GAME_PLIES: usize = 1024;
