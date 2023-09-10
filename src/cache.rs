@@ -1,4 +1,4 @@
-use crate::types::{Move, Score};
+use crate::{evaluation::CHECKMATE_BOUND, types::Move};
 
 pub const DEFAULT_CACHE_SIZE: usize = 16;
 pub const MAX_CACHE_SIZE: usize = 512;
@@ -72,14 +72,14 @@ pub enum Bound {
 pub struct CacheEntry {
     pub hash: u64,
     pub depth: u8,
-    pub score: Score,
+    pub score: i32,
     pub bound: Bound,
     pub mv: Move,
 }
 
 impl CacheEntry {
     /// Creates a new `CacheEntry`.
-    pub fn new(hash: u64, depth: usize, score: Score, bound: Bound, mv: Move) -> Self {
+    pub fn new(hash: u64, depth: usize, score: i32, bound: Bound, mv: Move) -> Self {
         Self {
             depth: depth as u8,
             hash,
@@ -93,10 +93,10 @@ impl CacheEntry {
     ///
     /// This is used to ensure that the mating score is always the same distance from the root.
     pub fn adjust_mating_score(&mut self, adjustment: i32) {
-        if self.score.is_mating() {
-            self.score.0 += adjustment;
-        } else if self.score.is_getting_mated() {
-            self.score.0 -= adjustment;
+        if self.score > CHECKMATE_BOUND {
+            self.score += adjustment;
+        } else if self.score < -CHECKMATE_BOUND {
+            self.score -= adjustment;
         }
     }
 }

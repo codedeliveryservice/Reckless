@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use super::{alphabeta::AlphaBetaSearch, ordering::QUIESCENCE_STAGES};
-use crate::{evaluation, types::Score};
+use crate::evaluation::{evaluate_relative_score, INVALID};
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -10,14 +10,14 @@ impl<'a> AlphaBetaSearch<'a> {
     ///
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
-    pub fn quiescence_search(&mut self, mut alpha: Score, beta: Score) -> Score {
+    pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> i32 {
         self.thread.nodes += 1;
 
         if self.thread.get_terminator() {
-            return Score::INVALID;
+            return INVALID;
         }
 
-        let static_score = evaluation::evaluate_relative_score(self.board);
+        let static_score = evaluate_relative_score(self.board);
         alpha = max(alpha, static_score);
 
         if alpha >= beta {

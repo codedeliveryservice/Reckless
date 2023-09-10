@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Score, Square};
+use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square};
 
 use self::evaluation::Evaluation;
 
@@ -126,7 +126,7 @@ impl Board {
 
     /// Returns an incrementally updated scores for both middle game and endgame
     /// phases based on the piece-square tables.
-    pub const fn psq_score(&self) -> (Score, Score) {
+    pub const fn psq_score(&self) -> (i32, i32) {
         self.state.evaluation.score()
     }
 

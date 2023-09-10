@@ -1,20 +1,25 @@
 use crate::board::Board;
-use crate::types::{Color, Piece, Score};
+use crate::types::{Color, Piece};
 
 mod material;
 mod mobility;
 
-/// The phase weights for each piece type.
-const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
-/// The maximum reachable phase value (all pieces on the board).
-const MAX_PHASE: i32 = 24;
+pub const DRAW: i32 = 0;
+pub const INVALID: i32 = 0;
 
-/// Returns a statically evaluated `Score` relative to the white side,
+pub const INFINITY: i32 = 50000;
+pub const CHECKMATE: i32 = 48000;
+pub const CHECKMATE_BOUND: i32 = 47500;
+
+const MAX_PHASE: i32 = 24;
+const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
+
+/// Returns a statically evaluated `i32` relative to the white side,
 /// regardless of the color of the player who is currently making a move.
 ///
 /// Positive values indicate an advantage for white, negative values
 /// indicate an advantage for black.
-pub fn evaluate_absolute_score(board: &Board) -> Score {
+pub fn evaluate_absolute_score(board: &Board) -> i32 {
     let (mg_psq, eg_psq) = board.psq_score();
     let (mg_material, eg_material) = material::evaluate(board);
     let (mg_mobility, eg_mobility) = mobility::evaluate(board);
@@ -25,13 +30,23 @@ pub fn evaluate_absolute_score(board: &Board) -> Score {
     interpolate_score(board, mg_score, eg_score)
 }
 
-/// Returns a statically evaluated `Score` relative to the color
+/// Returns a statically evaluated `i32` relative to the color
 /// of the player who is currently making a move.
-pub fn evaluate_relative_score(board: &Board) -> Score {
+pub fn evaluate_relative_score(board: &Board) -> i32 {
     match board.turn {
         Color::White => evaluate_absolute_score(board),
         Color::Black => -evaluate_absolute_score(board),
     }
+}
+
+pub fn checkmate_in(score: i32) -> Option<i32> {
+    if score > CHECKMATE_BOUND {
+        return Some((CHECKMATE - score + 1) / 2);
+    }
+    if score < -CHECKMATE_BOUND {
+        return Some((-CHECKMATE - score) / 2);
+    }
+    None
 }
 
 /// Returns a `String` containing a human-readable representation of the evaluation.
@@ -61,18 +76,15 @@ pub fn evaluate_debug(board: &Board) -> String {
 }
 
 /// Formats the scores and appends them to the result string.
-fn format_score(result: &mut String, board: &Board, term: &str, mg: Score, eg: Score) {
-    result.push_str(&format!(
-        "{:>11} | {:>6.2} {:>6.2} {:>6.2}\n",
-        term,
-        mg.0 as f64 / 100.0,
-        eg.0 as f64 / 100.0,
-        interpolate_score(board, mg, eg).0 as f64 / 100.0,
-    ));
+fn format_score(result: &mut String, board: &Board, term: &str, mg: i32, eg: i32) {
+    let total = interpolate_score(board, mg, eg) as f64 / 100.0;
+    let mg = mg as f64 / 100.0;
+    let eg = eg as f64 / 100.0;
+    result.push_str(&format!("{term:>11} | {mg:>6.2} {eg:>6.2} {total:>6.2}\n"));
 }
 
 /// Interpolates the midgame and endgame scores based on the current phase of the game.
-fn interpolate_score(board: &Board, mg_score: Score, eg_score: Score) -> Score {
+fn interpolate_score(board: &Board, mg_score: i32, eg_score: i32) -> i32 {
     let phase = get_phase(board);
     (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE
 }

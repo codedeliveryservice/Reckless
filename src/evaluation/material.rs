@@ -1,11 +1,11 @@
 use crate::board::Board;
-use crate::types::{Color, Piece, Score};
+use crate::types::{Color, Piece};
 
 #[rustfmt::skip]
 const MATERIAL: [(i32, i32); Piece::NUM - 1] = [(73, 184), (308, 364), (330, 412), (417, 717), (940, 1289)];
 
 /// Evaluates the material difference between the two players in favor of `Color::White`.
-pub fn evaluate(board: &Board) -> (Score, Score) {
+pub fn evaluate(board: &Board) -> (i32, i32) {
     let mut mg = 0;
     let mut eg = 0;
 
@@ -17,5 +17,5 @@ pub fn evaluate(board: &Board) -> (Score, Score) {
         eg += count * eg_value;
     }
 
-    (Score(mg), Score(eg))
+    (mg, eg)
 }

@@ -1,6 +1,7 @@
 use std::time::Instant;
 
-use crate::types::{Move, Score};
+use crate::evaluation::{INFINITY, checkmate_in};
+use crate::types::Move;
 use crate::{board::Board, search::alphabeta::AlphaBetaSearch};
 
 pub use self::thread::SearchThread;
@@ -12,7 +13,7 @@ mod ordering;
 mod quiescence;
 mod thread;
 
-const ASPIRATION_WINDOW_MARGIN: Score = Score(50);
+const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
 /// Iterative deepening is a search algorithm that incrementally explores deeper levels of
 /// the search space by iteratively calling a depth-limited version of the depth-first search.
@@ -27,8 +28,8 @@ const ASPIRATION_WINDOW_MARGIN: Score = Score(50);
 pub struct IterativeSearch {
     board: Board,
     thread: SearchThread,
-    alpha: Score,
-    beta: Score,
+    alpha: i32,
+    beta: i32,
 }
 
 impl IterativeSearch {
@@ -37,8 +38,8 @@ impl IterativeSearch {
         Self {
             board,
             thread,
-            alpha: -Score::INFINITY,
-            beta: Score::INFINITY,
+            alpha: -INFINITY,
+            beta: INFINITY,
         }
     }
 
@@ -77,30 +78,30 @@ impl IterativeSearch {
     }
 
     /// Returns `true` if the given score is within the aspiration window.
-    fn is_score_within_bounds(&self, score: Score) -> bool {
+    fn is_score_within_bounds(&self, score: i32) -> bool {
         self.alpha < score && score < self.beta
     }
 
     /// Updates the aspiration window to be centered around the given score.
-    fn update_aspiration_window(&mut self, score: Score) {
+    fn update_aspiration_window(&mut self, score: i32) {
         self.alpha = score - ASPIRATION_WINDOW_MARGIN;
         self.beta = score + ASPIRATION_WINDOW_MARGIN;
     }
 
     /// Resets the aspiration window to its default values (unbounded).
     fn reset_aspiration_window(&mut self) {
-        self.alpha = -Score::INFINITY;
-        self.beta = Score::INFINITY;
+        self.alpha = -INFINITY;
+        self.beta = INFINITY;
     }
 
     /// Reports the result of a search iteration using the `info` UCI command.
-    fn report_search_result(&self, depth: usize, score: Score, pv: &[Move], stopwatch: Instant) {
+    fn report_search_result(&self, depth: usize, score: i32, pv: &[Move], stopwatch: Instant) {
         let nodes = self.thread.nodes;
         let nps = nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.thread.cache.lock().unwrap().get_load_factor();
-        let score = match score.checkmate_in() {
+        let score = match checkmate_in(score) {
             Some(moves) => format!("mate {moves}"),
             None => format!("cp {score}"),
         };

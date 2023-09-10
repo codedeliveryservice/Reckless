@@ -1,8 +1,8 @@
 use super::{history_moves::HistoryMoves, killer_moves::KillerMoves};
 use super::{ordering::ALPHABETA_STAGES, thread::SearchThread};
-use crate::board::Board;
 use crate::cache::{Bound, CacheEntry};
-use crate::types::{Move, Score};
+use crate::evaluation::{CHECKMATE, DRAW, INVALID};
+use crate::{board::Board, types::Move};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
 pub struct AlphaBetaSearch<'a> {
@@ -24,7 +24,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn search(&mut self, alpha: Score, beta: Score, mut depth: usize) -> Score {
+    pub fn search(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
         if let Some(score) = self.should_interrupt_search() {
             return score;
@@ -32,7 +32,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
         // Draw detection, excluding the root node to ensure a valid move is returned
         if !self.root() && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
-            return Score::DRAW;
+            return DRAW;
         }
 
         // Check extensions: extend the search depth due to low branching and the possibility of
@@ -71,8 +71,8 @@ impl<'a> AlphaBetaSearch<'a> {
         self.search_moves(alpha, beta, depth, in_check, entry.map(|entry| entry.mv))
     }
 
-    fn search_moves(&mut self, mut alpha: Score, beta: Score, depth: usize, in_check: bool, cache_move: Option<Move>) -> Score {
-        let mut best_score = -Score::INFINITY;
+    fn search_moves(&mut self, mut alpha: i32, beta: i32, depth: usize, in_check: bool, cache_move: Option<Move>) -> i32 {
+        let mut best_score = i32::MIN;
         let mut best_move = Move::default();
         let mut bound = Bound::Upper;
 
@@ -126,7 +126,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search(&mut self, alpha: Score, beta: Score, depth: usize, reduction: usize, moves_played: usize) -> Score {
+    fn principle_variation_search(&mut self, alpha: i32, beta: i32, depth: usize, reduction: usize, moves_played: usize) -> i32 {
         // The first move is likely to be the best, so it's searched with a full window
         if moves_played == 0 {
             return -self.search(-beta, -alpha, depth - 1);
@@ -149,7 +149,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Checks if the search should be interrupted.
-    fn should_interrupt_search(&mut self) -> Option<Score> {
+    fn should_interrupt_search(&mut self) -> Option<i32> {
         // Ensure a valid move is returned by completing at least one iteration of iterative deepening
         if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {
             return None;
@@ -157,12 +157,12 @@ impl<'a> AlphaBetaSearch<'a> {
 
         self.thread.is_time_over().then(|| {
             self.thread.set_terminator(true);
-            Score::INVALID
+            INVALID
         })
     }
 
     /// Provides a score for a transposition table cutoff, if applicable.
-    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: Score, beta: Score, depth: usize) -> Option<Score> {
+    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: usize) -> Option<i32> {
         if entry.depth < depth as u8 {
             return None;
         }
@@ -181,7 +181,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Writes a new cache entry to the transposition table.
-    fn write_cache_entry(&mut self, depth: usize, score: Score, bound: Bound, best: Move) {
+    fn write_cache_entry(&mut self, depth: usize, score: i32, bound: Bound, best: Move) {
         // Cache only if search was completed to avoid storing potentially invalid results
         if !self.thread.get_terminator() {
             let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
@@ -195,11 +195,11 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Calculates the final score in case of a checkmate or stalemate.
-    fn final_score(&mut self, in_check: bool) -> Score {
+    fn final_score(&mut self, in_check: bool) -> i32 {
         if in_check {
-            -Score::CHECKMATE + self.board.ply as i32
+            -CHECKMATE + self.board.ply as i32
         } else {
-            Score::DRAW
+            DRAW
         }
     }
 }

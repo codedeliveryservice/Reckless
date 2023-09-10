@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Color, Piece, Score, Square};
+use crate::types::{Bitboard, Color, Piece, Square};
 use crate::{board::Board, lookup};
 
 #[rustfmt::skip]
@@ -30,7 +30,7 @@ const MOBILITY: [&[(i32, i32)]; Piece::NUM] = [
 ///
 /// The player's mobility depends on the number of squares that their pieces can move to.
 /// It can also be thought of as a square control.
-pub fn evaluate(board: &Board) -> (Score, Score) {
+pub fn evaluate(board: &Board) -> (i32, i32) {
     let occupancies = board.them() | board.us();
     let (mut mg, mut eg) = (0, 0);
 
@@ -50,7 +50,7 @@ pub fn evaluate(board: &Board) -> (Score, Score) {
         }
     }
 
-    (Score(mg), Score(eg))
+    (mg, eg)
 }
 
 fn get_attacks(square: Square, piece: Piece, occupancies: Bitboard) -> Bitboard {
