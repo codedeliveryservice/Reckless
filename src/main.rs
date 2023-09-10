@@ -8,7 +8,7 @@ mod lookup;
 mod perft;
 mod search;
 mod tables;
-mod time_control;
+mod timeman;
 mod types;
 mod uci;
 

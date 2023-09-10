@@ -12,10 +12,7 @@ pub struct AlphaBetaSearch<'a> {
 impl<'a> AlphaBetaSearch<'a> {
     /// Creates a new `AlphaBetaSearch` instance.
     pub fn new(board: &'a mut Board, thread: &'a mut SearchThread) -> Self {
-        Self {
-            board,
-            thread,
-        }
+        Self { board, thread }
     }
 
     /// Performs an alpha-beta search in a fail-soft environment.
@@ -150,7 +147,7 @@ impl<'a> AlphaBetaSearch<'a> {
             return None;
         }
 
-        self.thread.is_time_over().then(|| {
+        self.thread.time_manager.is_time_over().then(|| {
             self.thread.set_terminator(true);
             INVALID
         })

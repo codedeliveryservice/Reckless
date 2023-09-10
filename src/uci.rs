@@ -1,6 +1,6 @@
 use crate::cache::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
 use crate::types::Color;
-use crate::{board::Board, engine::Engine, time_control::TimeControl};
+use crate::{board::Board, engine::Engine, timeman::Limits};
 
 pub fn execute(engine: &mut Engine, command: String) {
     let tokens = command.split_whitespace().collect::<Vec<_>>();
@@ -71,13 +71,13 @@ fn perft(engine: &mut Engine, depth: &str) {
 }
 
 fn go(engine: &mut Engine, tokens: &[&str]) {
-    let time_control = parse_time_control(engine.board.turn, tokens);
+    let time_control = parse_limits(engine.board.turn, tokens);
     engine.search(time_control);
 }
 
-fn parse_time_control(color: Color, tokens: &[&str]) -> TimeControl {
+fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     if let ["infinite"] = tokens {
-        return TimeControl::Infinite;
+        return Limits::Infinite;
     }
 
     let mut main = 0;
@@ -89,8 +89,8 @@ fn parse_time_control(color: Color, tokens: &[&str]) -> TimeControl {
             let value = value.parse().expect("Time control should be a number");
 
             match name {
-                "depth" => return TimeControl::FixedDepth(value as usize),
-                "movetime" => return TimeControl::FixedTime(value),
+                "depth" => return Limits::FixedDepth(value as usize),
+                "movetime" => return Limits::FixedTime(value),
 
                 "wtime" if Color::White == color => main = value,
                 "btime" if Color::Black == color => main = value,
@@ -106,13 +106,10 @@ fn parse_time_control(color: Color, tokens: &[&str]) -> TimeControl {
     }
 
     if main == 0 && inc == 0 {
-        return TimeControl::Infinite;
+        return Limits::Infinite;
     }
 
-    match moves {
-        Some(moves) => TimeControl::Tournament(main, inc, moves),
-        None => TimeControl::Incremental(main, inc),
-    }
+    Limits::Tournament(main, inc, moves)
 }
 
 #[cfg(test)]
@@ -124,17 +121,17 @@ mod tests {
             #[test]
             fn $name() {
                 let tokens = $input.split_whitespace().collect::<Vec<_>>();
-                assert_eq!(parse_time_control(Color::White, &tokens), $expected);
+                assert_eq!(parse_limits(Color::White, &tokens), $expected);
             }
         )*};
     }
 
     assert_time_control!(
-        tc_infinite: "infinite", TimeControl::Infinite,
-        tc_fixed_time: "movetime 5000", TimeControl::FixedTime(5000),
-        tc_fixed_depth: "depth 10", TimeControl::FixedDepth(10),
-        tc_increment: "winc 750 binc 900", TimeControl::Incremental(0, 750),
-        tc_tournament: "wtime 750 winc 900 movestogo 12", TimeControl::Tournament(750, 900, 12),
-        tc_invalid: "invalid", TimeControl::Infinite,
+        tc_infinite: "infinite", Limits::Infinite,
+        tc_fixed_time: "movetime 5000", Limits::FixedTime(5000),
+        tc_fixed_depth: "depth 10", Limits::FixedDepth(10),
+        tc_increment: "winc 750 binc 900", Limits::Tournament(0, 750, None),
+        tc_tournament: "wtime 750 winc 900 movestogo 12", Limits::Tournament(750, 900, Some(12)),
+        tc_invalid: "invalid", Limits::Infinite,
     );
 }

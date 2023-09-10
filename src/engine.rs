@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::search::{IterativeSearch, SearchThread};
-use crate::{board::Board, cache::Cache, evaluation, perft::run_perft, time_control::TimeControl};
+use crate::{board::Board, cache::Cache, evaluation, perft::run_perft, timeman::Limits};
 
 pub struct Engine {
     pub board: Board,
@@ -52,7 +52,7 @@ impl Engine {
     }
 
     /// Runs an iterative deepening search on a separate thread.
-    pub fn search(&mut self, time_control: TimeControl) {
+    pub fn search(&mut self, limits: Limits) {
         self.write_terminator(false);
 
         let board = self.board.clone();
@@ -60,7 +60,7 @@ impl Engine {
         let cache = self.cache.clone();
 
         thread::spawn(move || {
-            let thread = SearchThread::new(time_control, terminator, cache);
+            let thread = SearchThread::new(limits, terminator, cache);
             IterativeSearch::new(board, thread).search();
         });
     }

@@ -1,30 +1,28 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
 
 use crate::tables::{HistoryMoves, KillerMoves};
-use crate::{board::Board, cache::Cache, time_control::TimeControl, types::Move};
+use crate::timeman::{Limits, TimeManager};
+use crate::{board::Board, cache::Cache, types::Move};
 
 pub struct SearchThread {
-    pub tc: TimeControl,
+    pub time_manager: TimeManager,
     pub terminator: Arc<AtomicBool>,
     pub cache: Arc<Mutex<Cache>>,
     pub killers: KillerMoves,
     pub history: HistoryMoves,
-    pub start_time: Instant,
     pub nodes: u32,
     pub current_depth: usize,
 }
 
 impl SearchThread {
-    pub fn new(tc: TimeControl, terminator: Arc<AtomicBool>, cache: Arc<Mutex<Cache>>) -> Self {
+    pub fn new(limits: Limits, terminator: Arc<AtomicBool>, cache: Arc<Mutex<Cache>>) -> Self {
         Self {
-            tc,
+            time_manager: TimeManager::new(limits),
             terminator,
             cache,
             killers: KillerMoves::default(),
             history: HistoryMoves::default(),
-            start_time: Instant::now(),
             nodes: Default::default(),
             current_depth: Default::default(),
         }
@@ -56,9 +54,5 @@ impl SearchThread {
 
     pub fn set_terminator(&mut self, value: bool) {
         self.terminator.store(value, Ordering::Relaxed);
-    }
-
-    pub fn is_time_over(&self) -> bool {
-        self.tc.is_time_over(self.start_time.elapsed())
     }
 }

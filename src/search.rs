@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::evaluation::{INFINITY, checkmate_in};
+use crate::evaluation::{checkmate_in, INFINITY};
 use crate::types::Move;
 use crate::{board::Board, search::alphabeta::AlphaBetaSearch};
 
@@ -46,7 +46,7 @@ impl IterativeSearch {
         let mut last_best = Move::default();
         let mut depth = 1;
 
-        while depth <= self.thread.tc.get_max_depth() {
+        while depth <= self.thread.time_manager.get_max_depth() {
             self.board.ply = 0;
             self.thread.nodes = 0;
             self.thread.current_depth = depth;
