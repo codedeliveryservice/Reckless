@@ -11,7 +11,8 @@ impl<'a> AlphaBetaSearch<'a> {
     /// See [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
     /// for more information.
     pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> i32 {
-        self.thread.nodes += 1;
+        self.nodes += 1;
+        self.sel_depth = self.sel_depth.max(self.board.ply);
 
         if self.thread.get_terminator() {
             return INVALID;

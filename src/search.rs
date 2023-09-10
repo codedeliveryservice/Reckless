@@ -1,15 +1,13 @@
 use std::time::Instant;
 
+use self::alphabeta::{run_search, SearchResult};
 use crate::evaluation::{checkmate_in, INFINITY};
 use crate::types::Move;
-use crate::{board::Board, search::alphabeta::AlphaBetaSearch};
-
-pub use self::thread::SearchThread;
+use crate::{board::Board, search::alphabeta::AlphaBetaSearch, thread::SearchThread};
 
 mod alphabeta;
 mod ordering;
 mod quiescence;
-mod thread;
 
 const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
@@ -47,28 +45,22 @@ impl IterativeSearch {
         let mut depth = 1;
 
         while depth <= self.thread.time_manager.get_max_depth() {
-            self.board.ply = 0;
-            self.thread.nodes = 0;
-            self.thread.current_depth = depth;
-
             let stopwatch = Instant::now();
-            let score = AlphaBetaSearch::new(&mut self.board, &mut self.thread).search(self.alpha, self.beta, depth);
+            let result = run_search(&mut self.board, &mut self.thread, self.alpha, self.beta, depth);
 
             if self.thread.get_terminator() {
                 break;
             }
 
-            if !self.is_score_within_bounds(score) {
+            if !self.is_score_within_bounds(result.score) {
                 self.reset_aspiration_window();
                 continue;
             }
 
-            self.update_aspiration_window(score);
+            self.update_aspiration_window(result.score);
+            self.report_search_result(depth, result, stopwatch);
 
-            let pv = self.thread.get_principal_variation(&mut self.board, depth);
-            self.report_search_result(depth, score, &pv, stopwatch);
-
-            last_best = pv[0];
+            last_best = self.thread.get_best_move(&self.board).unwrap();
             depth += 1;
         }
 
@@ -93,21 +85,22 @@ impl IterativeSearch {
     }
 
     /// Reports the result of a search iteration using the `info` UCI command.
-    fn report_search_result(&self, depth: usize, score: i32, pv: &[Move], stopwatch: Instant) {
-        let nodes = self.thread.nodes;
-        let nps = nodes as f32 / stopwatch.elapsed().as_secs_f32();
+    fn report_search_result(&mut self, depth: usize, result: SearchResult, stopwatch: Instant) {
+        let nps = result.nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.thread.cache.lock().unwrap().get_load_factor();
-        let score = match checkmate_in(score) {
+        let score = match checkmate_in(result.score) {
             Some(moves) => format!("mate {moves}"),
-            None => format!("cp {score}"),
+            None => format!("cp {}", result.score),
         };
 
-        print!("info depth {depth} score {score} nodes {nodes} time {ms} nps {nps:.0} hashfull {hashfull} pv");
-        for mv in pv {
-            print!(" {mv}");
-        }
-        println!();
+        let pv = self.thread.get_principal_variation(&mut self.board, depth);
+        let pv = pv.iter().map(|mv| format!("{} ", mv)).collect::<String>();
+
+        println!(
+            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv {pv}",
+            result.sel_depth, result.nodes,
+        );
     }
 }

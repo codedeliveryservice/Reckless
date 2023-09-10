@@ -5,41 +5,38 @@ use crate::tables::{HistoryMoves, KillerMoves};
 use crate::timeman::{Limits, TimeManager};
 use crate::{board::Board, cache::Cache, types::Move};
 
+/// Search-related data that is shared between iterations of the iterative deepening search.
 pub struct SearchThread {
-    pub time_manager: TimeManager,
-    pub terminator: Arc<AtomicBool>,
     pub cache: Arc<Mutex<Cache>>,
+    pub terminator: Arc<AtomicBool>,
+    pub time_manager: TimeManager,
     pub killers: KillerMoves,
     pub history: HistoryMoves,
-    pub nodes: u32,
-    pub current_depth: usize,
 }
 
 impl SearchThread {
+    /// Creates a new `SearchThread` instance.
     pub fn new(limits: Limits, terminator: Arc<AtomicBool>, cache: Arc<Mutex<Cache>>) -> Self {
         Self {
-            time_manager: TimeManager::new(limits),
-            terminator,
             cache,
+            terminator,
+            time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
             history: HistoryMoves::default(),
-            nodes: Default::default(),
-            current_depth: Default::default(),
         }
     }
 
-    /// Extract the principal variation line from the transposition table limited to the given depth.
-    pub fn get_principal_variation(&self, board: &mut Board, depth: usize) -> Vec<Move> {
+    /// Extracts the principal variation line from the transposition table limited to the given depth.
+    pub fn get_principal_variation(&self, board: &mut Board, mut depth: usize) -> Vec<Move> {
         let mut pv_line = Vec::with_capacity(depth);
-        let mut current_depth = depth;
 
         let cache = self.cache.lock().unwrap();
-        while let Some(entry) = cache.read(board.hash(), 0) {
-            pv_line.push(entry.mv);
-            board.make_move(entry.mv).unwrap();
-
-            current_depth -= 1;
-            if current_depth == 0 {
+        while depth != 0 {
+            if let Some(entry) = cache.read(board.hash(), 0) {
+                pv_line.push(entry.mv);
+                board.make_move(entry.mv).unwrap();
+                depth -= 1;
+            } else {
                 break;
             }
         }
@@ -48,10 +45,17 @@ impl SearchThread {
         pv_line
     }
 
+    /// Extracts the best move from the transposition table.
+    pub fn get_best_move(&self, board: &Board) -> Option<Move> {
+        self.cache.lock().unwrap().read(board.hash(), 0).map(|entry| entry.mv)
+    }
+
+    /// Returns `true` if the search has been terminated.
     pub fn get_terminator(&self) -> bool {
         self.terminator.load(Ordering::Relaxed)
     }
 
+    /// Sets the search termination flag.
     pub fn set_terminator(&mut self, value: bool) {
         self.terminator.store(value, Ordering::Relaxed);
     }

@@ -8,6 +8,7 @@ mod lookup;
 mod perft;
 mod search;
 mod tables;
+mod thread;
 mod timeman;
 mod types;
 mod uci;

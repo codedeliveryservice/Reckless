@@ -2,8 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::search::{IterativeSearch, SearchThread};
-use crate::{board::Board, cache::Cache, evaluation, perft::run_perft, timeman::Limits};
+use crate::{board::Board, cache::Cache, search::IterativeSearch, thread::SearchThread, timeman::Limits};
+use crate::{evaluation::evaluate_debug, perft::run_perft};
 
 pub struct Engine {
     pub board: Board,
@@ -72,7 +72,7 @@ impl Engine {
 
     /// Statically evaluates the current position and sends a UCI report.
     pub fn evaluate(&self) {
-        println!("{}", evaluation::evaluate_debug(&self.board));
+        println!("{}", evaluate_debug(&self.board));
     }
 
     /// Sets the state of the terminator. If set to `true`, the current search will

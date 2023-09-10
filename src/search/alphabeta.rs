@@ -1,25 +1,52 @@
-use super::{ordering::ALPHABETA_STAGES, thread::SearchThread};
+use super::ordering::ALPHABETA_STAGES;
 use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::{CHECKMATE, DRAW, INVALID};
-use crate::{board::Board, types::Move};
+use crate::{board::Board, thread::SearchThread, types::Move};
+
+/// The result of an alpha-beta search.
+pub struct SearchResult {
+    /// The score of the best move.
+    pub score: i32,
+    /// The number of nodes searched.
+    pub nodes: u32,
+    /// The maximum depth reached during the search.
+    pub sel_depth: usize,
+}
+
+/// Performs an alpha-beta search with a given depth.
+pub fn run_search(board: &mut Board, thread: &mut SearchThread, alpha: i32, beta: i32, depth: usize) -> SearchResult {
+    board.ply = 0;
+
+    let mut searcher = AlphaBetaSearch {
+        board,
+        thread,
+        max_depth: depth,
+        sel_depth: 0,
+        nodes: 0,
+    };
+
+    SearchResult {
+        score: searcher.search(alpha, beta, depth),
+        nodes: searcher.nodes,
+        sel_depth: searcher.sel_depth,
+    }
+}
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
-pub struct AlphaBetaSearch<'a> {
-    pub(super) board: &'a mut Board,
-    pub(super) thread: &'a mut SearchThread,
+pub(in crate::search) struct AlphaBetaSearch<'a> {
+    pub board: &'a mut Board,
+    pub thread: &'a mut SearchThread,
+    pub max_depth: usize,
+    pub sel_depth: usize,
+    pub nodes: u32,
 }
 
 impl<'a> AlphaBetaSearch<'a> {
-    /// Creates a new `AlphaBetaSearch` instance.
-    pub fn new(board: &'a mut Board, thread: &'a mut SearchThread) -> Self {
-        Self { board, thread }
-    }
-
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn search(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
-        if let Some(score) = self.should_interrupt_search() {
-            return score;
+        if self.should_interrupt_search() {
+            return INVALID;
         }
 
         // Draw detection, excluding the root node to ensure a valid move is returned
@@ -38,7 +65,8 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         // Update UCI statistics after the quiescence search to avoid counting the same node twice
-        self.thread.nodes += 1;
+        self.nodes += 1;
+        self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Transposition table lookup and potential cutoff
         let entry = self.read_cache_entry();
@@ -141,16 +169,13 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Checks if the search should be interrupted.
-    fn should_interrupt_search(&mut self) -> Option<i32> {
+    fn should_interrupt_search(&mut self) -> bool {
         // Ensure a valid move is returned by completing at least one iteration of iterative deepening
-        if self.thread.nodes % 4096 != 0 || self.thread.current_depth < 2 {
-            return None;
-        }
-
-        self.thread.time_manager.is_time_over().then(|| {
+        if self.nodes % 4096 == 0 && self.max_depth >= 2 && self.thread.time_manager.is_time_over() {
             self.thread.set_terminator(true);
-            INVALID
-        })
+            return true;
+        }
+        false
     }
 
     /// Provides a score for a transposition table cutoff, if applicable.
