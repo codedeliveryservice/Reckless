@@ -18,12 +18,6 @@ impl Color {
     }
 }
 
-impl Default for Color {
-    fn default() -> Self {
-        Self::White
-    }
-}
-
 impl std::ops::Not for Color {
     type Output = Self;
 

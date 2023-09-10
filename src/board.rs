@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square};
+use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square, MAX_GAME_PLIES};
 
 use self::evaluation::Evaluation;
 
@@ -30,13 +30,14 @@ struct InternalState {
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Board {
     pub turn: Color,
     pub ply: usize,
     state: InternalState,
-    state_stack: Vec<InternalState>,
-    move_stack: Vec<Move>,
+    state_stack: [InternalState; MAX_GAME_PLIES],
+    move_stack: [Move; MAX_GAME_PLIES],
+    length: usize,
 }
 
 impl Board {
@@ -137,7 +138,7 @@ impl Board {
     ///
     /// This method does not count the number of encounters.
     pub fn is_repetition(&self) -> bool {
-        self.state_stack.iter().rev().any(|state| state.hash == self.hash())
+        self.state_stack[..self.length].iter().rev().any(|state| state.hash == self.hash())
     }
 
     /// Returns `true` if the position is a draw by the fifty-move rule.
@@ -147,7 +148,7 @@ impl Board {
 
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
-        self.move_stack.last() == Some(&Move::default())
+        self.length > 0 && self.move_stack[self.length - 1] == Move::default()
     }
 
     /// Returns `true` if the king of the current turn color is in check.
@@ -220,5 +221,18 @@ impl Board {
 
         hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
         hash
+    }
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self {
+            turn: Color::White,
+            ply: Default::default(),
+            state: Default::default(),
+            state_stack: [Default::default(); MAX_GAME_PLIES],
+            move_stack: [Default::default(); MAX_GAME_PLIES],
+            length: Default::default(),
+        }
     }
 }
