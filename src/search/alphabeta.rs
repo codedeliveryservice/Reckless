@@ -1,7 +1,7 @@
-use super::{history_moves::HistoryMoves, killer_moves::KillerMoves};
 use super::{ordering::ALPHABETA_STAGES, thread::SearchThread};
 use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::{CHECKMATE, DRAW, INVALID};
+use crate::tables::{HistoryMoves, KillerMoves};
 use crate::{board::Board, types::Move};
 
 /// Implementation of the negamax algorithm with alpha-beta pruning.
@@ -109,7 +109,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
                 if mv.is_quiet() {
                     self.killers.add(mv, self.board.ply);
-                    self.history.store(mv, depth);
+                    self.history.update(mv, depth);
                 }
 
                 break;

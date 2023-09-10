@@ -10,14 +10,14 @@ pub struct HistoryMoves {
 }
 
 impl HistoryMoves {
-    /// Increases the score of a move by the given depth.
-    pub fn store(&mut self, mv: Move, depth: usize) {
-        self.table[mv.start()][mv.target()] += depth as i32 * depth as i32;
-    }
-
     /// Returns the score of a move.
-    pub fn get_score(&self, mv: Move) -> i32 {
+    pub fn get(&self, mv: Move) -> i32 {
         self.table[mv.start()][mv.target()]
+    }
+    
+    /// Increases the score of a move by the given depth.
+    pub fn update(&mut self, mv: Move, depth: usize) {
+        self.table[mv.start()][mv.target()] += depth as i32 * depth as i32;
     }
 }
 

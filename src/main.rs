@@ -7,6 +7,7 @@ mod evaluation;
 mod lookup;
 mod perft;
 mod search;
+mod tables;
 mod time_control;
 mod types;
 mod uci;

@@ -7,8 +7,6 @@ use crate::{board::Board, search::alphabeta::AlphaBetaSearch};
 pub use self::thread::SearchThread;
 
 mod alphabeta;
-mod history_moves;
-mod killer_moves;
 mod ordering;
 mod quiescence;
 mod thread;

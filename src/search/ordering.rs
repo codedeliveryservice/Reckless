@@ -34,7 +34,7 @@ impl<'a> AlphaBetaSearch<'a> {
                 CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
                 MvvLva if mv.is_capture() => self.mvv_lva(mv),
                 Killer if self.killers.contains(mv, self.board.ply) => Self::KILLERS,
-                History => self.history.get_score(mv),
+                History => self.history.get(mv),
                 _ => continue,
             };
         }
