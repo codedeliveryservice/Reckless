@@ -86,7 +86,9 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
     for chunk in tokens.chunks(2) {
         if let [name, value] = *chunk {
-            let value = value.parse().expect("Time control should be a number");
+            let Ok(value) = value.parse() else {
+                continue;
+            };
 
             match name {
                 "depth" => return Limits::FixedDepth(value as usize),
