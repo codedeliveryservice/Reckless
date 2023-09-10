@@ -28,6 +28,8 @@ impl Square {
     pub const G8: Self = Self(62);
     pub const H8: Self = Self(63);
 
+    pub const NO_SQUARE: Self = Self(64);
+
     /// Returns a `Square` from file and rank coordinates.
     pub fn from_rank_file(rank: u8, file: u8) -> Self {
         assert!(rank < 8);

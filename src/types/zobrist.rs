@@ -24,13 +24,7 @@ impl Zobrist {
         self.0 ^= CASTLING_KEYS[castling.0 as usize];
     }
 
-    pub(crate) fn update_en_passant(&mut self, square: Option<Square>) {
-        if let Some(square) = square {
-            self.0 ^= EN_PASSANT_KEYS[square];
-        }
-    }
-
-    pub(crate) fn update_en_passant_square(&mut self, square: Square) {
+    pub(crate) fn update_en_passant(&mut self, square: Square) {
         self.0 ^= EN_PASSANT_KEYS[square];
     }
 }

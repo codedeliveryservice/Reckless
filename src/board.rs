@@ -21,7 +21,7 @@ pub const MAX_GAME_PLIES: usize = 1024;
 #[derive(Default, Clone, Copy)]
 struct InternalState {
     hash: Zobrist,
-    en_passant: Option<Square>,
+    en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
     pieces: [Bitboard; Piece::NUM],
@@ -199,8 +199,11 @@ impl Board {
             }
         }
 
-        hash.update_en_passant(self.state.en_passant);
         hash.update_castling(self.state.castling);
+
+        if self.state.en_passant != Square::NO_SQUARE {
+            hash.update_en_passant(self.state.en_passant);
+        }
 
         if self.turn == Color::White {
             hash.update_side();

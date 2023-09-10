@@ -14,8 +14,11 @@ impl Board {
 
         self.state.hash.update_side();
         self.state.hash.update_castling(self.state.castling);
-        self.state.hash.update_en_passant(self.state.en_passant);
-        self.state.en_passant = None;
+
+        if self.state.en_passant != Square::NO_SQUARE {
+            self.state.hash.update_en_passant(self.state.en_passant);
+            self.state.en_passant = Square::NO_SQUARE;
+        }
     }
 
     /// Updates the board representation by making the specified `Move`.
@@ -30,8 +33,11 @@ impl Board {
 
         self.state.hash.update_side();
         self.state.hash.update_castling(self.state.castling);
-        self.state.hash.update_en_passant(self.state.en_passant);
-        self.state.en_passant = None;
+
+        if self.state.en_passant != Square::NO_SQUARE {
+            self.state.hash.update_en_passant(self.state.en_passant);
+            self.state.en_passant = Square::NO_SQUARE;
+        }
 
         let start = mv.start();
         let target = mv.target();
@@ -52,9 +58,8 @@ impl Board {
 
         match mv.kind() {
             MoveKind::DoublePush => {
-                let square = (start + target) / 2;
-                self.state.hash.update_en_passant_square(square);
-                self.state.en_passant = Some(square);
+                self.state.en_passant = (start + target) / 2;
+                self.state.hash.update_en_passant(self.state.en_passant);
             }
             MoveKind::EnPassant => {
                 self.remove_piece(Piece::Pawn, !self.turn, target ^ 8);
