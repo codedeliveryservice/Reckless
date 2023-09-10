@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Score, Square, Zobrist};
+use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Score, Square};
 
 use self::evaluation::Evaluation;
 
@@ -10,6 +10,9 @@ mod fen;
 mod generator;
 mod makemove;
 
+// The Zobrist hash keys are generated at compile time and stored in the `zobrist.rs` file.
+include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
+
 /// The maximum number of plies that can occur in a game.
 pub const MAX_GAME_PLIES: usize = 1024;
 
@@ -20,7 +23,7 @@ pub const MAX_GAME_PLIES: usize = 1024;
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Default, Clone, Copy)]
 struct InternalState {
-    hash: Zobrist,
+    hash: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -55,8 +58,8 @@ impl Board {
         generator::Generator::new(self).generate()
     }
 
-    /// Returns the `Zobrist` hash key for the current position.
-    pub const fn hash(&self) -> Zobrist {
+    /// Returns the Zobrist hash key for the current position.
+    pub const fn hash(&self) -> u64 {
         self.state.hash
     }
 
@@ -109,16 +112,16 @@ impl Board {
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].set(square);
         self.state.colors[color as usize].set(square);
-        self.state.hash.update_piece(piece, color, square);
         self.state.evaluation.add_piece(piece, color, square);
+        self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
     /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].clear(square);
         self.state.colors[color as usize].clear(square);
-        self.state.hash.update_piece(piece, color, square);
         self.state.evaluation.remove_piece(piece, color, square);
+        self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
     /// Returns an incrementally updated scores for both middle game and endgame
@@ -184,31 +187,26 @@ impl Board {
     /// This method should only be used for the initial hash key generation.
     /// For further reference, use `self.hash_key` to get a key that is
     /// incrementally updated during the game due to performance considerations.
-    pub fn generate_hash_key(&self) -> Zobrist {
-        let mut hash = Zobrist::default();
+    pub fn generate_hash_key(&self) -> u64 {
+        let mut hash = 0;
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from(piece);
-
-            for square in self.of(piece, Color::White) {
-                hash.update_piece(piece, Color::White, square);
-            }
-
-            for square in self.of(piece, Color::Black) {
-                hash.update_piece(piece, Color::Black, square);
+            for color in [Color::White, Color::Black] {
+                for square in self.of(piece, color) {
+                    hash ^= PIECE_KEYS[color][piece][square];
+                }
             }
         }
-
-        hash.update_castling(self.state.castling);
 
         if self.state.en_passant != Square::NO_SQUARE {
-            hash.update_en_passant(self.state.en_passant);
+            hash ^= EN_PASSANT_KEYS[self.state.en_passant];
         }
-
         if self.turn == Color::White {
-            hash.update_side();
+            hash ^= SIDE_KEY;
         }
 
+        hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
         hash
     }
 }

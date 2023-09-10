@@ -1,4 +1,4 @@
-use super::Board;
+use super::{Board, SIDE_KEY, CASTLING_KEYS, EN_PASSANT_KEYS};
 use crate::types::{Move, MoveKind, Piece, Square};
 
 #[derive(Debug, Clone, Copy)]
@@ -12,11 +12,11 @@ impl Board {
         self.move_stack.push(Move::default());
         self.state_stack.push(self.state);
 
-        self.state.hash.update_side();
-        self.state.hash.update_castling(self.state.castling);
+        self.state.hash ^= SIDE_KEY;
+        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
 
         if self.state.en_passant != Square::NO_SQUARE {
-            self.state.hash.update_en_passant(self.state.en_passant);
+            self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             self.state.en_passant = Square::NO_SQUARE;
         }
     }
@@ -31,11 +31,11 @@ impl Board {
         self.move_stack.push(mv);
         self.state_stack.push(self.state);
 
-        self.state.hash.update_side();
-        self.state.hash.update_castling(self.state.castling);
+        self.state.hash ^= SIDE_KEY;
+        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
 
         if self.state.en_passant != Square::NO_SQUARE {
-            self.state.hash.update_en_passant(self.state.en_passant);
+            self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             self.state.en_passant = Square::NO_SQUARE;
         }
 
@@ -59,7 +59,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 self.state.en_passant = (start + target) / 2;
-                self.state.hash.update_en_passant(self.state.en_passant);
+                self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             }
             MoveKind::EnPassant => {
                 self.remove_piece(Piece::Pawn, !self.turn, target ^ 8);
@@ -78,7 +78,7 @@ impl Board {
 
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
-        self.state.hash.update_castling(self.state.castling);
+        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
         self.turn = !self.turn;
 
         // The move is considered illegal if it exposes the king to an attack after it has been made

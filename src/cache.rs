@@ -1,4 +1,4 @@
-use crate::types::{Move, Score, Zobrist};
+use crate::types::{Move, Score};
 
 pub const DEFAULT_CACHE_SIZE: usize = 16;
 pub const MAX_CACHE_SIZE: usize = 512;
@@ -32,7 +32,7 @@ impl Cache {
     }
 
     /// Returns `Some(T)` if the entry was found; otherwise `None`.
-    pub fn read(&self, hash: Zobrist, ply: usize) -> Option<CacheEntry> {
+    pub fn read(&self, hash: u64, ply: usize) -> Option<CacheEntry> {
         let index = self.get_index(hash);
         let mut entry = self.vector[index]?;
         if entry.hash == hash {
@@ -50,8 +50,8 @@ impl Cache {
     }
 
     /// Returns the index of the entry in the `Cache` vector.
-    fn get_index(&self, hash: Zobrist) -> usize {
-        hash.0 as usize % self.vector.len()
+    fn get_index(&self, hash: u64) -> usize {
+        hash as usize % self.vector.len()
     }
 }
 
@@ -70,7 +70,7 @@ pub enum Bound {
 
 #[derive(Copy, Clone)]
 pub struct CacheEntry {
-    pub hash: Zobrist,
+    pub hash: u64,
     pub depth: u8,
     pub score: Score,
     pub bound: Bound,
@@ -79,7 +79,7 @@ pub struct CacheEntry {
 
 impl CacheEntry {
     /// Creates a new `CacheEntry`.
-    pub fn new(hash: Zobrist, depth: usize, score: Score, bound: Bound, mv: Move) -> Self {
+    pub fn new(hash: u64, depth: usize, score: Score, bound: Bound, mv: Move) -> Self {
         Self {
             depth: depth as u8,
             hash,
