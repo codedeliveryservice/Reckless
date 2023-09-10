@@ -2,12 +2,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use crate::tables::{HistoryMoves, KillerMoves};
 use crate::{board::Board, cache::Cache, time_control::TimeControl, types::Move};
 
 pub struct SearchThread {
     pub tc: TimeControl,
     pub terminator: Arc<AtomicBool>,
     pub cache: Arc<Mutex<Cache>>,
+    pub killers: KillerMoves,
+    pub history: HistoryMoves,
     pub start_time: Instant,
     pub nodes: u32,
     pub current_depth: usize,
@@ -19,6 +22,8 @@ impl SearchThread {
             tc,
             terminator,
             cache,
+            killers: KillerMoves::default(),
+            history: HistoryMoves::default(),
             start_time: Instant::now(),
             nodes: Default::default(),
             current_depth: Default::default(),

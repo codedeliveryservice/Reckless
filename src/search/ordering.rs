@@ -33,8 +33,8 @@ impl<'a> AlphaBetaSearch<'a> {
             return match stage {
                 CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
                 MvvLva if mv.is_capture() => self.mvv_lva(mv),
-                Killer if self.killers.contains(mv, self.board.ply) => Self::KILLERS,
-                History => self.history.get(mv),
+                Killer if self.thread.killers.contains(mv, self.board.ply) => Self::KILLERS,
+                History => self.thread.history.get(mv),
                 _ => continue,
             };
         }
