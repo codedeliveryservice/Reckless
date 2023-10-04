@@ -90,7 +90,7 @@ impl<'a> AlphaBetaSearch<'a> {
 
             // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
             // likely to result in a cutoff after a real move is made, so the current node can be pruned
-            if depth >= 3 && !self.board.is_last_move_null() {
+            if depth >= 3 && static_score > beta && !self.board.is_last_move_null() {
                 self.board.make_null_move();
                 let score = -self.search(-beta, -beta + 1, depth - 3);
                 self.board.undo_move();
