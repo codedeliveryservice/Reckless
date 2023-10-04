@@ -36,6 +36,7 @@ combines established concepts, as the name suggests.
 ### Selectivity
 
 -   Check Extensions
+-   Reverse Futility Pruning
 -   Null Move Pruning
 -   Late Move Reductions
 

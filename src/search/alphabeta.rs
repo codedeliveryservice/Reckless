@@ -1,6 +1,6 @@
 use super::ordering::ALPHABETA_STAGES;
 use crate::cache::{Bound, CacheEntry};
-use crate::evaluation::{CHECKMATE, DRAW, INVALID};
+use crate::evaluation::{evaluate_relative_score, CHECKMATE, DRAW, INVALID};
 use crate::{board::Board, thread::SearchThread, types::Move};
 
 /// The result of an alpha-beta search.
@@ -76,15 +76,28 @@ impl<'a> AlphaBetaSearch<'a> {
             }
         }
 
-        // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
-        // likely to result in a cutoff after a real move is made, so the current node can be pruned
-        if depth >= 3 && !in_check && !self.board.is_last_move_null() {
-            self.board.make_null_move();
-            let score = -self.search(-beta, -beta + 1, depth - 3);
-            self.board.undo_move();
+        let pv_node = beta - alpha > 1;
+        let static_score = evaluate_relative_score(self.board);
 
-            if score >= beta {
-                return beta;
+        if !self.root() && !pv_node && !in_check {
+            const RFP_MARGIN: i32 = 75;
+
+            // Reverse futility pruning: if the static evaluation of the current position is significantly
+            // higher than beta at low depths, it's likely to be good enough to cause a beta cutoff
+            if depth < 8 && static_score - RFP_MARGIN * depth as i32 > beta {
+                return static_score;
+            }
+
+            // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
+            // likely to result in a cutoff after a real move is made, so the current node can be pruned
+            if depth >= 3 && !self.board.is_last_move_null() {
+                self.board.make_null_move();
+                let score = -self.search(-beta, -beta + 1, depth - 3);
+                self.board.undo_move();
+
+                if score >= beta {
+                    return beta;
+                }
             }
         }
 
