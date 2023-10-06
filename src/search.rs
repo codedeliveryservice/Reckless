@@ -96,7 +96,7 @@ impl IterativeSearch {
         };
 
         let pv = self.thread.get_principal_variation(&mut self.board, depth);
-        let pv = pv.iter().map(|mv| format!("{} ", mv)).collect::<String>();
+        let pv = pv.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(" ");
 
         println!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv {pv}",
