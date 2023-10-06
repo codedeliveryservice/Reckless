@@ -62,7 +62,7 @@ You can download precompiled builds from the [GitHub Releases page](https://gith
 
 ### Building from source
 
-To build the engine from source, make sure you have `Rust 1.64` or a later version installed.
+To build the engine from source, make sure you have `Rust 1.65` or a later version installed.
 If you don't have Rust, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
 Then, compile the engine using `Cargo`:
