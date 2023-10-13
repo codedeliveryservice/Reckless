@@ -1,14 +1,14 @@
 use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square, MAX_GAME_PLIES};
 
-use self::evaluation::Evaluation;
+use self::psqt::Evaluation;
 
 #[cfg(test)]
 mod perft;
 
-mod evaluation;
 mod fen;
 mod generator;
 mod makemove;
+mod psqt;
 
 // The Zobrist hash keys are generated at compile time and stored in the `zobrist.rs` file.
 include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));

@@ -1,7 +1,6 @@
 use crate::board::Board;
 use crate::types::{Color, Piece};
 
-mod material;
 mod mobility;
 
 pub const DRAW: i32 = 0;
@@ -21,11 +20,10 @@ const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
 /// indicate an advantage for black.
 pub fn evaluate_absolute_score(board: &Board) -> i32 {
     let (mg_psq, eg_psq) = board.psq_score();
-    let (mg_material, eg_material) = material::evaluate(board);
     let (mg_mobility, eg_mobility) = mobility::evaluate(board);
 
-    let mg_score = mg_psq + mg_material + mg_mobility;
-    let eg_score = eg_psq + eg_material + eg_mobility;
+    let mg_score = mg_psq + mg_mobility;
+    let eg_score = eg_psq + eg_mobility;
 
     interpolate_score(board, mg_score, eg_score)
 }
@@ -53,19 +51,17 @@ pub fn checkmate_in(score: i32) -> Option<i32> {
 pub fn evaluate_debug(board: &Board) -> String {
     let mut result = String::new();
 
-    let (mg_material, eg_material) = material::evaluate(board);
     let (mg_mobility, eg_mobility) = mobility::evaluate(board);
     let (mg_psq, eg_psq) = board.psq_score();
 
     result.push_str("    TERM    |    MG     EG    TOTAL\n");
     result.push_str("------------|----------------------\n");
-    format_score(&mut result, board, "Material", mg_material, eg_material);
     format_score(&mut result, board, "Mobility", mg_mobility, eg_mobility);
     format_score(&mut result, board, "PSQT", mg_psq, eg_psq);
     result.push_str("------------|----------------------\n");
 
-    let mg = mg_material + mg_mobility + mg_psq;
-    let eg = eg_material + eg_mobility + eg_psq;
+    let mg = mg_mobility + mg_psq;
+    let eg = eg_mobility + eg_psq;
     format_score(&mut result, board, "Total", mg, eg);
 
     let mg = get_phase(board) * 100 / MAX_PHASE;
