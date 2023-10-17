@@ -79,4 +79,4 @@ struct Weights {
     queen_mobility: [S; 28],
 }
 
-static WEIGHTS: Weights = unsafe { std::mem::transmute(*include_bytes!(r"..\Data\weights.bin")) };
+static WEIGHTS: Weights = unsafe { std::mem::transmute(*include_bytes!("../data/weights.bin")) };
