@@ -97,6 +97,10 @@ impl Board {
         self.pieces(piece) & self.them()
     }
 
+    pub fn king(&self, color: Color) -> Square {
+        self.of(Piece::King, color).pop().unwrap()
+    }
+
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
