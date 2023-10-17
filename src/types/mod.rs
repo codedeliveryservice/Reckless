@@ -6,6 +6,7 @@ pub mod color;
 pub mod movelist;
 pub mod moves;
 pub mod piece;
+pub mod score;
 pub mod square;
 
 pub use bitboard::*;
@@ -14,6 +15,7 @@ pub use color::*;
 pub use movelist::*;
 pub use moves::*;
 pub use piece::*;
+pub use score::*;
 pub use square::*;
 
 /// The maximum number of plies that can occur in a game.

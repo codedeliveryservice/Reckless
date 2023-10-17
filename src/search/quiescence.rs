@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use super::{alphabeta::AlphaBetaSearch, ordering::QUIESCENCE_STAGES};
-use crate::evaluation::{evaluate_relative_score, INVALID};
+use crate::evaluation::{evaluate, INVALID};
 
 impl<'a> AlphaBetaSearch<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -18,7 +18,7 @@ impl<'a> AlphaBetaSearch<'a> {
             return INVALID;
         }
 
-        let static_score = evaluate_relative_score(self.board);
+        let static_score = evaluate(self.board);
         alpha = max(alpha, static_score);
 
         if alpha >= beta {

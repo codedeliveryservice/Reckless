@@ -2,8 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use crate::perft::run_perft;
 use crate::{board::Board, cache::Cache, search::IterativeSearch, thread::SearchThread, timeman::Limits};
-use crate::{evaluation::evaluate_debug, perft::run_perft};
 
 pub struct Engine {
     pub board: Board,
@@ -68,11 +68,6 @@ impl Engine {
     /// Runs a node enumeration performance test for the current position.
     pub fn perft(&mut self, depth: usize) {
         run_perft(depth, &mut self.board);
-    }
-
-    /// Statically evaluates the current position and sends a UCI report.
-    pub fn evaluate(&self) {
-        println!("{}", evaluate_debug(&self.board));
     }
 
     /// Sets the state of the terminator. If set to `true`, the current search will

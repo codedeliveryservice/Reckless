@@ -20,7 +20,6 @@ pub fn execute(engine: &mut Engine, command: String) {
 
         // Non-UCI commands
         ["perft", depth] => perft(engine, depth),
-        ["eval"] => engine.evaluate(),
 
         _ => eprintln!("Unknown command: '{}'", command.trim_end()),
     }

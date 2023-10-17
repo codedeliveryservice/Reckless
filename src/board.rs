@@ -1,14 +1,11 @@
 use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square, MAX_GAME_PLIES};
 
-use self::psqt::Evaluation;
-
 #[cfg(test)]
 mod perft;
 
 mod fen;
 mod generator;
 mod makemove;
-mod psqt;
 
 // The Zobrist hash keys are generated at compile time and stored in the `zobrist.rs` file.
 include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
@@ -26,7 +23,6 @@ struct InternalState {
     halfmove_clock: u8,
     pieces: [Bitboard; Piece::NUM],
     colors: [Bitboard; Color::NUM],
-    evaluation: Evaluation,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -115,7 +111,6 @@ impl Board {
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].set(square);
         self.state.colors[color as usize].set(square);
-        self.state.evaluation.add_piece(piece, color, square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
@@ -123,14 +118,7 @@ impl Board {
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].clear(square);
         self.state.colors[color as usize].clear(square);
-        self.state.evaluation.remove_piece(piece, color, square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
-    }
-
-    /// Returns an incrementally updated scores for both middle game and endgame
-    /// phases based on the piece-square tables.
-    pub const fn psq_score(&self) -> (i32, i32) {
-        self.state.evaluation.score()
     }
 
     /// Returns `true` if the current position has already been present at least once

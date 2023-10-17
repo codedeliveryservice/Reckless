@@ -1,6 +1,6 @@
 use super::ordering::ALPHABETA_STAGES;
 use crate::cache::{Bound, CacheEntry};
-use crate::evaluation::{evaluate_relative_score, CHECKMATE, DRAW, INVALID};
+use crate::evaluation::{evaluate, CHECKMATE, DRAW, INVALID};
 use crate::{board::Board, thread::SearchThread, types::Move};
 
 /// The result of an alpha-beta search.
@@ -77,7 +77,7 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         let pv_node = beta - alpha > 1;
-        let static_score = evaluate_relative_score(self.board);
+        let static_score = evaluate(self.board);
 
         if !self.root() && !pv_node && !in_check {
             const RFP_MARGIN: i32 = 75;
