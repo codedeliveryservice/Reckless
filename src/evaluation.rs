@@ -11,6 +11,8 @@ pub const CHECKMATE_BOUND: i32 = 47500;
 const MAX_PHASE: i32 = 24;
 const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
 
+const TEMPO_BONUS: i32 = 15;
+
 /// Returns the number of full moves to checkmate.
 pub fn checkmate_in(score: i32) -> Option<i32> {
     if score > CHECKMATE_BOUND {
@@ -31,8 +33,8 @@ pub fn evaluate(board: &Board) -> i32 {
     let score = (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
 
     match board.turn {
-        Color::White => score,
-        Color::Black => -score,
+        Color::White => score + TEMPO_BONUS,
+        Color::Black => -score + TEMPO_BONUS,
     }
 }
 
