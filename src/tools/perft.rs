@@ -8,7 +8,7 @@ use std::time::Instant;
 use crate::board::Board;
 
 /// Runs a performance test on the `Board` with the specified depth.
-pub fn run_perft(depth: usize, board: &mut Board) {
+pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
     println!("{:>12} {:>12} {:>13} {:>15}", "Move", "Nodes", "Elapsed", "NPS");
     println!("{}", "-".repeat(60));
@@ -25,7 +25,7 @@ pub fn run_perft(depth: usize, board: &mut Board) {
             continue;
         }
 
-        let count = perft(depth - 1, board);
+        let count = perft_internal(depth - 1, board);
         nodes += count;
         index += 1;
 
@@ -45,7 +45,7 @@ pub fn run_perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
 }
 
-fn perft(depth: usize, board: &mut Board) -> u64 {
+fn perft_internal(depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;
     }
@@ -54,7 +54,7 @@ fn perft(depth: usize, board: &mut Board) -> u64 {
 
     for mv in board.generate_moves().iter() {
         if board.make_move(mv).is_ok() {
-            nodes += perft(depth - 1, board);
+            nodes += perft_internal(depth - 1, board);
             board.undo_move();
         }
     }

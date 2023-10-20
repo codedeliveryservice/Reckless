@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::perft::run_perft;
+use crate::tools::perft;
 use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 
 pub struct Engine {
@@ -64,7 +64,7 @@ impl Engine {
 
     /// Runs a node enumeration performance test for the current position.
     pub fn perft(&mut self, depth: usize) {
-        run_perft(depth, &mut self.board);
+        perft(depth, &mut self.board);
     }
 
     /// Sets the state of the terminator. If set to `true`, the current search will
