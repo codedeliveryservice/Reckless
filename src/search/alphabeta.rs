@@ -1,49 +1,11 @@
-use super::ordering::ALPHABETA_STAGES;
+use super::{ordering::ALPHABETA_STAGES, Searcher};
 use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::{evaluate, CHECKMATE, DRAW, INVALID};
-use crate::{board::Board, thread::SearchThread, types::Move};
+use crate::types::Move;
 
-/// The result of an alpha-beta search.
-pub struct SearchResult {
-    /// The score of the best move.
-    pub score: i32,
-    /// The number of nodes searched.
-    pub nodes: u32,
-    /// The maximum depth reached during the search.
-    pub sel_depth: usize,
-}
-
-/// Performs an alpha-beta search with a given depth.
-pub fn run_search(board: &mut Board, thread: &mut SearchThread, alpha: i32, beta: i32, depth: usize) -> SearchResult {
-    board.ply = 0;
-
-    let mut searcher = AlphaBetaSearch {
-        board,
-        thread,
-        max_depth: depth,
-        sel_depth: 0,
-        nodes: 0,
-    };
-
-    SearchResult {
-        score: searcher.search(alpha, beta, depth),
-        nodes: searcher.nodes,
-        sel_depth: searcher.sel_depth,
-    }
-}
-
-/// Implementation of the negamax algorithm with alpha-beta pruning.
-pub(in crate::search) struct AlphaBetaSearch<'a> {
-    pub board: &'a mut Board,
-    pub thread: &'a mut SearchThread,
-    pub max_depth: usize,
-    pub sel_depth: usize,
-    pub nodes: u32,
-}
-
-impl<'a> AlphaBetaSearch<'a> {
+impl Searcher {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn search(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
+    pub fn alpha_beta(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
             return INVALID;
@@ -77,7 +39,7 @@ impl<'a> AlphaBetaSearch<'a> {
         }
 
         let pv_node = beta - alpha > 1;
-        let static_score = evaluate(self.board);
+        let static_score = evaluate(&self.board);
 
         if !self.root() && !pv_node && !in_check {
             const RFP_MARGIN: i32 = 75;
@@ -92,7 +54,7 @@ impl<'a> AlphaBetaSearch<'a> {
             // likely to result in a cutoff after a real move is made, so the current node can be pruned
             if depth >= 3 && static_score > beta && !self.board.is_last_move_null() {
                 self.board.make_null_move();
-                let score = -self.search(-beta, -beta + 1, depth - 3);
+                let score = -self.alpha_beta(-beta, -beta + 1, depth - 3);
                 self.board.undo_move();
 
                 if score >= beta {
@@ -141,8 +103,8 @@ impl<'a> AlphaBetaSearch<'a> {
                 bound = Bound::Lower;
 
                 if mv.is_quiet() {
-                    self.thread.killers.add(mv, self.board.ply);
-                    self.thread.history.update(mv, depth);
+                    self.killers.add(mv, self.board.ply);
+                    self.history.update(mv, depth);
                 }
 
                 break;
@@ -162,20 +124,20 @@ impl<'a> AlphaBetaSearch<'a> {
     fn principle_variation_search(&mut self, alpha: i32, beta: i32, depth: usize, reduction: usize, moves_played: usize) -> i32 {
         // The first move is likely to be the best, so it's searched with a full window
         if moves_played == 0 {
-            return -self.search(-beta, -alpha, depth - 1);
+            return -self.alpha_beta(-beta, -alpha, depth - 1);
         }
 
         // Null window search with possible late move reduction
-        let mut score = -self.search(-alpha - 1, -alpha, depth - reduction);
+        let mut score = -self.alpha_beta(-alpha - 1, -alpha, depth - reduction);
 
         // If the search fails and reduction applied, re-search with full depth
         if alpha < score && reduction > 1 {
-            score = -self.search(-alpha - 1, -alpha, depth - 1);
+            score = -self.alpha_beta(-alpha - 1, -alpha, depth - 1);
         }
 
         // If the search fails again, proceed to a full window search with full depth
         if alpha < score && score < beta {
-            score = -self.search(-beta, -alpha, depth - 1);
+            score = -self.alpha_beta(-beta, -alpha, depth - 1);
         }
 
         score
@@ -184,8 +146,8 @@ impl<'a> AlphaBetaSearch<'a> {
     /// Checks if the search should be interrupted.
     fn should_interrupt_search(&mut self) -> bool {
         // Ensure a valid move is returned by completing at least one iteration of iterative deepening
-        if self.nodes % 4096 == 0 && self.max_depth >= 2 && self.thread.time_manager.is_time_over() {
-            self.thread.set_terminator(true);
+        if self.nodes % 4096 == 0 && self.time_manager.is_time_over() {
+            self.store_terminator(true);
             return true;
         }
         false
@@ -207,15 +169,15 @@ impl<'a> AlphaBetaSearch<'a> {
 
     /// Reads a cache entry from the transposition table.
     fn read_cache_entry(&self) -> Option<CacheEntry> {
-        self.thread.cache.lock().unwrap().read(self.board.hash(), self.board.ply)
+        self.cache.lock().unwrap().read(self.board.hash(), self.board.ply)
     }
 
     /// Writes a new cache entry to the transposition table.
     fn write_cache_entry(&mut self, depth: usize, score: i32, bound: Bound, best: Move) {
         // Cache only if search was completed to avoid storing potentially invalid results
-        if !self.thread.get_terminator() {
+        if !self.load_terminator() {
             let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
-            self.thread.cache.lock().unwrap().write(entry, self.board.ply);
+            self.cache.lock().unwrap().write(entry, self.board.ply);
         }
     }
 

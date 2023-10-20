@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::perft::run_perft;
-use crate::{board::Board, cache::Cache, search::IterativeSearch, thread::SearchThread, timeman::Limits};
+use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 
 pub struct Engine {
     pub board: Board,
@@ -59,10 +59,7 @@ impl Engine {
         let terminator = self.terminator.clone();
         let cache = self.cache.clone();
 
-        thread::spawn(move || {
-            let thread = SearchThread::new(limits, terminator, cache);
-            IterativeSearch::new(board, thread).search();
-        });
+        thread::spawn(move || Searcher::new(board, limits, terminator, cache).iterative_deepening());
     }
 
     /// Runs a node enumeration performance test for the current position.

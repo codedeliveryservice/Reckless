@@ -1,9 +1,9 @@
 use std::cmp::max;
 
-use super::{alphabeta::AlphaBetaSearch, ordering::QUIESCENCE_STAGES};
+use super::{ordering::QUIESCENCE_STAGES, Searcher};
 use crate::evaluation::{evaluate, INVALID};
 
-impl<'a> AlphaBetaSearch<'a> {
+impl Searcher {
     /// Performs a search until the position becomes stable enough for static evaluation.
     /// This minimizes the horizon effect for volatile positions, ensuring that threats
     /// and opportunities extending beyond the fixed search depth are not overlooked.
@@ -14,11 +14,11 @@ impl<'a> AlphaBetaSearch<'a> {
         self.nodes += 1;
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
-        if self.thread.get_terminator() {
+        if self.load_terminator() {
             return INVALID;
         }
 
-        let static_score = evaluate(self.board);
+        let static_score = evaluate(&self.board);
         alpha = max(alpha, static_score);
 
         if alpha >= beta {

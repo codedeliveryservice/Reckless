@@ -1,7 +1,6 @@
-use super::AlphaBetaSearch;
-use crate::types::{Move, MoveList, Piece};
-
 use self::OrderingStage::*;
+use super::Searcher;
+use crate::types::{Move, MoveList, Piece};
 
 pub const ALPHABETA_STAGES: &[OrderingStage] = &[CacheMove, MvvLva, Killer, History];
 pub const QUIESCENCE_STAGES: &[OrderingStage] = &[MvvLva];
@@ -13,7 +12,7 @@ pub enum OrderingStage {
     History,
 }
 
-impl<'a> AlphaBetaSearch<'a> {
+impl Searcher {
     const CACHE_MOVE: i32 = 3_000_000;
     const MVV_LVA: i32 = 2_000_000;
     const KILLERS: i32 = 1_000_000;
@@ -33,8 +32,8 @@ impl<'a> AlphaBetaSearch<'a> {
             return match stage {
                 CacheMove if Some(mv) == cache_move => Self::CACHE_MOVE,
                 MvvLva if mv.is_capture() => self.mvv_lva(mv),
-                Killer if self.thread.killers.contains(mv, self.board.ply) => Self::KILLERS,
-                History => self.thread.history.get(mv),
+                Killer if self.killers.contains(mv, self.board.ply) => Self::KILLERS,
+                History => self.history.get(mv),
                 _ => continue,
             };
         }
@@ -42,7 +41,7 @@ impl<'a> AlphaBetaSearch<'a> {
     }
 
     /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.
-    pub(self) fn mvv_lva(&self, mv: Move) -> i32 {
+    fn mvv_lva(&self, mv: Move) -> i32 {
         let attacker = self.board.get_piece(mv.start()).unwrap();
         // Handles en passant captures, assuming the victim is a pawn if the target is empty
         let victim = self.board.get_piece(mv.target()).unwrap_or(Piece::Pawn);
