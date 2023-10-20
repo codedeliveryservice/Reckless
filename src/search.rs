@@ -14,6 +14,8 @@ mod quiescence;
 const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
 pub struct Searcher {
+    pub nodes: u32,
+    pub print_to_stdout: bool,
     board: Board,
     cache: Arc<Mutex<Cache>>,
     terminator: Arc<AtomicBool>,
@@ -21,7 +23,6 @@ pub struct Searcher {
     killers: KillerMoves,
     history: HistoryMoves,
     sel_depth: usize,
-    nodes: u32,
 }
 
 impl Searcher {
@@ -36,6 +37,7 @@ impl Searcher {
             history: HistoryMoves::default(),
             sel_depth: 0,
             nodes: 0,
+            print_to_stdout: true,
         }
     }
 
@@ -71,14 +73,18 @@ impl Searcher {
             alpha = score - ASPIRATION_WINDOW_MARGIN;
             beta = score + ASPIRATION_WINDOW_MARGIN;
 
-            self.report_search_result(depth, score, stopwatch);
+            if self.print_to_stdout {
+                self.report_search_result(depth, score, stopwatch);
+            }
 
             last_best = self.get_best_move(&self.board).unwrap();
             depth += 1;
             self.sel_depth = 0;
         }
 
-        println!("bestmove {last_best}");
+        if self.print_to_stdout {
+            println!("bestmove {last_best}");
+        }
     }
 
     /// Reports the result of a search iteration using the `info` UCI command.

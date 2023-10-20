@@ -1,6 +1,5 @@
 use crate::cache::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
-use crate::types::Color;
-use crate::{board::Board, engine::Engine, timeman::Limits};
+use crate::{board::Board, engine::Engine, timeman::Limits, tools, types::Color};
 
 pub fn execute(engine: &mut Engine, command: String) {
     let tokens = command.split_whitespace().collect::<Vec<_>>();
@@ -19,7 +18,8 @@ pub fn execute(engine: &mut Engine, command: String) {
         ["quit"] => std::process::exit(0),
 
         // Non-UCI commands
-        ["perft", depth] => perft(engine, depth),
+        ["bench", depth] => tools::bench(depth.parse().unwrap()),
+        ["perft", depth] => engine.perft(depth.parse().unwrap()),
 
         _ => eprintln!("Unknown command: '{}'", command.trim_end()),
     }
@@ -62,11 +62,6 @@ fn position(engine: &mut Engine, mut tokens: &[&str]) {
             _ => break,
         }
     }
-}
-
-fn perft(engine: &mut Engine, depth: &str) {
-    let depth = depth.parse().expect("Depth should be a number");
-    engine.perft(depth);
 }
 
 fn go(engine: &mut Engine, tokens: &[&str]) {
