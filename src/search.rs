@@ -47,8 +47,6 @@ impl Searcher {
     /// depth-first searches on the game tree, starting with a shallow search and gradually increases
     /// the depth until the time limit is reached or the search is terminated.
     pub fn iterative_deepening(&mut self) {
-        self.board.ply = 0;
-
         let stopwatch = Instant::now();
 
         let mut last_best = Move::default();
@@ -58,7 +56,7 @@ impl Searcher {
         let mut beta = Score::INFINITY;
 
         while depth <= self.time_manager.get_max_depth() {
-            let score = self.alpha_beta(alpha, beta, depth);
+            let score = self.alpha_beta::<true, true>(alpha, beta, depth);
 
             if self.load_terminator() {
                 break;
