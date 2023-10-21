@@ -1,4 +1,4 @@
-use crate::{evaluation::CHECKMATE_BOUND, types::Move};
+use crate::types::{Move, Score};
 
 pub const DEFAULT_CACHE_SIZE: usize = 16;
 pub const MAX_CACHE_SIZE: usize = 512;
@@ -93,9 +93,9 @@ impl CacheEntry {
     ///
     /// This is used to ensure that the mating score is always the same distance from the root.
     pub fn adjust_mating_score(&mut self, adjustment: i32) {
-        if self.score > CHECKMATE_BOUND {
+        if self.score > Score::CHECKMATE_BOUND {
             self.score += adjustment;
-        } else if self.score < -CHECKMATE_BOUND {
+        } else if self.score < -Score::CHECKMATE_BOUND {
             self.score -= adjustment;
         }
     }

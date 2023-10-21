@@ -1,19 +1,19 @@
 use super::{ordering::ALPHABETA_STAGES, Searcher};
 use crate::cache::{Bound, CacheEntry};
-use crate::evaluation::{evaluate, CHECKMATE, DRAW, INVALID};
-use crate::types::Move;
+use crate::evaluation::evaluate;
+use crate::types::{Move, Score};
 
 impl Searcher {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
-            return INVALID;
+            return Score::INVALID;
         }
 
         // Draw detection, excluding the root node to ensure a valid move is returned
         if !self.root() && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
-            return DRAW;
+            return Score::DRAW;
         }
 
         // Check extensions: extend the search depth due to low branching and the possibility of
@@ -67,7 +67,7 @@ impl Searcher {
     }
 
     fn search_moves(&mut self, mut alpha: i32, beta: i32, depth: usize, in_check: bool, cache_move: Option<Move>) -> i32 {
-        let mut best_score = i32::MIN;
+        let mut best_score = -Score::INFINITY;
         let mut best_move = Move::default();
         let mut bound = Bound::Upper;
 
@@ -189,9 +189,9 @@ impl Searcher {
     /// Calculates the final score in case of a checkmate or stalemate.
     fn final_score(&mut self, in_check: bool) -> i32 {
         if in_check {
-            -CHECKMATE + self.board.ply as i32
+            -Score::CHECKMATE + self.board.ply as i32
         } else {
-            DRAW
+            Score::DRAW
         }
     }
 }

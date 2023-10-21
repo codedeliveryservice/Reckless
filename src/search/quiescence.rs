@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use super::{ordering::QUIESCENCE_STAGES, Searcher};
-use crate::evaluation::{evaluate, INVALID};
+use crate::{evaluation::evaluate, types::Score};
 
 impl Searcher {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -15,7 +15,7 @@ impl Searcher {
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         if self.load_terminator() {
-            return INVALID;
+            return Score::INVALID;
         }
 
         let static_score = evaluate(&self.board);

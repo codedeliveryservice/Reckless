@@ -1,28 +1,10 @@
 use crate::board::Board;
 use crate::types::{Color, Piece, Square, S};
 
-pub const DRAW: i32 = 0;
-pub const INVALID: i32 = 0;
-
-pub const INFINITY: i32 = 50000;
-pub const CHECKMATE: i32 = 48000;
-pub const CHECKMATE_BOUND: i32 = 47500;
-
 const MAX_PHASE: i32 = 24;
 const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
 
 const TEMPO_BONUS: i32 = 15;
-
-/// Returns the number of full moves to checkmate.
-pub fn checkmate_in(score: i32) -> Option<i32> {
-    if score > CHECKMATE_BOUND {
-        return Some((CHECKMATE - score + 1) / 2);
-    }
-    if score < -CHECKMATE_BOUND {
-        return Some((-CHECKMATE - score) / 2);
-    }
-    None
-}
 
 /// Returns a statically evaluated score relative to the color
 /// of the player who is currently making a move.

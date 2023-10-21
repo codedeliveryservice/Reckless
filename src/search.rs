@@ -2,10 +2,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use crate::evaluation::{checkmate_in, INFINITY};
 use crate::tables::{HistoryMoves, KillerMoves};
 use crate::timeman::{Limits, TimeManager};
-use crate::{board::Board, cache::Cache, types::Move};
+use crate::types::{Move, Score};
+use crate::{board::Board, cache::Cache};
 
 mod alphabeta;
 mod ordering;
@@ -54,8 +54,8 @@ impl Searcher {
         let mut last_best = Move::default();
         let mut depth = 1;
 
-        let mut alpha = -INFINITY;
-        let mut beta = INFINITY;
+        let mut alpha = -Score::INFINITY;
+        let mut beta = Score::INFINITY;
 
         while depth <= self.time_manager.get_max_depth() {
             let score = self.alpha_beta(alpha, beta, depth);
@@ -65,8 +65,8 @@ impl Searcher {
             }
 
             if score <= alpha || score >= beta {
-                alpha = -INFINITY;
-                beta = INFINITY;
+                alpha = -Score::INFINITY;
+                beta = Score::INFINITY;
                 continue;
             }
 
@@ -93,10 +93,7 @@ impl Searcher {
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.cache.lock().unwrap().get_load_factor();
-        let score = match checkmate_in(score) {
-            Some(moves) => format!("mate {moves}"),
-            None => format!("cp {}", score),
-        };
+        let score = format_score(score);
 
         let pv = self.get_principal_variation(depth);
         let pv = pv.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(" ");
@@ -140,4 +137,15 @@ impl Searcher {
         pv_line.iter().for_each(|_| self.board.undo_move());
         pv_line
     }
+}
+
+/// Formats a score in UCI format.
+fn format_score(score: i32) -> String {
+    if score > Score::CHECKMATE_BOUND {
+        return format!("mate {}", (Score::CHECKMATE - score + 1) / 2);
+    }
+    if score < -Score::CHECKMATE_BOUND {
+        return format!("mate {}", (-Score::CHECKMATE - score) / 2);
+    }
+    format!("cp {}", score)
 }
