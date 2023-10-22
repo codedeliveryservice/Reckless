@@ -1,25 +1,31 @@
-use crate::cache::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
-use crate::{board::Board, engine::Engine, timeman::Limits, tools, types::Color};
+use crate::cache::{Cache, DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
+use crate::search::Searcher;
+use crate::{board::Board, timeman::Limits, tools, types::Color};
 
-pub fn execute(engine: &mut Engine, command: String) {
-    let tokens = command.split_whitespace().collect::<Vec<_>>();
+pub fn message_loop() {
+    let mut board = Board::starting_position();
+    let mut cache = Cache::default();
 
-    match tokens.as_slice() {
-        ["uci"] => uci(),
-        ["isready"] => println!("readyok"),
+    loop {
+        let command = read_stdin();
+        let tokens = command.split_whitespace().collect::<Vec<_>>();
+        match tokens.as_slice() {
+            ["uci"] => uci(),
+            ["isready"] => println!("readyok"),
 
-        ["ucinewgame"] => engine.reset(),
-        ["setoption", tokens @ ..] => set_option(engine, tokens),
-        ["position", tokens @ ..] => position(engine, tokens),
-        ["go", tokens @ ..] => go(engine, tokens),
+            ["go", tokens @ ..] => go(&board, &mut cache, tokens),
+            ["position", tokens @ ..] => position(&mut board, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut cache, tokens),
+            ["ucinewgame"] => reset(&mut board, &mut cache),
 
-        ["quit"] => std::process::exit(0),
+            ["quit"] => std::process::exit(0),
 
-        // Non-UCI commands
-        ["bench", depth] => tools::bench(depth.parse().unwrap()),
-        ["perft", depth] => engine.perft(depth.parse().unwrap()),
+            // Non-UCI commands
+            ["bench", depth] => tools::bench(depth.parse().unwrap()),
+            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
 
-        _ => eprintln!("Unknown command: '{}'", command.trim_end()),
+            _ => eprintln!("Unknown command: '{}'", command.trim_end()),
+        };
     }
 }
 
@@ -30,31 +36,30 @@ fn uci() {
     println!("uciok");
 }
 
-fn set_option(engine: &mut Engine, tokens: &[&str]) {
-    if let ["name", name, "value", value] = tokens {
-        match *name {
-            "Hash" => engine.set_cache_size(value.parse().expect("Cache size should be a number")),
-            "ClearHash" => engine.clear_cache(),
-            _ => eprintln!("Unknown option: '{name}'"),
-        }
-    }
+fn reset(board: &mut Board, cache: &mut Cache) {
+    *board = Board::starting_position();
+    *cache = Cache::default();
 }
 
-fn position(engine: &mut Engine, mut tokens: &[&str]) {
+fn go(board: &Board, cache: &mut Cache, tokens: &[&str]) {
+    let limits = parse_limits(board.turn, tokens);
+    let board = board.clone();
+    Searcher::new(board, limits, cache).iterative_deepening();
+}
+
+fn position(board: &mut Board, mut tokens: &[&str]) {
     loop {
         match tokens {
             ["startpos", rest @ ..] => {
-                engine.board = Board::starting_position();
+                *board = Board::starting_position();
                 tokens = &rest[0..];
             }
             ["fen", rest @ ..] => {
-                engine.board = Board::new(&rest[0..6].join(" "));
+                *board = Board::new(&rest[0..6].join(" "));
                 tokens = &rest[6..];
             }
             ["moves", rest @ ..] => {
-                for uci_move in rest {
-                    engine.make_uci_move(uci_move);
-                }
+                rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));
                 break;
             }
             _ => break,
@@ -62,9 +67,25 @@ fn position(engine: &mut Engine, mut tokens: &[&str]) {
     }
 }
 
-fn go(engine: &mut Engine, tokens: &[&str]) {
-    let time_control = parse_limits(engine.board.turn, tokens);
-    engine.search(time_control);
+fn make_uci_move(board: &mut Board, uci_move: &str) {
+    let moves = board.generate_moves();
+    if let Some(mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
+        board.make_move(mv).expect("UCI move should be legal");
+    }
+}
+
+fn set_option(cache: &mut Cache, tokens: &[&str]) {
+    match tokens {
+        ["name", "Hash", "value", v] => *cache = Cache::new(v.parse().unwrap()),
+        ["name", "Clear", "Hash"] => cache.clear(),
+        _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
+    }
+}
+
+fn read_stdin() -> String {
+    let mut buf = String::new();
+    std::io::stdin().read_line(&mut buf).unwrap();
+    buf
 }
 
 fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
@@ -88,10 +109,8 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
                 "wtime" if Color::White == color => main = value,
                 "btime" if Color::Black == color => main = value,
-
                 "winc" if Color::White == color => inc = value,
                 "binc" if Color::Black == color => inc = value,
-
                 "movestogo" => moves = Some(value),
 
                 _ => continue,
@@ -100,10 +119,10 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     }
 
     if main == 0 && inc == 0 {
-        return Limits::Infinite;
+        Limits::Infinite
+    } else {
+        Limits::Tournament(main, inc, moves)
     }
-
-    Limits::Tournament(main, inc, moves)
 }
 
 #[cfg(test)]
