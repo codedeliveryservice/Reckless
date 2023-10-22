@@ -12,7 +12,7 @@ pub enum OrderingStage {
     History,
 }
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     const CACHE_MOVE: i32 = 3_000_000;
     const MVV_LVA: i32 = 2_000_000;
     const KILLERS: i32 = 1_000_000;

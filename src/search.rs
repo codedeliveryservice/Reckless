@@ -1,4 +1,3 @@
-use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use crate::tables::{HistoryMoves, KillerMoves};
@@ -12,21 +11,21 @@ mod quiescence;
 
 const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
-pub struct Searcher {
+pub struct Searcher<'a> {
     pub nodes: u32,
     pub stopped: bool,
     pub print_to_stdout: bool,
     board: Board,
-    cache: Arc<Mutex<Cache>>,
+    cache: &'a mut Cache,
     time_manager: TimeManager,
     killers: KillerMoves,
     history: HistoryMoves,
     sel_depth: usize,
 }
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(board: Board, limits: Limits, cache: Arc<Mutex<Cache>>) -> Self {
+    pub fn new(board: Board, limits: Limits, cache: &'a mut Cache) -> Self {
         Self {
             board,
             cache,
@@ -89,7 +88,7 @@ impl Searcher {
         let nps = self.nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
-        let hashfull = self.cache.lock().unwrap().get_load_factor();
+        let hashfull = self.cache.get_load_factor();
         let score = format_score(score);
 
         let pv = self.get_principal_variation(depth);
@@ -103,16 +102,15 @@ impl Searcher {
 
     /// Extracts the best move from the transposition table.
     fn get_best_move(&self, board: &Board) -> Option<Move> {
-        self.cache.lock().unwrap().read(board.hash(), 0).map(|entry| entry.mv)
+        self.cache.read(board.hash(), 0).map(|entry| entry.mv)
     }
 
     /// Extracts the principal variation line from the transposition table limited to the given depth.
     fn get_principal_variation(&mut self, mut depth: usize) -> Vec<Move> {
         let mut pv_line = Vec::with_capacity(depth);
 
-        let cache = self.cache.lock().unwrap();
         while depth != 0 {
-            if let Some(entry) = cache.read(self.board.hash(), 0) {
+            if let Some(entry) = self.cache.read(self.board.hash(), 0) {
                 pv_line.push(entry.mv);
                 self.board.make_move(entry.mv).unwrap();
                 depth -= 1;

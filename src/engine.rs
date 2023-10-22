@@ -1,12 +1,9 @@
-use std::sync::{Arc, Mutex};
-use std::thread;
-
 use crate::tools::perft;
 use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 
 pub struct Engine {
     pub board: Board,
-    pub cache: Arc<Mutex<Cache>>,
+    pub cache: Cache,
 }
 
 impl Engine {
@@ -14,18 +11,18 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::starting_position(),
-            cache: Arc::default(),
+            cache: Cache::default(),
         }
     }
 
     /// Clears the transposition table.
     pub fn clear_cache(&mut self) {
-        self.cache.lock().unwrap().clear();
+        self.cache.clear();
     }
 
     /// Sets the size of the transposition table, clearing it in the process.
     pub fn set_cache_size(&mut self, megabytes: usize) {
-        self.cache = Arc::new(Mutex::new(Cache::new(megabytes)));
+        self.cache = Cache::new(megabytes);
     }
 
     /// Makes the specified UCI move on the board.
@@ -38,16 +35,14 @@ impl Engine {
 
     /// Resets the `Engine` to its original state.
     pub fn reset(&mut self) {
-        self.cache.lock().unwrap().clear();
+        self.cache.clear();
         self.board = Board::starting_position();
     }
 
     /// Runs an iterative deepening search on a separate thread.
     pub fn search(&mut self, limits: Limits) {
         let board = self.board.clone();
-        let cache = self.cache.clone();
-
-        thread::spawn(move || Searcher::new(board, limits, cache).iterative_deepening());
+        Searcher::new(board, limits, &mut self.cache).iterative_deepening();
     }
 
     /// Runs a node enumeration performance test for the current position.

@@ -7,9 +7,9 @@
 //! Note that `bench` is by no means intended for comprehensive benchmarking of
 //! performance-related assessments.
 
-use std::{sync::Arc, time::Instant};
+use std::time::Instant;
 
-use crate::{board::Board, search::Searcher, timeman::Limits};
+use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 
 static BENCH: &str = include_str!("../../data/bench.txt");
 
@@ -29,7 +29,8 @@ pub fn bench(depth: usize) {
     for position in positions {
         let now = Instant::now();
 
-        let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), Arc::default());
+        let mut cache = Cache::default();
+        let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), &mut cache);
         search.print_to_stdout = false;
         search.iterative_deepening();
 

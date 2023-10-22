@@ -3,7 +3,7 @@ use std::cmp::max;
 use super::{ordering::QUIESCENCE_STAGES, Searcher};
 use crate::{evaluation::evaluate, types::Score};
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
     /// This minimizes the horizon effect for volatile positions, ensuring that threats
     /// and opportunities extending beyond the fixed search depth are not overlooked.

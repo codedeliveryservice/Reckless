@@ -3,7 +3,7 @@ use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
-impl Searcher {
+impl<'a> Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
@@ -31,7 +31,7 @@ impl Searcher {
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Transposition table lookup and potential cutoff
-        let entry = self.read_cache_entry();
+        let entry = self.cache.read(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
             if let Some(score) = self.transposition_table_cutoff(entry, alpha, beta, depth) {
                 return score;
@@ -165,17 +165,12 @@ impl Searcher {
         }
     }
 
-    /// Reads a cache entry from the transposition table.
-    fn read_cache_entry(&self) -> Option<CacheEntry> {
-        self.cache.lock().unwrap().read(self.board.hash(), self.board.ply)
-    }
-
     /// Writes a new cache entry to the transposition table.
     fn write_cache_entry(&mut self, depth: usize, score: i32, bound: Bound, best: Move) {
         // Cache only if search was completed to avoid storing potentially invalid results
         if !self.stopped {
             let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
-            self.cache.lock().unwrap().write(entry, self.board.ply);
+            self.cache.write(entry, self.board.ply);
         }
     }
 
