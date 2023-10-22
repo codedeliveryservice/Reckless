@@ -29,7 +29,7 @@ pub fn bench(depth: usize) {
     for position in positions {
         let now = Instant::now();
 
-        let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), Arc::default(), Arc::default());
+        let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), Arc::default());
         search.print_to_stdout = false;
         search.iterative_deepening();
 

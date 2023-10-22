@@ -146,10 +146,9 @@ impl Searcher {
     fn should_interrupt_search(&mut self) -> bool {
         // Ensure a valid move is returned by completing at least one iteration of iterative deepening
         if self.nodes % 4096 == 0 && self.time_manager.is_time_over() {
-            self.store_terminator(true);
-            return true;
+            self.stopped = true;
         }
-        false
+        self.stopped
     }
 
     /// Provides a score for a transposition table cutoff, if applicable.
@@ -174,7 +173,7 @@ impl Searcher {
     /// Writes a new cache entry to the transposition table.
     fn write_cache_entry(&mut self, depth: usize, score: i32, bound: Bound, best: Move) {
         // Cache only if search was completed to avoid storing potentially invalid results
-        if !self.load_terminator() {
+        if !self.stopped {
             let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
             self.cache.lock().unwrap().write(entry, self.board.ply);
         }

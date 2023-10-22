@@ -8,9 +8,7 @@ pub fn execute(engine: &mut Engine, command: String) {
         ["uci"] => uci(),
         ["isready"] => println!("readyok"),
 
-        ["stop"] => engine.stop(),
         ["ucinewgame"] => engine.reset(),
-
         ["setoption", tokens @ ..] => set_option(engine, tokens),
         ["position", tokens @ ..] => position(engine, tokens),
         ["go", tokens @ ..] => go(engine, tokens),

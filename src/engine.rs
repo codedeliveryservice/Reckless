@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -8,7 +7,6 @@ use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 pub struct Engine {
     pub board: Board,
     pub cache: Arc<Mutex<Cache>>,
-    pub terminator: Arc<AtomicBool>,
 }
 
 impl Engine {
@@ -17,7 +15,6 @@ impl Engine {
         Self {
             board: Board::starting_position(),
             cache: Arc::default(),
-            terminator: Arc::default(),
         }
     }
 
@@ -39,37 +36,22 @@ impl Engine {
         }
     }
 
-    /// Stops the current search as soon as possible.
-    pub fn stop(&mut self) {
-        self.write_terminator(true);
-    }
-
     /// Resets the `Engine` to its original state.
     pub fn reset(&mut self) {
-        self.write_terminator(false);
         self.cache.lock().unwrap().clear();
         self.board = Board::starting_position();
     }
 
     /// Runs an iterative deepening search on a separate thread.
     pub fn search(&mut self, limits: Limits) {
-        self.write_terminator(false);
-
         let board = self.board.clone();
-        let terminator = self.terminator.clone();
         let cache = self.cache.clone();
 
-        thread::spawn(move || Searcher::new(board, limits, terminator, cache).iterative_deepening());
+        thread::spawn(move || Searcher::new(board, limits, cache).iterative_deepening());
     }
 
     /// Runs a node enumeration performance test for the current position.
     pub fn perft(&mut self, depth: usize) {
         perft(depth, &mut self.board);
-    }
-
-    /// Sets the state of the terminator. If set to `true`, the current search will
-    /// be stopped as soon as possible.
-    fn write_terminator(&mut self, value: bool) {
-        self.terminator.store(value, Ordering::Relaxed);
     }
 }

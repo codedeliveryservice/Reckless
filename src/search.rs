@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -15,10 +14,10 @@ const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
 pub struct Searcher {
     pub nodes: u32,
+    pub stopped: bool,
     pub print_to_stdout: bool,
     board: Board,
     cache: Arc<Mutex<Cache>>,
-    terminator: Arc<AtomicBool>,
     time_manager: TimeManager,
     killers: KillerMoves,
     history: HistoryMoves,
@@ -27,16 +26,16 @@ pub struct Searcher {
 
 impl Searcher {
     /// Creates a new `Searcher` instance.
-    pub fn new(board: Board, limits: Limits, terminator: Arc<AtomicBool>, cache: Arc<Mutex<Cache>>) -> Self {
+    pub fn new(board: Board, limits: Limits, cache: Arc<Mutex<Cache>>) -> Self {
         Self {
             board,
             cache,
-            terminator,
             time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
             history: HistoryMoves::default(),
-            sel_depth: 0,
-            nodes: 0,
+            sel_depth: Default::default(),
+            nodes: Default::default(),
+            stopped: Default::default(),
             print_to_stdout: true,
         }
     }
@@ -58,7 +57,7 @@ impl Searcher {
         while depth <= self.time_manager.get_max_depth() {
             let score = self.alpha_beta::<true, true>(alpha, beta, depth);
 
-            if self.load_terminator() {
+            if self.stopped {
                 break;
             }
 
@@ -100,16 +99,6 @@ impl Searcher {
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv {pv}",
             self.sel_depth, self.nodes,
         );
-    }
-
-    /// Returns `true` if the search has been terminated.
-    fn load_terminator(&self) -> bool {
-        self.terminator.load(Ordering::Relaxed)
-    }
-
-    /// Stores the search termination flag.
-    fn store_terminator(&self, value: bool) {
-        self.terminator.store(value, Ordering::Relaxed)
     }
 
     /// Extracts the best move from the transposition table.

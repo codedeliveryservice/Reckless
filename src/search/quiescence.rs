@@ -14,7 +14,7 @@ impl Searcher {
         self.nodes += 1;
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
-        if self.load_terminator() {
+        if self.stopped {
             return Score::INVALID;
         }
 
