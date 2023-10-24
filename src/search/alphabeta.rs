@@ -3,9 +3,16 @@ use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
+const RFP_MARGIN: i32 = 75;
+const RFP_DEPTH: usize = 8;
+const NMP_DEPTH: usize = 3;
+const NMP_REDUCTION: usize = 2;
+const LMR_MOVE_COUNT: usize = 4;
+const LMR_DEPTH: usize = 3;
+
 impl<'a> Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, alpha: i32, beta: i32, mut depth: usize) -> i32 {
+    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: usize) -> i32 {
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
             return Score::INVALID;
@@ -38,22 +45,20 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        let static_score = evaluate(&self.board);
-
         if !ROOT && !PV && !in_check {
-            const RFP_MARGIN: i32 = 75;
+            let static_score = evaluate(&self.board);
 
             // Reverse futility pruning: if the static evaluation of the current position is significantly
             // higher than beta at low depths, it's likely to be good enough to cause a beta cutoff
-            if depth < 8 && static_score - RFP_MARGIN * depth as i32 > beta {
+            if depth < RFP_DEPTH && static_score - RFP_MARGIN * depth as i32 > beta {
                 return static_score;
             }
 
             // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
             // likely to result in a cutoff after a real move is made, so the current node can be pruned
-            if depth >= 3 && static_score > beta && !self.board.is_last_move_null() {
+            if depth >= NMP_DEPTH && static_score > beta && !self.board.is_last_move_null() {
                 self.board.make_null_move();
-                let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - 3);
+                let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - 1);
                 self.board.undo_move();
 
                 if score >= beta {
@@ -62,31 +67,36 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        self.search_moves::<PV>(alpha, beta, depth, in_check, entry.map(|entry| entry.mv))
-    }
-
-    fn search_moves<const PV: bool>(&mut self, mut alpha: i32, beta: i32, depth: usize, in_check: bool, cache_move: Option<Move>) -> i32 {
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::default();
         let mut bound = Bound::Upper;
 
         let mut moves_played = 0;
         let mut moves = self.board.generate_moves();
-        let mut ordering = self.build_ordering(ALPHABETA_STAGES, &moves, cache_move);
+        let mut ordering = self.build_ordering(ALPHABETA_STAGES, &moves, entry.map(|entry| entry.mv));
 
         while let Some(mv) = moves.next(&mut ordering) {
             if self.board.make_move(mv).is_err() {
                 continue;
             }
 
-            let is_quiet = !mv.is_capture() && !mv.is_promotion();
-            let apply_lmr = is_quiet && !in_check && moves_played >= 4 && depth >= 3;
-            let reduction = if apply_lmr { 3 } else { 1 };
-
-            let score = self.principle_variation_search::<PV>(alpha, beta, depth, reduction, moves_played);
+            let score = match moves_played {
+                // The first move is likely to be the best, so it's searched with a full window
+                0 => -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1),
+                // The remaining moves are searched with a null window and possible reductions
+                _ => {
+                    let reduction = self.calculate_lmr(mv, depth, moves_played, in_check);
+                    self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
+                }
+            };
 
             self.board.undo_move();
             moves_played += 1;
+
+            // Early return to prevent processing potentially corrupted search results
+            if self.stopped {
+                return Score::INVALID;
+            }
 
             if score > best_score {
                 best_score = score;
@@ -114,23 +124,27 @@ impl<'a> Searcher<'a> {
             return self.final_score(in_check);
         }
 
-        self.write_cache_entry(depth, best_score, bound, best_move);
+        let entry = CacheEntry::new(self.board.hash(), depth, best_score, bound, best_move);
+        self.cache.write(entry, self.board.ply);
         best_score
+    }
+
+    fn calculate_lmr(&self, mv: Move, depth: usize, moves_played: usize, in_check: bool) -> usize {
+        if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVE_COUNT && depth >= LMR_DEPTH {
+            2
+        } else {
+            0
+        }
     }
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: usize, reduction: usize, moves_played: usize) -> i32 {
-        // The first move is likely to be the best, so it's searched with a full window
-        if moves_played == 0 {
-            return -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1);
-        }
-
+    fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: usize, reduction: usize) -> i32 {
         // Null window search with possible late move reduction
-        let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth - reduction);
+        let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth - reduction - 1);
 
         // If the search fails and reduction applied, re-search with full depth
-        if alpha < score && reduction > 1 {
+        if alpha < score && reduction > 0 {
             score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth - 1);
         }
 
@@ -162,15 +176,6 @@ impl<'a> Searcher<'a> {
             Bound::Lower if entry.score >= beta => Some(entry.score),
             Bound::Upper if entry.score <= alpha => Some(entry.score),
             _ => None,
-        }
-    }
-
-    /// Writes a new cache entry to the transposition table.
-    fn write_cache_entry(&mut self, depth: usize, score: i32, bound: Bound, best: Move) {
-        // Cache only if search was completed to avoid storing potentially invalid results
-        if !self.stopped {
-            let entry = CacheEntry::new(self.board.hash(), depth, score, bound, best);
-            self.cache.write(entry, self.board.ply);
         }
     }
 
