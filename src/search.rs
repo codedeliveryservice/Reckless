@@ -84,7 +84,7 @@ impl<'a> Searcher<'a> {
     }
 
     /// Reports the result of a search iteration using the `info` UCI command.
-    fn report_search_result(&mut self, depth: usize, score: i32, stopwatch: Instant) {
+    fn report_search_result(&mut self, depth: i32, score: i32, stopwatch: Instant) {
         let nps = self.nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
@@ -106,8 +106,8 @@ impl<'a> Searcher<'a> {
     }
 
     /// Extracts the principal variation line from the transposition table limited to the given depth.
-    fn get_principal_variation(&mut self, mut depth: usize) -> Vec<Move> {
-        let mut pv_line = Vec::with_capacity(depth);
+    fn get_principal_variation(&mut self, mut depth: i32) -> Vec<Move> {
+        let mut pv_line = vec![];
 
         while depth != 0 {
             if let Some(entry) = self.cache.read(self.board.hash(), 0) {

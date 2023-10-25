@@ -4,15 +4,15 @@ use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
 const RFP_MARGIN: i32 = 75;
-const RFP_DEPTH: usize = 8;
-const NMP_DEPTH: usize = 3;
-const NMP_REDUCTION: usize = 2;
+const RFP_DEPTH: i32 = 8;
+const NMP_DEPTH: i32 = 3;
+const NMP_REDUCTION: i32 = 2;
 const LMR_MOVE_COUNT: usize = 4;
-const LMR_DEPTH: usize = 3;
+const LMR_DEPTH: i32 = 3;
 
 impl<'a> Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: usize) -> i32 {
+    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
             return Score::INVALID;
@@ -26,7 +26,7 @@ impl<'a> Searcher<'a> {
         // Check extensions: extend the search depth due to low branching and the possibility of
         // being in a forced sequence of moves
         let in_check = self.board.is_in_check();
-        depth += in_check as usize;
+        depth += in_check as i32;
 
         // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
         if depth == 0 {
@@ -50,7 +50,7 @@ impl<'a> Searcher<'a> {
 
             // Reverse futility pruning: if the static evaluation of the current position is significantly
             // higher than beta at low depths, it's likely to be good enough to cause a beta cutoff
-            if depth < RFP_DEPTH && static_score - RFP_MARGIN * depth as i32 > beta {
+            if depth < RFP_DEPTH && static_score - RFP_MARGIN * depth > beta {
                 return static_score;
             }
 
@@ -129,7 +129,7 @@ impl<'a> Searcher<'a> {
         best_score
     }
 
-    fn calculate_lmr(&self, mv: Move, depth: usize, moves_played: usize, in_check: bool) -> usize {
+    fn calculate_lmr(&self, mv: Move, depth: i32, moves_played: usize, in_check: bool) -> i32 {
         if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVE_COUNT && depth >= LMR_DEPTH {
             2
         } else {
@@ -139,7 +139,7 @@ impl<'a> Searcher<'a> {
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: usize, reduction: usize) -> i32 {
+    fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: i32, reduction: i32) -> i32 {
         // Null window search with possible late move reduction
         let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth - reduction - 1);
 
@@ -166,7 +166,7 @@ impl<'a> Searcher<'a> {
     }
 
     /// Provides a score for a transposition table cutoff, if applicable.
-    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: usize) -> Option<i32> {
+    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> Option<i32> {
         if entry.depth < depth as u8 {
             return None;
         }

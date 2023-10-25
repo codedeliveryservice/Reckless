@@ -22,4 +22,4 @@ pub use square::*;
 pub const MAX_GAME_PLIES: usize = 1024;
 
 /// The maximum number of plies that can be searched.
-pub const MAX_SEARCH_DEPTH: usize = 64;
+pub const MAX_SEARCH_DEPTH: i32 = 64;

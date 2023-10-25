@@ -6,7 +6,7 @@ use crate::types::MAX_SEARCH_DEPTH;
 pub enum Limits {
     Infinite,
     FixedTime(u64),
-    FixedDepth(usize),
+    FixedDepth(i32),
     Tournament(u64, u64, Option<u64>),
 }
 
@@ -28,7 +28,7 @@ impl TimeManager {
         }
     }
 
-    pub fn get_max_depth(&self) -> usize {
+    pub fn get_max_depth(&self) -> i32 {
         match self.limits {
             Limits::FixedDepth(depth) => depth,
             _ => MAX_SEARCH_DEPTH,

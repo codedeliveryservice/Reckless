@@ -14,7 +14,7 @@ use crate::{board::Board, cache::Cache, search::Searcher, timeman::Limits};
 static BENCH: &str = include_str!("../../data/bench.txt");
 
 /// Runs a fixed depth search on the bench positions.
-pub fn bench(depth: usize) {
+pub fn bench(depth: i32) {
     let positions = BENCH.split('\n').collect::<Vec<_>>();
 
     println!("{}", "-".repeat(50));
