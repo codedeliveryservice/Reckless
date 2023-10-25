@@ -6,10 +6,9 @@ use crate::types::{Move, Score};
 use crate::{board::Board, cache::Cache};
 
 mod alphabeta;
+mod aspiration;
 mod ordering;
 mod quiescence;
-
-const ASPIRATION_WINDOW_MARGIN: i32 = 50;
 
 pub struct Searcher<'a> {
     pub nodes: u32,
@@ -48,33 +47,24 @@ impl<'a> Searcher<'a> {
         let stopwatch = Instant::now();
 
         let mut last_best = Move::default();
-        let mut depth = 1;
+        let mut last_score = Default::default();
 
-        let mut alpha = -Score::INFINITY;
-        let mut beta = Score::INFINITY;
-
-        while depth <= self.time_manager.get_max_depth() {
-            let score = self.alpha_beta::<true, true>(alpha, beta, depth);
+        for depth in 1..=self.time_manager.get_max_depth() {
+            let score = match depth {
+                1..=6 => self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth),
+                _ => self.aspiration_window(last_score, depth),
+            };
 
             if self.stopped {
                 break;
             }
 
-            if score <= alpha || score >= beta {
-                alpha = -Score::INFINITY;
-                beta = Score::INFINITY;
-                continue;
-            }
-
-            alpha = score - ASPIRATION_WINDOW_MARGIN;
-            beta = score + ASPIRATION_WINDOW_MARGIN;
-
             if self.print_to_stdout {
                 self.report_search_result(depth, score, stopwatch);
             }
 
+            last_score = score;
             last_best = self.get_best_move(&self.board).unwrap();
-            depth += 1;
             self.sel_depth = 0;
         }
 
