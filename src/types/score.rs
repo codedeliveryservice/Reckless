@@ -15,7 +15,7 @@ impl Score {
 pub struct S(pub i32, pub i32);
 
 impl S {
-    pub fn deconstruct(&self) -> (i32, i32) {
+    pub const fn deconstruct(self) -> (i32, i32) {
         (self.0, self.1)
     }
 }
@@ -31,6 +31,6 @@ impl Neg for S {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        S(-self.0, -self.1)
+        Self(-self.0, -self.1)
     }
 }

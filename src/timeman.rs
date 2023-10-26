@@ -28,7 +28,7 @@ impl TimeManager {
         }
     }
 
-    pub fn get_max_depth(&self) -> i32 {
+    pub const fn get_max_depth(&self) -> i32 {
         match self.limits {
             Limits::FixedDepth(depth) => depth,
             _ => MAX_SEARCH_DEPTH,

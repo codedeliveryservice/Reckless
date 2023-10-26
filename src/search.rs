@@ -122,5 +122,5 @@ fn format_score(score: i32) -> String {
     if score < -Score::CHECKMATE_BOUND {
         return format!("mate {}", (-Score::CHECKMATE - score) / 2);
     }
-    format!("cp {}", score)
+    format!("cp {score}")
 }

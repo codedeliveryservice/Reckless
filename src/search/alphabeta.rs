@@ -26,7 +26,7 @@ impl<'a> Searcher<'a> {
         // Check extensions: extend the search depth due to low branching and the possibility of
         // being in a forced sequence of moves
         let in_check = self.board.is_in_check();
-        depth += in_check as i32;
+        depth += i32::from(in_check);
 
         // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
         if depth == 0 {

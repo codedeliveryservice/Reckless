@@ -182,7 +182,7 @@ impl Board {
             Piece::Rook => rook_attacks(square, self.occupancies()),
             Piece::Queen => queen_attacks(square, self.occupancies()),
             Piece::King => king_attacks(square),
-            _ => panic!("get_attacks() should not be called for pawns"),
+            Piece::Pawn => panic!("get_attacks() should not be called for pawns"),
         }
     }
 
@@ -221,9 +221,9 @@ impl Default for Board {
         Self {
             turn: Color::White,
             ply: Default::default(),
-            state: Default::default(),
-            state_stack: [Default::default(); MAX_GAME_PLIES],
-            move_stack: [Default::default(); MAX_GAME_PLIES],
+            state: InternalState::default(),
+            state_stack: [InternalState::default(); MAX_GAME_PLIES],
+            move_stack: [Move::default(); MAX_GAME_PLIES],
             length: Default::default(),
         }
     }

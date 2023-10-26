@@ -79,7 +79,7 @@ pub struct CacheEntry {
 
 impl CacheEntry {
     /// Creates a new `CacheEntry`.
-    pub fn new(hash: u64, depth: i32, score: i32, bound: Bound, mv: Move) -> Self {
+    pub const fn new(hash: u64, depth: i32, score: i32, bound: Bound, mv: Move) -> Self {
         Self {
             depth: depth as u8,
             hash,
