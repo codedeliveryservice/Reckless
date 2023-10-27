@@ -1,4 +1,3 @@
-use super::{ordering::ALPHABETA_STAGES, Searcher};
 use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
@@ -10,7 +9,7 @@ const NMP_REDUCTION: i32 = 2;
 const LMR_MOVE_COUNT: usize = 4;
 const LMR_DEPTH: i32 = 3;
 
-impl<'a> Searcher<'a> {
+impl<'a> super::Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
         // The search has been stopped by the UCI or the time control
@@ -73,7 +72,7 @@ impl<'a> Searcher<'a> {
 
         let mut moves_played = 0;
         let mut moves = self.board.generate_moves();
-        let mut ordering = self.build_ordering(ALPHABETA_STAGES, &moves, entry.map(|entry| entry.mv));
+        let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
         while let Some(mv) = moves.next(&mut ordering) {
             if self.board.make_move(mv).is_err() {

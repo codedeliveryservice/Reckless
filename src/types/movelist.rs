@@ -1,22 +1,17 @@
-use super::{Move, MoveKind, Square};
+use super::{Move, MoveKind, Square, MAX_MOVES};
 
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
 /// on collecting and processing `Move` objects.
 pub struct MoveList {
-    moves: [Move; Self::MAX_MOVES],
+    moves: [Move; MAX_MOVES],
     length: usize,
 }
 
 impl MoveList {
-    /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
-    /// the maximum number of chess moves in a certain position *appears* to be 218.
-    /// So make sure the list of moves never gets corrupted.
-    const MAX_MOVES: usize = 256;
-
     /// Creates a new `MoveList`.
     pub(crate) fn new() -> Self {
         Self {
-            moves: [Move::default(); Self::MAX_MOVES],
+            moves: [Move::default(); MAX_MOVES],
             length: 0,
         }
     }

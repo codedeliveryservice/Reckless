@@ -1,9 +1,8 @@
 use std::cmp::max;
 
-use super::{ordering::QUIESCENCE_STAGES, Searcher};
 use crate::{evaluation::evaluate, types::Score};
 
-impl<'a> Searcher<'a> {
+impl<'a> super::Searcher<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
     /// This minimizes the horizon effect for volatile positions, ensuring that threats
     /// and opportunities extending beyond the fixed search depth are not overlooked.
@@ -27,7 +26,7 @@ impl<'a> Searcher<'a> {
 
         let mut best_score = static_score;
         let mut moves = self.board.generate_moves();
-        let mut ordering = self.build_ordering(QUIESCENCE_STAGES, &moves, None);
+        let mut ordering = self.build_ordering(&moves, None);
 
         while let Some(mv) = moves.next(&mut ordering) {
             if mv.is_capture() && self.board.make_move(mv).is_ok() {
