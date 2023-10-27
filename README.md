@@ -49,10 +49,10 @@ combines established concepts, as the name suggests.
 
 ### Static evaluation
 
--   Material
--   Piece-Square Tables
--   Mobility (Space Control)
 -   Tapered Evaluation
+-   King-Relative Piece-Square Tables
+-   Sliding Piece Mobility
+-   Tempo Bonus
 
 ## Getting started
 
