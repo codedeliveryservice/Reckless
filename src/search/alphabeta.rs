@@ -39,8 +39,8 @@ impl<'a> super::Searcher<'a> {
         // Transposition table lookup and potential cutoff
         let entry = self.cache.read(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
-            if let Some(score) = self.transposition_table_cutoff(entry, alpha, beta, depth) {
-                return score;
+            if !PV && self.transposition_table_cutoff(entry, alpha, beta, depth) {
+                return entry.score;
             }
         }
 
@@ -165,16 +165,16 @@ impl<'a> super::Searcher<'a> {
     }
 
     /// Provides a score for a transposition table cutoff, if applicable.
-    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> Option<i32> {
+    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> bool {
         if entry.depth < depth as u8 {
-            return None;
+            return false;
         }
+
         // The score is outside the alpha-beta window, resulting in a cutoff
         match entry.bound {
-            Bound::Exact => Some(entry.score),
-            Bound::Lower if entry.score >= beta => Some(entry.score),
-            Bound::Upper if entry.score <= alpha => Some(entry.score),
-            _ => None,
+            Bound::Exact => true,
+            Bound::Lower => entry.score >= beta,
+            Bound::Upper => entry.score <= alpha,
         }
     }
 
