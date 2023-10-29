@@ -8,9 +8,8 @@ impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
         self.turn = !self.turn;
-        self.move_stack[self.length] = Move::default();
-        self.state_stack[self.length] = self.state;
-        self.length += 1;
+        self.move_stack[self.ply] = Move::default();
+        self.state_stack[self.ply] = self.state;
         self.ply += 1;
 
         self.state.hash ^= SIDE_KEY;
@@ -28,9 +27,8 @@ impl Board {
     ///
     /// This function will return an error if the `Move` is illegal.
     pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
-        self.move_stack[self.length] = mv;
-        self.state_stack[self.length] = self.state;
-        self.length += 1;
+        self.move_stack[self.ply] = mv;
+        self.state_stack[self.ply] = self.state;
         self.ply += 1;
 
         self.state.hash ^= SIDE_KEY;
@@ -99,8 +97,7 @@ impl Board {
     /// Panics if the state stack is empty.
     pub fn undo_move(&mut self) {
         self.ply -= 1;
-        self.length -= 1;
-        self.state = self.state_stack[self.length];
+        self.state = self.state_stack[self.ply];
         self.turn = !self.turn;
     }
 }
