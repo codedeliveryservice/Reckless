@@ -7,23 +7,28 @@ pub enum Limits {
     Infinite,
     FixedTime(u64),
     FixedDepth(i32),
-    Tournament(u64, u64, Option<u64>),
+    Incremental(u64, u64),
+    Tournament(u64, u64, u64),
 }
 
-const TIME_OVERHEAD_MS: u64 = 20;
-const MOVES_TO_GO: u64 = 25;
+const TIME_OVERHEAD_MS: u64 = 15;
+const HARD_BOUND: u64 = 8;
+const SOFT_BOUND: u64 = 40;
 
 pub struct TimeManager {
     limits: Limits,
     start_time: Instant,
-    allocated_time: Duration,
+    soft_bound: Duration,
+    hard_bound: Duration,
 }
 
 impl TimeManager {
     pub fn new(limits: Limits) -> Self {
+        let (soft, hard) = calculate_time_ms(&limits);
         Self {
-            allocated_time: Duration::from_millis(calculate_time_ms(&limits)),
             start_time: Instant::now(),
+            soft_bound: Duration::from_millis(soft),
+            hard_bound: Duration::from_millis(hard),
             limits,
         }
     }
@@ -35,18 +40,26 @@ impl TimeManager {
         }
     }
 
-    pub fn is_time_over(&self) -> bool {
-        self.start_time.elapsed() >= self.allocated_time
+    pub fn is_soft_bound_reached(&self) -> bool {
+        self.start_time.elapsed() >= self.soft_bound
+    }
+
+    pub fn is_hard_bound_reached(&self) -> bool {
+        self.start_time.elapsed() >= self.hard_bound
     }
 }
 
-fn calculate_time_ms(limits: &Limits) -> u64 {
+fn calculate_time_ms(limits: &Limits) -> (u64, u64) {
     match *limits {
-        Limits::FixedTime(ms) => ms,
-        Limits::Tournament(main, inc, moves) => {
-            let moves_to_go = moves.unwrap_or(MOVES_TO_GO);
-            (main / moves_to_go + inc).saturating_sub(TIME_OVERHEAD_MS)
+        Limits::FixedTime(ms) => (ms, ms),
+        Limits::Incremental(main, inc) => {
+            let time = (main + inc).saturating_sub(TIME_OVERHEAD_MS);
+            (time / SOFT_BOUND, time / HARD_BOUND)
         }
-        _ => u64::MAX,
+        Limits::Tournament(main, inc, moves) => {
+            let time = (main / moves + inc).saturating_sub(TIME_OVERHEAD_MS);
+            (time, time)
+        }
+        _ => (u64::MAX, u64::MAX),
     }
 }

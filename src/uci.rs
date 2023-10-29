@@ -119,9 +119,12 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     }
 
     if main == 0 && inc == 0 {
-        Limits::Infinite
-    } else {
-        Limits::Tournament(main, inc, moves)
+        return Limits::Infinite;
+    }
+
+    match moves {
+        Some(moves) => Limits::Tournament(main, inc, moves),
+        None => Limits::Incremental(main, inc),
     }
 }
 
@@ -143,8 +146,8 @@ mod tests {
         tc_infinite: "infinite", Limits::Infinite,
         tc_fixed_time: "movetime 5000", Limits::FixedTime(5000),
         tc_fixed_depth: "depth 10", Limits::FixedDepth(10),
-        tc_increment: "winc 750 binc 900", Limits::Tournament(0, 750, None),
-        tc_tournament: "wtime 750 winc 900 movestogo 12", Limits::Tournament(750, 900, Some(12)),
+        tc_increment: "winc 750 binc 900", Limits::Incremental(0, 750),
+        tc_tournament: "wtime 750 winc 900 movestogo 12", Limits::Tournament(750, 900, 12),
         tc_invalid: "invalid", Limits::Infinite,
     );
 }

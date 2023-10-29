@@ -66,6 +66,10 @@ impl<'a> Searcher<'a> {
             last_score = score;
             last_best = self.get_best_move(&self.board).unwrap();
             self.sel_depth = 0;
+
+            if self.time_manager.is_soft_bound_reached() {
+                break;
+            }
         }
 
         if self.print_to_stdout {
