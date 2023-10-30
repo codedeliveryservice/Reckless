@@ -33,7 +33,6 @@ pub struct Board {
     state: InternalState,
     state_stack: [InternalState; MAX_GAME_PLIES],
     move_stack: [Move; MAX_GAME_PLIES],
-    
 }
 
 impl Board {
