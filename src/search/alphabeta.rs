@@ -45,7 +45,10 @@ impl<'a> super::Searcher<'a> {
         }
 
         if !ROOT && !PV && !in_check {
-            let static_score = evaluate(&self.board);
+            let static_score = match entry {
+                Some(entry) => entry.score,
+                _ => evaluate(&self.board),
+            };
 
             // Reverse futility pruning: if the static evaluation of the current position is significantly
             // higher than beta at low depths, it's likely to be good enough to cause a beta cutoff
