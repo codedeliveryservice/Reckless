@@ -6,7 +6,7 @@ const RFP_MARGIN: i32 = 75;
 const RFP_DEPTH: i32 = 8;
 const NMP_DEPTH: i32 = 3;
 const NMP_REDUCTION: i32 = 2;
-const LMR_MOVE_COUNT: usize = 4;
+const LMR_MOVE_COUNT: i32 = 4;
 const LMR_DEPTH: i32 = 3;
 
 impl<'a> super::Searcher<'a> {
@@ -28,7 +28,7 @@ impl<'a> super::Searcher<'a> {
         depth += i32::from(in_check);
 
         // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
-        if depth == 0 {
+        if depth <= 0 {
             return self.quiescence_search(alpha, beta);
         }
 
@@ -82,14 +82,13 @@ impl<'a> super::Searcher<'a> {
                 continue;
             }
 
-            let score = match moves_played {
+            let score = if moves_played == 0 {
                 // The first move is likely to be the best, so it's searched with a full window
-                0 => -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1),
+                -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
+            } else {
                 // The remaining moves are searched with a null window and possible reductions
-                _ => {
-                    let reduction = self.calculate_lmr(mv, depth, moves_played, in_check);
-                    self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
-                }
+                let reduction = calculate_reduction(mv, depth, moves_played, in_check);
+                self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
             };
 
             self.board.undo_move();
@@ -129,14 +128,6 @@ impl<'a> super::Searcher<'a> {
         let entry = CacheEntry::new(self.board.hash(), depth, best_score, bound, best_move);
         self.cache.write(entry, self.board.ply);
         best_score
-    }
-
-    fn calculate_lmr(&self, mv: Move, depth: i32, moves_played: usize, in_check: bool) -> i32 {
-        if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVE_COUNT && depth >= LMR_DEPTH {
-            2
-        } else {
-            0
-        }
     }
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
@@ -188,5 +179,14 @@ impl<'a> super::Searcher<'a> {
         } else {
             Score::DRAW
         }
+    }
+}
+
+/// Calculates the late move reduction (LMR) for a given move.
+fn calculate_reduction(mv: Move, depth: i32, moves_played: i32, in_check: bool) -> i32 {
+    if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVE_COUNT && depth >= LMR_DEPTH {
+        1 + depth / 8 + moves_played / 16
+    } else {
+        0
     }
 }
