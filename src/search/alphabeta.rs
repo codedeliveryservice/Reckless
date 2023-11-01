@@ -73,6 +73,7 @@ impl<'a> super::Searcher<'a> {
         let mut best_move = Move::default();
         let mut bound = Bound::Upper;
 
+        let mut quiets_played = 0;
         let mut moves_played = 0;
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
@@ -93,6 +94,7 @@ impl<'a> super::Searcher<'a> {
 
             self.board.undo_move();
             moves_played += 1;
+            quiets_played += i32::from(mv.is_quiet());
 
             // Early return to prevent processing potentially corrupted search results
             if self.stopped {
@@ -118,6 +120,14 @@ impl<'a> super::Searcher<'a> {
                 }
 
                 break;
+            }
+
+            if !PV && !ROOT && mv.is_quiet() {
+                // Quiet Late Move Pruning. Skip moves ordered later at low depth when we've searched
+                // enough quiet moves to be confident that the remaining ones are unlikely to be good.
+                if depth <= 3 && quiets_played > 5 + depth * depth {
+                    break;
+                }
             }
         }
 
