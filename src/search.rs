@@ -9,6 +9,7 @@ mod alphabeta;
 mod aspiration;
 mod ordering;
 mod quiescence;
+mod selectivity;
 
 pub struct Searcher<'a> {
     pub nodes: u32,

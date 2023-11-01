@@ -2,12 +2,7 @@ use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
-const RFP_MARGIN: i32 = 75;
-const RFP_DEPTH: i32 = 8;
-const NMP_DEPTH: i32 = 3;
-const NMP_REDUCTION: i32 = 2;
-const LMR_MOVE_COUNT: i32 = 4;
-const LMR_DEPTH: i32 = 3;
+use super::selectivity::{calculate_reduction, quiet_late_move_pruning};
 
 impl<'a> super::Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
@@ -39,39 +34,27 @@ impl<'a> super::Searcher<'a> {
         // Transposition table lookup and potential cutoff
         let entry = self.cache.read(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
-            if !PV && self.transposition_table_cutoff(entry, alpha, beta, depth) {
+            if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
             }
         }
 
+        // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
-            let static_score = match entry {
-                Some(entry) => entry.score,
-                _ => evaluate(&self.board),
-            };
+            let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
 
-            // Reverse futility pruning: if the static evaluation of the current position is significantly
-            // higher than beta at low depths, it's likely to be good enough to cause a beta cutoff
-            if depth < RFP_DEPTH && static_score - RFP_MARGIN * depth > beta {
-                return static_score;
+            if let Some(score) = self.reverse_futility_pruning(depth, beta, eval) {
+                return score;
             }
 
-            // Null move pruning: if giving a free move to the opponent leads to a beta cutoff, it's highly
-            // likely to result in a cutoff after a real move is made, so the current node can be pruned
-            if depth >= NMP_DEPTH && static_score > beta && !self.board.is_last_move_null() {
-                self.board.make_null_move();
-                let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - 1);
-                self.board.undo_move();
-
-                if score >= beta {
-                    return beta;
-                }
+            if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
+                return score;
             }
         }
 
+        let original_alpha = alpha;
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::default();
-        let mut bound = Bound::Upper;
 
         let mut quiets_played = 0;
         let mut moves_played = 0;
@@ -104,30 +87,18 @@ impl<'a> super::Searcher<'a> {
             if score > best_score {
                 best_score = score;
                 best_move = mv;
-            }
 
-            if score > alpha {
-                alpha = score;
-                bound = Bound::Exact;
-            }
-
-            if score >= beta {
-                bound = Bound::Lower;
-
-                if mv.is_quiet() {
-                    self.killers.add(mv, self.board.ply);
-                    self.history.update(mv, depth);
+                if score > alpha {
+                    alpha = score;
                 }
+            }
 
+            if alpha >= beta {
                 break;
             }
 
-            if !PV && !ROOT && mv.is_quiet() {
-                // Quiet Late Move Pruning. Skip moves ordered later at low depth when we've searched
-                // enough quiet moves to be confident that the remaining ones are unlikely to be good.
-                if depth <= 3 && quiets_played > 5 + depth * depth {
-                    break;
-                }
+            if !PV && !ROOT && quiet_late_move_pruning(mv, depth, quiets_played) {
+                break;
             }
         }
 
@@ -135,8 +106,9 @@ impl<'a> super::Searcher<'a> {
             return self.final_score(in_check);
         }
 
-        let entry = CacheEntry::new(self.board.hash(), depth, best_score, bound, best_move);
-        self.cache.write(entry, self.board.ply);
+        let bound = get_bound(best_score, original_alpha, beta);
+        self.update_ordering_heuristics(depth, best_move, bound);
+        self.update_cache(depth, best_score, best_move, bound);
         best_score
     }
 
@@ -168,18 +140,18 @@ impl<'a> super::Searcher<'a> {
         self.stopped
     }
 
-    /// Provides a score for a transposition table cutoff, if applicable.
-    fn transposition_table_cutoff(&mut self, entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> bool {
-        if entry.depth < depth as u8 {
-            return false;
+    /// Updates the ordering heuristics to improve the move ordering in future searches.
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, bound: Bound) {
+        if bound == Bound::Lower && best_move.is_quiet() {
+            self.killers.add(best_move, self.board.ply);
+            self.history.update(best_move, depth);
         }
+    }
 
-        // The score is outside the alpha-beta window, resulting in a cutoff
-        match entry.bound {
-            Bound::Exact => true,
-            Bound::Lower => entry.score >= beta,
-            Bound::Upper => entry.score <= alpha,
-        }
+    /// Updates the transposition table with the latest search results.
+    fn update_cache(&mut self, depth: i32, best_score: i32, best_move: Move, bound: Bound) {
+        let entry = CacheEntry::new(self.board.hash(), depth, best_score, bound, best_move);
+        self.cache.write(entry, self.board.ply);
     }
 
     /// Calculates the final score in case of a checkmate or stalemate.
@@ -192,11 +164,26 @@ impl<'a> super::Searcher<'a> {
     }
 }
 
-/// Calculates the late move reduction (LMR) for a given move.
-fn calculate_reduction(mv: Move, depth: i32, moves_played: i32, in_check: bool) -> i32 {
-    if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVE_COUNT && depth >= LMR_DEPTH {
-        1 + depth / 8 + moves_played / 16
-    } else {
-        0
+/// Determines the score bound based on the best score and the original alpha-beta window.
+fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
+    if score <= alpha {
+        return Bound::Upper;
+    }
+    if score >= beta {
+        return Bound::Lower;
+    }
+    Bound::Exact
+}
+
+/// Provides a score for a transposition table cutoff, if applicable.
+fn transposition_table_cutoff(entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> bool {
+    if entry.depth < depth as u8 {
+        return false;
+    }
+    // The score is outside the alpha-beta window, resulting in a cutoff
+    match entry.bound {
+        Bound::Exact => true,
+        Bound::Lower => entry.score >= beta,
+        Bound::Upper => entry.score <= alpha,
     }
 }
