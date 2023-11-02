@@ -56,8 +56,8 @@ impl<'a> super::Searcher<'a> {
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::default();
 
-        let mut quiets_played = 0;
         let mut moves_played = 0;
+        let mut quiets = Vec::with_capacity(32);
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
@@ -77,7 +77,10 @@ impl<'a> super::Searcher<'a> {
 
             self.board.undo_move();
             moves_played += 1;
-            quiets_played += i32::from(mv.is_quiet());
+
+            if mv.is_quiet() {
+                quiets.push(mv);
+            }
 
             // Early return to prevent processing potentially corrupted search results
             if self.stopped {
@@ -97,7 +100,7 @@ impl<'a> super::Searcher<'a> {
                 break;
             }
 
-            if !PV && !ROOT && quiet_late_move_pruning(mv, depth, quiets_played) {
+            if !PV && !ROOT && quiet_late_move_pruning(mv, depth, quiets.len() as i32) {
                 break;
             }
         }
@@ -107,7 +110,7 @@ impl<'a> super::Searcher<'a> {
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
-        self.update_ordering_heuristics(depth, best_move, bound);
+        self.update_ordering_heuristics(depth, best_move, quiets, bound);
         self.update_cache(depth, best_score, best_move, bound);
         best_score
     }
@@ -141,10 +144,15 @@ impl<'a> super::Searcher<'a> {
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
-    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, bound: Bound) {
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>, bound: Bound) {
         if bound == Bound::Lower && best_move.is_quiet() {
             self.killers.add(best_move, self.board.ply);
-            self.history.update(best_move, depth);
+            self.history.increase(best_move, depth);
+
+            // The last added move is the best move, so it's not updated
+            for &mv in quiets[..quiets.len() - 1].iter() {
+                self.history.decrease(mv, depth);
+            }
         }
     }
 

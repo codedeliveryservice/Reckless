@@ -15,9 +15,14 @@ impl HistoryMoves {
         self.table[mv.start()][mv.target()]
     }
 
-    /// Increases the score of a move by the given depth.
-    pub fn update(&mut self, mv: Move, depth: i32) {
+    /// Increases the score of a move based on the depth of the search.
+    pub fn increase(&mut self, mv: Move, depth: i32) {
         self.table[mv.start()][mv.target()] += depth * depth;
+    }
+
+    /// Decreases the score of a move based on the depth of the search.
+    pub fn decrease(&mut self, mv: Move, depth: i32) {
+        self.table[mv.start()][mv.target()] -= depth * depth;
     }
 }
 
