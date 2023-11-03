@@ -1,9 +1,10 @@
 use std::time::Instant;
 
+use crate::board::Board;
+use crate::cache::{Bound, Cache};
 use crate::tables::{HistoryMoves, KillerMoves};
 use crate::timeman::{Limits, TimeManager};
 use crate::types::{Move, Score};
-use crate::{board::Board, cache::Cache};
 
 mod alphabeta;
 mod aspiration;
@@ -65,7 +66,7 @@ impl<'a> Searcher<'a> {
             }
 
             last_score = score;
-            last_best = self.get_best_move(&self.board).unwrap();
+            last_best = self.cache.read(self.board.hash(), 0).unwrap().mv;
             self.sel_depth = 0;
 
             if self.time_manager.is_soft_bound_reached() {
@@ -86,36 +87,24 @@ impl<'a> Searcher<'a> {
         let hashfull = self.cache.get_load_factor();
         let score = format_score(score);
 
-        let pv = self.get_principal_variation(depth);
-        let pv = pv.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(" ");
-
-        println!(
-            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv {pv}",
+        print!(
+            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
             self.sel_depth, self.nodes,
         );
+        self.print_principle_variation();
+        println!();
     }
 
-    /// Extracts the best move from the transposition table.
-    fn get_best_move(&self, board: &Board) -> Option<Move> {
-        self.cache.read(board.hash(), 0).map(|entry| entry.mv)
-    }
-
-    /// Extracts the principal variation line from the transposition table limited to the given depth.
-    fn get_principal_variation(&mut self, mut depth: i32) -> Vec<Move> {
-        let mut pv_line = vec![];
-
-        while depth != 0 {
-            if let Some(entry) = self.cache.read(self.board.hash(), 0) {
-                pv_line.push(entry.mv);
+    /// Recursively prints the principle variation.
+    fn print_principle_variation(&mut self) {
+        if let Some(entry) = self.cache.read(self.board.hash(), 0) {
+            if entry.bound == Bound::Exact && !self.board.is_repetition() {
+                print!(" {}", entry.mv);
                 self.board.make_move(entry.mv).unwrap();
-                depth -= 1;
-            } else {
-                break;
+                self.print_principle_variation();
+                self.board.undo_move();
             }
         }
-
-        pv_line.iter().for_each(|_| self.board.undo_move());
-        pv_line
     }
 }
 
