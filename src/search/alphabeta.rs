@@ -78,10 +78,6 @@ impl<'a> super::Searcher<'a> {
             self.board.undo_move();
             moves_played += 1;
 
-            if mv.is_quiet() {
-                quiets.push(mv);
-            }
-
             // Early return to prevent processing potentially corrupted search results
             if self.stopped {
                 return Score::INVALID;
@@ -98,6 +94,10 @@ impl<'a> super::Searcher<'a> {
 
             if alpha >= beta {
                 break;
+            }
+
+            if mv.is_quiet() {
+                quiets.push(mv);
             }
 
             if !PV && !ROOT && quiet_late_move_pruning(mv, depth, quiets.len() as i32) {
@@ -136,7 +136,6 @@ impl<'a> super::Searcher<'a> {
 
     /// Checks if the search should be interrupted.
     fn should_interrupt_search(&mut self) -> bool {
-        // Ensure a valid move is returned by completing at least one iteration of iterative deepening
         if self.nodes % 4096 == 0 && self.time_manager.is_hard_bound_reached() {
             self.stopped = true;
         }
@@ -149,8 +148,7 @@ impl<'a> super::Searcher<'a> {
             self.killers.add(best_move, self.board.ply);
             self.history.increase(best_move, depth);
 
-            // The last added move is the best move, so it's not updated
-            for &mv in quiets[..quiets.len() - 1].iter() {
+            for mv in quiets {
                 self.history.decrease(mv, depth);
             }
         }
