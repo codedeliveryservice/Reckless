@@ -1,5 +1,5 @@
 use super::{Board, InternalState};
-use crate::lookup::*;
+use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks};
 use crate::types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, Piece, Square};
 
 const WHITE_SHORT_CASTLING_MASK: Bitboard = Bitboard(0b0110_0000);

@@ -174,7 +174,7 @@ impl Board {
     ///
     /// Panics if the piece is a pawn because pawn attacks are color dependent.
     pub fn get_attacks(&self, square: Square, piece: Piece) -> Bitboard {
-        use crate::lookup::*;
+        use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks};
         match piece {
             Piece::Knight => knight_attacks(square),
             Piece::Bishop => bishop_attacks(square, self.occupancies()),
