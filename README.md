@@ -39,6 +39,7 @@ combines established concepts, as the name suggests.
 -   Reverse Futility Pruning
 -   Null Move Pruning
 -   Late Move Reductions
+-   Quiet Late Move Pruning
 
 ### Move ordering
 
