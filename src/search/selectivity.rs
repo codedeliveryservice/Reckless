@@ -15,6 +15,10 @@ const LRM_MOVES_PLAYED_DIVISOR: i32 = 16;
 const QLMP_DEPTH: i32 = 3;
 const QLMP_QUIETS_PLAYED: i32 = 5;
 
+const FUTILITY_DEPTH: i32 = 5;
+const FUTILITY_MARGIN: i32 = 125;
+const FUTILITY_FIXED_MARGIN: i32 = 50;
+
 impl<'a> super::Searcher<'a> {
     /// If the static evaluation of the position is significantly higher than beta
     /// at low depths, it's likely to be good enough to cause a beta cutoff.
@@ -50,10 +54,15 @@ pub(super) fn calculate_reduction(mv: Move, depth: i32, moves_played: i32, in_ch
     }
 }
 
-/// Returns `true` if Quiet late Move Pruning suggests breaking out of the move loop.
-///
 /// If enough quiet moves have been searched at a low depth, it's unlikely that
 /// the remaining moves that are ordered later in move list are going to be better.
-pub(super) fn quiet_late_move_pruning(mv: Move, depth: i32, quiets_played: i32) -> bool {
-    mv.is_quiet() && depth <= QLMP_DEPTH && quiets_played > QLMP_QUIETS_PLAYED + depth * depth
+pub(super) fn quiet_late_move_pruning(depth: i32, quiets_played: i32) -> bool {
+    depth <= QLMP_DEPTH && quiets_played > QLMP_QUIETS_PLAYED + depth * depth
+}
+
+/// If the static evaluation is significantly lower than alpha at low depths,
+/// it's unlikely that the remaining depth will be sufficient to correct
+/// the position and raise score above alpha, as is the case with later moves.
+pub(super) fn futility_pruning(depth: i32, alpha: i32, eval: i32) -> bool {
+    depth <= FUTILITY_DEPTH && eval + FUTILITY_MARGIN * depth + FUTILITY_FIXED_MARGIN < alpha
 }

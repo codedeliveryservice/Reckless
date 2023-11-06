@@ -2,7 +2,7 @@ use crate::cache::{Bound, CacheEntry};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
-use super::selectivity::{calculate_reduction, quiet_late_move_pruning};
+use super::selectivity::{calculate_reduction, futility_pruning, quiet_late_move_pruning};
 
 impl<'a> super::Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
@@ -40,9 +40,9 @@ impl<'a> super::Searcher<'a> {
         }
 
         // Node pruning strategies prior to the move loop
-        if !ROOT && !PV && !in_check {
-            let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
+        let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
 
+        if !ROOT && !PV && !in_check {
             if let Some(score) = self.reverse_futility_pruning(depth, beta, eval) {
                 return score;
             }
@@ -62,6 +62,16 @@ impl<'a> super::Searcher<'a> {
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
         while let Some(mv) = moves.next(&mut ordering) {
+            if !ROOT && !PV && mv.is_quiet() && moves_played > 0 {
+                if futility_pruning(depth, alpha, eval) {
+                    break;
+                }
+
+                if quiet_late_move_pruning(depth, quiets.len() as i32) {
+                    break;
+                }
+            }
+
             if self.board.make_move(mv).is_err() {
                 continue;
             }
@@ -98,10 +108,6 @@ impl<'a> super::Searcher<'a> {
 
             if mv.is_quiet() {
                 quiets.push(mv);
-            }
-
-            if !PV && !ROOT && quiet_late_move_pruning(mv, depth, quiets.len() as i32) {
-                break;
             }
         }
 
