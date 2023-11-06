@@ -1,6 +1,6 @@
 [package]
 name = "reckless"
-version = "0.3.0"
+version = "0.4.0-alpha"
 edition = "2021"
 build = "src/lookup/build.rs"
 
