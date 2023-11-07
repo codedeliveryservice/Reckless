@@ -39,14 +39,13 @@ impl<'a> super::Searcher<'a> {
             }
         }
 
-        // Node pruning strategies prior to the move loop
         let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
 
+        // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
             if let Some(score) = self.reverse_futility_pruning(depth, beta, eval) {
                 return score;
             }
-
             if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
                 return score;
             }
@@ -66,7 +65,6 @@ impl<'a> super::Searcher<'a> {
                 if futility_pruning(depth, alpha, eval) {
                     break;
                 }
-
                 if quiet_late_move_pruning(depth, quiets.len() as i32) {
                     break;
                 }
@@ -96,10 +94,7 @@ impl<'a> super::Searcher<'a> {
             if score > best_score {
                 best_score = score;
                 best_move = mv;
-
-                if score > alpha {
-                    alpha = score;
-                }
+                alpha = alpha.max(score);
             }
 
             if alpha >= beta {
