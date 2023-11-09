@@ -79,7 +79,7 @@ impl<'a> super::Searcher<'a> {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
                 // The remaining moves are searched with a null window and possible reductions
-                let reduction = calculate_reduction(mv, depth, moves_played, in_check);
+                let reduction = calculate_reduction(mv, depth, moves_played);
                 self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
             };
 

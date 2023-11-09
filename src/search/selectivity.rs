@@ -45,8 +45,8 @@ impl<'a> super::Searcher<'a> {
 }
 
 /// Calculates the Late Move Reduction (LMR) for a given move.
-pub(super) fn calculate_reduction(mv: Move, depth: i32, moves_played: i32, in_check: bool) -> i32 {
-    if !mv.is_capture() && !mv.is_promotion() && !in_check && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
+pub(super) fn calculate_reduction(mv: Move, depth: i32, moves_played: i32) -> i32 {
+    if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
         (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32
     } else {
         0
