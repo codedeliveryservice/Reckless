@@ -20,19 +20,19 @@ pub struct Searcher<'a> {
     cache: &'a mut Cache,
     time_manager: TimeManager,
     killers: KillerMoves,
-    history: HistoryMoves,
+    history: &'a mut HistoryMoves,
     sel_depth: usize,
 }
 
 impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(board: Board, limits: Limits, cache: &'a mut Cache) -> Self {
+    pub fn new(board: Board, limits: Limits, history: &'a mut HistoryMoves, cache: &'a mut Cache) -> Self {
         Self {
             board,
             cache,
+            history,
             time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
-            history: HistoryMoves::default(),
             sel_depth: Default::default(),
             nodes: Default::default(),
             stopped: Default::default(),

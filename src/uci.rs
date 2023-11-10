@@ -1,10 +1,10 @@
 use crate::cache::{Cache, DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
-use crate::search::Searcher;
-use crate::{board::Board, timeman::Limits, tools, types::Color};
+use crate::{board::Board, search::Searcher, tables::HistoryMoves, timeman::Limits, tools, types::Color};
 
 pub fn message_loop() {
     let mut board = Board::starting_position();
     let mut cache = Cache::default();
+    let mut history = HistoryMoves::default();
 
     loop {
         let command = read_stdin();
@@ -13,10 +13,10 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&board, &mut cache, tokens),
+            ["go", tokens @ ..] => go(&board, &mut history, &mut cache, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut cache, tokens),
-            ["ucinewgame"] => reset(&mut board, &mut cache),
+            ["ucinewgame"] => reset(&mut board, &mut history, &mut cache),
 
             ["quit"] => std::process::exit(0),
 
@@ -36,15 +36,16 @@ fn uci() {
     println!("uciok");
 }
 
-fn reset(board: &mut Board, cache: &mut Cache) {
+fn reset(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache) {
     *board = Board::starting_position();
     *cache = Cache::default();
+    *history = HistoryMoves::default();
 }
 
-fn go(board: &Board, cache: &mut Cache, tokens: &[&str]) {
+fn go(board: &Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: &[&str]) {
     let limits = parse_limits(board.turn, tokens);
     let board = board.clone();
-    Searcher::new(board, limits, cache).iterative_deepening();
+    Searcher::new(board, limits, history, cache).iterative_deepening();
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
