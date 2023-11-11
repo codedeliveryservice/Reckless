@@ -5,6 +5,7 @@ const RFP_DEPTH: i32 = 8;
 
 const NMP_DEPTH: i32 = 3;
 const NMP_REDUCTION: i32 = 3;
+const NMP_DIVISOR: i32 = 4;
 
 const LMR_MOVES_PLAYED: i32 = 4;
 const LMR_DEPTH: i32 = 3;
@@ -33,7 +34,7 @@ impl<'a> super::Searcher<'a> {
     pub(super) fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
         if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() {
             self.board.make_null_move();
-            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION);
+            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - depth / NMP_DIVISOR);
             self.board.undo_move();
 
             if score >= beta {
