@@ -43,7 +43,8 @@ impl Cache {
     }
 
     /// Writes an entry to the `Cache` overwriting an existing one.
-    pub fn write(&mut self, mut entry: CacheEntry, ply: usize) {
+    pub fn write(&mut self, hash: u64, depth: i32, score: i32, bound: Bound, mv: Move, ply: usize) {
+        let mut entry = CacheEntry::new(hash, depth, score, bound, mv);
         entry.adjust_mating_score(ply as i32);
         let index = self.get_index(entry.hash);
         self.vector[index] = Some(entry);

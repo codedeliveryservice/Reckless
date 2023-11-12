@@ -112,7 +112,7 @@ impl<'a> super::Searcher<'a> {
 
         let bound = get_bound(best_score, original_alpha, beta);
         self.update_ordering_heuristics(depth, best_move, quiets, bound);
-        self.update_cache(depth, best_score, best_move, bound);
+        self.cache.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
         best_score
     }
 
@@ -153,12 +153,6 @@ impl<'a> super::Searcher<'a> {
                 self.history.decrease(mv, depth);
             }
         }
-    }
-
-    /// Updates the transposition table with the latest search results.
-    fn update_cache(&mut self, depth: i32, best_score: i32, best_move: Move, bound: Bound) {
-        let entry = CacheEntry::new(self.board.hash(), depth, best_score, bound, best_move);
-        self.cache.write(entry, self.board.ply);
     }
 
     /// Calculates the final score in case of a checkmate or stalemate.
