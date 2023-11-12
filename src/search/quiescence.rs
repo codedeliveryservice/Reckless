@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use crate::{evaluation::evaluate, types::Score};
+use crate::{cache::Bound, evaluation::evaluate, types::Move};
 
 impl<'a> super::Searcher<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -13,18 +13,26 @@ impl<'a> super::Searcher<'a> {
         self.nodes += 1;
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
-        if self.stopped {
-            return Score::INVALID;
-        }
-
-        let static_score = evaluate(&self.board);
-        alpha = max(alpha, static_score);
+        let eval = evaluate(&self.board);
+        alpha = max(alpha, eval);
 
         if alpha >= beta {
-            return static_score;
+            return eval;
         }
 
-        let mut best_score = static_score;
+        if let Some(entry) = self.cache.read(self.board.hash(), self.board.ply) {
+            if match entry.bound {
+                Bound::Exact => true,
+                Bound::Lower => entry.score >= beta,
+                Bound::Upper => entry.score <= alpha,
+            } {
+                return entry.score;
+            }
+        }
+
+        let mut best_move = Move::default();
+        let mut best_score = eval;
+
         let mut moves = self.board.generate_moves();
         let mut ordering = self.build_ordering(&moves, None);
 
@@ -33,15 +41,21 @@ impl<'a> super::Searcher<'a> {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();
 
-                best_score = max(best_score, score);
+                if score > best_score {
+                    best_score = score;
+                    best_move = mv;
+                }
+
                 alpha = max(alpha, score);
 
-                if score >= beta {
+                if alpha >= beta {
                     break;
                 }
             }
         }
 
+        let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
+        self.cache.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
         best_score
     }
 }
