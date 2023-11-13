@@ -85,7 +85,7 @@ impl<'a> Searcher<'a> {
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.cache.get_load_factor();
-        let score = format_score(score);
+        let score = self.format_score(score);
 
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
@@ -106,15 +106,15 @@ impl<'a> Searcher<'a> {
             }
         }
     }
-}
 
-/// Formats a score in UCI format.
-fn format_score(score: i32) -> String {
-    if score > Score::CHECKMATE_BOUND {
-        return format!("mate {}", (Score::CHECKMATE - score + 1) / 2);
+    /// Formats a score in UCI format.
+    fn format_score(&self, score: i32) -> String {
+        if score > Score::CHECKMATE_BOUND {
+            return format!("mate {}", (Score::CHECKMATE - self.board.ply as i32 - score + 1) / 2);
+        }
+        if score < -Score::CHECKMATE_BOUND {
+            return format!("mate {}", (-Score::CHECKMATE + self.board.ply as i32 - score) / 2);
+        }
+        format!("cp {score}")
     }
-    if score < -Score::CHECKMATE_BOUND {
-        return format!("mate {}", (-Score::CHECKMATE - score) / 2);
-    }
-    format!("cp {score}")
 }
