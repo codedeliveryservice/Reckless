@@ -1,45 +1,9 @@
 use std::time::Instant;
 
-use crate::board::Board;
-use crate::cache::{Bound, Cache};
-use crate::tables::{HistoryMoves, KillerMoves};
-use crate::timeman::{Limits, TimeManager};
+use crate::cache::Bound;
 use crate::types::{Move, Score};
 
-mod alphabeta;
-mod aspiration;
-mod ordering;
-mod quiescence;
-mod selectivity;
-
-pub struct Searcher<'a> {
-    pub nodes: u32,
-    pub stopped: bool,
-    pub print_to_stdout: bool,
-    board: Board,
-    cache: &'a mut Cache,
-    time_manager: TimeManager,
-    killers: KillerMoves,
-    history: &'a mut HistoryMoves,
-    sel_depth: usize,
-}
-
-impl<'a> Searcher<'a> {
-    /// Creates a new `Searcher` instance.
-    pub fn new(board: Board, limits: Limits, history: &'a mut HistoryMoves, cache: &'a mut Cache) -> Self {
-        Self {
-            board,
-            cache,
-            history,
-            time_manager: TimeManager::new(limits),
-            killers: KillerMoves::default(),
-            sel_depth: Default::default(),
-            nodes: Default::default(),
-            stopped: Default::default(),
-            print_to_stdout: true,
-        }
-    }
-
+impl super::Searcher<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.
     ///
     /// The iterative deepening algorithm is a strategy that involves doing a series of depth-limited
