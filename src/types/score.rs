@@ -6,9 +6,9 @@ impl Score {
     pub const DRAW: i32 = 0;
     pub const INVALID: i32 = 0;
 
-    pub const INFINITY: i32 = 50000;
-    pub const CHECKMATE: i32 = 48000;
-    pub const CHECKMATE_BOUND: i32 = 47500;
+    pub const INFINITY: i32 = 32000;
+    pub const CHECKMATE: i32 = 31000;
+    pub const CHECKMATE_BOUND: i32 = Score::CHECKMATE - 500;
 }
 
 #[derive(Debug, Default, Clone, Copy)]
