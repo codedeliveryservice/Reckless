@@ -37,8 +37,8 @@ fn uci() {
 }
 
 fn reset(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache) {
+    cache.clear();
     *board = Board::starting_position();
-    *cache = Cache::default();
     *history = HistoryMoves::default();
 }
 
