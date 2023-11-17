@@ -105,7 +105,7 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
             };
 
             match name {
-                "depth" => return Limits::FixedDepth(value as i32),
+                "depth" if value > 0 => return Limits::FixedDepth(value as i32),
                 "movetime" => return Limits::FixedTime(value),
 
                 "wtime" if Color::White == color => main = value,
