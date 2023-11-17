@@ -1,4 +1,4 @@
-use crate::cache::{Bound, CacheEntry};
+use crate::cache::{Bound, CacheHit};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score};
 
@@ -177,8 +177,8 @@ fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
 }
 
 /// Provides a score for a transposition table cutoff, if applicable.
-fn transposition_table_cutoff(entry: CacheEntry, alpha: i32, beta: i32, depth: i32) -> bool {
-    if entry.depth < depth as u8 {
+fn transposition_table_cutoff(entry: CacheHit, alpha: i32, beta: i32, depth: i32) -> bool {
+    if entry.depth < depth {
         return false;
     }
     // The score is outside the alpha-beta window, resulting in a cutoff

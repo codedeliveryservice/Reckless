@@ -1,20 +1,52 @@
 use crate::types::{Move, Score};
 
-pub const DEFAULT_CACHE_SIZE: usize = 16;
-pub const MAX_CACHE_SIZE: usize = 512;
 pub const MIN_CACHE_SIZE: usize = 1;
+pub const MAX_CACHE_SIZE: usize = 512;
+pub const DEFAULT_CACHE_SIZE: usize = 16;
+
+const MEGABYTE: usize = 1024 * 1024;
+const CACHE_ENTRY_SIZE: usize = std::mem::size_of::<Entry>();
+
+#[allow(clippy::assertions_on_constants)]
+const _: () = assert!(CACHE_ENTRY_SIZE == 8, "CacheEntry size is not 8 bytes");
+
+/// A `CacheHit` is returned when a `Cache` entry is found.
+#[derive(Copy, Clone)]
+pub struct CacheHit {
+    pub depth: i32,
+    pub score: i32,
+    pub bound: Bound,
+    pub mv: Move,
+}
+
+/// A `Bound` is used to indicate the type of the score returned by the search.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Bound {
+    Exact,
+    Lower,
+    Upper,
+}
+
+/// Internal representation of a `Cache` entry (8 bytes).
+#[derive(Copy, Clone)]
+struct Entry {
+    key: u16,     // 2 bytes
+    depth: u8,    // 1 byte
+    score: i16,   // 2 bytes
+    bound: Bound, // 1 byte
+    mv: Move,     // 2 bytes
+}
 
 /// The transposition hash table is used to cache previously performed search results.
 pub struct Cache {
-    vector: Vec<Option<CacheEntry>>,
+    vector: Vec<Option<Entry>>,
 }
 
 impl Cache {
-    /// Creates a new `Cache<T>` with a total allocated size in megabytes.
+    /// Creates a new `Cache` with a total allocated size in megabytes.
     pub fn new(megabytes: usize) -> Self {
-        let length = megabytes * 1024 * 1024 / std::mem::size_of::<CacheEntry>();
         Self {
-            vector: vec![None; length],
+            vector: vec![None; megabytes * MEGABYTE / CACHE_ENTRY_SIZE],
         }
     }
 
@@ -23,31 +55,48 @@ impl Cache {
         self.vector.iter_mut().for_each(|entry| *entry = None);
     }
 
-    /// Returns the approximate load factor of the `Cache` on a scale of `[0, 1000]`
-    /// where `0` means empty and `1000` means 100% full.
+    /// Returns the approximate load factor of the `Cache` in permille (on a scale of `0` to `1000`).
     pub fn get_load_factor(&self) -> usize {
         const BATCH_SIZE: usize = 10_000;
-        let occupied_slots = self.vector.iter().take(BATCH_SIZE).filter(|slot| slot.is_some()).count();
-        occupied_slots * 1000 / BATCH_SIZE
+        self.vector.iter().take(BATCH_SIZE).filter(|slot| slot.is_some()).count() * 1000 / BATCH_SIZE
     }
 
-    /// Returns `Some(T)` if the entry was found; otherwise `None`.
-    pub fn read(&self, hash: u64, ply: usize) -> Option<CacheEntry> {
+    /// Returns the `CacheHit` if the entry is found.
+    pub fn read(&self, hash: u64, ply: usize) -> Option<CacheHit> {
         let index = self.get_index(hash);
-        let mut entry = self.vector[index]?;
-        if entry.hash == hash {
-            entry.adjust_mating_score(-(ply as i32));
-            return Some(entry);
+        let entry = self.vector[index]?;
+
+        if entry.key != verification_key(hash) {
+            return None;
         }
-        None
+
+        let mut hit = CacheHit {
+            depth: i32::from(entry.depth),
+            score: i32::from(entry.score),
+            bound: entry.bound,
+            mv: entry.mv,
+        };
+
+        if hit.score.abs() > Score::CHECKMATE_BOUND {
+            hit.score -= hit.score.signum() * ply as i32;
+        }
+        Some(hit)
     }
 
     /// Writes an entry to the `Cache` overwriting an existing one.
-    pub fn write(&mut self, hash: u64, depth: i32, score: i32, bound: Bound, mv: Move, ply: usize) {
-        let mut entry = CacheEntry::new(hash, depth, score, bound, mv);
-        entry.adjust_mating_score(ply as i32);
-        let index = self.get_index(entry.hash);
-        self.vector[index] = Some(entry);
+    pub fn write(&mut self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize) {
+        if score.abs() > Score::CHECKMATE_BOUND {
+            score += score.signum() * ply as i32;
+        }
+
+        let index = self.get_index(hash);
+        self.vector[index] = Some(Entry {
+            key: verification_key(hash),
+            depth: depth as u8,
+            score: score as i16,
+            bound,
+            mv,
+        });
     }
 
     /// Returns the index of the entry in the `Cache` vector.
@@ -56,48 +105,13 @@ impl Cache {
     }
 }
 
+/// Returns the verification key of the hash (top 16 bits).
+fn verification_key(hash: u64) -> u16 {
+    (hash >> 48) as u16
+}
+
 impl Default for Cache {
     fn default() -> Self {
         Self::new(DEFAULT_CACHE_SIZE)
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum Bound {
-    Exact,
-    Lower,
-    Upper,
-}
-
-#[derive(Copy, Clone)]
-pub struct CacheEntry {
-    pub hash: u64,
-    pub depth: u8,
-    pub score: i32,
-    pub bound: Bound,
-    pub mv: Move,
-}
-
-impl CacheEntry {
-    /// Creates a new `CacheEntry`.
-    pub const fn new(hash: u64, depth: i32, score: i32, bound: Bound, mv: Move) -> Self {
-        Self {
-            depth: depth as u8,
-            hash,
-            score,
-            bound,
-            mv,
-        }
-    }
-
-    /// Adjusts the mating score of the `CacheEntry` by the given adjustment.
-    ///
-    /// This is used to ensure that the mating score is always the same distance from the root.
-    pub fn adjust_mating_score(&mut self, adjustment: i32) {
-        if self.score > Score::CHECKMATE_BOUND {
-            self.score += adjustment;
-        } else if self.score < -Score::CHECKMATE_BOUND {
-            self.score -= adjustment;
-        }
     }
 }
