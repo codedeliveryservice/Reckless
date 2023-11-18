@@ -1,4 +1,4 @@
-/// Pseudo random number generator based on the XORSHIFT64 algorithm.
+/// Pseudo-random number generator based on the XORSHIFT64 algorithm.
 ///
 /// See [Xorshift](https://en.wikipedia.org/wiki/Xorshift) for more information.
 pub struct Random(u64);
@@ -12,8 +12,8 @@ impl Random {
     pub fn next_u64(&mut self) -> u64 {
         let mut number = self.0;
         number ^= number << 13;
-        number ^= number >> 17;
-        number ^= number << 5;
+        number ^= number >> 7;
+        number ^= number << 17;
         self.0 = number;
         number
     }
