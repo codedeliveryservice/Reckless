@@ -100,14 +100,17 @@ impl Cache {
     }
 
     /// Returns the index of the entry in the `Cache` vector.
-    fn get_index(&self, hash: u64) -> usize {
-        hash as usize % self.vector.len()
+    fn get_index(&self, hash: u64) -> usize {        
+        // Fast hash table index calculation
+        // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
+        let len = self.vector.len() as u128;
+        ((u128::from(hash) * len) >> 64) as usize
     }
 }
 
-/// Returns the verification key of the hash (top 16 bits).
+/// Returns the verification key of the hash (bottom 16 bits).
 fn verification_key(hash: u64) -> u16 {
-    (hash >> 48) as u16
+    hash as u16
 }
 
 impl Default for Cache {
