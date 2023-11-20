@@ -84,14 +84,23 @@ impl Cache {
     }
 
     /// Writes an entry to the `Cache` overwriting an existing one.
-    pub fn write(&mut self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize) {
+    pub fn write(&mut self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
         if score.abs() > Score::CHECKMATE_BOUND {
             score += score.signum() * ply as i32;
         }
 
+        let key = verification_key(hash);
         let index = self.get_index(hash);
+
+        // Preserve the previous move if the new one is sourced from an upper bound node
+        if let Some(old) = self.vector[index] {
+            if bound == Bound::Upper && old.key == key && old.mv != Move::default() {
+                mv = old.mv;
+            }
+        }
+
         self.vector[index] = Some(Entry {
-            key: verification_key(hash),
+            key,
             depth: depth as u8,
             score: score as i16,
             bound,
@@ -100,7 +109,7 @@ impl Cache {
     }
 
     /// Returns the index of the entry in the `Cache` vector.
-    fn get_index(&self, hash: u64) -> usize {        
+    fn get_index(&self, hash: u64) -> usize {
         // Fast hash table index calculation
         // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
         let len = self.vector.len() as u128;
