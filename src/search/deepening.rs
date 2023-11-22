@@ -79,10 +79,10 @@ impl super::Searcher<'_> {
     /// Formats a score in UCI format.
     fn format_score(&self, score: i32) -> String {
         if score > Score::CHECKMATE_BOUND {
-            return format!("mate {}", (Score::CHECKMATE - self.board.ply as i32 - score + 1) / 2);
+            return format!("mate {}", (Score::CHECKMATE - score + 1) / 2);
         }
         if score < -Score::CHECKMATE_BOUND {
-            return format!("mate {}", (-Score::CHECKMATE + self.board.ply as i32 - score) / 2);
+            return format!("mate {}", (-Score::CHECKMATE - score) / 2);
         }
         format!("cp {score}")
     }

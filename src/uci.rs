@@ -61,6 +61,7 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
             }
             ["moves", rest @ ..] => {
                 rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));
+                board.ply = 0;
                 break;
             }
             _ => break,
