@@ -1,6 +1,6 @@
 use crate::cache::{Bound, CacheHit};
 use crate::evaluation::evaluate;
-use crate::types::{Move, Score};
+use crate::types::{Move, Score, MAX_SEARCH_PLY};
 
 use super::selectivity::{calculate_reduction, futility_pruning, quiet_late_move_pruning};
 
@@ -15,6 +15,11 @@ impl<'a> super::Searcher<'a> {
         // Draw detection, excluding the root node to ensure a valid move is returned
         if !ROOT && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
             return Score::DRAW;
+        }
+
+        // Prevent overflows
+        if self.board.ply >= MAX_SEARCH_PLY - 1 {
+            return evaluate(&self.board);
         }
 
         // Check extensions: extend the search depth due to low branching and the possibility of

@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::types::MAX_SEARCH_DEPTH;
+use crate::types::MAX_SEARCH_PLY;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Limits {
@@ -36,7 +36,7 @@ impl TimeManager {
     pub const fn get_max_depth(&self) -> i32 {
         match self.limits {
             Limits::FixedDepth(depth) => depth,
-            _ => MAX_SEARCH_DEPTH,
+            _ => MAX_SEARCH_PLY as i32,
         }
     }
 

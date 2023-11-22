@@ -18,11 +18,8 @@ pub use piece::*;
 pub use score::*;
 pub use square::*;
 
-/// The maximum number of plies that can occur in a game.
-pub const MAX_GAME_PLIES: usize = 1024;
-
 /// The maximum number of plies that can be searched.
-pub const MAX_SEARCH_DEPTH: i32 = 64;
+pub const MAX_SEARCH_PLY: usize = 96;
 
 /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
 /// the maximum number of chess moves in a certain position *appears* to be 218.

@@ -1,6 +1,7 @@
 use std::cmp::max;
 
-use crate::{cache::Bound, evaluation::evaluate, types::Move};
+use crate::types::{Move, MAX_SEARCH_PLY};
+use crate::{cache::Bound, evaluation::evaluate};
 
 impl<'a> super::Searcher<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -12,6 +13,11 @@ impl<'a> super::Searcher<'a> {
     pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> i32 {
         self.nodes += 1;
         self.sel_depth = self.sel_depth.max(self.board.ply);
+
+        // Prevent overflows
+        if self.board.ply >= MAX_SEARCH_PLY - 1 {
+            return evaluate(&self.board);
+        }
 
         let eval = evaluate(&self.board);
         alpha = max(alpha, eval);
