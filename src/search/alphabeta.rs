@@ -4,6 +4,8 @@ use crate::types::{Move, Score, MAX_SEARCH_PLY};
 
 use super::selectivity::{calculate_reduction, futility_pruning, quiet_late_move_pruning};
 
+const IIR_DEPTH: i32 = 4;
+
 impl<'a> super::Searcher<'a> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
@@ -42,6 +44,12 @@ impl<'a> super::Searcher<'a> {
             if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
             }
+        }
+
+        // Internal Iterative Reductions. If no hash move is found in the TT, reduce the search depth
+        // to counter a potentially poor move ordering that could slow down the search on higher depths
+        if entry.is_none() && depth >= IIR_DEPTH {
+            depth -= 1;
         }
 
         let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
