@@ -23,13 +23,15 @@ pub fn evaluate(board: &Board) -> i32 {
 fn evaluate_internal(board: &Board) -> S {
     let mut score = S::default();
     for (color, flip) in [Color::White, Color::Black].into_iter().zip([0, 56]) {
-        let king = board.king(color);
+        let our_king = board.king(color);
+        let their_king = board.king(!color);
 
         for piece in 0..5 {
             let piece = Piece::from(piece);
 
             for square in board.of(piece, color) {
-                score += WEIGHTS.psqt[king ^ flip][piece][square ^ flip];
+                score += WEIGHTS.psqt[0][our_king ^ flip][piece][square ^ flip];
+                score += WEIGHTS.psqt[1][their_king ^ flip][piece][square ^ flip];
 
                 score += match piece {
                     Piece::Bishop => WEIGHTS.bishop_mobility[board.get_attacks(square, piece).count() as usize],
@@ -59,8 +61,8 @@ fn get_phase(board: &Board) -> i32 {
 
 #[repr(C)]
 struct Weights {
-    /// Piece-square tables based on the current king position `[king][piece][square]`
-    psqt: [[[S; Square::NUM]; Piece::NUM - 1]; Square::NUM],
+    /// Piece-square tables based on the positions of kings `[<our/their>][king][piece][square]`
+    psqt: [[[[S; Square::NUM]; Piece::NUM - 1]; Square::NUM]; 2],
     bishop_mobility: [S; 14],
     rook_mobility: [S; 15],
     queen_mobility: [S; 28],
