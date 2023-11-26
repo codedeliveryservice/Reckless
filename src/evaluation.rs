@@ -1,5 +1,5 @@
 use crate::board::Board;
-use crate::types::{Color, Piece, Square, S};
+use crate::types::{Bitboard, Color, Piece, Square, S};
 
 const MAX_PHASE: i32 = 24;
 const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
@@ -34,6 +34,7 @@ fn evaluate_internal(board: &Board) -> S {
                 score += WEIGHTS.psqt[1][their_king ^ flip][piece][square ^ flip];
 
                 score += match piece {
+                    Piece::Pawn if is_passed_pawn(board, square, color) => WEIGHTS.passed_pawns[square ^ flip],
                     Piece::Bishop => WEIGHTS.bishop_mobility[board.get_attacks(square, piece).count() as usize],
                     Piece::Rook => WEIGHTS.rook_mobility[board.get_attacks(square, piece).count() as usize],
                     Piece::Queen => WEIGHTS.queen_mobility[board.get_attacks(square, piece).count() as usize],
@@ -45,6 +46,22 @@ fn evaluate_internal(board: &Board) -> S {
         score = -score;
     }
     score
+}
+
+/// Returns `true` if the pawn has no opposing pawns in front on the same or adjacent files.
+fn is_passed_pawn(board: &Board, square: Square, color: Color) -> bool {
+    (passed_pawn_mask(square, color) & board.of(Piece::Pawn, !color)).is_empty()
+}
+
+/// Returns a `Bitboard` with the squares in front of the square on the same and adjacent files.
+const fn passed_pawn_mask(square: Square, color: Color) -> Bitboard {
+    let mut mask = match color {
+        Color::White => 0x0101010101010100 << square.0,
+        Color::Black => 0x0080808080808080 >> (63 - square.0),
+    };
+    mask |= !0x0101010101010101 & (mask << 1);
+    mask |= !0x8080808080808080 & (mask >> 1);
+    Bitboard(mask)
 }
 
 /// Calculates the current phase of the game based on the number of pieces on the board.
@@ -66,6 +83,7 @@ struct Weights {
     bishop_mobility: [S; 14],
     rook_mobility: [S; 15],
     queen_mobility: [S; 28],
+    passed_pawns: [S; Square::NUM],
 }
 
 static WEIGHTS: Weights = unsafe { std::mem::transmute(*include_bytes!("../data/weights.bin")) };
