@@ -30,6 +30,11 @@ impl Square {
 
     pub const NO_SQUARE: Self = Self(64);
 
+    /// Returns the file of the `Square`.
+    pub const fn file(self) -> usize {
+        self.0 as usize & 7
+    }
+
     /// Returns a `Square` from file and rank coordinates.
     pub fn from_rank_file(rank: u8, file: u8) -> Self {
         assert!(rank < 8);

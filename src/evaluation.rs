@@ -34,7 +34,6 @@ fn evaluate_internal(board: &Board) -> S {
                 score += WEIGHTS.psqt[1][their_king ^ flip][piece][square ^ flip];
 
                 score += match piece {
-                    Piece::Pawn if is_passed_pawn(board, square, color) => WEIGHTS.passed_pawns[square ^ flip],
                     Piece::Bishop => WEIGHTS.bishop_mobility[board.get_attacks(square, piece).count() as usize],
                     Piece::Rook => WEIGHTS.rook_mobility[board.get_attacks(square, piece).count() as usize],
                     Piece::Queen => WEIGHTS.queen_mobility[board.get_attacks(square, piece).count() as usize],
@@ -43,14 +42,29 @@ fn evaluate_internal(board: &Board) -> S {
             }
         }
 
+        evaluate_pawns(board, color, flip, &mut score);
+
         score = -score;
     }
     score
 }
 
-/// Returns `true` if the pawn has no opposing pawns in front on the same or adjacent files.
-fn is_passed_pawn(board: &Board, square: Square, color: Color) -> bool {
-    (passed_pawn_mask(square, color) & board.of(Piece::Pawn, !color)).is_empty()
+/// Evaluates the pawn structure of the given color.
+fn evaluate_pawns(board: &Board, color: Color, flip: u8, score: &mut S) {
+    let our_pawns = board.of(Piece::Pawn, color);
+    let their_pawns = board.of(Piece::Pawn, !color);
+
+    for square in board.of(Piece::Pawn, color) {
+        let passed_pawn = (passed_pawn_mask(square, color) & their_pawns).is_empty();
+        if passed_pawn {
+            *score += WEIGHTS.passed_pawns[square ^ flip];
+        }
+
+        let isolated_pawn = (isolated_pawn_mask(square) & our_pawns).is_empty();
+        if isolated_pawn {
+            *score += WEIGHTS.isolated_pawns[square.file()];
+        }
+    }
 }
 
 /// Returns a `Bitboard` with the squares in front of the square on the same and adjacent files.
@@ -61,6 +75,13 @@ const fn passed_pawn_mask(square: Square, color: Color) -> Bitboard {
     };
     mask |= !0x0101010101010101 & (mask << 1);
     mask |= !0x8080808080808080 & (mask >> 1);
+    Bitboard(mask)
+}
+
+/// Returns a `Bitboard` with the squares on the adjacent files.
+const fn isolated_pawn_mask(square: Square) -> Bitboard {
+    let mask = 0x0101010101010100 << square.file() as usize;
+    let mask = (!0x0101010101010101 & (mask << 1)) | (!0x8080808080808080 & (mask >> 1));
     Bitboard(mask)
 }
 
@@ -83,7 +104,10 @@ struct Weights {
     bishop_mobility: [S; 14],
     rook_mobility: [S; 15],
     queen_mobility: [S; 28],
+    /// A passed pawn is a pawn with no opposing pawns to prevent it from advancing to the eighth rank.
     passed_pawns: [S; Square::NUM],
+    /// An isolated pawn is a pawn that has no friendly pawns on an adjacent file.
+    isolated_pawns: [S; 8],
 }
 
 static WEIGHTS: Weights = unsafe { std::mem::transmute(*include_bytes!("../data/weights.bin")) };
