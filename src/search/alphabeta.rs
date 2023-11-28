@@ -2,7 +2,7 @@ use crate::cache::{Bound, CacheHit};
 use crate::evaluation::evaluate;
 use crate::types::{Move, Score, MAX_SEARCH_PLY};
 
-use super::selectivity::{calculate_reduction, futility_pruning, quiet_late_move_pruning};
+use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 
 const IIR_DEPTH: i32 = 4;
 
@@ -92,7 +92,7 @@ impl<'a> super::Searcher<'a> {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
                 // The remaining moves are searched with a null window and possible reductions
-                let reduction = calculate_reduction(mv, depth, moves_played);
+                let reduction = self.calculate_reduction(mv, depth, moves_played);
                 self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
             };
 

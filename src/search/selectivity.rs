@@ -11,6 +11,7 @@ const LMR_MOVES_PLAYED: i32 = 4;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
 const LMR_DIVISOR: f64 = 2.25;
+const LMR_HISTORY_DIVISOR: i32 = 200;
 
 const QLMP_DEPTH: i32 = 3;
 const QLMP_QUIETS_PLAYED: i32 = 5;
@@ -43,14 +44,18 @@ impl<'a> super::Searcher<'a> {
         }
         None
     }
-}
 
-/// Calculates the Late Move Reduction (LMR) for a given move.
-pub(super) fn calculate_reduction(mv: Move, depth: i32, moves_played: i32) -> i32 {
-    if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
-        (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32
-    } else {
-        0
+    /// Calculates the Late Move Reduction (LMR) for a given move.
+    pub(super) fn calculate_reduction(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
+        if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
+            let mut reduction = (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32;
+            // Adjust reduction based on history heuristic
+            reduction -= self.history.get(mv) / LMR_HISTORY_DIVISOR;
+            // Avoid negative reductions
+            reduction.clamp(0, depth)
+        } else {
+            0
+        }
     }
 }
 
