@@ -33,7 +33,7 @@ impl<'a> super::Searcher<'a> {
     /// If giving a free move to the opponent leads to a beta cutoff, it's highly likely
     /// to result in a cutoff after a real move is made, so the node can be pruned.
     pub(super) fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
-        if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() {
+        if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
             self.board.make_null_move();
             let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - depth / NMP_DIVISOR);
             self.board.undo_move();

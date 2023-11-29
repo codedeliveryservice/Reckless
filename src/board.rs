@@ -110,6 +110,13 @@ impl Board {
         None
     }
 
+    /// Returns `true` if the current side to move has non-pawn material.
+    /// 
+    /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
+    pub fn has_non_pawn_material(&self) -> bool {
+        self.our(Piece::Pawn) | self.our(Piece::King) != self.us()
+    }
+
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece as usize].set(square);
