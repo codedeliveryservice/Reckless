@@ -3,7 +3,7 @@ use std::cmp::max;
 use crate::{
     cache::Bound,
     evaluation::evaluate,
-    types::{Move, MAX_SEARCH_PLY},
+    types::{Move, MAX_PLY},
 };
 
 impl super::Searcher<'_> {
@@ -18,7 +18,7 @@ impl super::Searcher<'_> {
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Prevent overflows
-        if self.board.ply >= MAX_SEARCH_PLY - 1 {
+        if self.board.ply >= MAX_PLY - 1 {
             return evaluate(&self.board);
         }
 

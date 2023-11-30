@@ -2,7 +2,7 @@ use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
     cache::{Bound, CacheHit},
     evaluation::evaluate,
-    types::{Move, Score, MAX_SEARCH_PLY},
+    types::{Move, Score, MAX_PLY},
 };
 
 const IIR_DEPTH: i32 = 4;
@@ -21,7 +21,7 @@ impl super::Searcher<'_> {
         }
 
         // Prevent overflows
-        if self.board.ply >= MAX_SEARCH_PLY - 1 {
+        if self.board.ply >= MAX_PLY - 1 {
             return evaluate(&self.board);
         }
 
@@ -172,7 +172,7 @@ impl super::Searcher<'_> {
     /// Calculates the final score in case of a checkmate or stalemate.
     fn final_score(&mut self, in_check: bool) -> i32 {
         if in_check {
-            -Score::CHECKMATE + self.board.ply as i32
+            -Score::MATE + self.board.ply as i32
         } else {
             Score::DRAW
         }

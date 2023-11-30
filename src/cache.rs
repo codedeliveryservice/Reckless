@@ -77,7 +77,7 @@ impl Cache {
             mv: entry.mv,
         };
 
-        if hit.score.abs() > Score::CHECKMATE_BOUND {
+        if hit.score.abs() > Score::MATE_BOUND {
             hit.score -= hit.score.signum() * ply as i32;
         }
         Some(hit)
@@ -85,7 +85,7 @@ impl Cache {
 
     /// Writes an entry to the `Cache` overwriting an existing one.
     pub fn write(&mut self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
-        if score.abs() > Score::CHECKMATE_BOUND {
+        if score.abs() > Score::MATE_BOUND {
             score += score.signum() * ply as i32;
         }
 

@@ -7,8 +7,9 @@ impl Score {
     pub const INVALID: i32 = 0;
 
     pub const INFINITY: i32 = 32000;
-    pub const CHECKMATE: i32 = 31000;
-    pub const CHECKMATE_BOUND: i32 = Score::CHECKMATE - 500;
+
+    pub const MATE: i32 = Self::INFINITY - 1000;
+    pub const MATE_BOUND: i32 = Score::MATE - 500;
 }
 
 #[derive(Debug, Default, Clone, Copy)]

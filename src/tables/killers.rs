@@ -1,4 +1,4 @@
-use crate::types::{Move, MAX_SEARCH_PLY};
+use crate::types::{Move, MAX_PLY};
 
 /// Provides an implementation of the killer heuristic used as a dynamic move
 /// ordering technique for quiet moves that caused a beta cutoff.
@@ -6,7 +6,7 @@ use crate::types::{Move, MAX_SEARCH_PLY};
 /// See [Killer Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
 /// for more information.
 pub struct KillerMoves {
-    table: [[Move; 2]; MAX_SEARCH_PLY],
+    table: [[Move; 2]; MAX_PLY],
 }
 
 impl KillerMoves {
@@ -25,7 +25,7 @@ impl KillerMoves {
 impl Default for KillerMoves {
     fn default() -> Self {
         Self {
-            table: [[Move::NULL; 2]; MAX_SEARCH_PLY],
+            table: [[Move::NULL; 2]; MAX_PLY],
         }
     }
 }

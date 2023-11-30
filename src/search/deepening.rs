@@ -80,11 +80,11 @@ impl super::Searcher<'_> {
 
     /// Formats a score in UCI format.
     fn format_score(&self, score: i32) -> String {
-        if score > Score::CHECKMATE_BOUND {
-            return format!("mate {}", (Score::CHECKMATE - score + 1) / 2);
+        if score > Score::MATE_BOUND {
+            return format!("mate {}", (Score::MATE - score + 1) / 2);
         }
-        if score < -Score::CHECKMATE_BOUND {
-            return format!("mate {}", (-Score::CHECKMATE - score) / 2);
+        if score < -Score::MATE_BOUND {
+            return format!("mate {}", (-Score::MATE - score) / 2);
         }
         format!("cp {score}")
     }
