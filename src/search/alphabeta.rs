@@ -67,7 +67,7 @@ impl super::Searcher<'_> {
 
         let original_alpha = alpha;
         let mut best_score = -Score::INFINITY;
-        let mut best_move = Move::default();
+        let mut best_move = Move::NULL;
 
         let mut moves_played = 0;
         let mut quiets = Vec::with_capacity(32);

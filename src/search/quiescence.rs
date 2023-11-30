@@ -39,7 +39,7 @@ impl super::Searcher<'_> {
             }
         }
 
-        let mut best_move = Move::default();
+        let mut best_move = Move::NULL;
         let mut best_score = eval;
 
         let mut moves = self.board.generate_moves();

@@ -32,6 +32,8 @@ pub enum MoveKind {
 }
 
 impl Move {
+    pub const NULL: Self = Self(0);
+
     const START_MASK: u16 = 0b0000_0000_0011_1111;
     const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
 

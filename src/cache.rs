@@ -94,7 +94,7 @@ impl Cache {
 
         // Preserve the previous move if the new one is sourced from an upper bound node
         if let Some(old) = self.vector[index] {
-            if bound == Bound::Upper && old.key == key && old.mv != Move::default() {
+            if bound == Bound::Upper && old.key == key && old.mv != Move::NULL {
                 mv = old.mv;
             }
         }

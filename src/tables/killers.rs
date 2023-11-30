@@ -25,7 +25,7 @@ impl KillerMoves {
 impl Default for KillerMoves {
     fn default() -> Self {
         Self {
-            table: [[Move::default(); 2]; MAX_SEARCH_PLY],
+            table: [[Move::NULL; 2]; MAX_SEARCH_PLY],
         }
     }
 }

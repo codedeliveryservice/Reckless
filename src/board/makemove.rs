@@ -9,7 +9,7 @@ impl Board {
     pub fn make_null_move(&mut self) {
         self.ply += 1;
         self.turn = !self.turn;
-        self.move_stack.push(Move::default());
+        self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
 
         self.state.hash ^= SIDE_KEY;

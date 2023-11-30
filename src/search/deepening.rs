@@ -14,8 +14,8 @@ impl super::Searcher<'_> {
     pub fn iterative_deepening(&mut self) {
         let stopwatch = Instant::now();
 
-        let mut last_best = Move::default();
-        let mut last_score = Default::default();
+        let mut last_best = Move::NULL;
+        let mut last_score = Score::INVALID;
 
         for depth in 1..=self.time_manager.get_max_depth() {
             let score = match depth {

@@ -146,7 +146,7 @@ impl Board {
 
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
-        self.move_stack.last() == Some(&Move::default())
+        self.move_stack.last() == Some(&Move::NULL)
     }
 
     /// Returns `true` if the king of the current turn color is in check.

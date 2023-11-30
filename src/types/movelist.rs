@@ -11,7 +11,7 @@ impl MoveList {
     /// Creates a new `MoveList`.
     pub fn new() -> Self {
         Self {
-            moves: [Move::default(); MAX_MOVES],
+            moves: [Move::NULL; MAX_MOVES],
             length: 0,
         }
     }
