@@ -154,7 +154,7 @@ impl Board {
     /// # Panics
     ///
     /// Panics if there is no king on the board.
-    pub fn is_in_check(&mut self) -> bool {
+    pub fn is_in_check(&self) -> bool {
         let king = self.our(Piece::King).pop().unwrap();
         self.is_under_attack(king)
     }
