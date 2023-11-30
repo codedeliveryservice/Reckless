@@ -1,7 +1,10 @@
 use std::cmp::max;
 
-use crate::types::{Move, MAX_SEARCH_PLY};
-use crate::{cache::Bound, evaluation::evaluate};
+use crate::{
+    cache::Bound,
+    evaluation::evaluate,
+    types::{Move, MAX_SEARCH_PLY},
+};
 
 impl<'a> super::Searcher<'a> {
     /// Performs a search until the position becomes stable enough for static evaluation.

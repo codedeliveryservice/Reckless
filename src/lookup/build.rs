@@ -1,5 +1,9 @@
-use std::io::{BufWriter, Write};
-use std::{env, fs::File, path::Path};
+use std::{
+    env,
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+};
 
 mod attacks;
 mod magics;

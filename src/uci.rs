@@ -1,5 +1,4 @@
-use crate::cache::{Cache, DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
-use crate::{board::Board, search::Searcher, tables::HistoryMoves, timeman::Limits, tools, types::Color};
+use crate::{board::Board, cache::Cache, search::Searcher, tables::HistoryMoves, timeman::Limits, tools, types::Color};
 
 pub fn message_loop() {
     let mut board = Board::starting_position();
@@ -30,6 +29,8 @@ pub fn message_loop() {
 }
 
 fn uci() {
+    use crate::cache::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
+
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min {MIN_CACHE_SIZE} max {MAX_CACHE_SIZE}");
     println!("option name Clear Hash type button");

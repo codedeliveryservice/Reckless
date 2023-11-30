@@ -1,5 +1,7 @@
-use crate::board::Board;
-use crate::types::{Bitboard, Color, Piece, Square, S};
+use crate::{
+    board::Board,
+    types::{Bitboard, Color, Piece, Square, S},
+};
 
 const MAX_PHASE: i32 = 24;
 const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];

@@ -1,8 +1,9 @@
-use crate::cache::{Bound, CacheHit};
-use crate::evaluation::evaluate;
-use crate::types::{Move, Score, MAX_SEARCH_PLY};
-
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
+use crate::{
+    cache::{Bound, CacheHit},
+    evaluation::evaluate,
+    types::{Move, Score, MAX_SEARCH_PLY},
+};
 
 const IIR_DEPTH: i32 = 4;
 

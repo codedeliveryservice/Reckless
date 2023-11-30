@@ -1,5 +1,7 @@
-use super::macros::{impl_binary_op, impl_unary_op};
-use super::Square;
+use super::{
+    macros::{impl_binary_op, impl_unary_op},
+    Square,
+};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.

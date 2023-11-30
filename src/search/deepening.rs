@@ -1,7 +1,9 @@
 use std::time::Instant;
 
-use crate::cache::Bound;
-use crate::types::{Move, Score};
+use crate::{
+    cache::Bound,
+    types::{Move, Score},
+};
 
 impl super::Searcher<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.

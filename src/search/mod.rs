@@ -1,6 +1,9 @@
-use crate::tables::{HistoryMoves, KillerMoves};
-use crate::timeman::{Limits, TimeManager};
-use crate::{board::Board, cache::Cache};
+use crate::{
+    board::Board,
+    cache::Cache,
+    tables::{HistoryMoves, KillerMoves},
+    timeman::{Limits, TimeManager},
+};
 
 mod alphabeta;
 mod aspiration;
