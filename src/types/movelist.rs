@@ -9,7 +9,7 @@ pub struct MoveList {
 
 impl MoveList {
     /// Creates a new `MoveList`.
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             moves: [Move::default(); MAX_MOVES],
             length: 0,

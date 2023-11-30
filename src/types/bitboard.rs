@@ -32,8 +32,8 @@ impl Bitboard {
     }
 
     /// Returns the number of pieces on the `Bitboard`.
-    pub const fn count(self) -> u32 {
-        self.0.count_ones()
+    pub const fn count(self) -> usize {
+        self.0.count_ones() as usize
     }
 
     /// Sets the `Square` on the `Bitboard`.

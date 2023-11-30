@@ -36,9 +36,9 @@ fn evaluate_internal(board: &Board) -> S {
                 score += WEIGHTS.psqt[1][their_king ^ flip][piece][square ^ flip];
 
                 score += match piece {
-                    Piece::Bishop => WEIGHTS.bishop_mobility[board.get_attacks(square, piece).count() as usize],
-                    Piece::Rook => WEIGHTS.rook_mobility[board.get_attacks(square, piece).count() as usize],
-                    Piece::Queen => WEIGHTS.queen_mobility[board.get_attacks(square, piece).count() as usize],
+                    Piece::Bishop => WEIGHTS.bishop_mobility[board.get_attacks(square, piece).count()],
+                    Piece::Rook => WEIGHTS.rook_mobility[board.get_attacks(square, piece).count()],
+                    Piece::Queen => WEIGHTS.queen_mobility[board.get_attacks(square, piece).count()],
                     _ => continue,
                 }
             }
@@ -82,7 +82,7 @@ const fn passed_pawn_mask(square: Square, color: Color) -> Bitboard {
 
 /// Returns a `Bitboard` with the squares on the adjacent files.
 const fn isolated_pawn_mask(square: Square) -> Bitboard {
-    let mask = 0x0101010101010100 << square.file() as usize;
+    let mask = 0x0101010101010100 << square.file();
     let mask = (!0x0101010101010101 & (mask << 1)) | (!0x8080808080808080 & (mask >> 1));
     Bitboard(mask)
 }
