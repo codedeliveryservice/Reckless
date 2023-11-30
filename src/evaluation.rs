@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Bitboard, Color, Piece, Square, S},
+    types::{Bitboard, Color, Piece, Score, Square, S},
 };
 
 const MAX_PHASE: i32 = 24;
@@ -15,11 +15,9 @@ pub fn evaluate(board: &Board) -> i32 {
 
     let phase = get_phase(board);
     let score = (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
+    let score = if board.turn == Color::White { score } else { -score };
 
-    match board.turn {
-        Color::White => score + TEMPO_BONUS,
-        Color::Black => -score + TEMPO_BONUS,
-    }
+    (score + TEMPO_BONUS).clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
 }
 
 fn evaluate_internal(board: &Board) -> S {
