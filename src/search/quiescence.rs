@@ -6,7 +6,7 @@ use crate::{
     types::{Move, MAX_SEARCH_PLY},
 };
 
-impl<'a> super::Searcher<'a> {
+impl super::Searcher<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
     /// This minimizes the horizon effect for volatile positions, ensuring that threats
     /// and opportunities extending beyond the fixed search depth are not overlooked.

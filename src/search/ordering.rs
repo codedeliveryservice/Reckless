@@ -1,6 +1,6 @@
 use crate::types::{Move, MoveList, Piece, MAX_MOVES};
 
-impl<'a> super::Searcher<'a> {
+impl super::Searcher<'_> {
     const CACHE_MOVE: i32 = 300_000_000;
     const MVV_LVA: i32 = 200_000_000;
     const KILLERS: i32 = 100_000_000;

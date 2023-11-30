@@ -7,7 +7,7 @@ use crate::{
 
 const IIR_DEPTH: i32 = 4;
 
-impl<'a> super::Searcher<'a> {
+impl super::Searcher<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
         // The search has been stopped by the UCI or the time control
