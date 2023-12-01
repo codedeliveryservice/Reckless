@@ -1,9 +1,6 @@
 use std::time::Instant;
 
-use crate::{
-    cache::Bound,
-    types::{Move, Score},
-};
+use crate::types::{Move, Score};
 
 impl super::Searcher<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.
@@ -57,25 +54,8 @@ impl super::Searcher<'_> {
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
             self.sel_depth, self.nodes,
         );
-        self.print_principle_variation();
+        self.pv_table.get_line().iter().for_each(|mv| print!(" {}", mv));
         println!();
-    }
-
-    /// Recursively prints the principle variation.
-    fn print_principle_variation(&mut self) {
-        if let Some(entry) = self.cache.read(self.board.hash(), 0) {
-            if entry.bound == Bound::Exact && !self.board.is_repetition() && self.is_pseudo_legal(entry.mv) {
-                print!(" {}", entry.mv);
-                self.board.make_move(entry.mv).unwrap();
-                self.print_principle_variation();
-                self.board.undo_move();
-            }
-        }
-    }
-
-    /// Returns `true` if the given move is pseudo-legal in the current position.
-    fn is_pseudo_legal(&self, mv: Move) -> bool {
-        self.board.generate_moves().iter().any(|m| m == mv)
     }
 
     /// Formats a score in UCI format.

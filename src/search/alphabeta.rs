@@ -10,6 +10,8 @@ const IIR_DEPTH: i32 = 4;
 impl super::Searcher<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
+        self.pv_table.clear(self.board.ply);
+
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
             return Score::INVALID;
@@ -108,7 +110,11 @@ impl super::Searcher<'_> {
             if score > best_score {
                 best_score = score;
                 best_move = mv;
-                alpha = alpha.max(score);
+
+                if score > alpha {
+                    alpha = score;
+                    self.pv_table.update(self.board.ply, mv);
+                }
             }
 
             if alpha >= beta {

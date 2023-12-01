@@ -1,3 +1,4 @@
+use self::pvtable::PrincipleVariationTable;
 use crate::{
     board::Board,
     cache::Cache,
@@ -9,6 +10,7 @@ mod alphabeta;
 mod aspiration;
 mod deepening;
 mod ordering;
+mod pvtable;
 mod quiescence;
 mod selectivity;
 
@@ -21,6 +23,7 @@ pub struct Searcher<'a> {
     time_manager: TimeManager,
     killers: KillerMoves,
     history: &'a mut HistoryMoves,
+    pv_table: PrincipleVariationTable,
     sel_depth: usize,
 }
 
@@ -33,6 +36,7 @@ impl<'a> Searcher<'a> {
             history,
             time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
+            pv_table: Default::default(),
             sel_depth: Default::default(),
             nodes: Default::default(),
             stopped: Default::default(),
