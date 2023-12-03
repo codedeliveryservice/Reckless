@@ -56,10 +56,13 @@ impl super::Searcher<'_> {
         }
 
         let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
+        let improving = !in_check && self.board.ply > 1 && eval > self.eval_stack[self.board.ply - 2];
+
+        self.eval_stack[self.board.ply] = eval;
 
         // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
-            if let Some(score) = self.reverse_futility_pruning(depth, beta, eval) {
+            if let Some(score) = self.reverse_futility_pruning(depth, beta, eval, improving) {
                 return score;
             }
             if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
@@ -81,7 +84,7 @@ impl super::Searcher<'_> {
                 if futility_pruning(depth, alpha, eval) {
                     break;
                 }
-                if quiet_late_move_pruning(depth, quiets.len() as i32) {
+                if quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
                     break;
                 }
             }

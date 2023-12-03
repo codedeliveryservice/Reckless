@@ -23,8 +23,8 @@ const FUTILITY_FIXED_MARGIN: i32 = 50;
 impl super::Searcher<'_> {
     /// If the static evaluation of the position is significantly higher than beta
     /// at low depths, it's likely to be good enough to cause a beta cutoff.
-    pub(super) fn reverse_futility_pruning(&self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
-        if depth < RFP_DEPTH && eval - RFP_MARGIN * depth > beta {
+    pub(super) fn reverse_futility_pruning(&self, depth: i32, beta: i32, eval: i32, improving: bool) -> Option<i32> {
+        if depth < RFP_DEPTH && eval - RFP_MARGIN * (depth - i32::from(improving)) > beta {
             return Some(eval);
         }
         None
@@ -61,8 +61,8 @@ impl super::Searcher<'_> {
 
 /// If enough quiet moves have been searched at a low depth, it's unlikely that
 /// the remaining moves that are ordered later in move list are going to be better.
-pub(super) fn quiet_late_move_pruning(depth: i32, quiets_played: i32) -> bool {
-    depth <= QLMP_DEPTH && quiets_played > QLMP_QUIETS_PLAYED + depth * depth
+pub(super) fn quiet_late_move_pruning(depth: i32, quiets_played: i32, improving: bool) -> bool {
+    depth <= QLMP_DEPTH && quiets_played > QLMP_QUIETS_PLAYED + depth * depth / (1 + i32::from(!improving))
 }
 
 /// If the static evaluation is significantly lower than alpha at low depths,

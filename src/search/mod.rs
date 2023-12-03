@@ -4,6 +4,7 @@ use crate::{
     cache::Cache,
     tables::{HistoryMoves, KillerMoves},
     timeman::{Limits, TimeManager},
+    types::MAX_PLY,
 };
 
 mod alphabeta;
@@ -24,6 +25,7 @@ pub struct Searcher<'a> {
     killers: KillerMoves,
     history: &'a mut HistoryMoves,
     pv_table: PrincipleVariationTable,
+    eval_stack: [i32; MAX_PLY],
     sel_depth: usize,
 }
 
@@ -37,6 +39,7 @@ impl<'a> Searcher<'a> {
             time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
             pv_table: Default::default(),
+            eval_stack: [Default::default(); MAX_PLY],
             sel_depth: Default::default(),
             nodes: Default::default(),
             stopped: Default::default(),
