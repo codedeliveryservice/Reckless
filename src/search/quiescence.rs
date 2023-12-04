@@ -3,8 +3,10 @@ use std::cmp::max;
 use crate::{
     cache::Bound,
     evaluation::evaluate,
-    types::{Move, MAX_PLY},
+    types::{Move, Piece, MAX_PLY},
 };
+
+const MATERIAL: [i32; 5] = [175, 400, 450, 750, 1400];
 
 impl super::Searcher<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -46,7 +48,16 @@ impl super::Searcher<'_> {
         let mut ordering = self.build_ordering(&moves, None);
 
         while let Some(mv) = moves.next(&mut ordering) {
-            if mv.is_capture() && self.board.make_move(mv).is_ok() {
+            if !mv.is_capture() {
+                continue;
+            }
+
+            // Delta pruning
+            if eval + self.gain(mv) < alpha {
+                break;
+            }
+
+            if self.board.make_move(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move();
 
@@ -66,5 +77,16 @@ impl super::Searcher<'_> {
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
         self.cache.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
         best_score
+    }
+
+    /// Returns the material gain of a move.
+    fn gain(&mut self, mv: Move) -> i32 {
+        let piece = self.board.get_piece(mv.target());
+
+        if let Some(promo) = mv.get_promotion_piece() {
+            MATERIAL[promo] - MATERIAL[Piece::Pawn] + MATERIAL[piece.unwrap()]
+        } else {
+            MATERIAL[piece.unwrap_or(Piece::Pawn)]
+        }
     }
 }

@@ -77,13 +77,13 @@ impl Move {
     /// # Panics
     ///
     /// Panics if the current move is not a pawn promotion.
-    pub const fn get_promotion_piece(self) -> Piece {
+    pub const fn get_promotion_piece(self) -> Option<Piece> {
         match self.kind() {
-            MoveKind::PromotionN | MoveKind::PromotionCaptureN => Piece::Knight,
-            MoveKind::PromotionB | MoveKind::PromotionCaptureB => Piece::Bishop,
-            MoveKind::PromotionR | MoveKind::PromotionCaptureR => Piece::Rook,
-            MoveKind::PromotionQ | MoveKind::PromotionCaptureQ => Piece::Queen,
-            _ => panic!("The move kind is not a promotion"),
+            MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(Piece::Knight),
+            MoveKind::PromotionB | MoveKind::PromotionCaptureB => Some(Piece::Bishop),
+            MoveKind::PromotionR | MoveKind::PromotionCaptureR => Some(Piece::Rook),
+            MoveKind::PromotionQ | MoveKind::PromotionCaptureQ => Some(Piece::Queen),
+            _ => None,
         }
     }
 }
@@ -92,16 +92,13 @@ impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = format!("{}{}", self.start(), self.target());
 
-        if self.is_promotion() {
-            let ch = match self.get_promotion_piece() {
-                Piece::Knight => 'n',
-                Piece::Bishop => 'b',
-                Piece::Rook => 'r',
-                Piece::Queen => 'q',
-                _ => panic!("The move was expected to be a promotion"),
-            };
-            output.push(ch);
-        }
+        match self.get_promotion_piece() {
+            Some(Piece::Knight) => output.push('n'),
+            Some(Piece::Bishop) => output.push('b'),
+            Some(Piece::Rook) => output.push('r'),
+            Some(Piece::Queen) => output.push('q'),
+            _ => (),
+        };
 
         f.pad(&output.to_string())
     }
