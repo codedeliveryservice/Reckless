@@ -18,7 +18,7 @@ impl super::Searcher<'_> {
         }
 
         // Draw detection, excluding the root node to ensure a valid move is returned
-        if !ROOT && (self.board.is_repetition() || self.board.is_fifty_move_draw()) {
+        if !ROOT && self.board.is_draw() {
             return Score::DRAW;
         }
 

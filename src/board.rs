@@ -131,6 +131,11 @@ impl Board {
         self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
+    /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
+    pub fn is_draw(&self) -> bool {
+        self.is_repetition() || self.is_fifty_move_draw()
+    }
+
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
     ///

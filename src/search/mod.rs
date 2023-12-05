@@ -16,17 +16,17 @@ mod quiescence;
 mod selectivity;
 
 pub struct Searcher<'a> {
-    pub nodes: u32,
-    pub stopped: bool,
-    pub print_to_stdout: bool,
     board: Board,
-    cache: &'a mut Cache,
     time_manager: TimeManager,
-    killers: KillerMoves,
+    cache: &'a mut Cache,
     history: &'a mut HistoryMoves,
+    killers: KillerMoves,
     pv_table: PrincipleVariationTable,
     eval_stack: [i32; MAX_PLY],
     sel_depth: usize,
+    stopped: bool,
+    nodes: u32,
+    silent: bool,
 }
 
 impl<'a> Searcher<'a> {
@@ -34,16 +34,26 @@ impl<'a> Searcher<'a> {
     pub fn new(board: Board, limits: Limits, history: &'a mut HistoryMoves, cache: &'a mut Cache) -> Self {
         Self {
             board,
+            time_manager: TimeManager::new(limits),
             cache,
             history,
-            time_manager: TimeManager::new(limits),
             killers: KillerMoves::default(),
-            pv_table: Default::default(),
+            pv_table: PrincipleVariationTable::default(),
             eval_stack: [Default::default(); MAX_PLY],
             sel_depth: Default::default(),
-            nodes: Default::default(),
             stopped: Default::default(),
-            print_to_stdout: true,
+            nodes: Default::default(),
+            silent: Default::default(),
         }
+    }
+
+    /// Returns the number of nodes searched.
+    pub fn nodes(&self) -> u32 {
+        self.nodes
+    }
+
+    /// Controls whether the search should be silent. Defaults to `false`.
+    pub fn silent(&mut self, silent: bool) {
+        self.silent = silent;
     }
 }

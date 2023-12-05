@@ -32,16 +32,16 @@ pub fn bench(depth: i32) {
         let mut cache = Cache::default();
         let mut history = HistoryMoves::default();
         let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), &mut history, &mut cache);
-        search.print_to_stdout = false;
+        search.silent(true);
         search.iterative_deepening();
 
-        nodes += search.nodes;
+        nodes += search.nodes();
         index += 1;
 
         let seconds = now.elapsed().as_secs_f32();
-        let knps = search.nodes as f32 / seconds / 1000f32;
+        let knps = search.nodes() as f32 / seconds / 1000f32;
 
-        println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", search.nodes);
+        println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", search.nodes());
     }
 
     let seconds = time.elapsed().as_secs_f32();

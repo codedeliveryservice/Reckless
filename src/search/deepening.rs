@@ -24,7 +24,7 @@ impl super::Searcher<'_> {
                 break;
             }
 
-            if self.print_to_stdout {
+            if !self.silent {
                 self.report_search_result(depth, score, stopwatch);
             }
 
@@ -37,7 +37,7 @@ impl super::Searcher<'_> {
             }
         }
 
-        if self.print_to_stdout {
+        if !self.silent {
             println!("bestmove {last_best}");
         }
     }
@@ -54,7 +54,7 @@ impl super::Searcher<'_> {
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
             self.sel_depth, self.nodes,
         );
-        self.pv_table.get_line().iter().for_each(|mv| print!(" {}", mv));
+        self.pv_table.get_line().iter().for_each(|mv| print!(" {mv}"));
         println!();
     }
 
