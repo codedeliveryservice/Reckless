@@ -17,7 +17,7 @@ impl super::Searcher<'_> {
         for depth in 1..=self.time_manager.get_max_depth() {
             let score = match depth {
                 1..=6 => self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth),
-                _ => self.aspiration_window(last_score, depth),
+                _ => self.aspiration_search(last_score, depth),
             };
 
             if self.stopped {

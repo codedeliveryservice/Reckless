@@ -1,12 +1,15 @@
 use super::Searcher;
+use crate::types::Score;
 
 const ASPIRATION_WINDOW: i32 = 30;
-const ASPIRATION_WIDENING: i32 = 60;
 
 impl<'a> Searcher<'a> {
-    pub fn aspiration_window(&mut self, mut score: i32, depth: i32) -> i32 {
-        let mut alpha = score - ASPIRATION_WINDOW;
-        let mut beta = score + ASPIRATION_WINDOW;
+    pub fn aspiration_search(&mut self, mut score: i32, mut depth: i32) -> i32 {
+        let original_depth = depth;
+
+        let mut delta = (ASPIRATION_WINDOW - depth).max(10);
+        let mut alpha = (score - delta).max(-Score::INFINITY);
+        let mut beta = (score + delta).min(Score::INFINITY);
 
         loop {
             score = self.alpha_beta::<true, true>(alpha, beta, depth);
@@ -15,13 +18,18 @@ impl<'a> Searcher<'a> {
                 return 0;
             }
 
-            if alpha >= score {
-                alpha -= ASPIRATION_WIDENING;
+            if score <= alpha {
+                alpha = (alpha - delta).max(-Score::INFINITY);
+                beta = (alpha + beta) / 2;
+                depth = original_depth;
             } else if score >= beta {
-                beta += ASPIRATION_WIDENING;
+                beta = (beta + delta).min(Score::INFINITY);
+                depth -= 1;
             } else {
                 return score;
             }
+
+            delta *= 2;
         }
     }
 }
