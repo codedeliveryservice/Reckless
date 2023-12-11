@@ -1,3 +1,5 @@
+use std::mem;
+
 use super::{Piece, Square};
 
 /// Represents a chess move containing the starting and target squares, as well as flags for special moves.
@@ -39,22 +41,22 @@ impl Move {
 
     /// Creates a new `Move`.
     pub const fn new(start: Square, target: Square, kind: MoveKind) -> Self {
-        Self(start.0 as u16 | (target.0 as u16) << 6 | (kind as u16) << 12)
+        Self(start as u16 | (target as u16) << 6 | (kind as u16) << 12)
     }
 
     /// Returns the start square of `self`.
     pub const fn start(self) -> Square {
-        Square((self.0 & Self::START_MASK) as u8)
+        unsafe { mem::transmute((self.0 & Self::START_MASK) as u8) }
     }
 
     /// Returns the target square of `self`.
     pub const fn target(self) -> Square {
-        Square(((self.0 & Self::TARGET_MASK) >> 6) as u8)
+        unsafe { mem::transmute(((self.0 & Self::TARGET_MASK) >> 6) as u8) }
     }
 
     /// Returns the kind of `self`.
     pub const fn kind(self) -> MoveKind {
-        unsafe { std::mem::transmute((self.0 >> 12) as u8) }
+        unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
     /// Returns `true` if the current move is a capture.

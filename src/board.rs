@@ -215,7 +215,7 @@ impl Board {
             }
         }
 
-        if self.state.en_passant != Square::NO_SQUARE {
+        if self.state.en_passant != Square::None {
             hash ^= EN_PASSANT_KEYS[self.state.en_passant];
         }
         if self.turn == Color::White {

@@ -172,7 +172,7 @@ impl<'a> Generator<'a> {
 
     /// Adds en passant captures to the move list.
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
-        if self.state.en_passant != Square::NO_SQUARE {
+        if self.state.en_passant != Square::None {
             let pawns = pawn_attacks(self.state.en_passant, !self.turn) & bb;
             for pawn in pawns {
                 self.list.add(pawn, self.state.en_passant, MoveKind::EnPassant);

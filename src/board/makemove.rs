@@ -15,9 +15,9 @@ impl Board {
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
 
-        if self.state.en_passant != Square::NO_SQUARE {
+        if self.state.en_passant != Square::None {
             self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
-            self.state.en_passant = Square::NO_SQUARE;
+            self.state.en_passant = Square::None;
         }
     }
 
@@ -34,9 +34,9 @@ impl Board {
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
 
-        if self.state.en_passant != Square::NO_SQUARE {
+        if self.state.en_passant != Square::None {
             self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
-            self.state.en_passant = Square::NO_SQUARE;
+            self.state.en_passant = Square::None;
         }
 
         let start = mv.start();
@@ -58,7 +58,7 @@ impl Board {
 
         match mv.kind() {
             MoveKind::DoublePush => {
-                self.state.en_passant = (start + target) / 2;
+                self.state.en_passant = ((start as u8 + target as u8) / 2).into();
                 self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             }
             MoveKind::EnPassant => {

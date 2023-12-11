@@ -70,8 +70,8 @@ fn evaluate_pawns(board: &Board, color: Color, flip: u8, score: &mut S) {
 /// Returns a `Bitboard` with the squares in front of the square on the same and adjacent files.
 const fn passed_pawn_mask(square: Square, color: Color) -> Bitboard {
     let mut mask = match color {
-        Color::White => 0x0101010101010100 << square.0,
-        Color::Black => 0x0080808080808080 >> (63 - square.0),
+        Color::White => 0x0101010101010100 << square as u64,
+        Color::Black => 0x0080808080808080 >> (63 - square as u64),
     };
     mask |= !0x0101010101010101 & (mask << 1);
     mask |= !0x8080808080808080 & (mask >> 1);

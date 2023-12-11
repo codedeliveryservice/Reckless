@@ -28,7 +28,7 @@ impl Bitboard {
 
     /// Returns `true` if `self` contains a set bit at the `Square` position.
     pub const fn contains(self, square: Square) -> bool {
-        (self.0 >> square.0) & 1 != 0
+        (self.0 >> square as u64) & 1 != 0
     }
 
     /// Returns the number of pieces on the `Bitboard`.
@@ -38,12 +38,12 @@ impl Bitboard {
 
     /// Sets the `Square` on the `Bitboard`.
     pub fn set(&mut self, square: Square) {
-        self.0 |= 1 << square.0;
+        self.0 |= 1 << square as u64;
     }
 
     // Clears the `Square` on the `Bitboard`, if any.
     pub fn clear(&mut self, square: Square) {
-        self.0 &= !(1 << square.0);
+        self.0 &= !(1 << square as u64);
     }
 
     // Returns the least significant bit of the `Bitboard` and clears it, if any.
@@ -52,9 +52,8 @@ impl Bitboard {
             return None;
         }
 
-        let square = Square(self.0.trailing_zeros() as u8);
-        self.clear(square);
-
+        let square = Square::from(self.0.trailing_zeros() as u8);
+        self.0 &= self.0 - 1;
         Some(square)
     }
 }
