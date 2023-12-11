@@ -47,3 +47,9 @@ impl<T> std::ops::Index<Piece> for [T] {
         &self[index as usize]
     }
 }
+
+impl<T> std::ops::IndexMut<Piece> for [T] {
+    fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}

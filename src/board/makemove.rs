@@ -13,7 +13,7 @@ impl Board {
         self.state_stack.push(self.state);
 
         self.state.hash ^= SIDE_KEY;
-        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
+        self.state.hash ^= CASTLING_KEYS[self.state.castling];
 
         if self.state.en_passant != Square::None {
             self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
@@ -32,7 +32,7 @@ impl Board {
         self.state_stack.push(self.state);
 
         self.state.hash ^= SIDE_KEY;
-        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
+        self.state.hash ^= CASTLING_KEYS[self.state.castling];
 
         if self.state.en_passant != Square::None {
             self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
@@ -78,7 +78,7 @@ impl Board {
 
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
-        self.state.hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
+        self.state.hash ^= CASTLING_KEYS[self.state.castling];
         self.turn = !self.turn;
 
         let king = self.their(Piece::King).pop().unwrap();

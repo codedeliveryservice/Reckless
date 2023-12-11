@@ -119,15 +119,15 @@ impl Board {
 
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
-        self.state.pieces[piece as usize].set(square);
-        self.state.colors[color as usize].set(square);
+        self.state.pieces[piece].set(square);
+        self.state.colors[color].set(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
     /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
-        self.state.pieces[piece as usize].clear(square);
-        self.state.colors[color as usize].clear(square);
+        self.state.pieces[piece].clear(square);
+        self.state.colors[color].clear(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
     }
 
@@ -222,7 +222,7 @@ impl Board {
             hash ^= SIDE_KEY;
         }
 
-        hash ^= CASTLING_KEYS[self.state.castling.0 as usize];
+        hash ^= CASTLING_KEYS[self.state.castling];
         hash
     }
 }

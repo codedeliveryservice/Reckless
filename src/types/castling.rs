@@ -10,7 +10,7 @@ pub enum CastlingKind {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct Castling(pub u8);
+pub struct Castling(u8);
 
 impl Castling {
     /// The update table contains masks for changing castling rights when moving
@@ -61,5 +61,13 @@ impl From<&str> for Castling {
             } as u8;
         }
         castling
+    }
+}
+
+impl<T> std::ops::Index<Castling> for [T] {
+    type Output = T;
+
+    fn index(&self, index: Castling) -> &Self::Output {
+        &self[index.0 as usize]
     }
 }

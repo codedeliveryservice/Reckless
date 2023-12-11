@@ -36,3 +36,9 @@ impl<T> std::ops::Index<Color> for [T] {
         &self[index as usize]
     }
 }
+
+impl<T> std::ops::IndexMut<Color> for [T] {
+    fn index_mut(&mut self, index: Color) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}
