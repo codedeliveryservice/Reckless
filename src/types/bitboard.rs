@@ -1,7 +1,4 @@
-use super::{
-    macros::{impl_binary_op, impl_unary_op},
-    Square,
-};
+use super::Square;
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.
@@ -58,14 +55,34 @@ impl Bitboard {
     }
 }
 
-impl_binary_op!(Bitboard, BitAnd, bitand);
-impl_binary_op!(Bitboard, BitOr, bitor);
-impl_unary_op!(Bitboard, Not, not);
-
 impl Iterator for Bitboard {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.pop()
+    }
+}
+
+impl std::ops::BitAnd for Bitboard {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl std::ops::BitOr for Bitboard {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl std::ops::Not for Bitboard {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self(!self.0)
     }
 }
