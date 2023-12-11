@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use super::Square;
 
 #[rustfmt::skip]
@@ -64,7 +66,7 @@ impl From<&str> for Castling {
     }
 }
 
-impl<T> std::ops::Index<Castling> for [T] {
+impl<T> Index<Castling> for [T] {
     type Output = T;
 
     fn index(&self, index: Castling) -> &Self::Output {

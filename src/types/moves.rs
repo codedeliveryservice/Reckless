@@ -102,6 +102,6 @@ impl std::fmt::Display for Move {
             _ => (),
         };
 
-        f.pad(&output.to_string())
+        f.pad(&output)
     }
 }

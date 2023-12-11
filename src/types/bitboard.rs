@@ -1,3 +1,5 @@
+use std::ops::{BitAnd, BitOr, Not};
+
 use super::Square;
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
@@ -63,7 +65,7 @@ impl Iterator for Bitboard {
     }
 }
 
-impl std::ops::BitAnd for Bitboard {
+impl BitAnd for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -71,7 +73,7 @@ impl std::ops::BitAnd for Bitboard {
     }
 }
 
-impl std::ops::BitOr for Bitboard {
+impl BitOr for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -79,7 +81,7 @@ impl std::ops::BitOr for Bitboard {
     }
 }
 
-impl std::ops::Not for Bitboard {
+impl Not for Bitboard {
     type Output = Self;
 
     fn not(self) -> Self::Output {

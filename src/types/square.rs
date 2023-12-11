@@ -1,3 +1,5 @@
+use std::ops::{BitXor, Index, IndexMut};
+
 /// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
 ///
 /// See [LERFM](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
@@ -53,7 +55,7 @@ impl TryFrom<&str> for Square {
     }
 }
 
-impl std::ops::BitXor<u8> for Square {
+impl BitXor<u8> for Square {
     type Output = Self;
 
     fn bitxor(self, rhs: u8) -> Self::Output {
@@ -61,7 +63,7 @@ impl std::ops::BitXor<u8> for Square {
     }
 }
 
-impl<T> std::ops::Index<Square> for [T] {
+impl<T> Index<Square> for [T] {
     type Output = T;
 
     fn index(&self, square: Square) -> &Self::Output {
@@ -69,7 +71,7 @@ impl<T> std::ops::Index<Square> for [T] {
     }
 }
 
-impl<T> std::ops::IndexMut<Square> for [T] {
+impl<T> IndexMut<Square> for [T] {
     fn index_mut(&mut self, square: Square) -> &mut Self::Output {
         &mut self[square as usize]
     }

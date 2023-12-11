@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use super::{Move, MoveKind, Square, MAX_MOVES};
 
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
@@ -51,7 +53,7 @@ impl MoveList {
     }
 }
 
-impl std::ops::Index<usize> for MoveList {
+impl Index<usize> for MoveList {
     type Output = Move;
 
     fn index(&self, index: usize) -> &Self::Output {

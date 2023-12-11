@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut, Not};
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Color {
     White,
@@ -18,7 +20,7 @@ impl Color {
     }
 }
 
-impl std::ops::Not for Color {
+impl Not for Color {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -29,7 +31,7 @@ impl std::ops::Not for Color {
     }
 }
 
-impl<T> std::ops::Index<Color> for [T] {
+impl<T> Index<Color> for [T] {
     type Output = T;
 
     fn index(&self, index: Color) -> &Self::Output {
@@ -37,7 +39,7 @@ impl<T> std::ops::Index<Color> for [T] {
     }
 }
 
-impl<T> std::ops::IndexMut<Color> for [T] {
+impl<T> IndexMut<Color> for [T] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
         &mut self[index as usize]
     }

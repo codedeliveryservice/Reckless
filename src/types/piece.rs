@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Piece {
     Pawn,
@@ -40,7 +42,7 @@ impl From<char> for Piece {
     }
 }
 
-impl<T> std::ops::Index<Piece> for [T] {
+impl<T> Index<Piece> for [T] {
     type Output = T;
 
     fn index(&self, index: Piece) -> &Self::Output {
@@ -48,7 +50,7 @@ impl<T> std::ops::Index<Piece> for [T] {
     }
 }
 
-impl<T> std::ops::IndexMut<Piece> for [T] {
+impl<T> IndexMut<Piece> for [T] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         &mut self[index as usize]
     }

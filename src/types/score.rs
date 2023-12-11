@@ -13,7 +13,7 @@ impl Score {
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct S(pub i32, pub i32);
+pub struct S(i32, i32);
 
 impl S {
     pub const fn deconstruct(self) -> (i32, i32) {
