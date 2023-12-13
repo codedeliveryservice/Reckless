@@ -35,11 +35,22 @@ combines established concepts, as the name suggests.
 
 ### Selectivity
 
--   Check Extensions
+#### Pruning
+
 -   Reverse Futility Pruning
 -   Null Move Pruning
+-   Futility Pruning
+-   Late Move Pruning
+-   Delta Pruning
+
+#### Reductions
+
 -   Late Move Reductions
--   Quiet Late Move Pruning
+-   Internal Iterative Reductions
+
+#### Extensions
+
+-   Check Extensions
 
 ### Move ordering
 
@@ -48,10 +59,11 @@ combines established concepts, as the name suggests.
 -   Killer Heuristic
 -   History Heuristic
 
-### Static evaluation
+### Evaluation
 
 -   Tapered Evaluation
 -   King-Relative Piece-Square Tables
+-   Pawn Structure (Passed and Isolated)
 -   Sliding Piece Mobility
 -   Tempo Bonus
 
@@ -83,6 +95,13 @@ Alternatively, you can communicate with the engine directly using the [UCI proto
 
 Contributions are welcome! If you encounter issues or have suggestions for improvements,
 please open an issue or submit a pull request.
+
+## Acknowledgements
+
+-   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page): A crucial resource that greatly contributed to the project's foundation.
+-   [Cute Chess](https://github.com/cutechess/cutechess): The primary testing tool.
+-   Open source chess engines, like [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and numerous others, for serving as inspiration and providing ideas that fuel development.
+-   Many thanks to the [CCRL](https://www.computerchess.org.uk/ccrl/) team and all chess engine testers for their valuable contributions.
 
 ## License
 
