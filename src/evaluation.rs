@@ -15,7 +15,7 @@ pub fn evaluate(board: &Board) -> i32 {
 
     let phase = get_phase(board);
     let score = (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
-    let score = if board.turn == Color::White { score } else { -score };
+    let score = if board.side_to_move == Color::White { score } else { -score };
 
     (score + TEMPO_BONUS).clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
 }

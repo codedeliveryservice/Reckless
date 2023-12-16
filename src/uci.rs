@@ -44,7 +44,7 @@ fn reset(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache) {
 }
 
 fn go(board: &Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: &[&str]) {
-    let limits = parse_limits(board.turn, tokens);
+    let limits = parse_limits(board.side_to_move, tokens);
     let board = board.clone();
     Searcher::new(board, limits, history, cache).iterative_deepening();
 }

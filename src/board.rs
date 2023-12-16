@@ -28,7 +28,7 @@ struct InternalState {
 /// A wrapper around the `InternalState` with historical tracking.
 #[derive(Clone)]
 pub struct Board {
-    pub turn: Color,
+    pub side_to_move: Color,
     pub ply: usize,
     state: InternalState,
     state_stack: Vec<InternalState>,
@@ -78,12 +78,12 @@ impl Board {
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
     pub fn us(&self) -> Bitboard {
-        self.colors(self.turn)
+        self.colors(self.side_to_move)
     }
 
     /// Returns a `Bitboard` with enemy pieces for the current state.
     pub fn them(&self) -> Bitboard {
-        self.colors(!self.turn)
+        self.colors(!self.side_to_move)
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
@@ -166,7 +166,7 @@ impl Board {
 
     /// Returns `true` if any enemy piece can attack the `Square` of the current turn color.
     pub fn is_under_attack(&self, square: Square) -> bool {
-        self.is_square_attacked(square, self.turn)
+        self.is_square_attacked(square, self.side_to_move)
     }
 
     /// Returns `true` if any enemy piece can attack the `Square` of the specified `Color`.
@@ -218,7 +218,7 @@ impl Board {
         if self.state.en_passant != Square::None {
             hash ^= EN_PASSANT_KEYS[self.state.en_passant];
         }
-        if self.turn == Color::White {
+        if self.side_to_move == Color::White {
             hash ^= SIDE_KEY;
         }
 
@@ -230,7 +230,7 @@ impl Board {
 impl Default for Board {
     fn default() -> Self {
         Self {
-            turn: Color::White,
+            side_to_move: Color::White,
             ply: Default::default(),
             state: InternalState::default(),
             state_stack: Vec::default(),

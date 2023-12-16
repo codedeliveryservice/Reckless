@@ -8,7 +8,7 @@ impl Board {
     /// Updates the board representation by making a null move.
     pub fn make_null_move(&mut self) {
         self.ply += 1;
-        self.turn = !self.turn;
+        self.side_to_move = !self.side_to_move;
         self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
 
@@ -50,11 +50,11 @@ impl Board {
         }
 
         if let Some(piece) = self.get_piece(target) {
-            self.remove_piece(piece, !self.turn, target);
+            self.remove_piece(piece, !self.side_to_move, target);
         }
 
-        self.remove_piece(piece, self.turn, start);
-        self.add_piece(piece, self.turn, target);
+        self.remove_piece(piece, self.side_to_move, start);
+        self.add_piece(piece, self.side_to_move, target);
 
         match mv.kind() {
             MoveKind::DoublePush => {
@@ -62,16 +62,16 @@ impl Board {
                 self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             }
             MoveKind::EnPassant => {
-                self.remove_piece(Piece::Pawn, !self.turn, target ^ 8);
+                self.remove_piece(Piece::Pawn, !self.side_to_move, target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.remove_piece(Piece::Rook, self.turn, rook_start);
-                self.add_piece(Piece::Rook, self.turn, rook_target);
+                self.remove_piece(Piece::Rook, self.side_to_move, rook_start);
+                self.add_piece(Piece::Rook, self.side_to_move, rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece(Piece::Pawn, self.turn, target);
-                self.add_piece(mv.get_promotion_piece().unwrap(), self.turn, target);
+                self.remove_piece(Piece::Pawn, self.side_to_move, target);
+                self.add_piece(mv.get_promotion_piece().unwrap(), self.side_to_move, target);
             }
             _ => (),
         }
@@ -79,10 +79,10 @@ impl Board {
         self.state.castling.update_for_square(start);
         self.state.castling.update_for_square(target);
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
-        self.turn = !self.turn;
+        self.side_to_move = !self.side_to_move;
 
         let king = self.their(Piece::King).pop().unwrap();
-        if self.is_square_attacked(king, !self.turn) {
+        if self.is_square_attacked(king, !self.side_to_move) {
             self.undo_move();
             return Err(IllegalMoveError);
         }
@@ -97,7 +97,7 @@ impl Board {
     /// Panics if the state stack is empty.
     pub fn undo_move(&mut self) {
         self.ply -= 1;
-        self.turn = !self.turn;
+        self.side_to_move = !self.side_to_move;
         self.state = self.state_stack.pop().unwrap();
         self.move_stack.pop().unwrap();
     }

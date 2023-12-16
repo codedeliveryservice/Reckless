@@ -13,7 +13,7 @@ const BLACK_LONG_CASTLING_MASK: Bitboard = Bitboard(WHITE_LONG_CASTLING_MASK.0 <
 pub struct Generator<'a> {
     board: &'a Board,
     state: &'a InternalState,
-    turn: Color,
+    stm: Color,
     all: Bitboard,
     us: Bitboard,
     them: Bitboard,
@@ -25,7 +25,7 @@ impl<'a> Generator<'a> {
         Self {
             board,
             state: &board.state,
-            turn: board.turn,
+            stm: board.side_to_move,
             all: board.occupancies(),
             us: board.us(),
             them: board.them(),
@@ -62,7 +62,7 @@ impl<'a> Generator<'a> {
 
     /// Adds castling moves for the current side to move.
     fn collect_castling(&mut self) {
-        match self.turn {
+        match self.stm {
             Color::White => self.collect_white_castling(),
             Color::Black => self.collect_black_castling(),
         }
@@ -116,7 +116,7 @@ impl<'a> Generator<'a> {
     fn collect_pawn_moves(&mut self) {
         let bb = self.board.our(Piece::Pawn);
 
-        let (starting_rank, promotion_rank) = match self.turn {
+        let (starting_rank, promotion_rank) = match self.stm {
             Color::White => (Bitboard::RANK_2, Bitboard::RANK_7),
             Color::Black => (Bitboard::RANK_7, Bitboard::RANK_2),
         };
@@ -129,9 +129,9 @@ impl<'a> Generator<'a> {
 
     /// Adds one square pawn pushes and regular captures to the move list.
     fn collect_regular_pawn_moves(&mut self, bb: Bitboard) {
-        let offset = self.turn.offset();
+        let offset = self.stm.offset();
         for start in bb {
-            let captures = pawn_attacks(start, self.turn) & self.them;
+            let captures = pawn_attacks(start, self.stm) & self.them;
             self.add_many(start, captures, MoveKind::Capture);
 
             let pawn_push = start.shift(offset);
@@ -143,9 +143,9 @@ impl<'a> Generator<'a> {
 
     /// Adds promotions and capture promotions to the move list.
     fn collect_promotions(&mut self, bb: Bitboard) {
-        let offset = self.turn.offset();
+        let offset = self.stm.offset();
         for start in bb {
-            let captures = pawn_attacks(start, self.turn) & self.them;
+            let captures = pawn_attacks(start, self.stm) & self.them;
             for target in captures {
                 self.add_promotion_captures(start, target);
             }
@@ -159,7 +159,7 @@ impl<'a> Generator<'a> {
 
     // Adds double pawn pushes to the move list.
     fn collect_double_pushes(&mut self, bb: Bitboard) {
-        let offset = self.turn.offset();
+        let offset = self.stm.offset();
         for start in bb {
             let one_up = start.shift(offset);
             let two_up = one_up.shift(offset);
@@ -173,7 +173,7 @@ impl<'a> Generator<'a> {
     /// Adds en passant captures to the move list.
     fn collect_en_passant_moves(&mut self, bb: Bitboard) {
         if self.state.en_passant != Square::None {
-            let pawns = pawn_attacks(self.state.en_passant, !self.turn) & bb;
+            let pawns = pawn_attacks(self.state.en_passant, !self.stm) & bb;
             for pawn in pawns {
                 self.list.add(pawn, self.state.en_passant, MoveKind::EnPassant);
             }

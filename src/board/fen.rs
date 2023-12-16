@@ -27,7 +27,7 @@ pub fn from_fen(fen: &str) -> Board {
         }
     }
 
-    board.turn = match parts.next().expect("Active color") {
+    board.side_to_move = match parts.next().expect("Active color") {
         "w" => Color::White,
         "b" => Color::Black,
         _ => panic!("Invalid active color"),
