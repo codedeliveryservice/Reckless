@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use super::{Move, MoveKind, Square, MAX_MOVES};
+use super::{Move, MAX_MOVES};
 
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
 /// on collecting and processing `Move` objects.
@@ -18,9 +18,8 @@ impl MoveList {
         }
     }
 
-    /// Creates and appends a new move to the back of the list.
-    pub fn add(&mut self, start: Square, target: Square, move_kind: MoveKind) {
-        self.moves[self.length] = Move::new(start, target, move_kind);
+    pub fn push(&mut self, mv: Move) {
+        self.moves[self.length] = mv;
         self.length += 1;
     }
 

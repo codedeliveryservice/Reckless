@@ -1,14 +1,8 @@
 use super::{Board, InternalState};
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, Piece, Square},
+    types::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Square},
 };
-
-const WHITE_SHORT_CASTLING_MASK: Bitboard = Bitboard(0b0110_0000);
-const WHITE_LONG_CASTLING_MASK: Bitboard = Bitboard(0b0000_1110);
-
-const BLACK_SHORT_CASTLING_MASK: Bitboard = Bitboard(WHITE_SHORT_CASTLING_MASK.0 << (8 * 7));
-const BLACK_LONG_CASTLING_MASK: Bitboard = Bitboard(WHITE_LONG_CASTLING_MASK.0 << (8 * 7));
 
 pub struct Generator<'a> {
     board: &'a Board,
@@ -60,55 +54,32 @@ impl<'a> Generator<'a> {
         }
     }
 
-    /// Adds castling moves for the current side to move.
     fn collect_castling(&mut self) {
         match self.stm {
-            Color::White => self.collect_white_castling(),
-            Color::Black => self.collect_black_castling(),
+            Color::White => {
+                self.collect_castling_kind(CastlingKind::WhiteShort);
+                self.collect_castling_kind(CastlingKind::WhiteLong);
+            }
+            Color::Black => {
+                self.collect_castling_kind(CastlingKind::BlackShort);
+                self.collect_castling_kind(CastlingKind::BlackLong);
+            }
         }
     }
 
-    /// Adds white castling moves, if allowed.
+    /// Adds the castling move to the move list if it's allowed.
     ///
     /// This method does not check if the king is in check after the castling,
     /// as this will be checked by the `make_move` method.
-    fn collect_white_castling(&mut self) {
-        if self.state.castling.is_allowed(CastlingKind::WhiteShort)
-            && (self.all & WHITE_SHORT_CASTLING_MASK).is_empty()
-            && !self.board.is_under_attack(Square::E1)
-            && !self.board.is_under_attack(Square::F1)
-        {
-            self.list.add(Square::E1, Square::G1, MoveKind::Castling);
-        }
+    fn collect_castling_kind(&mut self, kind: CastlingKind) {
+        if (kind.path_mask() & self.all).is_empty() && self.state.castling.is_allowed(kind) {
+            for square in kind.check_mask() {
+                if self.board.is_under_attack(square) {
+                    return;
+                }
+            }
 
-        if self.state.castling.is_allowed(CastlingKind::WhiteLong)
-            && (self.all & WHITE_LONG_CASTLING_MASK).is_empty()
-            && !self.board.is_under_attack(Square::E1)
-            && !self.board.is_under_attack(Square::D1)
-        {
-            self.list.add(Square::E1, Square::C1, MoveKind::Castling);
-        }
-    }
-
-    /// Adds black castling moves, if allowed.
-    ///
-    /// This method does not check if the king is in check after the castling,
-    /// as this will be checked by the `make_move` method.
-    fn collect_black_castling(&mut self) {
-        if self.state.castling.is_allowed(CastlingKind::BlackShort)
-            && (self.all & BLACK_SHORT_CASTLING_MASK).is_empty()
-            && !self.board.is_under_attack(Square::E8)
-            && !self.board.is_under_attack(Square::F8)
-        {
-            self.list.add(Square::E8, Square::G8, MoveKind::Castling);
-        }
-
-        if self.state.castling.is_allowed(CastlingKind::BlackLong)
-            && (self.all & BLACK_LONG_CASTLING_MASK).is_empty()
-            && !self.board.is_under_attack(Square::E8)
-            && !self.board.is_under_attack(Square::D8)
-        {
-            self.list.add(Square::E8, Square::C8, MoveKind::Castling);
+            self.list.push(kind.castling_move());
         }
     }
 
@@ -136,7 +107,7 @@ impl<'a> Generator<'a> {
 
             let pawn_push = start.shift(offset);
             if !self.all.contains(pawn_push) {
-                self.list.add(start, pawn_push, MoveKind::Quiet);
+                self.add(start, pawn_push, MoveKind::Quiet);
             }
         }
     }
@@ -165,7 +136,7 @@ impl<'a> Generator<'a> {
             let two_up = one_up.shift(offset);
 
             if !self.all.contains(one_up) & !self.all.contains(two_up) {
-                self.list.add(start, two_up, MoveKind::DoublePush);
+                self.add(start, two_up, MoveKind::DoublePush);
             }
         }
     }
@@ -175,31 +146,35 @@ impl<'a> Generator<'a> {
         if self.state.en_passant != Square::None {
             let pawns = pawn_attacks(self.state.en_passant, !self.stm) & bb;
             for pawn in pawns {
-                self.list.add(pawn, self.state.en_passant, MoveKind::EnPassant);
+                self.add(pawn, self.state.en_passant, MoveKind::EnPassant);
             }
         }
+    }
+
+    fn add(&mut self, start: Square, target: Square, move_kind: MoveKind) {
+        self.list.push(Move::new(start, target, move_kind));
     }
 
     /// Adds all possible moves from the given starting square to the squares of the `targets` bitboard.
     fn add_many(&mut self, start: Square, targets: Bitboard, move_kind: MoveKind) {
         for target in targets {
-            self.list.add(start, target, move_kind);
+            self.add(start, target, move_kind);
         }
     }
 
     /// Adds all possible promotion moves to the move list.
     fn add_promotions(&mut self, start: Square, target: Square) {
-        self.list.add(start, target, MoveKind::PromotionQ);
-        self.list.add(start, target, MoveKind::PromotionR);
-        self.list.add(start, target, MoveKind::PromotionB);
-        self.list.add(start, target, MoveKind::PromotionN);
+        self.add(start, target, MoveKind::PromotionQ);
+        self.add(start, target, MoveKind::PromotionR);
+        self.add(start, target, MoveKind::PromotionB);
+        self.add(start, target, MoveKind::PromotionN);
     }
 
     /// Adds all possible promotion captures to the move list.
     fn add_promotion_captures(&mut self, start: Square, target: Square) {
-        self.list.add(start, target, MoveKind::PromotionCaptureQ);
-        self.list.add(start, target, MoveKind::PromotionCaptureR);
-        self.list.add(start, target, MoveKind::PromotionCaptureB);
-        self.list.add(start, target, MoveKind::PromotionCaptureN);
+        self.add(start, target, MoveKind::PromotionCaptureQ);
+        self.add(start, target, MoveKind::PromotionCaptureR);
+        self.add(start, target, MoveKind::PromotionCaptureB);
+        self.add(start, target, MoveKind::PromotionCaptureN);
     }
 }
