@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitOr, Not};
 
-use super::Square;
+use super::{Rank, Square};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy
 /// corresponding to a little-endian rank-file mapping.
@@ -11,9 +11,9 @@ use super::Square;
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
-    pub const RANK_1: Self = Self(0b1111_1111);
-    pub const RANK_2: Self = Self(Self::RANK_1.0 << 8);
-    pub const RANK_7: Self = Self(Self::RANK_1.0 << (8 * 6));
+    pub const fn rank(rank: Rank) -> Self {
+        Self(0xFF << (rank as usize * 8))
+    }
 
     /// Returns `true` if `self` has zero bits set.
     pub const fn is_empty(self) -> bool {
@@ -33,6 +33,14 @@ impl Bitboard {
     /// Returns the number of pieces on the `Bitboard`.
     pub const fn count(self) -> usize {
         self.0.count_ones() as usize
+    }
+
+    pub fn shift(self, offset: i8) -> Self {
+        if offset > 0 {
+            Self(self.0 << offset)
+        } else {
+            Self(self.0 >> -offset)
+        }
     }
 
     /// Sets the `Square` on the `Bitboard`.

@@ -1,7 +1,7 @@
 use super::{Board, InternalState};
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Square},
+    types::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, Piece, Rank, Square},
 };
 
 pub struct Generator<'a> {
@@ -85,66 +85,71 @@ impl<'a> Generator<'a> {
 
     /// Adds all pawn moves to the move list.
     fn collect_pawn_moves(&mut self) {
-        let bb = self.board.our(Piece::Pawn);
-
-        let (starting_rank, promotion_rank) = match self.stm {
-            Color::White => (Bitboard::RANK_2, Bitboard::RANK_7),
-            Color::Black => (Bitboard::RANK_7, Bitboard::RANK_2),
+        let pawns = self.board.our(Piece::Pawn);
+        let seventh_rank = match self.stm {
+            Color::White => Bitboard::rank(Rank::R7),
+            Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        self.collect_double_pushes(starting_rank & bb);
-        self.collect_promotions(promotion_rank & bb);
-        self.collect_regular_pawn_moves(!promotion_rank & bb);
-        self.collect_en_passant_moves(bb);
+        self.collect_pawn_pushes(pawns, seventh_rank);
+        self.collect_pawn_captures(pawns, seventh_rank);
+        self.collect_en_passant_moves(pawns);
     }
 
-    /// Adds one square pawn pushes and regular captures to the move list.
-    fn collect_regular_pawn_moves(&mut self, bb: Bitboard) {
-        let offset = self.stm.offset();
-        for start in bb {
-            let captures = pawn_attacks(start, self.stm) & self.them;
-            self.add_many(start, captures, MoveKind::Capture);
+    /// Adds single, double and promotion pawn pushes to the move list.
+    fn collect_pawn_pushes(&mut self, pawns: Bitboard, seventh_rank: Bitboard) {
+        let (up, third_rank) = match self.stm {
+            Color::White => (8, Bitboard::rank(Rank::R3)),
+            Color::Black => (-8, Bitboard::rank(Rank::R6)),
+        };
 
-            let pawn_push = start.shift(offset);
-            if !self.all.contains(pawn_push) {
-                self.add(start, pawn_push, MoveKind::Quiet);
-            }
+        let empty = !self.all;
+
+        let non_promotions = pawns & !seventh_rank;
+        let single_pushes = non_promotions.shift(up) & empty;
+        let double_pushes = (single_pushes & third_rank).shift(up) & empty;
+
+        for target in single_pushes {
+            self.add(target.shift(-up), target, MoveKind::Quiet);
+        }
+
+        for target in double_pushes {
+            self.add(target.shift(-up * 2), target, MoveKind::DoublePush);
+        }
+
+        let promotions = (pawns & seventh_rank).shift(up) & empty;
+        for target in promotions {
+            let start = target.shift(-up);
+            self.add(start, target, MoveKind::PromotionQ);
+            self.add(start, target, MoveKind::PromotionR);
+            self.add(start, target, MoveKind::PromotionB);
+            self.add(start, target, MoveKind::PromotionN);
         }
     }
 
-    /// Adds promotions and capture promotions to the move list.
-    fn collect_promotions(&mut self, bb: Bitboard) {
-        let offset = self.stm.offset();
-        for start in bb {
-            let captures = pawn_attacks(start, self.stm) & self.them;
+    /// Adds regular pawn captures and promotion captures to the move list.
+    fn collect_pawn_captures(&mut self, pawns: Bitboard, seventh_rank: Bitboard) {
+        let promotions = pawns & seventh_rank;
+        for start in promotions {
+            let captures = self.them & pawn_attacks(start, self.stm);
             for target in captures {
-                self.add_promotion_captures(start, target);
+                self.add(start, target, MoveKind::PromotionCaptureQ);
+                self.add(start, target, MoveKind::PromotionCaptureR);
+                self.add(start, target, MoveKind::PromotionCaptureB);
+                self.add(start, target, MoveKind::PromotionCaptureN);
             }
+        }
 
-            let promotion = start.shift(offset);
-            if !self.all.contains(promotion) {
-                self.add_promotions(start, promotion);
-            }
+        let non_promotions = pawns & !seventh_rank;
+        for start in non_promotions {
+            let targets = self.them & pawn_attacks(start, self.stm);
+            self.add_many(start, targets, MoveKind::Capture);
         }
     }
 
-    // Adds double pawn pushes to the move list.
-    fn collect_double_pushes(&mut self, bb: Bitboard) {
-        let offset = self.stm.offset();
-        for start in bb {
-            let one_up = start.shift(offset);
-            let two_up = one_up.shift(offset);
-
-            if !self.all.contains(one_up) & !self.all.contains(two_up) {
-                self.add(start, two_up, MoveKind::DoublePush);
-            }
-        }
-    }
-
-    /// Adds en passant captures to the move list.
-    fn collect_en_passant_moves(&mut self, bb: Bitboard) {
+    fn collect_en_passant_moves(&mut self, pawns: Bitboard) {
         if self.state.en_passant != Square::None {
-            let pawns = pawn_attacks(self.state.en_passant, !self.stm) & bb;
+            let pawns = pawns & pawn_attacks(self.state.en_passant, !self.stm);
             for pawn in pawns {
                 self.add(pawn, self.state.en_passant, MoveKind::EnPassant);
             }
@@ -160,21 +165,5 @@ impl<'a> Generator<'a> {
         for target in targets {
             self.add(start, target, move_kind);
         }
-    }
-
-    /// Adds all possible promotion moves to the move list.
-    fn add_promotions(&mut self, start: Square, target: Square) {
-        self.add(start, target, MoveKind::PromotionQ);
-        self.add(start, target, MoveKind::PromotionR);
-        self.add(start, target, MoveKind::PromotionB);
-        self.add(start, target, MoveKind::PromotionN);
-    }
-
-    /// Adds all possible promotion captures to the move list.
-    fn add_promotion_captures(&mut self, start: Square, target: Square) {
-        self.add(start, target, MoveKind::PromotionCaptureQ);
-        self.add(start, target, MoveKind::PromotionCaptureR);
-        self.add(start, target, MoveKind::PromotionCaptureB);
-        self.add(start, target, MoveKind::PromotionCaptureN);
     }
 }
