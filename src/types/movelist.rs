@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use super::{Move, MAX_MOVES};
+use super::{Bitboard, Move, MoveKind, Square, MAX_MOVES};
 
 /// A data structure similar to `Vec<Move>`, but more efficient and focused solely
 /// on collecting and processing `Move` objects.
@@ -10,7 +10,7 @@ pub struct MoveList {
 }
 
 impl MoveList {
-    /// Creates a new `MoveList`.
+    /// Creates a new empty move list.
     pub fn new() -> Self {
         Self {
             moves: [Move::NULL; MAX_MOVES],
@@ -18,11 +18,25 @@ impl MoveList {
         }
     }
 
+    /// Pushes a move to the end of the list.
     pub fn push(&mut self, mv: Move) {
         self.moves[self.length] = mv;
         self.length += 1;
     }
 
+    /// Creates a new move and adds it to the move list.
+    pub fn add(&mut self, start: Square, target: Square, move_kind: MoveKind) {
+        self.push(Move::new(start, target, move_kind));
+    }
+
+    /// Creates and adds multiple moves to the move list, starting from a common square.
+    pub fn add_many(&mut self, start: Square, targets: Bitboard, move_kind: MoveKind) {
+        for target in targets {
+            self.add(start, target, move_kind);
+        }
+    }
+
+    /// Retrieves the next move with the highest ordering value from the list.
     pub fn next(&mut self, ordering: &mut [i32]) -> Option<Move> {
         if self.length == 0 {
             return None;

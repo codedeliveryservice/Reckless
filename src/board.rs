@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Castling, Color, Move, MoveList, Piece, Square};
+use crate::types::{Bitboard, Castling, Color, Move, Piece, Square};
 
 #[cfg(test)]
 mod perft;
@@ -44,11 +44,6 @@ impl Board {
     /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
         fen::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-    }
-
-    /// Generates all possible pseudo legal moves for the current state of `self`.
-    pub fn generate_moves(&self) -> MoveList {
-        generator::Generator::new(self).generate()
     }
 
     /// Returns the Zobrist hash key for the current position.
