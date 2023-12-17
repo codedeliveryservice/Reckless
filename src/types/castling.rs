@@ -2,51 +2,44 @@ use std::ops::Index;
 
 use super::{Bitboard, Move, MoveKind, Square};
 
-#[rustfmt::skip]
-#[derive(Clone, Copy)]
-pub enum CastlingKind {
-    WhiteShort = 0b0001,
-    WhiteLong  = 0b0010,
-    BlackShort = 0b0100,
-    BlackLong  = 0b1000,
+pub trait CastlingKind {
+    /// The mask of the castling kind.
+    const MASK: u8;
+    /// The mask of squares that must be empty for the castling to be legal.
+    const PATH_MASK: Bitboard;
+    /// The squares that must not be attacked for the castling to be legal.
+    const CHECK_SQUARES: [Square; 2];
+    /// The castling move associated with the castling kind.
+    const CASTLING_MOVE: Move;
 }
 
-impl CastlingKind {
-    /// Returns the mask of squares that must be empty for the castling to be legal.
-    pub fn path_mask(self) -> Bitboard {
-        match self {
-            Self::WhiteShort => Bitboard(0b0110_0000),
-            Self::WhiteLong => Bitboard(0b0000_1110),
-            Self::BlackShort => Bitboard(0b0110_0000 << 56),
-            Self::BlackLong => Bitboard(0b0000_1110 << 56),
-        }
-    }
-
-    /// Returns the squares that must not be attacked for the castling to be legal.
-    /// 
-    /// The mask includes the starting king square and excludes the ending king square.
-    pub fn check_mask(self) -> [Square; 2] {
-        match self {
-            CastlingKind::WhiteShort => [Square::E1, Square::F1],
-            CastlingKind::WhiteLong => [Square::E1, Square::D1],
-            CastlingKind::BlackShort => [Square::E8, Square::F8],
-            CastlingKind::BlackLong => [Square::E8, Square::D8],
-        }
-    }
-
-    pub fn castling_move(self) -> Move {
-        match self {
-            CastlingKind::WhiteShort => Move::new(Square::E1, Square::G1, MoveKind::Castling),
-            CastlingKind::WhiteLong => Move::new(Square::E1, Square::C1, MoveKind::Castling),
-            CastlingKind::BlackShort => Move::new(Square::E8, Square::G8, MoveKind::Castling),
-            CastlingKind::BlackLong => Move::new(Square::E8, Square::C8, MoveKind::Castling),
-        }
-    }
+macro_rules! impl_castling_kind {
+    ($($kind:ident => $raw:expr, $path_mask:expr, $start:expr, $adjacent: expr, $target:expr,)*)  => {
+        $(
+            #[derive(Clone, Copy)]
+            pub struct $kind;
+            impl CastlingKind for $kind {
+                const MASK: u8 = $raw;
+                const PATH_MASK: Bitboard = Bitboard($path_mask);
+                const CHECK_SQUARES: [Square; 2] = [$start, $adjacent];
+                const CASTLING_MOVE: Move = Move::new($start, $target, MoveKind::Castling);
+            }
+        )*
+    };
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+impl_castling_kind! {
+    WhiteKingSide   => 1, 0b0110_0000, Square::E1, Square::F1, Square::G1,
+    WhiteQueenSide  => 2, 0b0000_1110, Square::E1, Square::D1, Square::C1,
+    BlackKingSide   => 4, 0b0110_0000 << 56, Square::E8, Square::F8, Square::G8,
+    BlackQueenSide  => 8, 0b0000_1110 << 56, Square::E8, Square::D8, Square::C8,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
 #[repr(transparent)]
-pub struct Castling(u8);
+pub struct Castling {
+    raw: u8,
+}
 
 impl Castling {
     /// The update table contains masks for changing castling rights when moving
@@ -73,14 +66,14 @@ impl Castling {
          7, 15, 15, 15,  3, 15, 15, 11,
     ];
 
-    /// Updates castling rights when interacting with the `Square`.
-    pub fn update_for_square(&mut self, square: Square) {
-        self.0 &= Self::UPDATES[square];
+    /// Updates the castling rights based on the movement of a piece.
+    pub fn update(&mut self, start: Square, target: Square) {
+        self.raw &= Self::UPDATES[start] & Self::UPDATES[target];
     }
 
-    /// Returns `true` if the `CastlingKind` is allowed.
-    pub const fn is_allowed(self, kind: CastlingKind) -> bool {
-        (self.0 & kind as u8) != 0
+    /// Checks if a specific castling kind is allowed.
+    pub fn is_allowed<KIND: CastlingKind>(self) -> bool {
+        (self.raw & KIND::MASK) != 0
     }
 }
 
@@ -88,13 +81,13 @@ impl From<&str> for Castling {
     fn from(text: &str) -> Self {
         let mut castling = Self::default();
         for right in text.chars() {
-            castling.0 |= match right {
-                'K' => CastlingKind::WhiteShort,
-                'Q' => CastlingKind::WhiteLong,
-                'k' => CastlingKind::BlackShort,
-                'q' => CastlingKind::BlackLong,
+            castling.raw |= match right {
+                'K' => WhiteKingSide::MASK,
+                'Q' => WhiteQueenSide::MASK,
+                'k' => BlackKingSide::MASK,
+                'q' => BlackQueenSide::MASK,
                 _ => continue,
-            } as u8;
+            };
         }
         castling
     }
@@ -104,6 +97,6 @@ impl<T> Index<Castling> for [T] {
     type Output = T;
 
     fn index(&self, index: Castling) -> &Self::Output {
-        &self[index.0 as usize]
+        &self[index.raw as usize]
     }
 }

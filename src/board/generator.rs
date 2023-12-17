@@ -55,14 +55,16 @@ impl<'a> Generator<'a> {
     }
 
     fn collect_castling(&mut self) {
+        use crate::types::{BlackKingSide, BlackQueenSide, WhiteKingSide, WhiteQueenSide};
+
         match self.stm {
             Color::White => {
-                self.collect_castling_kind(CastlingKind::WhiteShort);
-                self.collect_castling_kind(CastlingKind::WhiteLong);
+                self.collect_castling_kind::<WhiteKingSide>();
+                self.collect_castling_kind::<WhiteQueenSide>();
             }
             Color::Black => {
-                self.collect_castling_kind(CastlingKind::BlackShort);
-                self.collect_castling_kind(CastlingKind::BlackLong);
+                self.collect_castling_kind::<BlackKingSide>();
+                self.collect_castling_kind::<BlackQueenSide>();
             }
         }
     }
@@ -71,15 +73,15 @@ impl<'a> Generator<'a> {
     ///
     /// This method does not check if the king is in check after the castling,
     /// as this will be checked by the `make_move` method.
-    fn collect_castling_kind(&mut self, kind: CastlingKind) {
-        if (kind.path_mask() & self.all).is_empty() && self.state.castling.is_allowed(kind) {
-            for square in kind.check_mask() {
+    fn collect_castling_kind<KIND: CastlingKind>(&mut self) {
+        if (KIND::PATH_MASK & self.all).is_empty() && self.state.castling.is_allowed::<KIND>() {
+            for square in KIND::CHECK_SQUARES {
                 if self.board.is_under_attack(square) {
                     return;
                 }
             }
 
-            self.list.push(kind.castling_move());
+            self.list.push(KIND::CASTLING_MOVE);
         }
     }
 

@@ -76,8 +76,7 @@ impl Board {
             _ => (),
         }
 
-        self.state.castling.update_for_square(start);
-        self.state.castling.update_for_square(target);
+        self.state.castling.update(start, target);
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
         self.side_to_move = !self.side_to_move;
 
