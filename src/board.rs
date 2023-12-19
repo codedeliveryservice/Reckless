@@ -1,7 +1,7 @@
 use crate::types::{Bitboard, Castling, Color, Move, Piece, Square};
 
 #[cfg(test)]
-mod perft;
+mod tests;
 
 mod fen;
 mod generator;
