@@ -2,39 +2,35 @@ use std::ops::{BitAnd, BitOr, Not};
 
 use super::{Rank, Square};
 
-/// Represents a 64-bit unsigned integer with each bit indicating square occupancy
-/// corresponding to a little-endian rank-file mapping.
+/// Represents a 64-bit unsigned integer with each bit indicating square occupancy.
 ///
-/// See [LERFM](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
+/// See [Bitboards](https://www.chessprogramming.org/Bitboards) for more information.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {
         Self(0xFF << (rank as usize * 8))
     }
 
-    /// Returns `true` if `self` has zero bits set.
+    /// Checks if the bitboard has zero bits set.
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-    /// Returns `true` if `self` has one or more bits set.
-    pub const fn is_not_empty(self) -> bool {
-        self.0 != 0
-    }
-
-    /// Returns `true` if `self` contains a set bit at the `Square` position.
+    /// Checks if the bitboard contains a set bit at the specified square position.
     pub const fn contains(self, square: Square) -> bool {
         (self.0 >> square as u64) & 1 != 0
     }
 
-    /// Returns the number of pieces on the `Bitboard`.
+    /// Counts the number of set bits in the bitboard.
     pub const fn count(self) -> usize {
         self.0.count_ones() as usize
     }
 
+    // Shifts the bits of the bitboard by the specified offset.
     pub fn shift(self, offset: i8) -> Self {
         if offset > 0 {
             Self(self.0 << offset)
@@ -43,25 +39,23 @@ impl Bitboard {
         }
     }
 
-    /// Sets the `Square` on the `Bitboard`.
+    /// Sets the bit corresponding to the specified square.
     pub fn set(&mut self, square: Square) {
         self.0 |= 1 << square as u64;
     }
 
-    // Clears the `Square` on the `Bitboard`, if any.
+    /// Clears the bit corresponding to the specified square.
     pub fn clear(&mut self, square: Square) {
         self.0 &= !(1 << square as u64);
     }
 
-    // Returns the least significant bit of the `Bitboard` and clears it, if any.
-    pub fn pop(&mut self) -> Option<Square> {
-        if self.is_empty() {
-            return None;
-        }
-
+    /// Pops and returns the least significant set bit in the bitboard.
+    ///
+    /// `Square::None` is returned if the bitboard is empty.
+    pub fn pop(&mut self) -> Square {
         let square = Square::from(self.0.trailing_zeros() as u8);
         self.0 &= self.0 - 1;
-        Some(square)
+        square
     }
 }
 
@@ -69,7 +63,11 @@ impl Iterator for Bitboard {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop()
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.pop())
+        }
     }
 }
 

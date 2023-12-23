@@ -80,7 +80,7 @@ impl Board {
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
         self.side_to_move = !self.side_to_move;
 
-        let king = self.their(Piece::King).pop().unwrap();
+        let king = self.their(Piece::King).pop();
         if self.is_square_attacked(king, !self.side_to_move) {
             self.undo_move();
             return Err(IllegalMoveError);

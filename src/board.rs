@@ -92,7 +92,7 @@ impl Board {
     }
 
     pub fn king(&self, color: Color) -> Square {
-        self.of(Piece::King, color).pop().unwrap()
+        self.of(Piece::King, color).pop()
     }
 
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
@@ -155,7 +155,7 @@ impl Board {
     ///
     /// Panics if there is no king on the board.
     pub fn is_in_check(&self) -> bool {
-        let king = self.our(Piece::King).pop().unwrap();
+        let king = self.our(Piece::King).pop();
         self.is_under_attack(king)
     }
 
@@ -172,7 +172,7 @@ impl Board {
             | (self.get_attacks(square, Piece::King) & self.pieces(Piece::King))
             | (crate::lookup::pawn_attacks(square, color) & self.pieces(Piece::Pawn));
 
-        (possible_attackers & self.colors(!color)).is_not_empty()
+        !(possible_attackers & self.colors(!color)).is_empty()
     }
 
     /// Returns a `Bitboard` with all the squares that the specified `Piece` type can attack.
