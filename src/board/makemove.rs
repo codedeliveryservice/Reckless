@@ -58,7 +58,7 @@ impl Board {
 
         match mv.kind() {
             MoveKind::DoublePush => {
-                self.state.en_passant = ((start as u8 + target as u8) / 2).into();
+                self.state.en_passant = Square::new((start as u8 + target as u8) / 2);
                 self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             }
             MoveKind::EnPassant => {

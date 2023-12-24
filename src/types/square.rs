@@ -1,8 +1,8 @@
 use std::ops::{BitXor, Index, IndexMut};
 
-/// Represents a chess board square and bitboard element corresponding to a little-endian rank-file mapping.
+/// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
-/// See [LERFM](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping) for more information.
+/// [LERFM]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 #[rustfmt::skip]
 pub enum Square {
@@ -21,25 +21,28 @@ pub enum Square {
 impl Square {
     pub const NUM: usize = 64;
 
-    /// Returns the file of the `Square`.
+    /// Creates a new square from the given value.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the value is in the range `0..64`.
+    pub const fn new(value: u8) -> Self {
+        unsafe { std::mem::transmute(value) }
+    }
+
+    /// Creates a square from the given rank and file.
+    pub const fn from_rank_file(rank: u8, file: u8) -> Self {
+        Self::new((rank << 3) | file)
+    }
+
+    /// Shifts the square by the given offset.
+    pub const fn shift(self, offset: i8) -> Self {
+        Self::new((self as i8 + offset) as u8)
+    }
+
+    /// Returns the file of the square.
     pub const fn file(self) -> usize {
         self as usize & 7
-    }
-
-    /// Returns a `Square` from file and rank coordinates.
-    pub fn from_rank_file(rank: u8, file: u8) -> Self {
-        ((rank << 3) | file).into()
-    }
-
-    /// Returns a `Square` shifted by the specified offset.
-    pub fn shift(self, offset: i8) -> Self {
-        ((self as i8 + offset) as u8).into()
-    }
-}
-
-impl From<u8> for Square {
-    fn from(value: u8) -> Self {
-        unsafe { std::mem::transmute(value) }
     }
 }
 
@@ -48,10 +51,14 @@ impl TryFrom<&str> for Square {
 
     /// Performs the conversion using the algebraic notation.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        if let [file @ b'a'..=b'h', rank @ b'1'..=b'8'] = value.bytes().collect::<Vec<_>>().as_slice() {
-            return Ok(Self::from_rank_file(rank - b'1', file - b'a'));
+        match value.as_bytes() {
+            [file @ b'a'..=b'h', rank @ b'1'..=b'8'] => {
+                let rank = rank - b'1';
+                let file = file - b'a';
+                Ok(Self::from_rank_file(rank, file))
+            }
+            _ => Err(()),
         }
-        Err(())
     }
 }
 
@@ -59,7 +66,7 @@ impl BitXor<u8> for Square {
     type Output = Self;
 
     fn bitxor(self, rhs: u8) -> Self::Output {
-        (self as u8 ^ rhs).into()
+        Self::new(self as u8 ^ rhs)
     }
 }
 
@@ -88,20 +95,23 @@ impl std::fmt::Display for Square {
 
 #[cfg(test)]
 mod tests {
-    use super::Square;
+    use super::*;
 
     #[test]
-    fn try_from() {
+    fn try_from_str() {
         assert_eq!(Square::try_from("a1"), Ok(Square::A1));
-        assert_eq!(Square::try_from("b1"), Ok(Square::B1));
+        assert_eq!(Square::try_from("e5"), Ok(Square::E5));
         assert_eq!(Square::try_from("h8"), Ok(Square::H8));
-        assert_eq!(Square::try_from("i9"), Err(()));
+
+        assert!(Square::try_from("i1").is_err());
+        assert!(Square::try_from("a9").is_err());
+        assert!(Square::try_from("invalid").is_err());
     }
 
     #[test]
     fn display() {
         assert_eq!(Square::A1.to_string(), "a1");
-        assert_eq!(Square::B1.to_string(), "b1");
+        assert_eq!(Square::E5.to_string(), "e5");
         assert_eq!(Square::H8.to_string(), "h8");
     }
 }

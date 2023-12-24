@@ -53,9 +53,9 @@ impl Bitboard {
     ///
     /// `Square::None` is returned if the bitboard is empty.
     pub fn pop(&mut self) -> Square {
-        let square = Square::from(self.0.trailing_zeros() as u8);
+        let lsb = self.0.trailing_zeros() as u8;
         self.0 &= self.0 - 1;
-        square
+        Square::new(lsb)
     }
 }
 
