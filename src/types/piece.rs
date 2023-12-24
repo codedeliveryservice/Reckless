@@ -12,32 +12,30 @@ pub enum Piece {
 
 impl Piece {
     pub const NUM: usize = 6;
-}
 
-impl From<usize> for Piece {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Self::Pawn,
-            1 => Self::Knight,
-            2 => Self::Bishop,
-            3 => Self::Rook,
-            4 => Self::Queen,
-            5 => Self::King,
-            _ => panic!("Unexpected piece '{value}'"),
-        }
+    /// Creates a new piece from the given value.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the value is in the range `0..6`.
+    pub const fn new(value: usize) -> Self {
+        unsafe { std::mem::transmute(value as u8) }
     }
 }
 
-impl From<char> for Piece {
-    fn from(value: char) -> Self {
+impl TryFrom<char> for Piece {
+    type Error = ();
+
+    /// Converts a character from the Forsyth–Edwards Notation to a piece.
+    fn try_from(value: char) -> Result<Self, Self::Error> {
         match value {
-            'P' | 'p' => Self::Pawn,
-            'N' | 'n' => Self::Knight,
-            'B' | 'b' => Self::Bishop,
-            'R' | 'r' => Self::Rook,
-            'Q' | 'q' => Self::Queen,
-            'K' | 'k' => Self::King,
-            _ => panic!("Unexpected piece '{value}'"),
+            'P' | 'p' => Ok(Self::Pawn),
+            'N' | 'n' => Ok(Self::Knight),
+            'B' | 'b' => Ok(Self::Bishop),
+            'R' | 'r' => Ok(Self::Rook),
+            'Q' | 'q' => Ok(Self::Queen),
+            'K' | 'k' => Ok(Self::King),
+            _ => Err(()),
         }
     }
 }

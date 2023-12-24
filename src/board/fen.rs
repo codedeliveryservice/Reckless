@@ -18,7 +18,7 @@ pub fn from_fen(fen: &str) -> Board {
                 continue;
             }
 
-            let piece = char.into();
+            let piece = char.try_into().expect("Piece type character");
             let color = if char.is_uppercase() { Color::White } else { Color::Black };
             let square = Square::from_rank_file(rank as u8, file);
 

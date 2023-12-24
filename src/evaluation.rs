@@ -27,7 +27,7 @@ fn evaluate_internal(board: &Board) -> S {
         let their_king = board.king(!color);
 
         for piece in 0..5 {
-            let piece = Piece::from(piece);
+            let piece = Piece::new(piece);
 
             for square in board.of(piece, color) {
                 score += WEIGHTS.psqt[0][our_king ^ flip][piece][square ^ flip];

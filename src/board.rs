@@ -99,7 +99,7 @@ impl Board {
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
             if self.state.pieces[index].contains(square) {
-                return Some(Piece::from(index));
+                return Some(Piece::new(index));
             }
         }
         None
@@ -202,7 +202,7 @@ impl Board {
         let mut hash = 0;
 
         for piece in 0..Piece::NUM {
-            let piece = Piece::from(piece);
+            let piece = Piece::new(piece);
             for color in [Color::White, Color::Black] {
                 for square in self.of(piece, color) {
                     hash ^= PIECE_KEYS[color][piece][square];
