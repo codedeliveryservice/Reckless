@@ -30,7 +30,7 @@ impl Bitboard {
         self.0.count_ones() as usize
     }
 
-    // Shifts the bits of the bitboard by the specified offset.
+    /// Shifts the bits of the bitboard by the specified offset.
     pub fn shift(self, offset: i8) -> Self {
         if offset > 0 {
             Self(self.0 << offset)
