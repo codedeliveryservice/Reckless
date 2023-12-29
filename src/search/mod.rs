@@ -16,10 +16,10 @@ mod quiescence;
 mod selectivity;
 
 pub struct Searcher<'a> {
-    board: Board,
     time_manager: TimeManager,
-    cache: &'a mut Cache,
+    board: &'a mut Board,
     history: &'a mut HistoryMoves,
+    cache: &'a mut Cache,
     killers: KillerMoves,
     pv_table: PrincipleVariationTable,
     eval_stack: [i32; MAX_PLY],
@@ -31,12 +31,12 @@ pub struct Searcher<'a> {
 
 impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(board: Board, limits: Limits, history: &'a mut HistoryMoves, cache: &'a mut Cache) -> Self {
+    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut HistoryMoves, cache: &'a mut Cache) -> Self {
         Self {
-            board,
             time_manager: TimeManager::new(limits),
-            cache,
+            board,
             history,
+            cache,
             killers: KillerMoves::default(),
             pv_table: PrincipleVariationTable::default(),
             eval_stack: [Default::default(); MAX_PLY],
@@ -48,12 +48,23 @@ impl<'a> Searcher<'a> {
     }
 
     /// Returns the number of nodes searched.
-    pub fn nodes(&self) -> u32 {
+    pub const fn nodes(&self) -> u32 {
         self.nodes
     }
 
     /// Controls whether the search should be silent. Defaults to `false`.
     pub fn silent(&mut self, silent: bool) {
         self.silent = silent;
+    }
+
+    /// This is the main entry point for the search.
+    /// 
+    /// It performs an iterative deepening search, incrementally increasing
+    /// the search depth and printing the `info` output at each iteration.
+    /// 
+    /// When the search is stopped, the `bestmove` command is sent to the GUI.
+    pub fn run(&mut self) {
+        self.board.ply = 0;
+        self.iterative_deepening();
     }
 }

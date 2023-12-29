@@ -2,6 +2,8 @@ use std::time::Instant;
 
 use crate::types::{Move, Score};
 
+const ASPIRATION_WINDOW_THRESHOLD: i32 = 6;
+
 impl super::Searcher<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.
     ///
@@ -15,9 +17,10 @@ impl super::Searcher<'_> {
         let mut last_score = Score::INVALID;
 
         for depth in 1..=self.time_manager.get_max_depth() {
-            let score = match depth {
-                1..=6 => self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth),
-                _ => self.aspiration_search(last_score, depth),
+            let score = if depth > ASPIRATION_WINDOW_THRESHOLD {
+                self.aspiration_search(last_score, depth)
+            } else {
+                self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth)
             };
 
             if self.stopped {

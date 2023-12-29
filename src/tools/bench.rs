@@ -29,11 +29,13 @@ pub fn bench(depth: i32) {
     for position in positions {
         let now = Instant::now();
 
+        let mut board = Board::new(position);
         let mut cache = Cache::default();
         let mut history = HistoryMoves::default();
-        let mut search = Searcher::new(Board::new(position), Limits::FixedDepth(depth), &mut history, &mut cache);
+        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut cache);
+
         search.silent(true);
-        search.iterative_deepening();
+        search.run();
 
         nodes += search.nodes();
         index += 1;

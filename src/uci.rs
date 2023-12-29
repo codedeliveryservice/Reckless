@@ -12,7 +12,7 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&board, &mut history, &mut cache, tokens),
+            ["go", tokens @ ..] => go(&mut board, &mut history, &mut cache, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut cache, tokens),
             ["ucinewgame"] => reset(&mut board, &mut history, &mut cache),
@@ -43,10 +43,9 @@ fn reset(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache) {
     *history = HistoryMoves::default();
 }
 
-fn go(board: &Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: &[&str]) {
+fn go(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    let board = board.clone();
-    Searcher::new(board, limits, history, cache).iterative_deepening();
+    Searcher::new(limits, board, history, cache).run();
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
@@ -62,7 +61,6 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
             }
             ["moves", rest @ ..] => {
                 rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));
-                board.ply = 0;
                 break;
             }
             _ => break,
