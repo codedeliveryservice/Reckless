@@ -58,10 +58,10 @@ impl<'a> Searcher<'a> {
     }
 
     /// This is the main entry point for the search.
-    /// 
+    ///
     /// It performs an iterative deepening search, incrementally increasing
     /// the search depth and printing the `info` output at each iteration.
-    /// 
+    ///
     /// When the search is stopped, the `bestmove` command is sent to the GUI.
     pub fn run(&mut self) {
         self.board.ply = 0;
