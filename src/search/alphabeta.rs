@@ -76,7 +76,7 @@ impl super::Searcher<'_> {
 
         let mut moves_played = 0;
         let mut quiets = Vec::with_capacity(32);
-        let mut moves = self.board.generate_moves();
+        let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
         while let Some(mv) = moves.next(&mut ordering) {

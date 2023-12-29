@@ -5,31 +5,47 @@ use crate::{
 
 impl super::Board {
     /// Generates all possible pseudo legal moves for the current position.
-    pub fn generate_moves(&self) -> MoveList {
+    pub fn generate_all_moves(&self) -> MoveList {
+        self.generate_moves::<false>()
+    }
+
+    /// Generates only pseudo legal capture moves for the current position.
+    pub fn generate_capture_moves(&self) -> MoveList {
+        self.generate_moves::<true>()
+    }
+
+    /// Generates pseudo legal moves for the current position.
+    ///
+    /// If `CAPTURE` is `true`, only capture moves are generated.
+    fn generate_moves<const CAPTURE: bool>(&self) -> MoveList {
         let occupancies = self.occupancies();
 
         let mut list = MoveList::new();
 
-        self.collect_pawn_moves(&mut list);
+        self.collect_pawn_moves::<CAPTURE>(&mut list);
 
-        self.collect_for(&mut list, Piece::Knight, knight_attacks);
-        self.collect_for(&mut list, Piece::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for(&mut list, Piece::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for(&mut list, Piece::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, Piece::Knight, knight_attacks);
+        self.collect_for::<CAPTURE, _>(&mut list, Piece::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, Piece::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, Piece::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, Piece::King, king_attacks);
 
-        self.collect_castling(&mut list);
-        self.collect_for(&mut list, Piece::King, king_attacks);
+        if !CAPTURE {
+            self.collect_castling(&mut list);
+        }
 
         list
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<T: Fn(Square) -> Bitboard>(&self, list: &mut MoveList, piece: Piece, gen: T) {
+    fn collect_for<const CAPTURE: bool, T: Fn(Square) -> Bitboard>(&self, list: &mut MoveList, piece: Piece, gen: T) {
         for start in self.our(piece) {
             let targets = gen(start) & !self.us();
 
             list.add_many(start, targets & self.them(), MoveKind::Capture);
-            list.add_many(start, targets & !self.them(), MoveKind::Quiet);
+            if !CAPTURE {
+                list.add_many(start, targets & !self.them(), MoveKind::Quiet);
+            }
         }
     }
 
@@ -65,14 +81,17 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut MoveList) {
         let pawns = self.our(Piece::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        self.collect_pawn_pushes(list, pawns, seventh_rank);
+        if !CAPTURE {
+            self.collect_pawn_pushes(list, pawns, seventh_rank);
+        }
+
         self.collect_pawn_captures(list, pawns, seventh_rank);
         self.collect_en_passant_moves(list, pawns);
     }

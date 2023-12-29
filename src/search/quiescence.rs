@@ -44,7 +44,7 @@ impl super::Searcher<'_> {
         let mut best_move = Move::NULL;
         let mut best_score = eval;
 
-        let mut moves = self.board.generate_moves();
+        let mut moves = self.board.generate_capture_moves();
         let mut ordering = self.build_ordering(&moves, None);
 
         while let Some(mv) = moves.next(&mut ordering) {
