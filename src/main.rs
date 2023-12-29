@@ -1,7 +1,7 @@
 mod board;
 mod cache;
-mod evaluation;
 mod lookup;
+mod nnue;
 mod search;
 mod tables;
 mod timeman;

@@ -1,7 +1,6 @@
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
     cache::{Bound, CacheHit},
-    evaluation::evaluate,
     types::{Move, Score, MAX_PLY},
 };
 
@@ -24,7 +23,7 @@ impl super::Searcher<'_> {
 
         // Prevent overflows
         if self.board.ply >= MAX_PLY - 1 {
-            return evaluate(&self.board);
+            return self.board.evaluate();
         }
 
         // Check extensions: extend the search depth due to low branching and the possibility of
@@ -55,7 +54,7 @@ impl super::Searcher<'_> {
             depth -= 1;
         }
 
-        let eval = entry.map_or_else(|| evaluate(&self.board), |entry| entry.score);
+        let eval = entry.map_or_else(|| self.board.evaluate(), |entry| entry.score);
         let improving = !in_check && self.board.ply > 1 && eval > self.eval_stack[self.board.ply - 2];
 
         self.eval_stack[self.board.ply] = eval;
