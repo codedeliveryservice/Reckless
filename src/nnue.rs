@@ -9,49 +9,58 @@ const L1: i32 = 64;
 
 #[derive(Clone)]
 pub struct Network {
-    accumulator: [i16; HIDDEN_SIZE],
-    stack: Vec<[i16; HIDDEN_SIZE]>,
+    accumulators: [[i16; HIDDEN_SIZE]; 2],
+    stack: Vec<[[i16; HIDDEN_SIZE]; 2]>,
 }
 
 impl Network {
     /// Pushes the current state of accumulators onto the stack.
     pub fn push(&mut self) {
-        self.stack.push(self.accumulator);
+        self.stack.push(self.accumulators);
     }
 
     /// Pops the topmost state from the stack and restores the accumulators.
     pub fn pop(&mut self) {
-        self.accumulator = self.stack.pop().unwrap();
+        self.accumulators = self.stack.pop().unwrap();
     }
 
     /// Computes the output score for the given color.
-    pub fn evaluate(&self) -> i32 {
+    pub fn evaluate(&self, side_to_move: Color) -> i32 {
+        let stm = self.accumulators[side_to_move];
+        let nstm = self.accumulators[!side_to_move];
+
         let mut output = i32::from(PARAMETERS.output_bias);
         for i in 0..HIDDEN_SIZE {
-            output += i32::from(relu(self.accumulator[i])) * i32::from(PARAMETERS.output_weights[i]);
+            output += i32::from(relu(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
+            output += i32::from(relu(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
         }
         output * K / (L0 * L1)
     }
 
     /// Activates the specified piece.
     pub fn activate(&mut self, color: Color, piece: Piece, square: Square) {
-        let index = index(color, piece, square);
+        let (white, black) = index(color, piece, square);
         for i in 0..HIDDEN_SIZE {
-            self.accumulator[i] += PARAMETERS.input_weights[index][i];
+            self.accumulators[0][i] += PARAMETERS.input_weights[white][i];
+            self.accumulators[1][i] += PARAMETERS.input_weights[black][i];
         }
     }
 
     /// Deactivates the specified piece.
     pub fn deactivate(&mut self, color: Color, piece: Piece, square: Square) {
-        let index = index(color, piece, square);
+        let (white, black) = index(color, piece, square);
         for i in 0..HIDDEN_SIZE {
-            self.accumulator[i] -= PARAMETERS.input_weights[index][i];
+            self.accumulators[0][i] -= PARAMETERS.input_weights[white][i];
+            self.accumulators[1][i] -= PARAMETERS.input_weights[black][i];
         }
     }
 }
 
-fn index(color: Color, piece: Piece, square: Square) -> usize {
-    384 * color as usize + 64 * piece as usize + square as usize
+fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
+    (
+        384 * color as usize + 64 * piece as usize + square as usize,
+        384 * !color as usize + 64 * piece as usize + (square ^ 56) as usize,
+    )
 }
 
 fn relu(x: i16) -> i16 {
@@ -61,17 +70,18 @@ fn relu(x: i16) -> i16 {
 impl Default for Network {
     fn default() -> Self {
         Self {
-            accumulator: PARAMETERS.input_bias,
+            accumulators: [PARAMETERS.input_bias; 2],
             stack: Vec::default(),
         }
     }
 }
 
+#[repr(C)]
 struct Parameters {
     input_weights: [[i16; HIDDEN_SIZE]; INPUT_SIZE],
     input_bias: [i16; HIDDEN_SIZE],
-    output_weights: [i16; HIDDEN_SIZE],
+    output_weights: [[i16; HIDDEN_SIZE]; 2],
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-07-quantized-256-64.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-07-perspective-3-quantized-256-64.nnue")) };

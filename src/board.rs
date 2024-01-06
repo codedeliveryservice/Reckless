@@ -130,10 +130,7 @@ impl Board {
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        match self.side_to_move {
-            Color::White => self.nnue.evaluate(),
-            Color::Black => -self.nnue.evaluate(),
-        }
+        self.nnue.evaluate(self.side_to_move)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
