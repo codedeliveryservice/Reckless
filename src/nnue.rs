@@ -84,4 +84,4 @@ struct Parameters {
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-24-256-64.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-25-256-64.nnue")) };
