@@ -31,8 +31,8 @@ impl Network {
 
         let mut output = i32::from(PARAMETERS.output_bias);
         for i in 0..HIDDEN_SIZE {
-            output += i32::from(relu(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
-            output += i32::from(relu(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
+            output += crelu(i32::from(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
+            output += crelu(i32::from(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
         }
         output * K / (L0 * L1)
     }
@@ -63,8 +63,8 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
     )
 }
 
-fn relu(x: i16) -> i16 {
-    x.max(0)
+fn crelu(x: i32) -> i32 {
+    x.clamp(0, L0)
 }
 
 impl Default for Network {
@@ -84,4 +84,4 @@ struct Parameters {
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-22-256-64.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-24-256-64.nnue")) };
