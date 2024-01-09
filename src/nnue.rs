@@ -1,9 +1,9 @@
 use crate::types::{Color, Piece, Square};
 
 const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 32;
+const HIDDEN_SIZE: usize = 64;
 
-const K: i32 = 400;
+const K: i32 = 350;
 const L0: i32 = 256;
 const L1: i32 = 64;
 
@@ -84,4 +84,4 @@ struct Parameters {
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-07-perspective-3-quantized-256-64.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-22-256-64.nnue")) };
