@@ -3,9 +3,9 @@ use crate::types::{Color, Piece, Square};
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 64;
 
-const K: i32 = 350;
-const L0: i32 = 256;
-const L1: i32 = 64;
+const EVAL_SCALE: i32 = 350;
+const L0_SCALE: i32 = 256;
+const L1_SCALE: i32 = 64;
 
 #[derive(Clone)]
 pub struct Network {
@@ -34,7 +34,7 @@ impl Network {
             output += crelu(i32::from(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
             output += crelu(i32::from(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
         }
-        output * K / (L0 * L1)
+        output * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
     /// Activates the specified piece.
@@ -64,7 +64,7 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
 }
 
 fn crelu(x: i32) -> i32 {
-    x.clamp(0, L0)
+    x.clamp(0, L0_SCALE)
 }
 
 impl Default for Network {
@@ -84,4 +84,4 @@ struct Parameters {
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(r"D:\Repos\RecklessTrainer\networks\nn-25-256-64.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!("../networks/model.nnue")) };
