@@ -11,6 +11,7 @@ impl Board {
         self.side_to_move = !self.side_to_move;
         self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
+        self.nnue.push();
 
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
@@ -30,6 +31,7 @@ impl Board {
         self.ply += 1;
         self.move_stack.push(mv);
         self.state_stack.push(self.state);
+        self.nnue.push();
 
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
@@ -99,6 +101,7 @@ impl Board {
         self.side_to_move = !self.side_to_move;
         self.state = self.state_stack.pop().unwrap();
         self.move_stack.pop().unwrap();
+        self.nnue.pop();
     }
 }
 

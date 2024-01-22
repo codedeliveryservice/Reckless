@@ -2,7 +2,6 @@ use std::cmp::max;
 
 use crate::{
     cache::Bound,
-    evaluation::evaluate,
     types::{Move, Piece, MAX_PLY},
 };
 
@@ -21,10 +20,10 @@ impl super::Searcher<'_> {
 
         // Prevent overflows
         if self.board.ply >= MAX_PLY - 1 {
-            return evaluate(&self.board);
+            return self.board.evaluate();
         }
 
-        let eval = evaluate(&self.board);
+        let eval = self.board.evaluate();
         alpha = max(alpha, eval);
 
         if alpha >= beta {

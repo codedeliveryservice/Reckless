@@ -1,4 +1,7 @@
-use crate::types::{Bitboard, Castling, Color, Move, Piece, Square};
+use crate::{
+    nnue::Network,
+    types::{Bitboard, Castling, Color, Move, Piece, Square},
+};
 
 #[cfg(test)]
 mod tests;
@@ -33,6 +36,7 @@ pub struct Board {
     state: InternalState,
     state_stack: Vec<InternalState>,
     move_stack: Vec<Move>,
+    nnue: Network,
 }
 
 impl Board {
@@ -91,10 +95,6 @@ impl Board {
         self.pieces(piece) & self.them()
     }
 
-    pub fn king(&self, color: Color) -> Square {
-        self.of(Piece::King, color).pop()
-    }
-
     /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
     pub fn get_piece(&self, square: Square) -> Option<Piece> {
         for index in 0..Piece::NUM {
@@ -117,6 +117,7 @@ impl Board {
         self.state.pieces[piece].set(square);
         self.state.colors[color].set(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
+        self.nnue.activate(color, piece, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -124,6 +125,12 @@ impl Board {
         self.state.pieces[piece].clear(square);
         self.state.colors[color].clear(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
+        self.nnue.deactivate(color, piece, square);
+    }
+
+    /// Calculates the score of the current position from the perspective of the side to move.
+    pub fn evaluate(&self) -> i32 {
+        self.nnue.evaluate(self.side_to_move)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
@@ -230,6 +237,7 @@ impl Default for Board {
             state: InternalState::default(),
             state_stack: Vec::default(),
             move_stack: Vec::default(),
+            nnue: Network::default(),
         }
     }
 }
