@@ -33,7 +33,9 @@ impl super::Searcher<'_> {
 
             last_score = score;
             last_best = self.cache.read(self.board.hash(), 0).unwrap().mv;
+
             self.sel_depth = 0;
+            self.finished_depth = depth;
 
             if self.time_manager.is_soft_bound_reached() {
                 break;

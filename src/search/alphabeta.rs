@@ -162,6 +162,11 @@ impl super::Searcher<'_> {
         // Avoid pulling the timer too often to reduce the system call overhead
         const POLL_INTERVAL: u64 = 4096;
 
+        // Finish at least one iteration to avoid returning a null move
+        if self.finished_depth < 1 {
+            return false;
+        }
+
         if self.nodes >= self.time_manager.max_nodes() || (self.nodes % POLL_INTERVAL == 0 && self.time_manager.is_hard_bound_reached()) {
             self.stopped = true;
         }
