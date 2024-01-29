@@ -1,7 +1,5 @@
 use crate::types::{Move, Score};
 
-pub const MIN_CACHE_SIZE: usize = 1;
-pub const MAX_CACHE_SIZE: usize = 512;
 pub const DEFAULT_CACHE_SIZE: usize = 16;
 
 const MEGABYTE: usize = 1024 * 1024;

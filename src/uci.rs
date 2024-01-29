@@ -29,10 +29,10 @@ pub fn message_loop() {
 }
 
 fn uci() {
-    use crate::cache::{DEFAULT_CACHE_SIZE, MAX_CACHE_SIZE, MIN_CACHE_SIZE};
+    use crate::cache::DEFAULT_CACHE_SIZE;
 
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
-    println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min {MIN_CACHE_SIZE} max {MAX_CACHE_SIZE}");
+    println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min 1 max 65536");
     println!("option name Clear Hash type button");
     println!("uciok");
 }
