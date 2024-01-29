@@ -16,7 +16,7 @@ impl super::Searcher<'_> {
         let mut last_best = Move::NULL;
         let mut last_score = Score::INVALID;
 
-        for depth in 1..=self.time_manager.get_max_depth() {
+        for depth in 1..=self.time_manager.max_depth() {
             let score = if depth > ASPIRATION_WINDOW_THRESHOLD {
                 self.aspiration_search(last_score, depth)
             } else {

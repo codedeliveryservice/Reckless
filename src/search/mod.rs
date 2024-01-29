@@ -25,7 +25,7 @@ pub struct Searcher<'a> {
     eval_stack: [i32; MAX_PLY],
     sel_depth: usize,
     stopped: bool,
-    nodes: u32,
+    nodes: u64,
     silent: bool,
 }
 
@@ -48,7 +48,7 @@ impl<'a> Searcher<'a> {
     }
 
     /// Returns the number of nodes searched.
-    pub const fn nodes(&self) -> u32 {
+    pub const fn nodes(&self) -> u64 {
         self.nodes
     }
 

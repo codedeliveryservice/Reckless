@@ -159,7 +159,10 @@ impl super::Searcher<'_> {
 
     /// Checks if the search should be interrupted.
     fn should_interrupt_search(&mut self) -> bool {
-        if self.nodes % 4096 == 0 && self.time_manager.is_hard_bound_reached() {
+        // Avoid pulling the timer too often to reduce the system call overhead
+        const POLL_INTERVAL: u64 = 4096;
+
+        if self.nodes >= self.time_manager.max_nodes() || (self.nodes % POLL_INTERVAL == 0 && self.time_manager.is_hard_bound_reached()) {
             self.stopped = true;
         }
         self.stopped

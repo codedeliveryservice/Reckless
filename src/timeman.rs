@@ -5,8 +5,9 @@ use crate::types::MAX_PLY;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Limits {
     Infinite,
-    FixedTime(u64),
     FixedDepth(i32),
+    FixedTime(u64),
+    FixedNodes(u64),
     Incremental(u64, u64),
     Tournament(u64, u64, u64),
 }
@@ -15,11 +16,15 @@ const TIME_OVERHEAD_MS: u64 = 15;
 const HARD_BOUND: u64 = 8;
 const SOFT_BOUND: u64 = 40;
 
+const MAX_DEPTH: i32 = MAX_PLY as i32;
+const MIN_NODES: u64 = 1024;
+
 pub struct TimeManager {
-    limits: Limits,
     start_time: Instant,
     soft_bound: Duration,
     hard_bound: Duration,
+    max_depth: i32,
+    max_nodes: u64,
 }
 
 impl TimeManager {
@@ -29,15 +34,23 @@ impl TimeManager {
             start_time: Instant::now(),
             soft_bound: Duration::from_millis(soft),
             hard_bound: Duration::from_millis(hard),
-            limits,
+            max_depth: match limits {
+                Limits::FixedDepth(depth) => depth.min(MAX_DEPTH),
+                _ => MAX_DEPTH,
+            },
+            max_nodes: match limits {
+                Limits::FixedNodes(nodes) => nodes.max(MIN_NODES),
+                _ => u64::MAX,
+            },
         }
     }
 
-    pub const fn get_max_depth(&self) -> i32 {
-        match self.limits {
-            Limits::FixedDepth(depth) => depth,
-            _ => MAX_PLY as i32,
-        }
+    pub const fn max_depth(&self) -> i32 {
+        self.max_depth
+    }
+
+    pub const fn max_nodes(&self) -> u64 {
+        self.max_nodes
     }
 
     pub fn is_soft_bound_reached(&self) -> bool {
