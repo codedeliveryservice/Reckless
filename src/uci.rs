@@ -77,8 +77,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 
 fn set_option(cache: &mut Cache, tokens: &[&str]) {
     match tokens {
-        ["name", "Hash", "value", v] => *cache = Cache::new(v.parse().unwrap()),
         ["name", "Clear", "Hash"] => cache.clear(),
+        ["name", "Hash", "value", v] => cache.resize(v.parse().unwrap()),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
 }

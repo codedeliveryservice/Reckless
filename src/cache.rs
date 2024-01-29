@@ -55,6 +55,12 @@ impl Cache {
         self.vector.iter_mut().for_each(|entry| *entry = None);
     }
 
+    /// Resizes the `Cache` to the specified size in megabytes. This will clear all entries.
+    pub fn resize(&mut self, megabytes: usize) {
+        self.vector = vec![None; megabytes * MEGABYTE / CACHE_ENTRY_SIZE];
+        println!("info string set Hash to {megabytes} MB");
+    }
+
     /// Returns the approximate load factor of the `Cache` in permille (on a scale of `0` to `1000`).
     pub fn get_load_factor(&self) -> usize {
         const BATCH_SIZE: usize = 10_000;
