@@ -61,11 +61,10 @@ combines established concepts, as the name suggests.
 
 ### Evaluation
 
--   Tapered Evaluation
--   King-Relative Piece-Square Tables
--   Pawn Structure (Passed and Isolated)
--   Sliding Piece Mobility
--   Tempo Bonus
+-   [NNUE](https://www.chessprogramming.org/NNUE)
+-   `(768 -> 128)x2 -> 1`
+-   Quantization to `i16`
+-   Trained using original data generated through self-play, starting from a randomly initialized network
 
 ## Getting started
 
