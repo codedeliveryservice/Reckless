@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use crate::{
     cache::Bound,
-    types::{Move, Piece, MAX_PLY},
+    types::{Move, Piece, Score, MAX_PLY},
 };
 
 const MATERIAL: [i32; 5] = [364, 680, 738, 1082, 2654];
@@ -52,7 +52,7 @@ impl super::Searcher<'_> {
             }
 
             // Delta pruning
-            if eval + self.gain(mv) < alpha {
+            if eval + self.gain(mv) < alpha && best_score > -Score::MATE_BOUND {
                 break;
             }
 
