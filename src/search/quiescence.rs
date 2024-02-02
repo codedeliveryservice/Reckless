@@ -5,7 +5,7 @@ use crate::{
     types::{Move, Piece, MAX_PLY},
 };
 
-const MATERIAL: [i32; 5] = [175, 400, 450, 750, 1400];
+const MATERIAL: [i32; 5] = [364, 680, 738, 1082, 2654];
 
 impl super::Searcher<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
