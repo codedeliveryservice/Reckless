@@ -22,7 +22,7 @@ pub fn from_fen(fen: &str) -> Board {
             let color = if char.is_uppercase() { Color::White } else { Color::Black };
             let square = Square::from_rank_file(rank as u8, file);
 
-            board.add_piece(piece, color, square);
+            board.add_piece::<true>(piece, color, square);
             file += 1;
         }
     }

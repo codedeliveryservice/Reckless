@@ -36,7 +36,7 @@ impl super::Searcher<'_> {
         if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
             self.board.make_null_move();
             let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - depth / NMP_DIVISOR);
-            self.board.undo_move();
+            self.board.undo_move::<false>();
 
             if score >= beta {
                 return Some(beta);

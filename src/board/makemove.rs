@@ -11,7 +11,6 @@ impl Board {
         self.side_to_move = !self.side_to_move;
         self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
-        self.nnue.push();
 
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
@@ -27,11 +26,14 @@ impl Board {
     /// # Errors
     ///
     /// This function will return an error if the `Move` is illegal.
-    pub fn make_move(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+    pub fn make_move<const UPDATE_NNUE: bool>(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         self.ply += 1;
         self.move_stack.push(mv);
         self.state_stack.push(self.state);
-        self.nnue.push();
+
+        if UPDATE_NNUE {
+            self.nnue.push();
+        }
 
         self.state.hash ^= SIDE_KEY;
         self.state.hash ^= CASTLING_KEYS[self.state.castling];
@@ -52,11 +54,11 @@ impl Board {
         }
 
         if let Some(piece) = self.get_piece(target) {
-            self.remove_piece(piece, !self.side_to_move, target);
+            self.remove_piece::<UPDATE_NNUE>(piece, !self.side_to_move, target);
         }
 
-        self.remove_piece(piece, self.side_to_move, start);
-        self.add_piece(piece, self.side_to_move, target);
+        self.remove_piece::<UPDATE_NNUE>(piece, self.side_to_move, start);
+        self.add_piece::<UPDATE_NNUE>(piece, self.side_to_move, target);
 
         match mv.kind() {
             MoveKind::DoublePush => {
@@ -64,16 +66,16 @@ impl Board {
                 self.state.hash ^= EN_PASSANT_KEYS[self.state.en_passant];
             }
             MoveKind::EnPassant => {
-                self.remove_piece(Piece::Pawn, !self.side_to_move, target ^ 8);
+                self.remove_piece::<UPDATE_NNUE>(Piece::Pawn, !self.side_to_move, target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.remove_piece(Piece::Rook, self.side_to_move, rook_start);
-                self.add_piece(Piece::Rook, self.side_to_move, rook_target);
+                self.remove_piece::<UPDATE_NNUE>(Piece::Rook, self.side_to_move, rook_start);
+                self.add_piece::<UPDATE_NNUE>(Piece::Rook, self.side_to_move, rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece(Piece::Pawn, self.side_to_move, target);
-                self.add_piece(mv.get_promotion_piece().unwrap(), self.side_to_move, target);
+                self.remove_piece::<UPDATE_NNUE>(Piece::Pawn, self.side_to_move, target);
+                self.add_piece::<UPDATE_NNUE>(mv.get_promotion_piece().unwrap(), self.side_to_move, target);
             }
             _ => (),
         }
@@ -84,7 +86,7 @@ impl Board {
 
         let king = self.their(Piece::King).pop();
         if self.is_square_attacked(king, !self.side_to_move) {
-            self.undo_move();
+            self.undo_move::<UPDATE_NNUE>();
             return Err(IllegalMoveError);
         }
 
@@ -96,12 +98,15 @@ impl Board {
     /// # Panics
     ///
     /// Panics if the state stack is empty.
-    pub fn undo_move(&mut self) {
+    pub fn undo_move<const UPDATE_NNUE: bool>(&mut self) {
         self.ply -= 1;
         self.side_to_move = !self.side_to_move;
         self.state = self.state_stack.pop().unwrap();
         self.move_stack.pop().unwrap();
-        self.nnue.pop();
+
+        if UPDATE_NNUE {
+            self.nnue.pop();
+        }
     }
 }
 

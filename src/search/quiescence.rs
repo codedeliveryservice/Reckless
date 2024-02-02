@@ -56,9 +56,9 @@ impl super::Searcher<'_> {
                 break;
             }
 
-            if self.board.make_move(mv).is_ok() {
+            if self.board.make_move::<true>(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha);
-                self.board.undo_move();
+                self.board.undo_move::<true>();
 
                 if score > best_score {
                     best_score = score;

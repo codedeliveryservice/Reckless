@@ -113,19 +113,23 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
-    pub fn add_piece(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn add_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece].set(square);
         self.state.colors[color].set(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
-        self.nnue.activate(color, piece, square);
+        if UPDATE_NNUE {
+            self.nnue.activate(color, piece, square);
+        }
     }
 
     /// Removes a piece of the specified type and color from the square.
-    pub fn remove_piece(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn remove_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece].clear(square);
         self.state.colors[color].clear(square);
         self.state.hash ^= PIECE_KEYS[color][piece][square];
-        self.nnue.deactivate(color, piece, square);
+        if UPDATE_NNUE {
+            self.nnue.deactivate(color, piece, square);
+        }
     }
 
     /// Calculates the score of the current position from the perspective of the side to move.

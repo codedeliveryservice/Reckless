@@ -88,7 +88,7 @@ impl super::Searcher<'_> {
                 }
             }
 
-            if self.board.make_move(mv).is_err() {
+            if self.board.make_move::<true>(mv).is_err() {
                 continue;
             }
 
@@ -101,7 +101,7 @@ impl super::Searcher<'_> {
                 self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
             };
 
-            self.board.undo_move();
+            self.board.undo_move::<true>();
             moves_played += 1;
 
             // Early return to prevent processing potentially corrupted search results
