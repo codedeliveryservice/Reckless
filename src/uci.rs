@@ -20,6 +20,7 @@ pub fn message_loop() {
             ["quit"] => std::process::exit(0),
 
             // Non-UCI commands
+            ["eval"] => evaluate(&board),
             ["bench", depth] => tools::bench(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
 
@@ -81,6 +82,14 @@ fn set_option(cache: &mut Cache, tokens: &[&str]) {
         ["name", "Hash", "value", v] => cache.resize(v.parse().unwrap()),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
+}
+
+fn evaluate(board: &Board) {
+    let eval = match board.side_to_move {
+        Color::White => board.evaluate(),
+        Color::Black => -board.evaluate(),
+    };
+    println!("{eval}");
 }
 
 fn read_stdin() -> String {
