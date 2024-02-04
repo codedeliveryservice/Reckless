@@ -62,9 +62,10 @@ combines established concepts, as the name suggests.
 ### Evaluation
 
 -   [NNUE](https://www.chessprogramming.org/NNUE)
--   `(768 -> 128)x2 -> 1`
--   Quantization to `i16`
--   Trained using original data generated through self-play, starting from a randomly initialized network
+-   Architecture: `(768 -> 128)x2 -> 1`
+-   Activation Function: `CReLU`
+-   Quantization: `i16` (`256`/`64`)
+-   Trained on original data generated entirely through self-play
 
 ## Rating
 
@@ -88,6 +89,15 @@ combines established concepts, as the name suggests.
 
 You can download precompiled builds from the [GitHub Releases page](https://github.com/codedeliveryservice/Reckless/releases).
 
+-   `x86_64-v1`: Slowest, compatible with any x86-64 CPU.
+-   `x86_64-v2`: Faster, requires support for `POPCNT`, `SEE3`, etc.
+-   `x86_64-v3`: Even faster, requires support for `AVX2`, etc.
+-   `x86_64-v4`: Fastest, requires support for `AVX512`.
+
+For detailed information on the specific features needed for each level, refer to the [x86-64 microarchitecture levels][microarchitecture] Wikipedia page.
+
+[microarchitecture]: https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
+
 ### Building from source
 
 To build the engine from source, make sure you have `Rust 1.65` or a later version installed.
@@ -96,7 +106,16 @@ If you don't have Rust, follow the [official Rust installation guide](https://ww
 Then, compile the engine using `Cargo`:
 
 ```bash
-cargo build --release
+cargo rustc --release -- -C target-cpu=native
+```
+
+Alternatively, you can use the provided `Makefile`:
+
+```bash
+# Build for the current CPU architecture
+make
+# Build release binaries for all microarchitecture levels
+make release
 ```
 
 ### Usage
@@ -105,6 +124,19 @@ Reckless is not a standalone chess program but a chess engine designed for use w
 such as [Cute Chess](https://github.com/cutechess/cutechess) or [ChessBase](https://www.chessbase.com/).
 
 Alternatively, you can communicate with the engine directly using the [UCI protocol](https://backscattering.de/chess/uci).
+
+### Custom commands
+
+Along with the standard UCI commands, Reckless supports additional commands for testing and debugging:
+
+| Command         | Description                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth.       |
+| `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance. |
+| `eval`          | Print the static evaluation of the current position from white's perspective.       |
+
+[perft]: https://www.chessprogramming.org/Perft
+[bench]: /src/tools/bench.rs
 
 ## Contributing
 
