@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use super::SearchResult;
 use crate::types::{Move, Score};
 
 const ASPIRATION_WINDOW_THRESHOLD: i32 = 6;
@@ -10,15 +11,17 @@ impl super::Searcher<'_> {
     /// The iterative deepening algorithm is a strategy that involves doing a series of depth-limited
     /// depth-first searches on the game tree, starting with a shallow search and gradually increases
     /// the depth until the time limit is reached or the search is terminated.
-    pub fn iterative_deepening(&mut self) {
+    pub fn iterative_deepening(&mut self) -> SearchResult {
         let stopwatch = Instant::now();
 
-        let mut last_best = Move::NULL;
-        let mut last_score = Score::INVALID;
+        let mut result = SearchResult {
+            best_move: Move::NULL,
+            score: Score::INVALID,
+        };
 
         for depth in 1..=self.time_manager.max_depth() {
             let score = if depth > ASPIRATION_WINDOW_THRESHOLD {
-                self.aspiration_search(last_score, depth)
+                self.aspiration_search(result.score, depth)
             } else {
                 self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth)
             };
@@ -31,8 +34,8 @@ impl super::Searcher<'_> {
                 self.report_search_result(depth, score, stopwatch);
             }
 
-            last_score = score;
-            last_best = self.cache.read(self.board.hash(), 0).unwrap().mv;
+            result.best_move = self.cache.read(self.board.hash(), 0).unwrap().mv;
+            result.score = score;
 
             self.sel_depth = 0;
             self.finished_depth = depth;
@@ -43,8 +46,9 @@ impl super::Searcher<'_> {
         }
 
         if !self.silent {
-            println!("bestmove {last_best}");
+            println!("bestmove {}", result.best_move);
         }
+        result
     }
 
     /// Reports the result of a search iteration using the `info` UCI command.

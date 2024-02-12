@@ -4,7 +4,7 @@ use crate::{
     cache::Cache,
     tables::{HistoryMoves, KillerMoves},
     timeman::{Limits, TimeManager},
-    types::MAX_PLY,
+    types::{Move, MAX_PLY},
 };
 
 mod alphabeta;
@@ -14,6 +14,12 @@ mod ordering;
 mod pvtable;
 mod quiescence;
 mod selectivity;
+
+#[derive(Clone, Copy, Debug)]
+pub struct SearchResult {
+    pub best_move: Move,
+    pub score: i32,
+}
 
 pub struct Searcher<'a> {
     time_manager: TimeManager,
@@ -65,8 +71,8 @@ impl<'a> Searcher<'a> {
     /// the search depth and printing the `info` output at each iteration.
     ///
     /// When the search is stopped, the `bestmove` command is sent to the GUI.
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> SearchResult {
         self.board.ply = 0;
-        self.iterative_deepening();
+        self.iterative_deepening()
     }
 }
