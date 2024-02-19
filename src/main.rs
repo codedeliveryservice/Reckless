@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 mod board;
 mod cache;
 mod lookup;
@@ -12,21 +10,23 @@ mod types;
 mod uci;
 
 fn main() {
-    let mut args = std::env::args();
-    if let Some("datagen") = args.nth(1).as_deref() {
-        let mut output = PathBuf::from("data");
-        let mut threads = 1;
-
-        while let Some(arg) = args.next() {
-            match arg.as_str() {
-                "--output" => output = args.next().unwrap().into(),
-                "--threads" => threads = args.next().unwrap().parse().unwrap(),
-                _ => {}
-            }
-        }
-
-        return tools::datagen(output, threads);
-    }
+    #[cfg(feature = "datagen")]
+    datagen(std::env::args());
 
     uci::message_loop();
+}
+
+#[cfg(feature = "datagen")]
+fn datagen(mut args: std::env::Args) {
+    const USAGE: &str = "Usage: datagen <output> <threads>";
+
+    if let Some("datagen") = args.nth(1).as_deref() {
+        let output = args.next().expect(USAGE);
+        let threads = args.next().and_then(|v| v.parse().ok()).expect(USAGE);
+
+        tools::datagen(output, threads)
+    } else {
+        println!("The 'datagen' feature is enabled, but no arguments were provided.");
+        println!("{USAGE}");
+    }
 }

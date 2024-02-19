@@ -8,3 +8,6 @@ build = "src/lookup/build.rs"
 lto = "fat"
 panic = "abort"
 codegen-units = 1
+
+[features]
+datagen = []
