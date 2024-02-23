@@ -29,12 +29,12 @@ impl Network {
         let stm = self.accumulators[side_to_move];
         let nstm = self.accumulators[!side_to_move];
 
-        let mut output = i32::from(PARAMETERS.output_bias);
+        let mut output = 0;
         for i in 0..HIDDEN_SIZE {
-            output += crelu(i32::from(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
-            output += crelu(i32::from(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
+            output += screlu(i32::from(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
+            output += screlu(i32::from(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
         }
-        output * EVAL_SCALE / (L0_SCALE * L1_SCALE)
+        (output / L0_SCALE + i32::from(PARAMETERS.output_bias)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
     /// Activates the specified piece.
@@ -63,8 +63,9 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
     )
 }
 
-fn crelu(x: i32) -> i32 {
-    x.clamp(0, L0_SCALE)
+fn screlu(x: i32) -> i32 {
+    let v = x.clamp(0, L0_SCALE);
+    v * v
 }
 
 impl Default for Network {
