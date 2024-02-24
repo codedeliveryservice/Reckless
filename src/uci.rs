@@ -21,7 +21,7 @@ pub fn message_loop() {
 
             // Non-UCI commands
             ["eval"] => evaluate(&board),
-            ["bench", depth] => tools::bench(depth.parse().unwrap()),
+            ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
