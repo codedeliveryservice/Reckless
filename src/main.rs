@@ -13,7 +13,10 @@ fn main() {
     #[cfg(feature = "datagen")]
     datagen(std::env::args());
 
-    uci::message_loop();
+    match std::env::args().nth(1).as_deref() {
+        Some("bench") => tools::bench::<false>(10),
+        _ => uci::message_loop(),
+    }
 }
 
 #[cfg(feature = "datagen")]
