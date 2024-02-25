@@ -12,7 +12,8 @@ pub enum Limits {
     Tournament(u64, u64, u64),
 }
 
-const NODE_TM_ADJUSTMENT: f64 = 1.35;
+const NODE_TM_DEPTH_MARGIN: i32 = 10;
+const NODE_TM_MULTIPLIER: f64 = 1.35;
 
 const TIME_OVERHEAD_MS: u64 = 15;
 const HARD_BOUND: u64 = 8;
@@ -55,15 +56,14 @@ impl TimeManager {
         self.max_nodes
     }
 
-    pub fn adjust(&mut self, effort: f64) {
-        let adjustment = (1.5 - effort) * NODE_TM_ADJUSTMENT;
-        let soft_bound = (self.soft_bound.as_millis() as f64 * adjustment) as u64;
+    pub fn is_soft_bound_reached(&self, depth: i32, effort: f64) -> bool {
+        let mut soft_bound = self.soft_bound.as_secs_f64();
 
-        self.soft_bound = Duration::from_millis(soft_bound);
-    }
+        if depth >= NODE_TM_DEPTH_MARGIN {
+            soft_bound *= (1.5 - effort) * NODE_TM_MULTIPLIER;
+        }
 
-    pub fn is_soft_bound_reached(&self) -> bool {
-        self.start_time.elapsed() >= self.soft_bound
+        self.start_time.elapsed() >= Duration::from_secs_f64(soft_bound)
     }
 
     pub fn is_hard_bound_reached(&self) -> bool {

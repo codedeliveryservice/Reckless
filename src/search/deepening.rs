@@ -4,7 +4,6 @@ use super::SearchResult;
 use crate::types::{Move, Score};
 
 const ASPIRATION_WINDOW_THRESHOLD: i32 = 6;
-const NODE_TM_DEPTH_THRESHOLD: i32 = 10;
 
 impl super::Searcher<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.
@@ -41,12 +40,8 @@ impl super::Searcher<'_> {
             self.sel_depth = 0;
             self.finished_depth = depth;
 
-            if self.finished_depth >= NODE_TM_DEPTH_THRESHOLD {
-                let effort = self.node_table.get(result.best_move) as f64 / self.nodes as f64;
-                self.time_manager.adjust(effort);
-            }
-
-            if self.time_manager.is_soft_bound_reached() {
+            let effort = self.node_table.get(result.best_move) as f64 / self.nodes as f64;
+            if self.time_manager.is_soft_bound_reached(depth, effort) {
                 break;
             }
         }
