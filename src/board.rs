@@ -1,9 +1,8 @@
+use self::zobrist::ZOBRIST;
 use crate::{
     nnue::Network,
     types::{Bitboard, Castling, Color, Move, Piece, Square},
 };
-
-use self::zobrist::ZOBRIST;
 
 #[cfg(test)]
 mod tests;
