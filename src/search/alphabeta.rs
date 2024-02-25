@@ -67,6 +67,9 @@ impl super::Searcher<'_> {
             if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
                 return score;
             }
+            if let Some(score) = self.razoring(depth, alpha, beta, eval) {
+                return score;
+            }
         }
 
         let original_alpha = alpha;

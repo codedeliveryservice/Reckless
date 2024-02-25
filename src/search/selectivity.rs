@@ -7,6 +7,10 @@ const NMP_DEPTH: i32 = 3;
 const NMP_REDUCTION: i32 = 3;
 const NMP_DIVISOR: i32 = 4;
 
+const RAZORING_DEPTH: i32 = 2;
+const RAZORING_MARGIN: i32 = 200;
+const RAZORING_FIXED_MARGIN: i32 = 125;
+
 const LMR_MOVES_PLAYED: i32 = 4;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
@@ -41,6 +45,15 @@ impl super::Searcher<'_> {
             if score >= beta {
                 return Some(beta);
             }
+        }
+        None
+    }
+
+    /// If the static evaluation of the position is significantly lower than alpha, return
+    /// the result of a quiescence search since the node is likely to fail low anyway.
+    pub fn razoring(&mut self, depth: i32, alpha: i32, beta: i32, eval: i32) -> Option<i32> {
+        if depth <= RAZORING_DEPTH && eval + RAZORING_MARGIN * depth + RAZORING_FIXED_MARGIN < alpha {
+            return Some(self.quiescence_search(alpha, beta));
         }
         None
     }
