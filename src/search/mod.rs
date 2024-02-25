@@ -2,7 +2,7 @@ use self::pvtable::PrincipleVariationTable;
 use crate::{
     board::Board,
     cache::Cache,
-    tables::{HistoryMoves, KillerMoves},
+    tables::{HistoryMoves, KillerMoves, NodeTable},
     timeman::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -28,6 +28,7 @@ pub struct Searcher<'a> {
     cache: &'a mut Cache,
     killers: KillerMoves,
     pv_table: PrincipleVariationTable,
+    node_table: NodeTable,
     eval_stack: [i32; MAX_PLY],
     finished_depth: i32,
     sel_depth: usize,
@@ -46,6 +47,7 @@ impl<'a> Searcher<'a> {
             cache,
             killers: KillerMoves::default(),
             pv_table: PrincipleVariationTable::default(),
+            node_table: NodeTable::default(),
             eval_stack: [Default::default(); MAX_PLY],
             finished_depth: Default::default(),
             sel_depth: Default::default(),

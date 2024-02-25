@@ -92,6 +92,8 @@ impl super::Searcher<'_> {
                 continue;
             }
 
+            let nodes_before = self.nodes;
+
             let score = if moves_played == 0 {
                 // The first move is likely to be the best, so it's searched with a full window
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
@@ -103,6 +105,10 @@ impl super::Searcher<'_> {
 
             self.board.undo_move::<true>();
             moves_played += 1;
+
+            if ROOT {
+                self.node_table.add(mv, self.nodes - nodes_before);
+            }
 
             // Early return to prevent processing potentially corrupted search results
             if self.stopped {

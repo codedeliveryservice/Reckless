@@ -12,6 +12,8 @@ pub enum Limits {
     Tournament(u64, u64, u64),
 }
 
+const NODE_TM_ADJUSTMENT: f64 = 1.35;
+
 const TIME_OVERHEAD_MS: u64 = 15;
 const HARD_BOUND: u64 = 8;
 const SOFT_BOUND: u64 = 40;
@@ -51,6 +53,13 @@ impl TimeManager {
 
     pub const fn max_nodes(&self) -> u64 {
         self.max_nodes
+    }
+
+    pub fn adjust(&mut self, effort: f64) {
+        let adjustment = (1.5 - effort) * NODE_TM_ADJUSTMENT;
+        let soft_bound = (self.soft_bound.as_millis() as f64 * adjustment) as u64;
+
+        self.soft_bound = Duration::from_millis(soft_bound);
     }
 
     pub fn is_soft_bound_reached(&self) -> bool {
