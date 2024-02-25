@@ -8,7 +8,6 @@ use std::{
 mod attacks;
 mod magics;
 mod maps;
-mod random;
 
 macro_rules! write_map {
     ($f:ident, $name:tt, $type:tt, $items:expr) => {
@@ -23,7 +22,6 @@ macro_rules! write_map {
 
 fn main() {
     write_lookup(get_buf("lookup.rs")).unwrap();
-    write_zobrist(get_buf("zobrist.rs")).unwrap();
 }
 
 fn write_lookup(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
@@ -43,26 +41,6 @@ fn write_lookup(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
         f,
         "struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}"
     )
-}
-
-fn write_zobrist(mut f: BufWriter<File>) -> Result<(), std::io::Error> {
-    let mut rng = random::Random::new();
-
-    write_map!(f, "CASTLING_KEYS", "u64", rng.array::<16>());
-    write_map!(f, "EN_PASSANT_KEYS", "u64", rng.array::<64>());
-
-    writeln!(f, "const SIDE_KEY: u64 = {};", rng.next_u64())?;
-
-    // [color 0..2][piece 0..6][square 0..64]
-    writeln!(f, "const PIECE_KEYS: [[[u64; 64]; 6]; 2] = [")?;
-    for _ in 0..2 {
-        write!(f, "[")?;
-        for _ in 0..6 {
-            write!(f, "{:?},", rng.array::<64>())?;
-        }
-        write!(f, "],")?;
-    }
-    writeln!(f, "];")
 }
 
 fn get_buf(file: &str) -> BufWriter<File> {
