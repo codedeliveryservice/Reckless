@@ -40,7 +40,8 @@ impl super::Searcher<'_> {
             self.sel_depth = 0;
             self.finished_depth = depth;
 
-            if self.time_manager.is_soft_bound_reached() {
+            let effort = self.node_table.get(result.best_move) as f64 / self.nodes as f64;
+            if self.time_manager.is_soft_bound_reached(depth, effort) {
                 break;
             }
         }
