@@ -1,4 +1,5 @@
 #[rustfmt::skip]
+#[derive(Debug)]
 pub struct MagicEntry { pub mask: u64, pub magic: u64, pub shift: u32, pub offset: usize }
 
 #[rustfmt::skip]

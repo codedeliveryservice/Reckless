@@ -1,0 +1,23 @@
+pub struct Zobrist {
+    pub pieces: [[[u64; 64]; 6]; 2],
+    pub en_passant: [u64; 64],
+    pub castling: [u64; 16],
+    pub side: u64,
+}
+
+pub const ZOBRIST: Zobrist = {
+    let mut seed = 0xFFAAB58C5833FE89u64;
+    let mut zobrist = [0; 849];
+
+    let mut i = 0;
+    while i < zobrist.len() {
+        // https://en.wikipedia.org/wiki/Xorshift
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+
+        zobrist[i] = seed;
+        i += 1;
+    }
+    unsafe { std::mem::transmute(zobrist) }
+};

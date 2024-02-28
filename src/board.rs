@@ -1,3 +1,4 @@
+use self::zobrist::ZOBRIST;
 use crate::{
     nnue::Network,
     types::{Bitboard, Castling, Color, Move, Piece, Square},
@@ -9,9 +10,7 @@ mod tests;
 mod fen;
 mod generator;
 mod makemove;
-
-// The Zobrist hash keys are generated at compile time and stored in the `zobrist.rs` file.
-include!(concat!(env!("OUT_DIR"), "/zobrist.rs"));
+mod zobrist;
 
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
@@ -116,7 +115,7 @@ impl Board {
     pub fn add_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece].set(square);
         self.state.colors[color].set(square);
-        self.state.hash ^= PIECE_KEYS[color][piece][square];
+        self.state.hash ^= ZOBRIST.pieces[color][piece][square];
         if UPDATE_NNUE {
             self.nnue.activate(color, piece, square);
         }
@@ -126,7 +125,7 @@ impl Board {
     pub fn remove_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
         self.state.pieces[piece].clear(square);
         self.state.colors[color].clear(square);
-        self.state.hash ^= PIECE_KEYS[color][piece][square];
+        self.state.hash ^= ZOBRIST.pieces[color][piece][square];
         if UPDATE_NNUE {
             self.nnue.deactivate(color, piece, square);
         }
@@ -216,19 +215,19 @@ impl Board {
             let piece = Piece::new(piece);
             for color in [Color::White, Color::Black] {
                 for square in self.of(piece, color) {
-                    hash ^= PIECE_KEYS[color][piece][square];
+                    hash ^= ZOBRIST.pieces[color][piece][square];
                 }
             }
         }
 
         if self.state.en_passant != Square::None {
-            hash ^= EN_PASSANT_KEYS[self.state.en_passant];
+            hash ^= ZOBRIST.en_passant[self.state.en_passant];
         }
         if self.side_to_move == Color::White {
-            hash ^= SIDE_KEY;
+            hash ^= ZOBRIST.side;
         }
 
-        hash ^= CASTLING_KEYS[self.state.castling];
+        hash ^= ZOBRIST.castling[self.state.castling];
         hash
     }
 }
