@@ -7,9 +7,9 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-mod fen;
 mod generator;
 mod makemove;
+mod parser;
 mod zobrist;
 
 /// Contains the same information as a FEN string, used to describe a chess position,
@@ -41,12 +41,12 @@ pub struct Board {
 impl Board {
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
     pub fn new(fen: &str) -> Self {
-        fen::from_fen(fen)
+        fen.parse().unwrap()
     }
 
     /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
-        fen::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        Self::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 
     /// Returns the Zobrist hash key for the current position.
