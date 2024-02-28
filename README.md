@@ -147,9 +147,10 @@ please open an issue or submit a pull request.
 
 ## Acknowledgements
 
--   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page): A crucial resource that greatly contributed to the project's foundation.
--   [Cute Chess](https://github.com/cutechess/cutechess): The primary testing tool.
+-   [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess).
 -   Open source chess engines, like [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and numerous others, for serving as inspiration and providing ideas that fuel development.
+-   [Stockfish Discord server](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
+-   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) for contributing to the project's foundation.
 -   Many thanks to the [CCRL](https://www.computerchess.org.uk/ccrl/) team and all chess engine testers for their valuable contributions.
 
 ## License
