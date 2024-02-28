@@ -54,7 +54,7 @@ impl super::Searcher<'_> {
 
     /// Reports the result of a search iteration using the `info` UCI command.
     fn report_search_result(&mut self, depth: i32, score: i32, stopwatch: Instant) {
-        let nps = self.nodes as f32 / stopwatch.elapsed().as_secs_f32();
+        let nps = self.nodes as f64 / stopwatch.elapsed().as_secs_f64();
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.tt.get_load_factor();

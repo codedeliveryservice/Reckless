@@ -31,14 +31,14 @@ pub fn perft(depth: usize, board: &mut Board) {
 
         board.undo_move::<false>();
 
-        let seconds = now.elapsed().as_secs_f32();
-        let knps = count as f32 / seconds / 1000f32;
+        let seconds = now.elapsed().as_secs_f64();
+        let knps = count as f64 / seconds / 1000.0;
 
         println!("{index:>3} {mv:>8} {count:>12} {seconds:>12.3}s {knps:>15.3} kN/s");
     }
 
-    let seconds = now.elapsed().as_secs_f32();
-    let knps = nodes as f32 / seconds / 1000f32;
+    let seconds = now.elapsed().as_secs_f64();
+    let knps = nodes as f64 / seconds / 1000.0;
 
     println!("{}", "-".repeat(60));
     println!("{:>12} {nodes:>12} {seconds:>12.3}s {knps:>15.3} kN/s", "Total");

@@ -56,10 +56,10 @@ pub fn datagen<P: AsRef<Path>>(output: P, threads: usize) {
         loop {
             thread::sleep(REPORT_INTERVAL);
             println!(
-                "{:>8.0} positions ({:4.2} pos/s) [{:.1} min]",
+                "{:>8.0} positions ({:4.0} pos/s) [{:.1} min]",
                 COUNT.load(Ordering::Relaxed),
-                COUNT.load(Ordering::Relaxed) as f32 / now.elapsed().as_secs_f32(),
-                now.elapsed().as_secs_f32() / 60.0,
+                COUNT.load(Ordering::Relaxed) as f64 / now.elapsed().as_secs_f64(),
+                now.elapsed().as_secs_f64() / 60.0,
             );
         }
     });

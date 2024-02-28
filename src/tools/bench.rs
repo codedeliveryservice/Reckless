@@ -105,23 +105,23 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         nodes += search.nodes();
         index += 1;
 
-        let seconds = now.elapsed().as_secs_f32();
-        let knps = search.nodes() as f32 / seconds / 1000f32;
+        let seconds = now.elapsed().as_secs_f64();
+        let knps = search.nodes() as f64 / seconds / 1000.0;
 
         if PRETTY {
             println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", search.nodes());
         }
     }
 
-    let seconds = time.elapsed().as_secs_f32();
-    let knps = nodes as f32 / seconds / 1000f32;
+    let seconds = time.elapsed().as_secs_f64();
+    let knps = nodes as f64 / seconds / 1000.0;
 
     if PRETTY {
         println!("{}", "-".repeat(50));
         println!("{nodes:>15} {seconds:>12.3}s {knps:>15.3} kN/s");
         println!("{}", "-".repeat(50));
     } else {
-        let nps = nodes as f32 / seconds;
+        let nps = nodes as f64 / seconds;
         println!("Bench: {nodes} nodes {nps:.0} nps");
     }
 }
