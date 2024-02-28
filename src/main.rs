@@ -1,5 +1,4 @@
 mod board;
-mod cache;
 mod lookup;
 mod nnue;
 mod search;

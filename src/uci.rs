@@ -1,8 +1,15 @@
-use crate::{board::Board, cache::Cache, search::Searcher, tables::HistoryMoves, timeman::Limits, tools, types::Color};
+use crate::{
+    board::Board,
+    search::Searcher,
+    tables::{HistoryMoves, TranspositionTable},
+    timeman::Limits,
+    tools,
+    types::Color,
+};
 
 pub fn message_loop() {
     let mut board = Board::starting_position();
-    let mut cache = Cache::default();
+    let mut tt = TranspositionTable::default();
     let mut history = HistoryMoves::default();
 
     loop {
@@ -12,10 +19,10 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut board, &mut history, &mut cache, tokens),
+            ["go", tokens @ ..] => go(&mut board, &mut history, &mut tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut cache, tokens),
-            ["ucinewgame"] => reset(&mut board, &mut history, &mut cache),
+            ["setoption", tokens @ ..] => set_option(&mut tt, tokens),
+            ["ucinewgame"] => reset(&mut board, &mut history, &mut tt),
 
             ["quit"] => std::process::exit(0),
 
@@ -30,23 +37,23 @@ pub fn message_loop() {
 }
 
 fn uci() {
-    use crate::cache::DEFAULT_CACHE_SIZE;
+    use crate::tables::DEFAULT_TT_SIZE;
 
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
-    println!("option name Hash type spin default {DEFAULT_CACHE_SIZE} min 1 max 65536");
+    println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 65536");
     println!("option name Clear Hash type button");
     println!("uciok");
 }
 
-fn reset(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache) {
-    cache.clear();
+fn reset(board: &mut Board, history: &mut HistoryMoves, tt: &mut TranspositionTable) {
+    tt.clear();
     *board = Board::starting_position();
     *history = HistoryMoves::default();
 }
 
-fn go(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: &[&str]) {
+fn go(board: &mut Board, history: &mut HistoryMoves, tt: &mut TranspositionTable, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    Searcher::new(limits, board, history, cache).run();
+    Searcher::new(limits, board, history, tt).run();
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
@@ -76,10 +83,10 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(cache: &mut Cache, tokens: &[&str]) {
+fn set_option(tt: &mut TranspositionTable, tokens: &[&str]) {
     match tokens {
-        ["name", "Clear", "Hash"] => cache.clear(),
-        ["name", "Hash", "value", v] => cache.resize(v.parse().unwrap()),
+        ["name", "Clear", "Hash"] => tt.clear(),
+        ["name", "Hash", "value", v] => tt.resize(v.parse().unwrap()),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
 }

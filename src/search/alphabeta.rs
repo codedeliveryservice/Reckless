@@ -1,6 +1,6 @@
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
-    cache::{Bound, CacheHit},
+    tables::{Bound, Entry},
     types::{Move, Score, MAX_PLY},
 };
 
@@ -41,7 +41,7 @@ impl super::Searcher<'_> {
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Transposition table lookup and potential cutoff
-        let entry = self.cache.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
             if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
@@ -140,7 +140,7 @@ impl super::Searcher<'_> {
 
         let bound = get_bound(best_score, original_alpha, beta);
         self.update_ordering_heuristics(depth, best_move, quiets, bound);
-        self.cache.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
         best_score
     }
 
@@ -213,7 +213,7 @@ fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
 }
 
 /// Provides a score for a transposition table cutoff, if applicable.
-fn transposition_table_cutoff(entry: CacheHit, alpha: i32, beta: i32, depth: i32) -> bool {
+fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
     if entry.depth < depth {
         return false;
     }

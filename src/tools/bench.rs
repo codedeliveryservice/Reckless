@@ -9,7 +9,12 @@
 
 use std::time::Instant;
 
-use crate::{board::Board, cache::Cache, search::Searcher, tables::HistoryMoves, timeman::Limits};
+use crate::{
+    board::Board,
+    search::Searcher,
+    tables::{HistoryMoves, TranspositionTable},
+    timeman::Limits,
+};
 
 const POSITIONS: &[&str] = &[
     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
@@ -90,9 +95,9 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let now = Instant::now();
 
         let mut board = Board::new(position);
-        let mut cache = Cache::default();
+        let mut tt = TranspositionTable::default();
         let mut history = HistoryMoves::default();
-        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut cache);
+        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut tt);
 
         search.silent(true);
         search.run();

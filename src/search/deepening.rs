@@ -34,7 +34,7 @@ impl super::Searcher<'_> {
                 self.report_search_result(depth, score, stopwatch);
             }
 
-            result.best_move = self.cache.read(self.board.hash(), 0).unwrap().mv;
+            result.best_move = self.tt.read(self.board.hash(), 0).unwrap().mv;
             result.score = score;
 
             self.sel_depth = 0;
@@ -57,7 +57,7 @@ impl super::Searcher<'_> {
         let nps = self.nodes as f32 / stopwatch.elapsed().as_secs_f32();
         let ms = stopwatch.elapsed().as_millis();
 
-        let hashfull = self.cache.get_load_factor();
+        let hashfull = self.tt.get_load_factor();
         let score = self.format_score(score);
 
         print!(

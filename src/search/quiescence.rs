@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use crate::{
-    cache::Bound,
+    tables::Bound,
     types::{Move, Piece, Score, MAX_PLY},
 };
 
@@ -30,7 +30,7 @@ impl super::Searcher<'_> {
             return eval;
         }
 
-        if let Some(entry) = self.cache.read(self.board.hash(), self.board.ply) {
+        if let Some(entry) = self.tt.read(self.board.hash(), self.board.ply) {
             if match entry.bound {
                 Bound::Exact => true,
                 Bound::Lower => entry.score >= beta,
@@ -74,7 +74,7 @@ impl super::Searcher<'_> {
         }
 
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
-        self.cache.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
         best_score
     }
 
