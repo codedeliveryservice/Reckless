@@ -1,8 +1,7 @@
-use self::pvtable::PrincipleVariationTable;
 use crate::{
     board::Board,
     cache::Cache,
-    tables::{HistoryMoves, KillerMoves, NodeTable},
+    tables::{HistoryMoves, KillerMoves, NodeTable, PrincipleVariationTable},
     timeman::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -11,7 +10,6 @@ mod alphabeta;
 mod aspiration;
 mod deepening;
 mod ordering;
-mod pvtable;
 mod quiescence;
 mod selectivity;
 
