@@ -89,7 +89,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
     for position in POSITIONS {
         let now = Instant::now();
 
-        let mut board = Board::new(position);
+        let mut board = Board::new(position).unwrap();
         let mut cache = Cache::default();
         let mut history = HistoryMoves::default();
         let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut cache);

@@ -50,21 +50,27 @@ fn go(board: &mut Board, history: &mut HistoryMoves, cache: &mut Cache, tokens: 
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
-    loop {
+    while !tokens.is_empty() {
         match tokens {
             ["startpos", rest @ ..] => {
                 *board = Board::starting_position();
-                tokens = &rest[0..];
+                tokens = &rest;
             }
             ["fen", rest @ ..] => {
-                *board = Board::new(&rest[0..6].join(" "));
-                tokens = &rest[6..];
+                match Board::new(&rest.join(" ")) {
+                    Ok(b) => *board = b,
+                    Err(e) => eprintln!("Invalid FEN: {e:?}"),
+                }
+                tokens = &rest;
             }
             ["moves", rest @ ..] => {
                 rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));
                 break;
             }
-            _ => break,
+            _ => {
+                tokens = &tokens[1..];
+                continue;
+            }
         }
     }
 }
