@@ -66,6 +66,8 @@ impl super::Searcher<'_> {
             reduction -= self.history.get(mv) / LMR_HISTORY_DIVISOR;
             // Reduce PV nodes less
             reduction -= i32::from(PV);
+            // Reduce checks less
+            reduction -= i32::from(self.board.is_in_check());
             // Avoid negative reductions
             reduction.clamp(0, depth)
         } else {
