@@ -113,6 +113,18 @@ impl TranspositionTable {
         });
     }
 
+    /// Prefetches the entry in the transposition table.
+    pub fn prefetch(&self, hash: u64) {
+        use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            let index = self.get_index(hash);
+            let ptr = self.vector.as_ptr().add(index) as *const Option<InternalEntry>;
+            _mm_prefetch::<_MM_HINT_T0>(ptr as *const _);
+        }
+    }
+
     /// Returns the index of the entry in the transposition table.
     fn get_index(&self, hash: u64) -> usize {
         // Fast hash table index calculation

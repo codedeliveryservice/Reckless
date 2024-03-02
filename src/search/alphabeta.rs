@@ -91,6 +91,9 @@ impl super::Searcher<'_> {
                 }
             }
 
+            let key_after = self.board.key_after(mv);
+            self.tt.prefetch(key_after);
+
             if self.board.make_move::<true>(mv).is_err() {
                 continue;
             }
