@@ -56,6 +56,9 @@ impl super::Searcher<'_> {
                 break;
             }
 
+            let key_after = self.board.key_after(mv);
+            self.tt.prefetch(key_after);
+
             if self.board.make_move::<true>(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha);
                 self.board.undo_move::<true>();

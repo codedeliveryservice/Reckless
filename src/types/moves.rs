@@ -74,6 +74,11 @@ impl Move {
         (self.0 >> 15) != 0
     }
 
+    /// Returns `true` if the current move is an en passant capture.
+    pub const fn is_en_passant(self) -> bool {
+        matches!(self.kind(), MoveKind::EnPassant)
+    }
+
     /// Returns the piece to promote for the current move.
     ///
     /// # Panics

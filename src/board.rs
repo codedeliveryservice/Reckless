@@ -202,6 +202,26 @@ impl Board {
         }
     }
 
+    /// Estimates the resulting Zobrist hash key after making the move.
+    pub fn key_after(&self, mv: Move) -> u64 {
+        let piece = self.get_piece(mv.start()).unwrap();
+        let start = mv.start();
+        let target = mv.target();
+
+        let mut key = self.state.hash;
+        
+        key ^= ZOBRIST.pieces[self.side_to_move][piece][start];
+        key ^= ZOBRIST.pieces[self.side_to_move][piece][target];
+
+        if mv.is_capture() && !mv.is_en_passant() {
+            let capture = self.get_piece(target).unwrap();
+            key ^= ZOBRIST.pieces[!self.side_to_move][capture][target];
+        }
+
+        key ^= ZOBRIST.side;
+        key
+    }
+
     /// Performs Zobrist hashing on `self`, generating an *almost* unique
     /// position hash key from scratch.
     ///
