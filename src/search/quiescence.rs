@@ -5,7 +5,7 @@ use crate::{
     types::{Move, Piece, Score, MAX_PLY},
 };
 
-const MATERIAL: [i32; 5] = [364, 680, 738, 1082, 2654];
+const PIECE_VALUES: [i32; 5] = [364, 680, 738, 1082, 2654];
 
 impl super::Searcher<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -26,6 +26,8 @@ impl super::Searcher<'_> {
         let eval = self.board.evaluate();
         alpha = max(alpha, eval);
 
+        // The stand pat is the lower bound for the position, since doing nothing is *usually*
+        // the least we can expect and it's already good enough to cause a beta cutoff
         if alpha >= beta {
             return eval;
         }
@@ -52,7 +54,7 @@ impl super::Searcher<'_> {
             }
 
             // Delta pruning
-            if eval + self.gain(mv) < alpha && best_score > -Score::MATE_BOUND {
+            if eval + self.maximum_gain(mv) < alpha && best_score > -Score::MATE_BOUND {
                 break;
             }
 
@@ -82,13 +84,13 @@ impl super::Searcher<'_> {
     }
 
     /// Returns the material gain of a move.
-    fn gain(&mut self, mv: Move) -> i32 {
+    fn maximum_gain(&mut self, mv: Move) -> i32 {
         let piece = self.board.get_piece(mv.target());
 
         if let Some(promo) = mv.get_promotion_piece() {
-            MATERIAL[promo] - MATERIAL[Piece::Pawn] + MATERIAL[piece.unwrap()]
+            PIECE_VALUES[promo] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece.unwrap()]
         } else {
-            MATERIAL[piece.unwrap_or(Piece::Pawn)]
+            PIECE_VALUES[piece.unwrap_or(Piece::Pawn)]
         }
     }
 }
