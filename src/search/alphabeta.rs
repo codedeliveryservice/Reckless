@@ -83,6 +83,7 @@ impl super::Searcher<'_> {
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
         while let Some(mv) = moves.next(&mut ordering) {
+            #[cfg(not(feature = "datagen"))]
             if !ROOT && !PV && mv.is_quiet() && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 if futility_pruning(depth, alpha, eval) {
                     break;
