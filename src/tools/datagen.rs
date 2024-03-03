@@ -136,8 +136,8 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
         entries.push(entry);
         board.make_move::<true>(best_move).unwrap();
 
-        // Draw by repetition or 50-move rule
-        if board.is_draw() {
+        // Draw by repetition, 50-move rule or insufficient material
+        if board.is_draw() || board.draw_by_insufficient_material() {
             return (entries, 0.5);
         }
 

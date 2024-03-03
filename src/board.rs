@@ -138,19 +138,36 @@ impl Board {
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self) -> bool {
-        self.is_repetition() || self.is_fifty_move_draw()
+        self.draw_by_repetition() || self.draw_by_fifty_move_rule()
     }
 
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
     ///
     /// This method does not count the number of encounters.
-    pub fn is_repetition(&self) -> bool {
+    pub fn draw_by_repetition(&self) -> bool {
         self.state_stack.iter().rev().any(|state| state.hash == self.hash())
     }
 
+    /// Returns `true` if the current position is a known draw by insufficient material:
+    /// - Two kings only
+    /// - Two kings and one minor piece
+    ///
+    /// This method is only used for data generation.
+    #[cfg(feature = "datagen")]
+    pub fn draw_by_insufficient_material(&self) -> bool {
+        match self.occupancies().count() {
+            2 => true,
+            3 => {
+                let minors = self.pieces(Piece::Knight) | self.pieces(Piece::Bishop);
+                !minors.is_empty()
+            }
+            _ => false,
+        }
+    }
+
     /// Returns `true` if the position is a draw by the fifty-move rule.
-    pub const fn is_fifty_move_draw(&self) -> bool {
+    pub const fn draw_by_fifty_move_rule(&self) -> bool {
         self.state.halfmove_clock >= 100
     }
 
