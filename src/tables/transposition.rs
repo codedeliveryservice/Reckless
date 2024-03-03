@@ -120,8 +120,8 @@ impl TranspositionTable {
         #[cfg(target_arch = "x86_64")]
         unsafe {
             let index = self.get_index(hash);
-            let ptr = self.vector.as_ptr().add(index) as *const Option<InternalEntry>;
-            _mm_prefetch::<_MM_HINT_T0>(ptr as *const _);
+            let ptr = self.vector.as_ptr().add(index).cast();
+            _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
     }
 

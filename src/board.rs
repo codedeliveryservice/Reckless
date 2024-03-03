@@ -209,7 +209,7 @@ impl Board {
         let target = mv.target();
 
         let mut key = self.state.hash;
-        
+
         key ^= ZOBRIST.pieces[self.side_to_move][piece][start];
         key ^= ZOBRIST.pieces[self.side_to_move][piece][target];
 
