@@ -38,8 +38,10 @@ impl super::Searcher<'_> {
     /// to result in a cutoff after a real move is made, so the node can be pruned.
     pub fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
         if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
+            let r = NMP_REDUCTION + depth / NMP_DIVISOR + ((eval - beta) / 200).min(3);
+
             self.board.make_null_move();
-            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - depth / NMP_DIVISOR);
+            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - r);
             self.board.undo_move::<false>();
 
             // Avoid returning false mates
