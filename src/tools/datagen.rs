@@ -26,6 +26,9 @@ const RANDOM_PLIES: usize = 10;
 const VALIDATION_THRESHOLD: i32 = 300;
 const GENERATION_THRESHOLD: i32 = 1000;
 
+const WRITE_MIN_PLY: usize = 16;
+const WRITE_MAX_PLY: usize = 400;
+
 const VALIDATION_LIMITS: Limits = Limits::FixedDepth(10);
 const GENERATION_LIMITS: Limits = Limits::FixedNodes(5000);
 
@@ -46,6 +49,8 @@ pub fn datagen<P: AsRef<Path>>(output: P, threads: usize) {
     println!("Generation limits    | {GENERATION_LIMITS:?}");
     println!("Validation threshold | {VALIDATION_THRESHOLD}");
     println!("Generation threshold | {GENERATION_THRESHOLD}");
+    println!("Write minimum ply    | {WRITE_MIN_PLY}");
+    println!("Write maximum ply    | {WRITE_MAX_PLY}");
     println!();
     println!("Press [ENTER] to stop the data generation.");
     println!("Generating data...");
@@ -95,8 +100,15 @@ fn generate_data(mut buf: BufWriter<File>) {
         let (entries, wdl) = play_game(board.clone());
         let mut count = 0;
 
-        for entry in entries {
-            if !board.is_in_check() && !entry.best_move.is_capture() && !entry.best_move.is_promotion() {
+        for (index, entry) in entries.iter().enumerate() {
+            let ply = index + RANDOM_PLIES;
+
+            if WRITE_MIN_PLY <= ply
+                && ply <= WRITE_MAX_PLY
+                && !board.is_in_check()
+                && !entry.best_move.is_capture()
+                && !entry.best_move.is_promotion()
+            {
                 let position = position::Position::parse(&board, entry.score, wdl);
                 buf.write_all(position.as_bytes()).unwrap();
                 count += 1;
