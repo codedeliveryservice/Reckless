@@ -1,4 +1,4 @@
-use crate::types::Move;
+use crate::types::{Move, Score};
 
 const RFP_MARGIN: i32 = 75;
 const RFP_DEPTH: i32 = 8;
@@ -42,8 +42,13 @@ impl super::Searcher<'_> {
             let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - NMP_REDUCTION - depth / NMP_DIVISOR);
             self.board.undo_move::<false>();
 
-            if score >= beta {
+            // Avoid returning false mates
+            if score >= Score::MATE_BOUND {
                 return Some(beta);
+            }
+
+            if score >= beta {
+                return Some(score);
             }
         }
         None
