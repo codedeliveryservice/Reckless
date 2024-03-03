@@ -23,8 +23,8 @@ const REPORT_INTERVAL: Duration = Duration::from_secs(30);
 const BUFFER_SIZE: usize = 128 * 1024;
 
 const RANDOM_PLIES: usize = 10;
-const VALIDATION_THRESHOLD: i32 = 300;
-const GENERATION_THRESHOLD: i32 = 1000;
+const VALIDATION_THRESHOLD: i32 = 400;
+const GENERATION_THRESHOLD: i32 = 1800;
 
 const WRITE_MIN_PLY: usize = 16;
 const WRITE_MAX_PLY: usize = 400;
