@@ -145,7 +145,10 @@ impl super::Searcher<'_> {
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
-        self.update_ordering_heuristics(depth, best_move, quiets, bound);
+        if bound == Bound::Lower {
+            self.update_ordering_heuristics(depth, best_move, quiets);
+        }
+
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
         best_score
     }
@@ -186,14 +189,17 @@ impl super::Searcher<'_> {
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
-    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>, bound: Bound) {
-        if bound == Bound::Lower && best_move.is_quiet() {
-            self.killers.add(best_move, self.board.ply);
-            self.history.increase(best_move, depth);
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
+        if !best_move.is_quiet() {
+            return;
+        }
 
-            for mv in quiets {
-                self.history.decrease(mv, depth);
-            }
+        self.killers.add(best_move, self.board.ply);
+        self.counters.update(best_move, self.board);
+        self.history.increase(best_move, depth);
+
+        for mv in quiets {
+            self.history.decrease(mv, depth);
         }
     }
 

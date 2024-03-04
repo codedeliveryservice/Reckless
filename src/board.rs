@@ -154,6 +154,11 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
+    /// Returns the last move made, if any.
+    pub fn get_last_move(&self) -> Option<Move> {
+        self.move_stack.last().copied()
+    }
+
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
         self.move_stack.last() == Some(&Move::NULL)
