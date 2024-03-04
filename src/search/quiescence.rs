@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use crate::{
-    tables::Bound,
+    tables::{Bound, Entry},
     types::{Move, Piece, Score, MAX_PLY},
 };
 
@@ -23,7 +23,8 @@ impl super::Searcher<'_> {
             return self.board.evaluate();
         }
 
-        if let Some(entry) = self.tt.read(self.board.hash(), self.board.ply) {
+        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        if let Some(entry) = entry {
             if match entry.bound {
                 Bound::Exact => true,
                 Bound::Lower => entry.score >= beta,
@@ -33,7 +34,12 @@ impl super::Searcher<'_> {
             }
         }
 
-        let eval = self.board.evaluate();
+        let mut eval = self.board.evaluate();
+
+        if let Some(entry) = entry {
+            adjust_eval(&mut eval, &entry);
+        }
+
         alpha = max(alpha, eval);
 
         // The stand pat is the lower bound for the position, since doing nothing is *usually*
@@ -92,5 +98,18 @@ impl super::Searcher<'_> {
         } else {
             PIECE_VALUES[piece.unwrap_or(Piece::Pawn)]
         }
+    }
+}
+
+fn adjust_eval(eval: &mut i32, entry: &Entry) {
+    // If the TT entry has an exact bound or indicates that the current static evaluation
+    // exceeds a bound (lower or upper), we can believe that the TT score is more accurate
+    if match entry.bound {
+        Bound::Exact => true,
+        Bound::Lower => entry.score > *eval,
+        Bound::Upper => entry.score < *eval,
+    } && entry.score.abs() < Score::MATE_BOUND
+    {
+        *eval = entry.score;
     }
 }
