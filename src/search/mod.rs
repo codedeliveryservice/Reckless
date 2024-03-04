@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    tables::{CounterMoves, HistoryMoves, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
+    tables::{ContinuationHistory, CounterMoves, HistoryMoves, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
     timeman::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -25,6 +25,7 @@ pub struct Searcher<'a> {
     tt: &'a mut TranspositionTable,
     killers: KillerMoves,
     counters: CounterMoves,
+    continuation: ContinuationHistory,
     pv_table: PrincipleVariationTable,
     node_table: NodeTable,
     eval_stack: [i32; MAX_PLY],
@@ -45,6 +46,7 @@ impl<'a> Searcher<'a> {
             tt,
             killers: KillerMoves::default(),
             counters: CounterMoves::default(),
+            continuation: ContinuationHistory::default(),
             pv_table: PrincipleVariationTable::default(),
             node_table: NodeTable::default(),
             eval_stack: [Default::default(); MAX_PLY],
