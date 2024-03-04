@@ -201,7 +201,7 @@ impl super::Searcher<'_> {
         let previous = self.board.tail_move(2);
         if let Some(previous) = previous {
             let piece = self.board.get_piece(best_move.start()).unwrap();
-            self.continuation.increase(previous, FullMove::new(piece, best_move), depth);
+            self.followup_history.increase(previous, FullMove::new(piece, best_move), depth);
         }
 
         for mv in quiets {
@@ -209,7 +209,7 @@ impl super::Searcher<'_> {
 
             if let Some(previous) = previous {
                 let piece = self.board.get_piece(mv.start()).unwrap();
-                self.continuation.decrease(previous, FullMove::new(piece, mv), depth);
+                self.followup_history.decrease(previous, FullMove::new(piece, mv), depth);
             }
         }
     }
