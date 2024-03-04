@@ -52,10 +52,21 @@ impl Default for HistoryMoves {
 }
 
 pub struct ContinuationHistory {
-    table: Box<[[[[i32; Square::NUM]; Piece::NUM]; Square::NUM]; Piece::NUM]>,
+    table: [[[[i32; Square::NUM]; Piece::NUM]; Square::NUM]; Piece::NUM],
 }
 
 impl ContinuationHistory {
+    pub fn new() -> Box<Self> {
+        unsafe {
+            let layout = std::alloc::Layout::new::<Self>();
+            let ptr = std::alloc::alloc_zeroed(layout);
+            if ptr.is_null() {
+                std::alloc::handle_alloc_error(layout);
+            }
+            Box::from_raw(ptr.cast())
+        }
+    }
+
     pub fn get(&self, previous: FullMove, current: FullMove) -> i32 {
         self.table[previous.piece()][previous.target()][current.piece()][current.target()]
     }
@@ -68,13 +79,5 @@ impl ContinuationHistory {
     pub fn decrease(&mut self, previous: FullMove, current: FullMove, depth: i32) {
         let entry = &mut self.table[previous.piece()][previous.target()][current.piece()][current.target()];
         update::<false>(entry, depth);
-    }
-}
-
-impl Default for ContinuationHistory {
-    fn default() -> Self {
-        Self {
-            table: Box::new([[[[0; Square::NUM]; Piece::NUM]; Square::NUM]; Piece::NUM]),
-        }
     }
 }
