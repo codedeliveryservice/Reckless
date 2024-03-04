@@ -34,7 +34,7 @@ impl super::Searcher<'_> {
         let mut score = self.history.get(mv);
         if let Some(previous) = self.board.tail_move(2) {
             let piece = self.board.get_piece(mv.start()).unwrap();
-            score += self.continuation.get(previous, FullMove::new(piece, mv));
+            score += self.followup_history.get(previous, FullMove::new(piece, mv));
         }
         score
     }
