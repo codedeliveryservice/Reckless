@@ -8,6 +8,7 @@ pub enum Piece {
     Rook,
     Queen,
     King,
+    None,
 }
 
 impl Piece {

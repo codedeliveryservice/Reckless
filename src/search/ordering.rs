@@ -8,7 +8,7 @@ impl super::Searcher<'_> {
 
     /// Returns an array of move ratings for the specified move list.
     pub fn build_ordering(&self, moves: &MoveList, tt_move: Option<Move>) -> [i32; MAX_MOVES] {
-        let counter = self.counters.get(self.board);
+        let counter = self.counters.get(self.board.side_to_move, self.board.get_last_move());
         let mut ordering = [0; MAX_MOVES];
         for index in 0..moves.length() {
             ordering[index] = self.get_move_rating(moves[index], tt_move, counter);
