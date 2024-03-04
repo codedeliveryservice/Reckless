@@ -1,7 +1,7 @@
 use crate::{
     board::Board,
     search::Searcher,
-    tables::{HistoryMoves, TranspositionTable},
+    tables::{ContinuationHistory, HistoryMoves, TranspositionTable},
     timeman::Limits,
     tools,
     types::Color,
@@ -11,6 +11,7 @@ pub fn message_loop() {
     let mut board = Board::starting_position();
     let mut tt = TranspositionTable::default();
     let mut history = HistoryMoves::default();
+    let mut fmh = ContinuationHistory::new();
 
     loop {
         let command = read_stdin();
@@ -19,7 +20,7 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut board, &mut history, &mut tt, tokens),
+            ["go", tokens @ ..] => go(&mut board, &mut history, &mut fmh, &mut tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut tt, tokens),
             ["ucinewgame"] => reset(&mut board, &mut history, &mut tt),
@@ -51,9 +52,9 @@ fn reset(board: &mut Board, history: &mut HistoryMoves, tt: &mut TranspositionTa
     *history = HistoryMoves::default();
 }
 
-fn go(board: &mut Board, history: &mut HistoryMoves, tt: &mut TranspositionTable, tokens: &[&str]) {
+fn go(board: &mut Board, history: &mut HistoryMoves, fmh: &mut ContinuationHistory, tt: &mut TranspositionTable, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    Searcher::new(limits, board, history, tt).run();
+    Searcher::new(limits, board, history, fmh, tt).run();
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {

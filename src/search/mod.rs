@@ -22,10 +22,10 @@ pub struct Searcher<'a> {
     time_manager: TimeManager,
     board: &'a mut Board,
     history: &'a mut HistoryMoves,
+    followup_history: &'a mut ContinuationHistory,
     tt: &'a mut TranspositionTable,
     killers: KillerMoves,
     counters: CounterMoves,
-    followup_history: Box<ContinuationHistory>,
     pv_table: PrincipleVariationTable,
     node_table: NodeTable,
     eval_stack: [i32; MAX_PLY],
@@ -38,15 +38,21 @@ pub struct Searcher<'a> {
 
 impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut HistoryMoves, tt: &'a mut TranspositionTable) -> Self {
+    pub fn new(
+        limits: Limits,
+        board: &'a mut Board,
+        history: &'a mut HistoryMoves,
+        followup_history: &'a mut ContinuationHistory,
+        tt: &'a mut TranspositionTable,
+    ) -> Self {
         Self {
             time_manager: TimeManager::new(limits),
             board,
             history,
+            followup_history,
             tt,
             killers: KillerMoves::default(),
             counters: CounterMoves::default(),
-            followup_history: ContinuationHistory::new(),
             pv_table: PrincipleVariationTable::default(),
             node_table: NodeTable::default(),
             eval_stack: [Default::default(); MAX_PLY],
