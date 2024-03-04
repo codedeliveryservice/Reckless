@@ -1,5 +1,5 @@
 use super::{zobrist::ZOBRIST, Board};
-use crate::types::{Move, MoveKind, Piece, Square};
+use crate::types::{FullMove, Move, MoveKind, Piece, Square};
 
 #[derive(Debug, Clone, Copy)]
 pub struct IllegalMoveError;
@@ -9,7 +9,7 @@ impl Board {
     pub fn make_null_move(&mut self) {
         self.ply += 1;
         self.side_to_move = !self.side_to_move;
-        self.move_stack.push(Move::NULL);
+        self.move_stack.push(FullMove::NULL);
         self.state_stack.push(self.state);
 
         self.state.hash ^= ZOBRIST.side;
@@ -27,8 +27,12 @@ impl Board {
     ///
     /// This function will return an error if the `Move` is illegal.
     pub fn make_move<const UPDATE_NNUE: bool>(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
+        let start = mv.start();
+        let target = mv.target();
+        let piece = self.get_piece(start).unwrap();
+
         self.ply += 1;
-        self.move_stack.push(mv);
+        self.move_stack.push(FullMove::new(piece, mv));
         self.state_stack.push(self.state);
 
         if UPDATE_NNUE {
@@ -42,10 +46,6 @@ impl Board {
             self.state.hash ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
-
-        let start = mv.start();
-        let target = mv.target();
-        let piece = self.get_piece(start).unwrap();
 
         if mv.is_capture() || piece == Piece::Pawn {
             self.state.halfmove_clock = 0;

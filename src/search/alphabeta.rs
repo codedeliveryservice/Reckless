@@ -195,7 +195,7 @@ impl super::Searcher<'_> {
         }
 
         self.killers.add(best_move, self.board.ply);
-        self.counters.update(best_move, self.board);
+        self.counters.update(self.board.side_to_move, self.board.get_last_move(), best_move);
         self.history.increase(best_move, depth);
 
         for mv in quiets {

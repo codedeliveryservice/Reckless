@@ -1,7 +1,7 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     nnue::Network,
-    types::{Bitboard, Castling, Color, Move, Piece, Square},
+    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Square},
 };
 
 #[cfg(test)]
@@ -34,7 +34,7 @@ pub struct Board {
     pub ply: usize,
     state: InternalState,
     state_stack: Vec<InternalState>,
-    move_stack: Vec<Move>,
+    move_stack: Vec<FullMove>,
     nnue: Network,
 }
 
@@ -155,13 +155,13 @@ impl Board {
     }
 
     /// Returns the last move made, if any.
-    pub fn get_last_move(&self) -> Option<Move> {
-        self.move_stack.last().copied()
+    pub fn get_last_move(&self) -> FullMove {
+        self.move_stack.last().copied().unwrap_or(FullMove::NULL)
     }
 
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
-        self.move_stack.last() == Some(&Move::NULL)
+        self.move_stack.last() == Some(&FullMove::NULL)
     }
 
     /// Returns `true` if the king of the current turn color is in check.
@@ -203,7 +203,8 @@ impl Board {
             Piece::Rook => rook_attacks(square, self.occupancies()),
             Piece::Queen => queen_attacks(square, self.occupancies()),
             Piece::King => king_attacks(square),
-            Piece::Pawn => panic!("get_attacks() should not be called for pawns"),
+            Piece::Pawn => panic!("get_attacks() should not be called for `Piece::Pawn`"),
+            Piece::None => panic!("get_attacks() should not be called for `Piece::None`"),
         }
     }
 
