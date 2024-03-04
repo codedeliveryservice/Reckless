@@ -23,15 +23,6 @@ impl super::Searcher<'_> {
             return self.board.evaluate();
         }
 
-        let eval = self.board.evaluate();
-        alpha = max(alpha, eval);
-
-        // The stand pat is the lower bound for the position, since doing nothing is *usually*
-        // the least we can expect and it's already good enough to cause a beta cutoff
-        if alpha >= beta {
-            return eval;
-        }
-
         if let Some(entry) = self.tt.read(self.board.hash(), self.board.ply) {
             if match entry.bound {
                 Bound::Exact => true,
@@ -40,6 +31,15 @@ impl super::Searcher<'_> {
             } {
                 return entry.score;
             }
+        }
+
+        let eval = self.board.evaluate();
+        alpha = max(alpha, eval);
+
+        // The stand pat is the lower bound for the position, since doing nothing is *usually*
+        // the least we can expect and it's already good enough to cause a beta cutoff
+        if alpha >= beta {
+            return eval;
         }
 
         let mut best_move = Move::NULL;
