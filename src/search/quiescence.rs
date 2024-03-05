@@ -60,6 +60,7 @@ impl super::Searcher<'_> {
             }
 
             // Delta pruning
+            #[cfg(not(feature = "datagen"))]
             if eval + self.maximum_gain(mv) < alpha && best_score > -Score::MATE_BOUND {
                 break;
             }
