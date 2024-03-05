@@ -35,7 +35,7 @@ impl<'a> Searcher<'a> {
                 return score;
             }
 
-            delta *= 2;
+            delta += delta / 2;
         }
     }
 }
