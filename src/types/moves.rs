@@ -1,6 +1,35 @@
-use std::mem;
+use std::{mem, ops::Deref};
 
 use super::{Piece, Square};
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+pub struct FullMove {
+    piece: Piece,
+    inner: Move,
+}
+
+impl FullMove {
+    pub const NULL: Self = Self {
+        piece: Piece::None,
+        inner: Move::NULL,
+    };
+
+    pub const fn new(piece: Piece, mv: Move) -> Self {
+        Self { piece, inner: mv }
+    }
+
+    pub const fn piece(self) -> Piece {
+        self.piece
+    }
+}
+
+impl Deref for FullMove {
+    type Target = Move;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
 /// Represents a chess move containing the starting and target squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.

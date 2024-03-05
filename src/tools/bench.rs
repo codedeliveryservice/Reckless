@@ -12,7 +12,7 @@ use std::time::Instant;
 use crate::{
     board::Board,
     search::Searcher,
-    tables::{HistoryMoves, TranspositionTable},
+    tables::{ContinuationHistory, HistoryMoves, TranspositionTable},
     timeman::Limits,
 };
 
@@ -97,7 +97,8 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let mut board = Board::new(position).unwrap();
         let mut tt = TranspositionTable::default();
         let mut history = HistoryMoves::default();
-        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut tt);
+        let mut fmh = ContinuationHistory::new();
+        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut fmh, &mut tt);
 
         search.silent(true);
         search.run();

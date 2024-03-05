@@ -1,30 +1,22 @@
-use crate::{
-    board::Board,
-    types::{Color, Move, Piece, Square},
-};
+use crate::types::{Color, FullMove, Move, Piece, Square};
 
 pub struct CounterMoves {
     table: [[[Move; Square::NUM]; Piece::NUM]; Color::NUM],
 }
 
 impl CounterMoves {
-    pub fn get(&self, board: &Board) -> Option<Move> {
-        if let Some(previous) = self.previous_move(board) {
-            let piece = board.get_piece(previous.target()).unwrap();
-            return Some(self.table[!board.side_to_move][piece][previous.target()]);
-        }
-        None
-    }
-
-    pub fn update(&mut self, counter: Move, board: &Board) {
-        if let Some(previous) = self.previous_move(board) {
-            let piece = board.get_piece(previous.target()).unwrap();
-            self.table[!board.side_to_move][piece][previous.target()] = counter;
+    pub fn get(&self, stm: Color, previous: FullMove) -> Option<Move> {
+        if previous != FullMove::NULL {
+            Some(self.table[!stm][previous.piece()][previous.target()])
+        } else {
+            None
         }
     }
 
-    fn previous_move(&self, board: &Board) -> Option<Move> {
-        board.get_last_move().filter(|&m| m != Move::NULL)
+    pub fn update(&mut self, stm: Color, previous: FullMove, counter: Move) {
+        if previous != FullMove::NULL {
+            self.table[!stm][previous.piece()][previous.target()] = counter;
+        }
     }
 }
 

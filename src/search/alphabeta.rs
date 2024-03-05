@@ -1,7 +1,7 @@
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
     tables::{Bound, Entry},
-    types::{Move, Score, MAX_PLY},
+    types::{FullMove, Move, Score, MAX_PLY},
 };
 
 const IIR_DEPTH: i32 = 4;
@@ -195,11 +195,22 @@ impl super::Searcher<'_> {
         }
 
         self.killers.add(best_move, self.board.ply);
-        self.counters.update(best_move, self.board);
+        self.counters.update(self.board.side_to_move, self.board.last_move(), best_move);
         self.history.increase(best_move, depth);
+
+        let previous = self.board.tail_move(2);
+        if let Some(previous) = previous {
+            let piece = self.board.get_piece(best_move.start()).unwrap();
+            self.followup_history.increase(previous, FullMove::new(piece, best_move), depth);
+        }
 
         for mv in quiets {
             self.history.decrease(mv, depth);
+
+            if let Some(previous) = previous {
+                let piece = self.board.get_piece(mv.start()).unwrap();
+                self.followup_history.decrease(previous, FullMove::new(piece, mv), depth);
+            }
         }
     }
 
