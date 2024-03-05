@@ -70,7 +70,7 @@ impl super::Searcher<'_> {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             let mut reduction = (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32;
             // Adjust reduction based on history heuristic
-            reduction -= self.history.get(mv) / LMR_HISTORY_DIVISOR;
+            reduction -= self.history.get_main(mv) / LMR_HISTORY_DIVISOR;
             // Reduce PV nodes less
             reduction -= i32::from(PV);
             // Reduce checks less
