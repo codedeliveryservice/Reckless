@@ -1,6 +1,6 @@
 use crate::types::{FullMove, Move, Piece, Square};
 
-const MAX_HISTORY: i32 = 512;
+const MAX_HISTORY: i32 = 16384;
 
 // [start][target]
 type ButterflyHistory = [[i32; Square::NUM]; Square::NUM];
@@ -68,7 +68,7 @@ impl History {
 
 /// Returns the bonus for a move based on the depth of the search.
 fn bonus(depth: i32) -> i32 {
-    depth * depth
+    (150 * depth).min(1800)
 }
 
 /// Updates the score of an entry using a gravity function.
