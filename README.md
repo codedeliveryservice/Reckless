@@ -39,6 +39,7 @@ combines established concepts, as the name suggests.
 
 -   Reverse Futility Pruning
 -   Null Move Pruning
+-   Razoring
 -   Futility Pruning
 -   Late Move Pruning
 -   Delta Pruning
@@ -56,8 +57,12 @@ combines established concepts, as the name suggests.
 
 -   Hash Move
 -   MVV-LVA
--   Killer Heuristic
+-   Killer Move Heuristic
+-   Counter Move Heuristic
 -   History Heuristic
+    -   Butterfly History
+    -   Counter Move History
+    -   Follow-Up History
 
 ### Evaluation
 
