@@ -14,6 +14,9 @@ type ContinuationHistory = [[[[i32; Square::NUM]; Piece::NUM]; Square::NUM]; Pie
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 pub struct History {
     main: ButterflyHistory,
+    /// Indexed by current move and opponent's last move (1 ply ago).
+    countermove: ContinuationHistory,
+    /// Indexed by current move and our previous move (2 plies ago).
     followup: ContinuationHistory,
 }
 
@@ -35,6 +38,11 @@ impl History {
         self.main[mv.start()][mv.target()]
     }
 
+    /// Returns the score of the countermove history heuristic.
+    pub fn get_countermove(&self, previous: FullMove, current: FullMove) -> i32 {
+        self.countermove[previous.piece()][previous.target()][current.piece()][current.target()]
+    }
+
     /// Returns the score of the followup history heuristic.
     pub fn get_followup(&self, previous: FullMove, current: FullMove) -> i32 {
         self.followup[previous.piece()][previous.target()][current.piece()][current.target()]
@@ -43,6 +51,12 @@ impl History {
     /// Updates the main butterfly history heuristic.
     pub fn update_main<const IS_GOOD: bool>(&mut self, mv: Move, depth: i32) {
         update::<IS_GOOD>(&mut self.main[mv.start()][mv.target()], depth);
+    }
+
+    /// Updates the countermove history heuristic.
+    pub fn update_countermove<const IS_GOOD: bool>(&mut self, previous: FullMove, current: FullMove, depth: i32) {
+        let entry = &mut self.countermove[previous.piece()][previous.target()][current.piece()][current.target()];
+        update::<IS_GOOD>(entry, depth);
     }
 
     /// Updates the followup history heuristic.
