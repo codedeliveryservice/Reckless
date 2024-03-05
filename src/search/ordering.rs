@@ -41,14 +41,15 @@ impl super::Searcher<'_> {
             return Self::COUNTER;
         }
 
+        let piece = self.board.get_piece(mv.start()).unwrap();
+        let current = FullMove::new(piece, mv);
+
         let mut score = self.history.get_main(mv);
         if let Some(previous) = countermove {
-            let piece = self.board.get_piece(mv.start()).unwrap();
-            score += self.history.get_countermove(previous, FullMove::new(piece, mv));
+            score += self.history.get_countermove(previous, current);
         }
         if let Some(previous) = followup {
-            let piece = self.board.get_piece(mv.start()).unwrap();
-            score += self.history.get_followup(previous, FullMove::new(piece, mv));
+            score += self.history.get_followup(previous, current);
         }
         score
     }
