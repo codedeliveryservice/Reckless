@@ -31,10 +31,10 @@ impl super::Searcher<'_> {
             return Self::COUNTER;
         }
 
-        let mut score = self.history.get(mv);
+        let mut score = self.history.get_main(mv);
         if let Some(previous) = self.board.tail_move(2) {
             let piece = self.board.get_piece(mv.start()).unwrap();
-            score += self.followup_history.get(previous, FullMove::new(piece, mv));
+            score += self.history.get_followup(previous, FullMove::new(piece, mv));
         }
         score
     }

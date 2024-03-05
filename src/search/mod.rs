@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    tables::{ContinuationHistory, CounterMoves, HistoryMoves, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
+    tables::{CounterMoves, History, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
     timeman::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -21,8 +21,7 @@ pub struct SearchResult {
 pub struct Searcher<'a> {
     time_manager: TimeManager,
     board: &'a mut Board,
-    history: &'a mut HistoryMoves,
-    followup_history: &'a mut ContinuationHistory,
+    history: &'a mut History,
     tt: &'a mut TranspositionTable,
     killers: KillerMoves,
     counters: CounterMoves,
@@ -38,18 +37,11 @@ pub struct Searcher<'a> {
 
 impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(
-        limits: Limits,
-        board: &'a mut Board,
-        history: &'a mut HistoryMoves,
-        followup_history: &'a mut ContinuationHistory,
-        tt: &'a mut TranspositionTable,
-    ) -> Self {
+    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut History, tt: &'a mut TranspositionTable) -> Self {
         Self {
             time_manager: TimeManager::new(limits),
             board,
             history,
-            followup_history,
             tt,
             killers: KillerMoves::default(),
             counters: CounterMoves::default(),
