@@ -28,7 +28,7 @@ impl super::Searcher<'_> {
                 self.report_search_result(depth, score, stopwatch);
             }
 
-            result.best_move = self.tt.read(self.board.hash(), 0).unwrap().mv;
+            result.best_move = self.pv_table.get_best_move();
             result.score = score;
 
             self.sel_depth = 0;
