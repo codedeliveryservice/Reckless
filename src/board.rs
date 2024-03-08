@@ -7,8 +7,8 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-mod generator;
 mod makemove;
+mod movegen;
 mod parser;
 mod zobrist;
 
