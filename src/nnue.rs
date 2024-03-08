@@ -1,5 +1,7 @@
 use crate::types::{Color, Piece, Square};
 
+mod simd;
+
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 128;
 
@@ -28,12 +30,8 @@ impl Network {
     pub fn evaluate(&self, side_to_move: Color) -> i32 {
         let stm = self.accumulators[side_to_move];
         let nstm = self.accumulators[!side_to_move];
-
-        let mut output = 0;
-        for i in 0..HIDDEN_SIZE {
-            output += screlu(i32::from(stm[i])) * i32::from(PARAMETERS.output_weights[0][i]);
-            output += screlu(i32::from(nstm[i])) * i32::from(PARAMETERS.output_weights[1][i]);
-        }
+        let weights = &PARAMETERS.output_weights;
+        let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
@@ -61,11 +59,6 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
         384 * color as usize + 64 * piece as usize + square as usize,
         384 * !color as usize + 64 * piece as usize + (square ^ 56) as usize,
     )
-}
-
-fn screlu(x: i32) -> i32 {
-    let v = x.clamp(0, L0_SCALE);
-    v * v
 }
 
 impl Default for Network {
