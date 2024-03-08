@@ -10,7 +10,7 @@ use std::{
 use crate::{
     board::Board,
     search::{SearchResult, Searcher},
-    tables::{HistoryMoves, TranspositionTable},
+    tables::{History, TranspositionTable},
     timeman::Limits,
     tools::datagen::random::Random,
     types::{Color, Move},
@@ -111,7 +111,7 @@ fn generate_data(mut buf: BufWriter<File>) {
 
 /// Plays a game and returns the search results and the WDL result.
 fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
-    let mut history = HistoryMoves::default();
+    let mut history = History::new();
     let mut tt = TranspositionTable::default();
     let mut entries = Vec::new();
 
@@ -171,7 +171,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
 
 /// Returns the score of the position after performing a validation search.
 fn validation_score(board: &mut Board) -> i32 {
-    let mut history = HistoryMoves::default();
+    let mut history = History::new();
     let mut tt = TranspositionTable::default();
     let mut searcher = Searcher::new(VALIDATION_LIMITS, board, &mut history, &mut tt);
     searcher.silent(true);
