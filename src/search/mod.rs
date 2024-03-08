@@ -22,7 +22,7 @@ pub struct Searcher<'a> {
     time_manager: TimeManager,
     board: &'a mut Board,
     history: &'a mut History,
-    tt: &'a mut TranspositionTable,
+    tt: &'a TranspositionTable,
     killers: KillerMoves,
     counters: CounterMoves,
     pv_table: PrincipleVariationTable,
@@ -37,7 +37,7 @@ pub struct Searcher<'a> {
 
 impl<'a> Searcher<'a> {
     /// Creates a new `Searcher` instance.
-    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut History, tt: &'a mut TranspositionTable) -> Self {
+    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut History, tt: &'a TranspositionTable) -> Self {
         Self {
             time_manager: TimeManager::new(limits),
             board,
