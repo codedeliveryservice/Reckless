@@ -18,7 +18,8 @@ impl super::Searcher<'_> {
 
         // Draw detection, excluding the root node to ensure a valid move is returned
         if !ROOT && self.board.is_draw() {
-            return Score::DRAW;
+            // Use a little randomness to avoid 3-fold repetition blindness
+            return -1 + (self.nodes as i32 & 0x2);
         }
 
         // Prevent overflows
