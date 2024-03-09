@@ -1,4 +1,4 @@
-use crate::types::{Color, Piece, Square};
+use crate::types::{Color, Piece, Score, Square};
 
 mod simd;
 
@@ -31,8 +31,11 @@ impl Network {
         let stm = self.accumulators[side_to_move];
         let nstm = self.accumulators[!side_to_move];
         let weights = &PARAMETERS.output_weights;
+
         let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
-        (output / L0_SCALE + i32::from(PARAMETERS.output_bias)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
+        let score = (output / L0_SCALE + i32::from(PARAMETERS.output_bias)) * EVAL_SCALE / (L0_SCALE * L1_SCALE);
+
+        score.clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
     }
 
     /// Activates the specified piece.
