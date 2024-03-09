@@ -61,14 +61,14 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
         match tokens {
             ["startpos", rest @ ..] => {
                 *board = Board::starting_position();
-                tokens = &rest;
+                tokens = rest;
             }
             ["fen", rest @ ..] => {
                 match Board::new(&rest.join(" ")) {
                     Ok(b) => *board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
-                tokens = &rest;
+                tokens = rest;
             }
             ["moves", rest @ ..] => {
                 rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));

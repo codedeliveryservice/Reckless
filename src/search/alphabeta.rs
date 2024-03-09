@@ -141,8 +141,9 @@ impl super::Searcher<'_> {
             }
         }
 
+        // Checkmate and stalemate detection
         if moves_played == 0 {
-            return self.final_score(in_check);
+            return if in_check { Score::mated_in(self.board.ply) } else { Score::DRAW };
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
@@ -223,15 +224,6 @@ impl super::Searcher<'_> {
                 let piece = self.board.get_piece(mv.start()).unwrap();
                 self.history.update_followup::<false>(previous, FullMove::new(piece, mv), depth);
             }
-        }
-    }
-
-    /// Calculates the final score in case of a checkmate or stalemate.
-    fn final_score(&mut self, in_check: bool) -> i32 {
-        if in_check {
-            -Score::MATE + self.board.ply as i32
-        } else {
-            Score::DRAW
         }
     }
 }

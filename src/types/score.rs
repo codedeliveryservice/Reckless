@@ -8,4 +8,8 @@ impl Score {
 
     pub const MATE: i32 = Self::INFINITY - 1000;
     pub const MATE_BOUND: i32 = Self::MATE - 500;
+
+    pub const fn mated_in(ply: usize) -> i32 {
+        -Self::MATE + ply as i32
+    }
 }
