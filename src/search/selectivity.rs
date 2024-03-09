@@ -1,28 +1,28 @@
 use crate::types::{Move, Score};
 
-const RFP_MARGIN: i32 = 75;
-const RFP_DEPTH: i32 = 8;
+const RFP_MARGIN: i32 = 67;
+const RFP_DEPTH: i32 = 7;
 
 const NMP_DEPTH: i32 = 3;
 const NMP_REDUCTION: i32 = 3;
 const NMP_DIVISOR: i32 = 4;
 
-const RAZORING_DEPTH: i32 = 2;
-const RAZORING_MARGIN: i32 = 200;
-const RAZORING_FIXED_MARGIN: i32 = 125;
+const RAZORING_DEPTH: i32 = 4;
+const RAZORING_MARGIN: i32 = 201;
+const RAZORING_FIXED_MARGIN: i32 = 123;
 
-const LMR_MOVES_PLAYED: i32 = 4;
+const LMR_MOVES_PLAYED: i32 = 3;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
 const LMR_DIVISOR: f64 = 2.25;
 const LMR_HISTORY_DIVISOR: i32 = 6400;
 
-const QLMP_DEPTH: i32 = 3;
-const QLMP_QUIETS_PLAYED: i32 = 5;
+const QLMP_DEPTH: i32 = 4;
+const QLMP_QUIETS_PLAYED: i32 = 3;
 
 const FUTILITY_DEPTH: i32 = 5;
-const FUTILITY_MARGIN: i32 = 125;
-const FUTILITY_FIXED_MARGIN: i32 = 50;
+const FUTILITY_MARGIN: i32 = 119;
+const FUTILITY_FIXED_MARGIN: i32 = 42;
 
 impl super::Searcher<'_> {
     /// If the static evaluation of the position is significantly higher than beta
