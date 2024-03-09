@@ -27,13 +27,10 @@ impl super::Searcher<'_> {
             return self.board.evaluate();
         }
 
-        // Check extensions: extend the search depth due to low branching and the possibility of
-        // being in a forced sequence of moves
         let in_check = self.board.is_in_check();
-        depth += i32::from(in_check);
 
         // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
-        if depth <= 0 {
+        if depth <= 0 && !in_check {
             return self.quiescence_search(alpha, beta);
         }
 
@@ -99,15 +96,16 @@ impl super::Searcher<'_> {
                 continue;
             }
 
+            // Check extensions. Extend the search depth due to low branching
+            // and the possibility of being in a forced sequence of moves
+            let new_depth = depth + i32::from(in_check);
             let nodes_before = self.nodes;
 
             let score = if moves_played == 0 {
-                // The first move is likely to be the best, so it's searched with a full window
-                -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
+                -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth - 1)
             } else {
-                // The remaining moves are searched with a null window and possible reductions
                 let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
-                self.principle_variation_search::<PV>(alpha, beta, depth, reduction)
+                self.principle_variation_search::<PV>(alpha, beta, new_depth, reduction)
             };
 
             self.board.undo_move::<true>();
