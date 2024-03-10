@@ -9,25 +9,17 @@ impl super::Searcher<'_> {
     /// Returns an array of move ratings for the specified move list.
     pub fn build_ordering(&self, moves: &MoveList, tt_move: Option<Move>) -> [i32; MAX_MOVES] {
         let counter = self.counters.get(self.board.side_to_move, self.board.last_move());
-        let countermove = self.board.tail_move(1);
-        let followup = self.board.tail_move(2);
+        let continuations = [1, 2].map(|ply| self.board.tail_move(ply));
 
         let mut ordering = [0; MAX_MOVES];
         for index in 0..moves.length() {
-            ordering[index] = self.get_move_rating(moves[index], tt_move, counter, countermove, followup);
+            ordering[index] = self.get_move_rating(moves[index], tt_move, counter, &continuations);
         }
         ordering
     }
 
     /// Returns the rating of the specified move.
-    fn get_move_rating(
-        &self,
-        mv: Move,
-        tt_move: Option<Move>,
-        counter: Option<Move>,
-        countermove: Option<FullMove>,
-        followup: Option<FullMove>,
-    ) -> i32 {
+    fn get_move_rating(&self, mv: Move, tt_move: Option<Move>, counter: Option<Move>, continuations: &[FullMove]) -> i32 {
         if Some(mv) == tt_move {
             return Self::TT_MOVE;
         }
@@ -42,14 +34,10 @@ impl super::Searcher<'_> {
         }
 
         let piece = self.board.get_piece(mv.start()).unwrap();
-        let current = FullMove::new(piece, mv);
 
         let mut score = self.history.get_main(mv);
-        if let Some(previous) = countermove {
-            score += self.history.get_countermove(previous, current);
-        }
-        if let Some(previous) = followup {
-            score += self.history.get_followup(previous, current);
+        for (kind, &previous) in continuations.into_iter().enumerate() {
+            score += self.history.get_continuation(kind, previous, piece, mv);
         }
         score
     }

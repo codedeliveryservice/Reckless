@@ -1,11 +1,12 @@
-use crate::types::{FullMove, Move, Piece, Square};
+use crate::{
+    board::Board,
+    types::{FullMove, Move, Piece, Square},
+};
 
 const MAX_HISTORY: i32 = 16384;
 
-// [start][target]
-type ButterflyHistory = [[i32; Square::NUM]; Square::NUM];
-// [previous move piece][previous move target][current move piece][current move target]
-type ContinuationHistory = [[[[i32; Square::NUM]; Piece::NUM]; Square::NUM]; Piece::NUM];
+type Butterfly<T> = [[T; Square::NUM]; Square::NUM];
+type PieceSquare<T> = [T; Square::NUM * (Piece::NUM + 1)];
 
 /// The history heuristic is a table that keep track of how successful a move has been in the past.
 /// The idea is that if a move has been successful in the past, it's likely to be successful in the
@@ -13,11 +14,8 @@ type ContinuationHistory = [[[[i32; Square::NUM]; Piece::NUM]; Square::NUM]; Pie
 ///
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 pub struct History {
-    main: ButterflyHistory,
-    /// Indexed by current move and opponent's last move (1 ply ago).
-    countermove: ContinuationHistory,
-    /// Indexed by current move and our previous move (2 plies ago).
-    followup: ContinuationHistory,
+    main: Butterfly<i32>,
+    continuations: [PieceSquare<PieceSquare<i32>>; 2],
 }
 
 impl History {
@@ -38,31 +36,42 @@ impl History {
         self.main[mv.start()][mv.target()]
     }
 
-    /// Returns the score of the countermove history heuristic.
-    pub fn get_countermove(&self, previous: FullMove, current: FullMove) -> i32 {
-        self.countermove[previous.piece()][previous.target()][current.piece()][current.target()]
+    pub fn get_continuation(&self, index: usize, previous: FullMove, piece: Piece, current: Move) -> i32 {
+        let previous = previous.piece() as usize * Square::NUM + previous.target() as usize;
+        let current = piece as usize * Square::NUM + current.target() as usize;
+
+        self.continuations[index][previous][current]
     }
 
-    /// Returns the score of the followup history heuristic.
-    pub fn get_followup(&self, previous: FullMove, current: FullMove) -> i32 {
-        self.followup[previous.piece()][previous.target()][current.piece()][current.target()]
+    pub fn update_main(&mut self, mv: Move, fails: &[Move], depth: i32) {
+        update::<true>(&mut self.main[mv.start()][mv.target()], depth);
+        for &fail in fails {
+            update::<false>(&mut self.main[fail.start()][fail.target()], depth);
+        }
     }
 
-    /// Updates the main butterfly history heuristic.
-    pub fn update_main<const IS_GOOD: bool>(&mut self, mv: Move, depth: i32) {
-        update::<IS_GOOD>(&mut self.main[mv.start()][mv.target()], depth);
+    pub fn update_continuation(&mut self, board: &Board, current: Move, fails: &[Move], depth: i32) {
+        let piece = board.get_piece(current.start()).unwrap();
+
+        for (kind, ply) in [1, 2].into_iter().enumerate() {
+            let previous = board.tail_move(ply);
+            if previous == FullMove::NULL {
+                continue;
+            }
+
+            update::<true>(self.get_continuation_mut(kind, previous, piece, current), depth);
+            for &fail in fails {
+                let piece = board.get_piece(fail.start()).unwrap();
+                update::<false>(self.get_continuation_mut(kind, previous, piece, fail), depth);
+            }
+        }
     }
 
-    /// Updates the countermove history heuristic.
-    pub fn update_countermove<const IS_GOOD: bool>(&mut self, previous: FullMove, current: FullMove, depth: i32) {
-        let entry = &mut self.countermove[previous.piece()][previous.target()][current.piece()][current.target()];
-        update::<IS_GOOD>(entry, depth);
-    }
+    fn get_continuation_mut(&mut self, index: usize, previous: FullMove, piece: Piece, current: Move) -> &mut i32 {
+        let previous = previous.piece() as usize * Square::NUM + previous.target() as usize;
+        let current = piece as usize * Square::NUM + current.target() as usize;
 
-    /// Updates the followup history heuristic.
-    pub fn update_followup<const IS_GOOD: bool>(&mut self, previous: FullMove, current: FullMove, depth: i32) {
-        let entry = &mut self.followup[previous.piece()][previous.target()][current.piece()][current.target()];
-        update::<IS_GOOD>(entry, depth);
+        &mut self.continuations[index][previous][current]
     }
 }
 
