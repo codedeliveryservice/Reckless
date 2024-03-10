@@ -1,7 +1,7 @@
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
     tables::{Bound, Entry},
-    types::{FullMove, Move, Score, MAX_PLY},
+    types::{Move, Score, MAX_PLY},
 };
 
 const IIR_DEPTH: i32 = 4;
@@ -198,33 +198,9 @@ impl super::Searcher<'_> {
 
         self.killers.add(best_move, self.board.ply);
         self.counters.update(self.board.side_to_move, self.board.last_move(), best_move);
-        self.history.update_main::<true>(best_move, depth);
 
-        let countermove = self.board.tail_move(1);
-        let followup = self.board.tail_move(2);
-
-        if let Some(previous) = countermove {
-            let piece = self.board.get_piece(best_move.start()).unwrap();
-            self.history.update_countermove::<true>(previous, FullMove::new(piece, best_move), depth);
-        }
-        if let Some(previous) = followup {
-            let piece = self.board.get_piece(best_move.start()).unwrap();
-            self.history.update_followup::<true>(previous, FullMove::new(piece, best_move), depth);
-        }
-
-        for mv in quiets {
-            self.history.update_main::<false>(mv, depth);
-
-            if let Some(previous) = countermove {
-                let piece = self.board.get_piece(mv.start()).unwrap();
-                self.history.update_countermove::<false>(previous, FullMove::new(piece, mv), depth);
-            }
-
-            if let Some(previous) = followup {
-                let piece = self.board.get_piece(mv.start()).unwrap();
-                self.history.update_followup::<false>(previous, FullMove::new(piece, mv), depth);
-            }
-        }
+        self.history.update_main(best_move, &quiets, depth);
+        self.history.update_continuation(self.board, best_move, &quiets, depth);
     }
 }
 

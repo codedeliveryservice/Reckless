@@ -156,15 +156,16 @@ impl Board {
 
     /// Returns the last move in the move stack.
     pub fn last_move(&self) -> FullMove {
-        self.move_stack.last().copied().unwrap_or(FullMove::NULL)
+        self.tail_move(1)
     }
 
     /// Returns the move at the specified index from the tail of the move stack.
     /// E.g. `tail_move(1)` returns the last move made.
-    ///
-    /// This method treats `Move::NULL` as `None`.
-    pub fn tail_move(&self, index: usize) -> Option<FullMove> {
-        self.move_stack.get(self.move_stack.len() - index).copied().filter(|&mv| mv != FullMove::NULL)
+    pub fn tail_move(&self, index: usize) -> FullMove {
+        match self.move_stack.len().checked_sub(index) {
+            Some(index) => self.move_stack[index],
+            None => FullMove::NULL,
+        }
     }
 
     /// Returns `true` if the last move made was a null move.
