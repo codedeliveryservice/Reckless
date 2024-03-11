@@ -200,7 +200,7 @@ impl super::Searcher<'_> {
         self.killers.add(best_move, self.board.ply);
         self.counters.update(self.board.side_to_move, self.board.last_move(), best_move);
 
-        self.history.update_main(best_move, &quiets, depth);
+        self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
         self.history.update_continuation(self.board, best_move, &quiets, depth);
     }
 }

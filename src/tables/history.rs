@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{FullMove, Move, Piece, Square},
+    types::{Color, FullMove, Move, Piece, Square},
 };
 
 const MAX_HISTORY: i32 = 16384;
@@ -14,7 +14,7 @@ type PieceSquare<T> = [T; Square::NUM * (Piece::NUM + 1)];
 ///
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 pub struct History {
-    main: Butterfly<i32>,
+    main: [Butterfly<i32>; Color::NUM],
     continuations: [PieceSquare<PieceSquare<i32>>; 2],
 }
 
@@ -40,8 +40,8 @@ impl History {
     }
 
     /// Returns the score of the main butterfly history heuristic.
-    pub fn get_main(&self, mv: Move) -> i32 {
-        self.main[mv.start()][mv.target()]
+    pub fn get_main(&self, stm: Color, mv: Move) -> i32 {
+        self.main[stm][mv.start()][mv.target()]
     }
 
     pub fn get_continuation(&self, index: usize, previous: FullMove, piece: Piece, current: Move) -> i32 {
@@ -51,10 +51,10 @@ impl History {
         self.continuations[index][previous][current]
     }
 
-    pub fn update_main(&mut self, mv: Move, fails: &[Move], depth: i32) {
-        update::<true>(&mut self.main[mv.start()][mv.target()], depth);
+    pub fn update_main(&mut self, stm: Color, mv: Move, fails: &[Move], depth: i32) {
+        update::<true>(&mut self.main[stm][mv.start()][mv.target()], depth);
         for &fail in fails {
-            update::<false>(&mut self.main[fail.start()][fail.target()], depth);
+            update::<false>(&mut self.main[stm][fail.start()][fail.target()], depth);
         }
     }
 
