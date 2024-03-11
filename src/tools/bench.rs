@@ -11,7 +11,7 @@ use std::time::Instant;
 
 use crate::{
     board::Board,
-    search::Searcher,
+    search::{self, Options},
     tables::{History, TranspositionTable},
     timeman::Limits,
 };
@@ -94,22 +94,21 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
     for position in POSITIONS {
         let now = Instant::now();
 
+        let options = Options { threads: 1, silent: true };
         let mut board = Board::new(position).unwrap();
         let mut history = History::new();
-        let mut tt = TranspositionTable::default();
-        let mut search = Searcher::new(Limits::FixedDepth(depth), &mut board, &mut history, &mut tt);
+        let tt = TranspositionTable::default();
 
-        search.silent(true);
-        search.run();
+        let result = search::start(options, Limits::FixedDepth(depth), &mut board, &mut history, &tt);
 
-        nodes += search.nodes();
+        nodes += result.nodes;
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let knps = search.nodes() as f64 / seconds / 1000.0;
+        let knps = result.nodes as f64 / seconds / 1000.0;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", search.nodes());
+            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", result.nodes);
         }
     }
 

@@ -1,3 +1,8 @@
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    thread,
+};
+
 use crate::{
     board::Board,
     tables::{CounterMoves, History, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
@@ -12,13 +17,54 @@ mod ordering;
 mod quiescence;
 mod selectivity;
 
+static ABORT_SIGNAL: AtomicBool = AtomicBool::new(false);
+
+pub struct Options {
+    pub silent: bool,
+    pub threads: usize,
+}
+
+pub fn start(options: Options, limits: Limits, board: &mut Board, history: &mut History, tt: &TranspositionTable) -> SearchResult {
+    ABORT_SIGNAL.store(false, Ordering::Relaxed);
+
+    thread::scope(|scope| {
+        let mut threads = Vec::new();
+
+        for _ in 0..(options.threads - 1) {
+            let mut board = board.clone();
+            let mut history = history.clone();
+
+            let thread = scope.spawn(move || {
+                let mut searcher = Searcher::new(Limits::Infinite, &mut board, &mut history, tt);
+                searcher.silent = true;
+                searcher.run()
+            });
+
+            threads.push(thread);
+        }
+
+        let mut searcher = Searcher::new(limits, board, history, tt);
+        searcher.silent = options.silent;
+
+        let result = searcher.run();
+
+        ABORT_SIGNAL.store(true, Ordering::Relaxed);
+        for thread in threads {
+            thread.join().unwrap();
+        }
+
+        result
+    })
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct SearchResult {
     pub best_move: Move,
     pub score: i32,
+    pub nodes: u64,
 }
 
-pub struct Searcher<'a> {
+struct Searcher<'a> {
     time_manager: TimeManager,
     board: &'a mut Board,
     history: &'a mut History,
@@ -33,6 +79,7 @@ pub struct Searcher<'a> {
     stopped: bool,
     nodes: u64,
     silent: bool,
+    abort_signal: &'a AtomicBool,
 }
 
 impl<'a> Searcher<'a> {
@@ -53,17 +100,12 @@ impl<'a> Searcher<'a> {
             stopped: Default::default(),
             nodes: Default::default(),
             silent: Default::default(),
+            abort_signal: &ABORT_SIGNAL,
         }
     }
 
-    /// Returns the number of nodes searched.
-    pub const fn nodes(&self) -> u64 {
-        self.nodes
-    }
-
-    /// Controls whether the search should be silent. Defaults to `false`.
-    pub fn silent(&mut self, silent: bool) {
-        self.silent = silent;
+    pub fn load_abort_signal(&self) -> bool {
+        self.abort_signal.load(Ordering::Relaxed)
     }
 
     /// This is the main entry point for the search.

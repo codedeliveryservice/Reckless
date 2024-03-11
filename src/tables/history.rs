@@ -31,6 +31,14 @@ impl History {
         }
     }
 
+    /// Clones the history heuristic.
+    pub fn clone(&self) -> Box<Self> {
+        let mut clone = History::new();
+        clone.main = self.main;
+        clone.continuations = self.continuations;
+        clone
+    }
+
     /// Returns the score of the main butterfly history heuristic.
     pub fn get_main(&self, mv: Move) -> i32 {
         self.main[mv.start()][mv.target()]
