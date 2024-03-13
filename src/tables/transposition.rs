@@ -173,10 +173,8 @@ impl TranspositionTable {
     }
 }
 
-/// Checks if the entry is valid (i.e. not empty).
+/// Checks if the entry is valid.
 fn is_valid(packed: u64) -> bool {
-    // Theoretically, an entry with a value of 0 could be valid,
-    // but it's extremely unlikely and not worth the effort to check
     packed != 0
 }
 
