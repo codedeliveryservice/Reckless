@@ -35,7 +35,7 @@ impl super::Searcher<'_> {
 
         let piece = self.board.get_piece(mv.start()).unwrap();
 
-        let mut score = self.history.get_main(mv);
+        let mut score = self.history.get_main(self.board.side_to_move, mv);
         for (kind, &previous) in continuations.into_iter().enumerate() {
             score += self.history.get_continuation(kind, previous, piece, mv);
         }
