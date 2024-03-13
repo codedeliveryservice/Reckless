@@ -70,6 +70,9 @@ impl super::Searcher<'_> {
             }
         }
 
+        // Reset the killer moves for child nodes
+        self.killers.clear(self.board.ply + 1);
+
         let original_alpha = alpha;
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::NULL;
