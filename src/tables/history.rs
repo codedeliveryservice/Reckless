@@ -85,15 +85,21 @@ impl History {
 
 /// Returns the bonus for a move based on the depth of the search.
 fn bonus(depth: i32) -> i32 {
-    (150 * depth).min(1800)
+    (150 * depth - 25).min(1780)
+}
+
+/// Returns the malus for a move based on the depth of the search.
+fn malus(depth: i32) -> i32 {
+    (160 * depth + 15).min(1800)
 }
 
 /// Updates the score of an entry using a gravity function.
 fn update<const IS_GOOD: bool>(v: &mut i32, depth: i32) {
-    let bonus = bonus(depth);
     if IS_GOOD {
+        let bonus = bonus(depth);
         *v += bonus - bonus * *v / MAX_HISTORY;
     } else {
-        *v -= bonus + bonus * *v / MAX_HISTORY;
+        let malus = malus(depth);
+        *v -= malus + malus * *v / MAX_HISTORY;
     }
 }
