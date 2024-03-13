@@ -6,7 +6,7 @@ use crate::types::{Move, MAX_PLY};
 /// See [Killer Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
 /// for more information.
 pub struct KillerMoves {
-    table: [[Move; 2]; MAX_PLY],
+    table: [[Move; 2]; MAX_PLY + 1],
 }
 
 impl KillerMoves {
@@ -20,12 +20,18 @@ impl KillerMoves {
     pub fn contains(&self, mv: Move, ply: usize) -> bool {
         self.table[ply][0] == mv || self.table[ply][1] == mv
     }
+
+    /// Clears the killer moves for the specified ply.
+    pub fn clear(&mut self, ply: usize) {
+        self.table[ply][0] = Move::NULL;
+        self.table[ply][1] = Move::NULL;
+    }
 }
 
 impl Default for KillerMoves {
     fn default() -> Self {
         Self {
-            table: [[Move::NULL; 2]; MAX_PLY],
+            table: [[Move::NULL; 2]; MAX_PLY + 1],
         }
     }
 }
