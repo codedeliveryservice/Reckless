@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     board::Board,
-    search::{SearchResult, Searcher},
+    search::{self, Options, SearchResult},
     tables::{History, TranspositionTable},
     timeman::Limits,
     tools::datagen::random::Random,
@@ -18,6 +18,8 @@ use crate::{
 
 mod position;
 mod random;
+
+const SEARCH_OPTIONS: Options = Options { silent: true, threads: 1 };
 
 const REPORT_INTERVAL: Duration = Duration::from_secs(30);
 const BUFFER_SIZE: usize = 128 * 1024;
@@ -128,11 +130,8 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let mut entries = Vec::new();
 
     loop {
-        let mut searcher = Searcher::new(GENERATION_LIMITS, &mut board, &mut history, &mut tt);
-        searcher.silent(true);
-
-        let entry = searcher.run();
-        let SearchResult { best_move, score } = entry;
+        let mut entry = search::start(SEARCH_OPTIONS, GENERATION_LIMITS, &mut board, &mut history, &mut tt);
+        let SearchResult { best_move, score, .. } = entry;
 
         // The score is so high that the game is already decided
         if score.abs() >= GENERATION_THRESHOLD {
@@ -185,9 +184,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
 fn validation_score(board: &mut Board) -> i32 {
     let mut history = History::new();
     let mut tt = TranspositionTable::default();
-    let mut searcher = Searcher::new(VALIDATION_LIMITS, board, &mut history, &mut tt);
-    searcher.silent(true);
-    searcher.run().score
+    search::start(SEARCH_OPTIONS, VALIDATION_LIMITS, board, &mut history, &mut tt).score
 }
 
 /// Generates all legal moves for the given board.
