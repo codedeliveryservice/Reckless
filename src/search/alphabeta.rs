@@ -182,9 +182,12 @@ impl super::Searcher<'_> {
             return false;
         }
 
-        if self.nodes >= self.time_manager.max_nodes() || (self.nodes % POLL_INTERVAL == 0 && self.time_manager.is_hard_bound_reached()) {
+        if self.nodes >= self.time_manager.max_nodes()
+            || self.nodes % POLL_INTERVAL == 0 && (self.time_manager.is_hard_bound_reached() || self.load_abort_signal())
+        {
             self.stopped = true;
         }
+
         self.stopped
     }
 

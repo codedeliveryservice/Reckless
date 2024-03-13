@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    search::Searcher,
+    search::{self, Options},
     tables::{History, TranspositionTable},
     timeman::Limits,
     tools,
@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub fn message_loop() {
+    let mut threads = 1;
     let mut board = Board::starting_position();
     let mut history = History::new();
     let mut tt = TranspositionTable::default();
@@ -19,9 +20,9 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut board, &mut history, &mut tt, tokens),
+            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &mut tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut tt, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
             ["ucinewgame"] => reset(&mut board, &mut history, &mut tt),
 
             ["quit"] => std::process::exit(0),
@@ -41,6 +42,7 @@ fn uci() {
 
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 65536");
+    println!("option name Threads type spin default 1 min 1 max 256");
     println!("option name Clear Hash type button");
     println!("uciok");
 }
@@ -51,9 +53,9 @@ fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTa
     tt.clear();
 }
 
-fn go(board: &mut Board, history: &mut History, tt: &mut TranspositionTable, tokens: &[&str]) {
+fn go(threads: usize, board: &mut Board, history: &mut History, tt: &mut TranspositionTable, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    Searcher::new(limits, board, history, tt).run();
+    search::start(Options { threads, silent: false }, limits, board, history, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
@@ -89,10 +91,11 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(tt: &mut TranspositionTable, tokens: &[&str]) {
+fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str]) {
     match tokens {
         ["name", "Clear", "Hash"] => tt.clear(),
         ["name", "Hash", "value", v] => tt.resize(v.parse().unwrap()),
+        ["name", "Threads", "value", v] => *threads = v.parse().unwrap(),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
 }

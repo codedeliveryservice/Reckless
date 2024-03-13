@@ -15,6 +15,7 @@ impl super::Searcher<'_> {
         let mut result = SearchResult {
             best_move: Move::NULL,
             score: Score::INVALID,
+            nodes: 0,
         };
 
         for depth in 1..=self.time_manager.max_depth() {
@@ -28,8 +29,9 @@ impl super::Searcher<'_> {
                 self.report_search_result(depth, score, stopwatch);
             }
 
-            result.best_move = self.tt.read(self.board.hash(), 0).unwrap().mv;
+            result.best_move = self.pv_table.get_best_move();
             result.score = score;
+            result.nodes = self.nodes;
 
             self.sel_depth = 0;
             self.finished_depth = depth;
