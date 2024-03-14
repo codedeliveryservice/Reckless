@@ -52,7 +52,12 @@ impl super::Searcher<'_> {
             depth -= 1;
         }
 
-        let eval = entry.map_or_else(|| self.board.evaluate(), |entry| entry.score);
+        let eval = match entry {
+            Some(entry) => entry.score,
+            None if in_check => -Score::INFINITY,
+            None => self.board.evaluate(),
+        };
+
         let improving = !in_check && self.board.ply > 1 && eval > self.eval_stack[self.board.ply - 2];
 
         self.eval_stack[self.board.ply] = eval;
