@@ -19,7 +19,7 @@ impl super::Searcher<'_> {
         // Draw detection, excluding the root node to ensure a valid move is returned
         if !ROOT && self.board.is_draw() {
             // Use a little randomness to avoid 3-fold repetition blindness
-            return -1 + (self.nodes as i32 & 0x2);
+            return -1 + (self.nodes.local() as i32 & 0x2);
         }
 
         // Prevent overflows
@@ -35,7 +35,7 @@ impl super::Searcher<'_> {
         }
 
         // Update UCI statistics after the quiescence search to avoid counting the same node twice
-        self.nodes += 1;
+        self.nodes.inc();
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Transposition table lookup and potential cutoff
@@ -108,7 +108,7 @@ impl super::Searcher<'_> {
             // Check extensions. Extend the search depth due to low branching
             // and the possibility of being in a forced sequence of moves
             let new_depth = depth + i32::from(in_check);
-            let nodes_before = self.nodes;
+            let nodes_before = self.nodes.local();
 
             let score = if moves_played == 0 {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth - 1)
@@ -121,7 +121,7 @@ impl super::Searcher<'_> {
             moves_played += 1;
 
             if ROOT {
-                self.node_table.add(mv, self.nodes - nodes_before);
+                self.node_table.add(mv, self.nodes.local() - nodes_before);
             }
 
             // Early return to prevent processing potentially corrupted search results
@@ -191,8 +191,8 @@ impl super::Searcher<'_> {
             return false;
         }
 
-        if self.nodes >= self.time_manager.max_nodes()
-            || self.nodes % POLL_INTERVAL == 0 && (self.time_manager.is_hard_bound_reached() || self.load_abort_signal())
+        if self.nodes.local() >= self.time_manager.max_nodes()
+            || self.nodes.local() % POLL_INTERVAL == 0 && (self.time_manager.is_hard_bound_reached() || self.load_abort_signal())
         {
             self.stopped = true;
         }

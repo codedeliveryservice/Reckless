@@ -1,8 +1,9 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     thread,
 };
 
+use self::counter::NodeCounter;
 use crate::{
     board::Board,
     tables::{CounterMoves, History, KillerMoves, NodeTable, PrincipleVariationTable, TranspositionTable},
@@ -12,11 +13,13 @@ use crate::{
 
 mod alphabeta;
 mod aspiration;
+mod counter;
 mod deepening;
 mod ordering;
 mod quiescence;
 mod selectivity;
 
+static NODES_GLOBAL: AtomicU64 = AtomicU64::new(0);
 static ABORT_SIGNAL: AtomicBool = AtomicBool::new(false);
 
 pub struct Options {
@@ -25,6 +28,7 @@ pub struct Options {
 }
 
 pub fn start(options: Options, limits: Limits, board: &mut Board, history: &mut History, tt: &TranspositionTable) -> SearchResult {
+    NODES_GLOBAL.store(0, Ordering::Relaxed);
     ABORT_SIGNAL.store(false, Ordering::Relaxed);
 
     thread::scope(|scope| {
@@ -77,8 +81,8 @@ struct Searcher<'a> {
     finished_depth: i32,
     sel_depth: usize,
     stopped: bool,
-    nodes: u64,
     silent: bool,
+    nodes: NodeCounter<'a>,
     abort_signal: &'a AtomicBool,
 }
 
@@ -98,8 +102,8 @@ impl<'a> Searcher<'a> {
             finished_depth: Default::default(),
             sel_depth: Default::default(),
             stopped: Default::default(),
-            nodes: Default::default(),
             silent: Default::default(),
+            nodes: NodeCounter::new(&NODES_GLOBAL),
             abort_signal: &ABORT_SIGNAL,
         }
     }
