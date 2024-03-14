@@ -171,11 +171,6 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
-    /// Returns the last move in the move stack.
-    pub fn last_move(&self) -> FullMove {
-        self.tail_move(1)
-    }
-
     /// Returns the move at the specified index from the tail of the move stack.
     /// E.g. `tail_move(1)` returns the last move made.
     pub fn tail_move(&self, index: usize) -> FullMove {
