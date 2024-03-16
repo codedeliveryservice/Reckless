@@ -31,12 +31,12 @@ impl super::Searcher<'_> {
 
             result.best_move = self.pv_table.get_best_move();
             result.score = score;
-            result.nodes = self.nodes;
+            result.nodes = self.nodes.global();
 
             self.sel_depth = 0;
             self.finished_depth = depth;
 
-            let effort = self.node_table.get(result.best_move) as f64 / self.nodes as f64;
+            let effort = self.node_table.get(result.best_move) as f64 / self.nodes.local() as f64;
             if self.time_manager.is_soft_bound_reached(depth, effort) {
                 break;
             }
@@ -50,7 +50,7 @@ impl super::Searcher<'_> {
 
     /// Reports the result of a search iteration using the `info` UCI command.
     fn report_search_result(&mut self, depth: i32, score: i32, stopwatch: Instant) {
-        let nps = self.nodes as f64 / stopwatch.elapsed().as_secs_f64();
+        let nps = self.nodes.global() as f64 / stopwatch.elapsed().as_secs_f64();
         let ms = stopwatch.elapsed().as_millis();
 
         let hashfull = self.tt.get_load_factor();
@@ -58,7 +58,7 @@ impl super::Searcher<'_> {
 
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
-            self.sel_depth, self.nodes,
+            self.sel_depth, self.nodes.global(),
         );
         self.pv_table.get_line().iter().for_each(|mv| print!(" {mv}"));
         println!();
