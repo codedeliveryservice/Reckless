@@ -1,5 +1,6 @@
 use crate::{
     board::Board,
+    tuning::*,
     types::{Color, FullMove, Move, Piece, Square},
 };
 
@@ -85,21 +86,16 @@ impl History {
 
 /// Returns the bonus for a move based on the depth of the search.
 fn bonus(depth: i32) -> i32 {
-    130 * depth.min(14) - 30
+    bonus_multiplier() * depth.min(bonus_max_depth()) + bonus_base()
 }
 
 /// Returns the malus for a move based on the depth of the search.
 fn malus(depth: i32) -> i32 {
-    180 * depth.min(9) + 20
+    malus_multiplier() * depth.min(malus_max_depth()) + malus_base()
 }
 
 /// Updates the score of an entry using a gravity function.
 fn update<const IS_GOOD: bool>(v: &mut i32, depth: i32) {
-    if IS_GOOD {
-        let bonus = bonus(depth);
-        *v += bonus - bonus * *v / MAX_HISTORY;
-    } else {
-        let malus = malus(depth);
-        *v -= malus + malus * *v / MAX_HISTORY;
-    }
+    let change = if IS_GOOD { bonus(depth) } else { -malus(depth) };
+    *v += change - change.abs() * *v / MAX_HISTORY;
 }

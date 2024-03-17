@@ -1,4 +1,7 @@
-use crate::types::{Move, Score};
+use crate::{
+    tuning::*,
+    types::{Move, Score},
+};
 
 const RFP_MARGIN: i32 = 75;
 const RFP_DEPTH: i32 = 7;
@@ -15,7 +18,6 @@ const LMR_MOVES_PLAYED: i32 = 3;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
 const LMR_DIVISOR: f64 = 2.25;
-const LMR_HISTORY_DIVISOR: f64 = 6200.0;
 
 const QLMP_DEPTH: i32 = 4;
 const QLMP_QUIETS_PLAYED: i32 = 3;
@@ -73,7 +75,7 @@ impl super::SearchThread<'_> {
                 // Use the logarithmic formula as a base
                 LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR
                 // Adjust reduction based on history heuristic
-                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR
+                - self.history.get_main(!self.board.side_to_move, mv) as f64 / lmr_history_divisor() as f64
             ) as i32;
 
             // Reduce PV nodes less

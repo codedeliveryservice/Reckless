@@ -3,7 +3,7 @@ use crate::{
     search::{self, Options},
     tables::{History, TranspositionTable},
     timeman::Limits,
-    tools,
+    tools, tuning,
     types::Color,
 };
 
@@ -40,10 +40,12 @@ pub fn message_loop() {
 fn uci() {
     use crate::tables::DEFAULT_TT_SIZE;
 
+    tuning::print_parameters();
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 65536");
     println!("option name Threads type spin default 1 min 1 max 256");
     println!("option name Clear Hash type button");
+    tuning::print_options();
     println!("uciok");
 }
 
@@ -96,6 +98,7 @@ fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str])
         ["name", "Clear", "Hash"] => tt.clear(),
         ["name", "Hash", "value", v] => tt.resize(v.parse().unwrap()),
         ["name", "Threads", "value", v] => *threads = v.parse().unwrap(),
+        ["name", name, "value", v] => tuning::set_parameter(name, v.parse().unwrap()),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
 }

@@ -5,6 +5,7 @@ mod search;
 mod tables;
 mod timeman;
 mod tools;
+mod tuning;
 mod types;
 mod uci;
 
