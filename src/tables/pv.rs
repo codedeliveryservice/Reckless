@@ -10,7 +10,7 @@ pub struct PrincipleVariationTable {
 
 impl PrincipleVariationTable {
     /// Returns the best move found during the search.
-    /// 
+    ///
     /// This method should only be called after a search has been performed.
     pub fn get_best_move(&self) -> Move {
         self.table[0][0]
