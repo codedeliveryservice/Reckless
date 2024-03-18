@@ -24,7 +24,7 @@ const FUTILITY_DEPTH: i32 = 5;
 const FUTILITY_MARGIN: i32 = 119;
 const FUTILITY_FIXED_MARGIN: i32 = 42;
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     /// If the static evaluation of the position is significantly higher than beta
     /// at low depths, it's likely to be good enough to cause a beta cutoff.
     pub fn reverse_futility_pruning(&self, depth: i32, beta: i32, eval: i32, improving: bool) -> Option<i32> {
@@ -68,13 +68,18 @@ impl super::Searcher<'_> {
     /// Calculates the Late Move Reduction (LMR) for a given move.
     pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
+            // Use the logarithmic formula as a base
             let mut reduction = (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32;
+
             // Adjust reduction based on history heuristic
             reduction -= self.history.get_main(!self.board.side_to_move, mv) / LMR_HISTORY_DIVISOR;
+
             // Reduce PV nodes less
             reduction -= i32::from(PV);
+
             // Reduce checks less
             reduction -= i32::from(self.board.is_in_check());
+
             // Avoid negative reductions
             reduction.clamp(0, depth)
         } else {

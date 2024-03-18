@@ -1,6 +1,6 @@
 use crate::types::{FullMove, Move, MoveList, Piece, MAX_MOVES};
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     const TT_MOVE: i32 = 300_000_000;
     const MVV_LVA: i32 = 200_000_000;
     const KILLERS: i32 = 100_000_000;
@@ -16,7 +16,7 @@ impl super::Searcher<'_> {
     }
 
     /// Returns the rating of the specified move.
-    fn get_move_rating(&self, mv: Move, tt_move: Option<Move>, continuations: &[FullMove]) -> i32 {
+    fn get_move_rating(&self, mv: Move, tt_move: Option<Move>, continuations: &[FullMove; 2]) -> i32 {
         if Some(mv) == tt_move {
             return Self::TT_MOVE;
         }
@@ -28,12 +28,9 @@ impl super::Searcher<'_> {
         }
 
         let piece = self.board.get_piece(mv.start()).unwrap();
-
-        let mut score = self.history.get_main(self.board.side_to_move, mv);
-        for (kind, &previous) in continuations.into_iter().enumerate() {
-            score += self.history.get_continuation(kind, previous, piece, mv);
-        }
-        score
+        self.history.get_main(self.board.side_to_move, mv)
+            + self.history.get_continuation(0, continuations[0], piece, mv)
+            + self.history.get_continuation(1, continuations[1], piece, mv)
     }
 
     /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.

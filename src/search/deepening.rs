@@ -3,7 +3,7 @@ use std::time::Instant;
 use super::SearchResult;
 use crate::types::{Move, Score};
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     /// Incrementally explores deeper levels of the game tree using iterative deepening.
     ///
     /// The iterative deepening algorithm is a strategy that involves doing a series of depth-limited
