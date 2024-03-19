@@ -15,7 +15,7 @@ const LMR_MOVES_PLAYED: i32 = 3;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
 const LMR_DIVISOR: f64 = 2.25;
-const LMR_HISTORY_DIVISOR: i32 = 6400;
+const LMR_HISTORY_DIVISOR: f64 = 6400.0;
 
 const QLMP_DEPTH: i32 = 4;
 const QLMP_QUIETS_PLAYED: i32 = 3;
@@ -68,13 +68,20 @@ impl super::Searcher<'_> {
     /// Calculates the Late Move Reduction (LMR) for a given move.
     pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
-            let mut reduction = (LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR) as i32;
-            // Adjust reduction based on history heuristic
-            reduction -= self.history.get_main(!self.board.side_to_move, mv) / LMR_HISTORY_DIVISOR;
+            // Fractional reductions
+            let mut reduction = (
+                // Use the logarithmic formula as a base
+                LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR
+                // Adjust reduction based on history heuristic
+                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR
+            ) as i32;
+
             // Reduce PV nodes less
             reduction -= i32::from(PV);
+
             // Reduce checks less
             reduction -= i32::from(self.board.is_in_check());
+
             // Avoid negative reductions
             reduction.clamp(0, depth)
         } else {
