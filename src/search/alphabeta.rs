@@ -6,7 +6,7 @@ use crate::{
 
 const IIR_DEPTH: i32 = 4;
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
     pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
         self.pv_table.clear(self.board.ply);
@@ -154,7 +154,7 @@ impl super::Searcher<'_> {
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
-        if bound == Bound::Lower {
+        if bound == Bound::Lower && best_move.is_quiet() {
             self.update_ordering_heuristics(depth, best_move, quiets);
         }
 
@@ -202,10 +202,6 @@ impl super::Searcher<'_> {
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
-        if !best_move.is_quiet() {
-            return;
-        }
-
         self.killers.add(best_move, self.board.ply);
 
         self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);

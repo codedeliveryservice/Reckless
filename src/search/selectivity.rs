@@ -24,7 +24,7 @@ const FUTILITY_DEPTH: i32 = 5;
 const FUTILITY_MARGIN: i32 = 119;
 const FUTILITY_FIXED_MARGIN: i32 = 42;
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     /// If the static evaluation of the position is significantly higher than beta
     /// at low depths, it's likely to be good enough to cause a beta cutoff.
     pub fn reverse_futility_pruning(&self, depth: i32, beta: i32, eval: i32, improving: bool) -> Option<i32> {

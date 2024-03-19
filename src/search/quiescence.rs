@@ -7,7 +7,7 @@ use crate::{
 
 const PIECE_VALUES: [i32; 5] = [364, 680, 738, 1082, 2654];
 
-impl super::Searcher<'_> {
+impl super::SearchThread<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
     /// This minimizes the horizon effect for volatile positions, ensuring that threats
     /// and opportunities extending beyond the fixed search depth are not overlooked.
