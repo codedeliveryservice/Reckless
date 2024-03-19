@@ -166,19 +166,22 @@ impl super::Searcher<'_> {
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
     fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: i32, reduction: i32, best_score: i32) -> i32 {
+        let mut new_depth = depth - 1;
+
         // Null window search with possible late move reduction
-        let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth - reduction - 1);
+        let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth - reduction);
 
         // If the search fails and reduction applied, re-search with full depth
         if alpha < score && reduction > 0 {
             // Adjust the search depth based on results of the LMR search
-            let extension = i32::from(score > best_score + DEEPER_SEARCH_MARGIN);
-            score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, depth + extension - 1);
+            new_depth += i32::from(score > best_score + DEEPER_SEARCH_MARGIN);
+
+            score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
         }
 
         // If the search fails again, proceed to a full window search with full depth
         if alpha < score && score < beta {
-            score = -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1);
+            score = -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth);
         }
 
         score
