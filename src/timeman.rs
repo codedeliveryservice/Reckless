@@ -8,8 +8,8 @@ pub enum Limits {
     FixedDepth(i32),
     FixedTime(u64),
     FixedNodes(u64),
-    Incremental(u64, u64),
-    Tournament(u64, u64, u64),
+    Fischer(u64, u64),
+    Cyclic(u64, u64, u64),
 }
 
 const NODE_TM_DEPTH_MARGIN: i32 = 10;
@@ -21,8 +21,8 @@ const SOFT_BOUND: u64 = 40;
 
 const INCREMENT_MULT: f64 = 0.75;
 
-const TOURNAMENT_SOFT_MULT: f64 = 1.0;
-const TOURNAMENT_HARD_MULT: f64 = 5.0;
+const CYCLIC_SOFT_MULT: f64 = 1.0;
+const CYCLIC_HARD_MULT: f64 = 5.0;
 
 const MAX_DEPTH: i32 = MAX_PLY as i32;
 const MIN_NODES: u64 = 1024;
@@ -79,15 +79,15 @@ impl TimeManager {
 fn calculate_time_ms(limits: &Limits) -> (u64, u64) {
     match *limits {
         Limits::FixedTime(ms) => (ms, ms),
-        Limits::Incremental(main, inc) => {
+        Limits::Fischer(main, inc) => {
             let time = (main + inc).saturating_sub(TIME_OVERHEAD_MS);
             (time / SOFT_BOUND, time / HARD_BOUND)
         }
-        Limits::Tournament(main, inc, moves) => {
+        Limits::Cyclic(main, inc, moves) => {
             let base = (main as f64 / moves as f64) + INCREMENT_MULT * inc as f64;
 
-            let soft = (TOURNAMENT_SOFT_MULT * base) as u64;
-            let hard = (TOURNAMENT_HARD_MULT * base) as u64;
+            let soft = (CYCLIC_SOFT_MULT * base) as u64;
+            let hard = (CYCLIC_HARD_MULT * base) as u64;
 
             let soft = soft.min(main + inc).saturating_sub(TIME_OVERHEAD_MS);
             let hard = hard.min(main + inc).saturating_sub(TIME_OVERHEAD_MS);
