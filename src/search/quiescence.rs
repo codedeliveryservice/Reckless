@@ -5,7 +5,7 @@ use crate::{
     types::{Move, Piece, Score, MAX_PLY},
 };
 
-const PIECE_VALUES: [i32; 5] = [364, 680, 738, 1082, 2654];
+const PIECE_VALUES: [i32; 5] = [400, 750, 800, 1200, 1900];
 
 impl super::SearchThread<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
