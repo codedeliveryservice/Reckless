@@ -28,10 +28,11 @@ combines established concepts, as the name suggests.
 
 -   Fail-Soft Alpha-Beta
 -   Principle Variation Search
+-   Quiescence Search
 -   Iterative Deepening
 -   Aspiration Windows
--   Transposition Table
--   Quiescence Search
+-   Lockless Transposition Table
+-   Lazy SMP (Shared-Memory Parallel)
 
 ### Selectivity
 
@@ -46,7 +47,7 @@ combines established concepts, as the name suggests.
 
 #### Reductions
 
--   Late Move Reductions
+-   Fractional Late Move Reductions
 -   Internal Iterative Reductions
 
 #### Extensions
@@ -58,7 +59,6 @@ combines established concepts, as the name suggests.
 -   Hash Move
 -   MVV-LVA
 -   Killer Move Heuristic
--   Counter Move Heuristic
 -   History Heuristic
     -   Butterfly History
     -   Counter Move History
@@ -71,6 +71,7 @@ combines established concepts, as the name suggests.
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
 -   Quantization: `i16` (`256`/`64`)
 -   Trained on original data generated entirely through self-play
+-   Handwritten SIMD for AVX2 instructions
 
 ## Rating
 
@@ -144,11 +145,6 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 
 [perft]: https://www.chessprogramming.org/Perft
 [bench]: /src/tools/bench.rs
-
-## Contributing
-
-Contributions are welcome! If you encounter issues or have suggestions for improvements,
-please open an issue or submit a pull request.
 
 ## Acknowledgements
 
