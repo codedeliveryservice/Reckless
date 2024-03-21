@@ -130,7 +130,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let mut entries = Vec::new();
 
     loop {
-        let mut entry = search::start(SEARCH_OPTIONS, GENERATION_LIMITS, &mut board, &mut history, &mut tt);
+        let entry = search::start(SEARCH_OPTIONS, GENERATION_LIMITS, &mut board, &mut history, &mut tt);
         let SearchResult { best_move, score, .. } = entry;
 
         // The score is so high that the game is already decided
