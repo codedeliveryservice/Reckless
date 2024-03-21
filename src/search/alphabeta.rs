@@ -63,6 +63,9 @@ impl super::SearchThread<'_> {
 
         self.eval_stack[self.board.ply] = eval;
 
+        // Reset the killer moves for child nodes
+        self.killers.clear(self.board.ply + 1);
+
         // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
             if let Some(score) = self.reverse_futility_pruning(depth, beta, eval, improving) {
@@ -75,9 +78,6 @@ impl super::SearchThread<'_> {
                 return score;
             }
         }
-
-        // Reset the killer moves for child nodes
-        self.killers.clear(self.board.ply + 1);
 
         let original_alpha = alpha;
         let mut best_score = -Score::INFINITY;
