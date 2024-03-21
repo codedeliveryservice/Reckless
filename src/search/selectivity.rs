@@ -1,6 +1,6 @@
 use crate::types::{Move, Score};
 
-const RFP_MARGIN: i32 = 67;
+const RFP_MARGIN: i32 = 75;
 const RFP_DEPTH: i32 = 7;
 
 const NMP_DEPTH: i32 = 3;
@@ -8,8 +8,8 @@ const NMP_REDUCTION: i32 = 3;
 const NMP_DIVISOR: i32 = 4;
 
 const RAZORING_DEPTH: i32 = 4;
-const RAZORING_MARGIN: i32 = 201;
-const RAZORING_FIXED_MARGIN: i32 = 123;
+const RAZORING_MARGIN: i32 = 220;
+const RAZORING_FIXED_MARGIN: i32 = 135;
 
 const LMR_MOVES_PLAYED: i32 = 3;
 const LMR_DEPTH: i32 = 3;
@@ -21,8 +21,8 @@ const QLMP_DEPTH: i32 = 4;
 const QLMP_QUIETS_PLAYED: i32 = 3;
 
 const FUTILITY_DEPTH: i32 = 5;
-const FUTILITY_MARGIN: i32 = 119;
-const FUTILITY_FIXED_MARGIN: i32 = 42;
+const FUTILITY_MARGIN: i32 = 130;
+const FUTILITY_FIXED_MARGIN: i32 = 45;
 
 impl super::SearchThread<'_> {
     /// If the static evaluation of the position is significantly higher than beta

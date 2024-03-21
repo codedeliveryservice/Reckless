@@ -5,7 +5,7 @@ mod simd;
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 128;
 
-const EVAL_SCALE: i32 = 200;
+const EVAL_SCALE: i32 = 400;
 const L0_SCALE: i32 = 256;
 const L1_SCALE: i32 = 64;
 
