@@ -48,6 +48,8 @@ impl super::SearchThread<'_> {
             return eval;
         }
 
+        let last_target = self.board.tail_move(1).target();
+
         let mut best_move = Move::NULL;
         let mut best_score = eval;
 
@@ -59,9 +61,9 @@ impl super::SearchThread<'_> {
                 continue;
             }
 
-            // Delta pruning
+            // Futility pruning
             #[cfg(not(feature = "datagen"))]
-            if eval + self.maximum_gain(mv) < alpha && best_score > -Score::MATE_BOUND {
+            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.maximum_gain(mv) < alpha {
                 break;
             }
 
