@@ -26,13 +26,13 @@ const BUFFER_SIZE: usize = 128 * 1024;
 
 const RANDOM_PLIES: usize = 10;
 const VALIDATION_THRESHOLD: i32 = 400;
-const GENERATION_THRESHOLD: i32 = 2000;
+const GENERATION_THRESHOLD: i32 = 2400;
 
 const WRITE_MIN_PLY: usize = 16;
 const WRITE_MAX_PLY: usize = 400;
 
 const VALIDATION_LIMITS: Limits = Limits::FixedDepth(10);
-const GENERATION_LIMITS: Limits = Limits::FixedNodes(5000);
+const GENERATION_LIMITS: Limits = Limits::FixedNodes(7500);
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);
