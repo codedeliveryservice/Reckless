@@ -3,7 +3,7 @@ use crate::{
     types::{Bitboard, Color, Move, Piece, Square},
 };
 
-const PIECE_VALUES: [i32; Piece::NUM] = [100, 300, 300, 500, 900, 0];
+const PIECE_VALUES: [i32; Piece::NUM] = [100, 400, 400, 650, 1200, 0];
 
 impl super::SearchThread<'_> {
     /// Returns `true` if the static exchange evaluation of the given move
