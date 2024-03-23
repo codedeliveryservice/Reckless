@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, Not};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
 
 use super::{Rank, Square};
 
@@ -49,13 +49,18 @@ impl Bitboard {
         self.0 &= !(1 << square as u64);
     }
 
+    /// Returns the least significant set bit in the bitboard.
+    pub fn lsb(self) -> Square {
+        Square::new(self.0.trailing_zeros() as u8)
+    }
+
     /// Pops and returns the least significant set bit in the bitboard.
     ///
     /// `Square::None` is returned if the bitboard is empty.
     pub fn pop(&mut self) -> Square {
-        let lsb = self.0.trailing_zeros() as u8;
+        let lsb = self.lsb();
         self.0 &= self.0 - 1;
-        Square::new(lsb)
+        lsb
     }
 }
 
@@ -84,6 +89,18 @@ impl BitOr for Bitboard {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+}
+
+impl BitAndAssign for Bitboard {
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.0 &= rhs.0;
     }
 }
 
