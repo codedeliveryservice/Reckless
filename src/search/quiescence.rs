@@ -63,7 +63,10 @@ impl super::SearchThread<'_> {
 
             // Futility pruning
             #[cfg(not(feature = "datagen"))]
-            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.maximum_gain(mv) < alpha {
+            if best_score > -Score::MATE_BOUND
+                && mv.target() != last_target
+                && self.board.has_non_pawn_material()
+                && eval + self.maximum_gain(mv) < alpha {
                 break;
             }
 
