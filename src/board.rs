@@ -1,7 +1,7 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     nnue::Network,
-    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Square},
+    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Score, Square},
 };
 
 #[cfg(test)]
@@ -133,7 +133,9 @@ impl Board {
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        self.nnue.evaluate(self.side_to_move)
+        let eval = self.nnue.evaluate(self.side_to_move);
+        // Clamp static evaluation within mate bounds
+        eval.clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
