@@ -214,7 +214,7 @@ impl super::SearchThread<'_> {
         self.killers.add(best_move, self.board.ply);
 
         self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
-        self.history.update_continuation(self.board, best_move, &quiets, depth);
+        self.history.update_continuation(&self.board, best_move, &quiets, depth);
     }
 }
 
