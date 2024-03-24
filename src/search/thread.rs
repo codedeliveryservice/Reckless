@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use crate::{
     board::Board,
     tables::{History, NodeTable, PrincipleVariationTable, TranspositionTable},
@@ -42,15 +40,13 @@ pub struct SearchThread<'a> {
 
     /// Atomic counter for multi-threaded node counting.
     pub nodes: NodeCounter<'a>,
-    /// The main thread sends an abort signal to all search threads.
-    pub abort_signal: &'a AtomicBool,
 }
 
 impl<'a> SearchThread<'a> {
     /// Creates a new search thread instance.
     pub fn new(limits: Limits, board: Board, history: &'a mut History, tt: &'a TranspositionTable) -> Self {
         Self {
-            time_manager: TimeManager::new(limits),
+            time_manager: TimeManager::new(&ABORT_SIGNAL, limits),
             stopped: false,
             silent: false,
             board,
@@ -63,12 +59,7 @@ impl<'a> SearchThread<'a> {
             finished_depth: 0,
             sel_depth: 0,
             nodes: NodeCounter::new(&NODES_GLOBAL),
-            abort_signal: &ABORT_SIGNAL,
         }
-    }
-
-    pub fn load_abort_signal(&self) -> bool {
-        self.abort_signal.load(Ordering::Relaxed)
     }
 
     /// This is the main entry point for the search.

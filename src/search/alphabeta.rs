@@ -192,20 +192,14 @@ impl super::SearchThread<'_> {
 
     /// Checks if the search should be interrupted.
     fn should_interrupt_search(&mut self) -> bool {
-        // Avoid pulling the timer too often to reduce the system call overhead
-        const POLL_INTERVAL: u64 = 4096;
-
         // Finish at least one iteration to avoid returning a null move
         if self.finished_depth < 1 {
             return false;
         }
 
-        if self.nodes.local() >= self.time_manager.max_nodes()
-            || self.nodes.local() % POLL_INTERVAL == 0 && (self.time_manager.is_hard_bound_reached() || self.load_abort_signal())
-        {
+        if self.time_manager.is_time_up(self.nodes.local()) {
             self.stopped = true;
         }
-
         self.stopped
     }
 
