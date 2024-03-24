@@ -23,7 +23,7 @@ impl super::SearchThread<'_> {
         if mv.is_capture() {
             return self.mvv_lva(mv);
         }
-        if self.killers.contains(mv, self.board.ply) {
+        if self.killers[self.board.ply][0] == mv || self.killers[self.board.ply][1] == mv {
             return Self::KILLERS;
         }
 

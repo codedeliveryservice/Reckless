@@ -64,7 +64,7 @@ impl super::SearchThread<'_> {
         self.eval_stack[self.board.ply] = eval;
 
         // Reset the killer moves for child nodes
-        self.killers.clear(self.board.ply + 1);
+        self.killers[self.board.ply + 1] = [Move::NULL; 2];
 
         // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
@@ -211,7 +211,8 @@ impl super::SearchThread<'_> {
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
-        self.killers.add(best_move, self.board.ply);
+        self.killers[self.board.ply][1] = self.killers[self.board.ply][0];
+        self.killers[self.board.ply][0] = best_move;
 
         self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
         self.history.update_continuation(&self.board, best_move, &quiets, depth);
