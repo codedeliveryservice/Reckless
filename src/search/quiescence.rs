@@ -94,12 +94,16 @@ impl super::SearchThread<'_> {
 
     /// Returns the material gain of a move.
     fn maximum_gain(&mut self, mv: Move) -> i32 {
-        let piece = self.board.get_piece(mv.target());
+        if mv.is_en_passant() {
+            return PIECE_VALUES[Piece::Pawn];
+        }
 
-        if let Some(promo) = mv.get_promotion_piece() {
-            PIECE_VALUES[promo] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece.unwrap()]
+        let piece = self.board.piece_on(mv.target());
+
+        if let Some(promotion) = mv.get_promotion_piece() {
+            PIECE_VALUES[promotion] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece]
         } else {
-            PIECE_VALUES[piece.unwrap_or(Piece::Pawn)]
+            PIECE_VALUES[piece]
         }
     }
 }

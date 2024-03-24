@@ -59,7 +59,7 @@ impl History {
     }
 
     pub fn update_continuation(&mut self, board: &Board, current: Move, fails: &[Move], depth: i32) {
-        let piece = board.get_piece(current.start()).unwrap();
+        let piece = board.piece_on(current.start());
 
         for (kind, ply) in [1, 2].into_iter().enumerate() {
             let previous = board.tail_move(ply);
@@ -69,7 +69,7 @@ impl History {
 
             update::<true>(self.get_continuation_mut(kind, previous, piece, current), depth);
             for &fail in fails {
-                let piece = board.get_piece(fail.start()).unwrap();
+                let piece = board.piece_on(fail.start());
                 update::<false>(self.get_continuation_mut(kind, previous, piece, fail), depth);
             }
         }

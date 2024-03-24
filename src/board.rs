@@ -94,14 +94,14 @@ impl Board {
         self.pieces(piece) & self.them()
     }
 
-    /// Finds a piece on the specified `Square` and returns `Some(Piece)`, if found; otherwise `None`.
-    pub fn get_piece(&self, square: Square) -> Option<Piece> {
+    /// Finds a piece on the specified square, if found; otherwise, `Piece::None`.
+    pub fn piece_on(&self, square: Square) -> Piece {
         for index in 0..Piece::NUM {
             if self.state.pieces[index].contains(square) {
-                return Some(Piece::new(index));
+                return Piece::new(index);
             }
         }
-        None
+        Piece::None
     }
 
     /// Returns `true` if the current side to move has non-pawn material.
@@ -236,7 +236,7 @@ impl Board {
 
     /// Estimates the resulting Zobrist hash key after making the move.
     pub fn key_after(&self, mv: Move) -> u64 {
-        let piece = self.get_piece(mv.start()).unwrap();
+        let piece = self.piece_on(mv.start());
         let start = mv.start();
         let target = mv.target();
 
@@ -246,7 +246,7 @@ impl Board {
         key ^= ZOBRIST.pieces[self.side_to_move][piece][target];
 
         if mv.is_capture() && !mv.is_en_passant() {
-            let capture = self.get_piece(target).unwrap();
+            let capture = self.piece_on(target);
             key ^= ZOBRIST.pieces[!self.side_to_move][capture][target];
         }
 
