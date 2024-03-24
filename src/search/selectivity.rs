@@ -15,7 +15,7 @@ const LMR_MOVES_PLAYED: i32 = 3;
 const LMR_DEPTH: i32 = 3;
 const LMR_BASE: f64 = 0.75;
 const LMR_DIVISOR: f64 = 2.25;
-const LMR_HISTORY_DIVISOR: f64 = 6400.0;
+const LMR_HISTORY_DIVISOR: f64 = 6200.0;
 
 const QLMP_DEPTH: i32 = 4;
 const QLMP_QUIETS_PLAYED: i32 = 3;
