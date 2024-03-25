@@ -2,10 +2,8 @@ use std::cmp::max;
 
 use crate::{
     tables::{Bound, Entry},
-    types::{Move, Piece, Score, MAX_PLY},
+    types::{Move, Score, MAX_PLY},
 };
-
-const PIECE_VALUES: [i32; 5] = [400, 750, 800, 1200, 1900];
 
 impl super::SearchThread<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -61,9 +59,8 @@ impl super::SearchThread<'_> {
                 continue;
             }
 
-            // Futility pruning
             #[cfg(not(feature = "datagen"))]
-            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.maximum_gain(mv) < alpha {
+            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.move_value(mv) < alpha {
                 break;
             }
 
@@ -90,21 +87,6 @@ impl super::SearchThread<'_> {
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
         self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
         best_score
-    }
-
-    /// Returns the material gain of a move.
-    fn maximum_gain(&mut self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            return PIECE_VALUES[Piece::Pawn];
-        }
-
-        let piece = self.board.piece_on(mv.target());
-
-        if let Some(promotion) = mv.get_promotion_piece() {
-            PIECE_VALUES[promotion] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece]
-        } else {
-            PIECE_VALUES[piece]
-        }
     }
 }
 
