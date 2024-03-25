@@ -85,12 +85,12 @@ impl History {
 
 /// Returns the bonus for a move based on the depth of the search.
 fn bonus(depth: i32) -> i32 {
-    (150 * depth - 25).min(1780)
+    130 * depth.min(14) - 30
 }
 
 /// Returns the malus for a move based on the depth of the search.
 fn malus(depth: i32) -> i32 {
-    (160 * depth + 15).min(1800)
+    180 * depth.min(9) + 20
 }
 
 /// Updates the score of an entry using a gravity function.
