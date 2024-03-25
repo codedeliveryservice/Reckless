@@ -29,7 +29,7 @@ impl Board {
     pub fn make_move<const UPDATE_NNUE: bool>(&mut self, mv: Move) -> Result<(), IllegalMoveError> {
         let start = mv.start();
         let target = mv.target();
-        let piece = self.get_piece(start).unwrap();
+        let piece = self.piece_on(start);
 
         self.ply += 1;
         self.move_stack.push(FullMove::new(piece, mv));
@@ -53,8 +53,8 @@ impl Board {
             self.state.halfmove_clock += 1;
         }
 
-        if let Some(piece) = self.get_piece(target) {
-            self.remove_piece::<UPDATE_NNUE>(piece, !self.side_to_move, target);
+        if mv.is_capture() && !mv.is_en_passant() {
+            self.remove_piece::<UPDATE_NNUE>(self.piece_on(target), !self.side_to_move, target);
         }
 
         self.remove_piece::<UPDATE_NNUE>(piece, self.side_to_move, start);

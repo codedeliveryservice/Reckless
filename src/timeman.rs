@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, Instant},
+};
 
 use crate::types::MAX_PLY;
 
@@ -29,6 +32,7 @@ const CYCLIC_SOFT_MULT: f64 = 1.0;
 const CYCLIC_HARD_MULT: f64 = 5.0;
 
 pub struct TimeManager {
+    abort_signal: &'static AtomicBool,
     start_time: Instant,
     soft_bound: Duration,
     hard_bound: Duration,
@@ -37,9 +41,11 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    pub fn new(limits: Limits) -> Self {
-        let (soft, hard) = calculate_time_ms(&limits);
+    pub fn new(abort_signal: &'static AtomicBool, limits: Limits) -> Self {
+        let (soft, hard) = calculates_bounds(&limits);
+
         Self {
+            abort_signal,
             start_time: Instant::now(),
             soft_bound: Duration::from_millis(soft),
             hard_bound: Duration::from_millis(hard),
@@ -54,15 +60,14 @@ impl TimeManager {
         }
     }
 
-    pub const fn max_depth(&self) -> i32 {
-        self.max_depth
-    }
+    /// Checks if the search should be stopped due to reaching the maximum depth or time.
+    ///
+    /// This method is used as a soft limit at the end of an iteration of iterative deepening.
+    pub fn if_finished(&self, depth: i32, effort: f64) -> bool {
+        if depth >= self.max_depth {
+            return true;
+        }
 
-    pub const fn max_nodes(&self) -> u64 {
-        self.max_nodes
-    }
-
-    pub fn is_soft_bound_reached(&self, depth: i32, effort: f64) -> bool {
         let mut soft_bound = self.soft_bound.as_secs_f64();
 
         if depth >= NODE_TM_DEPTH_MARGIN {
@@ -72,12 +77,22 @@ impl TimeManager {
         self.start_time.elapsed() >= Duration::from_secs_f64(soft_bound)
     }
 
-    pub fn is_hard_bound_reached(&self) -> bool {
-        self.start_time.elapsed() >= self.hard_bound
+    /// Checks if the maximum allocated time or nodes have been reached.
+    pub fn is_time_up(&self, nodes: u64) -> bool {
+        if nodes >= self.max_nodes {
+            return true;
+        }
+
+        // Avoid pulling the timer too often to reduce the system call overhead
+        if nodes & 2047 != 2047 {
+            return false;
+        }
+
+        self.start_time.elapsed() >= self.hard_bound || self.abort_signal.load(Ordering::Relaxed)
     }
 }
 
-fn calculate_time_ms(limits: &Limits) -> (u64, u64) {
+fn calculates_bounds(limits: &Limits) -> (u64, u64) {
     match *limits {
         Limits::FixedTime(ms) => (ms, ms),
         Limits::Fischer(main, inc) => {

@@ -64,7 +64,7 @@ impl super::SearchThread<'_> {
         self.eval_stack[self.board.ply] = eval;
 
         // Reset the killer moves for child nodes
-        self.killers.clear(self.board.ply + 1);
+        self.killers[self.board.ply + 1] = [Move::NULL; 2];
 
         // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
@@ -192,29 +192,24 @@ impl super::SearchThread<'_> {
 
     /// Checks if the search should be interrupted.
     fn should_interrupt_search(&mut self) -> bool {
-        // Avoid pulling the timer too often to reduce the system call overhead
-        const POLL_INTERVAL: u64 = 4096;
-
         // Finish at least one iteration to avoid returning a null move
         if self.finished_depth < 1 {
             return false;
         }
 
-        if self.nodes.local() >= self.time_manager.max_nodes()
-            || self.nodes.local() % POLL_INTERVAL == 0 && (self.time_manager.is_hard_bound_reached() || self.load_abort_signal())
-        {
+        if self.time_manager.is_time_up(self.nodes.local()) {
             self.stopped = true;
         }
-
         self.stopped
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
-        self.killers.add(best_move, self.board.ply);
+        self.killers[self.board.ply][1] = self.killers[self.board.ply][0];
+        self.killers[self.board.ply][0] = best_move;
 
         self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
-        self.history.update_continuation(self.board, best_move, &quiets, depth);
+        self.history.update_continuation(&self.board, best_move, &quiets, depth);
     }
 }
 

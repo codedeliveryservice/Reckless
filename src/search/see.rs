@@ -21,7 +21,7 @@ impl super::SearchThread<'_> {
         // The worst case is losing our piece
         balance -= match mv.get_promotion_piece() {
             Some(promotion) => PIECE_VALUES[promotion],
-            None => PIECE_VALUES[self.board.get_piece(mv.start()).unwrap()],
+            None => PIECE_VALUES[self.board.piece_on(mv.start())],
         };
 
         // The worst case is still winning
@@ -82,7 +82,7 @@ impl super::SearchThread<'_> {
             return PIECE_VALUES[Piece::Pawn];
         }
 
-        let capture = self.board.get_piece(mv.target()).unwrap();
+        let capture = self.board.piece_on(mv.target());
         PIECE_VALUES[capture]
     }
 

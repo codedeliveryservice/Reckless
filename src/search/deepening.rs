@@ -18,7 +18,7 @@ impl super::SearchThread<'_> {
             nodes: 0,
         };
 
-        for depth in 1..=self.time_manager.max_depth() {
+        for depth in 1.. {
             let score = self.aspiration_search(result.score, depth);
 
             if self.stopped {
@@ -37,7 +37,7 @@ impl super::SearchThread<'_> {
             self.finished_depth = depth;
 
             let effort = self.node_table.get(result.best_move) as f64 / self.nodes.local() as f64;
-            if self.time_manager.is_soft_bound_reached(depth, effort) {
+            if self.time_manager.if_finished(depth, effort) {
                 break;
             }
         }

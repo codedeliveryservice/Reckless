@@ -34,7 +34,7 @@ pub struct SearchResult {
     pub nodes: u64,
 }
 
-pub fn start(options: Options, limits: Limits, board: &mut Board, history: &mut History, tt: &TranspositionTable) -> SearchResult {
+pub fn start(options: Options, limits: Limits, board: Board, tt: &TranspositionTable, history: &mut History) -> SearchResult {
     NODES_GLOBAL.store(0, Ordering::Relaxed);
     ABORT_SIGNAL.store(false, Ordering::Relaxed);
 
@@ -42,11 +42,11 @@ pub fn start(options: Options, limits: Limits, board: &mut Board, history: &mut 
         let mut threads = Vec::new();
 
         for _ in 0..(options.threads - 1) {
-            let mut board = board.clone();
+            let board = board.clone();
             let mut history = history.clone();
 
             let thread = scope.spawn(move || {
-                let mut searcher = SearchThread::new(Limits::Infinite, &mut board, &mut history, tt);
+                let mut searcher = SearchThread::new(Limits::Infinite, board, &mut history, tt);
                 searcher.silent = true;
                 searcher.run()
             });
