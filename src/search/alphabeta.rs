@@ -79,6 +79,10 @@ impl super::SearchThread<'_> {
             }
         }
 
+        // Check extensions. Extend the search depth due to low branching
+        // and the possibility of being in a forced sequence of moves
+        depth += i32::from(in_check);
+
         let original_alpha = alpha;
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::NULL;
@@ -109,16 +113,13 @@ impl super::SearchThread<'_> {
                 continue;
             }
 
-            // Check extensions. Extend the search depth due to low branching
-            // and the possibility of being in a forced sequence of moves
-            let new_depth = depth + i32::from(in_check);
             let nodes_before = self.nodes.local();
 
             let score = if moves_played == 0 {
-                -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth - 1)
+                -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
                 let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
-                self.principle_variation_search::<PV>(alpha, beta, new_depth, reduction, best_score)
+                self.principle_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
             };
 
             self.board.undo_move::<true>();
