@@ -60,7 +60,7 @@ impl super::SearchThread<'_> {
             }
 
             #[cfg(not(feature = "datagen"))]
-            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.move_value(mv) < alpha {
+            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + 200 + self.move_value(mv) < alpha {
                 continue;
             }
 
