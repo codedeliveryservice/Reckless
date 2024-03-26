@@ -49,7 +49,8 @@ impl super::SearchThread<'_> {
 
         // Internal Iterative Reductions. If no hash move is found in the TT, reduce the search depth
         // to counter a potentially poor move ordering that could slow down the search on higher depths
-        if entry.is_none() && depth >= IIR_DEPTH {
+        let tt_move = entry.map(|entry| entry.mv).unwrap_or(Move::NULL);
+        if tt_move == Move::NULL && depth >= IIR_DEPTH {
             depth -= 1;
         }
 
