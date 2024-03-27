@@ -95,11 +95,6 @@ fn malus(depth: i32) -> i32 {
 
 /// Updates the score of an entry using a gravity function.
 fn update<const IS_GOOD: bool>(v: &mut i32, depth: i32) {
-    if IS_GOOD {
-        let bonus = bonus(depth);
-        *v += bonus - bonus * *v / MAX_HISTORY;
-    } else {
-        let malus = malus(depth);
-        *v -= malus + malus * *v / MAX_HISTORY;
-    }
+    let change = if IS_GOOD { bonus(depth) } else { -malus(depth) };
+    *v += change - change.abs() * *v / MAX_HISTORY;
 }
