@@ -59,7 +59,7 @@ impl TimeManager {
                 Limits::FixedNodes(nodes) => nodes.max(MIN_NODES),
                 _ => u64::MAX,
             },
-            stability: 0,
+            stability: 1,
             last_best_move: None,
         }
     }
@@ -75,7 +75,7 @@ impl TimeManager {
             self.stability += 1;
         } else {
             self.last_best_move = Some(best_move);
-            self.stability = 0;
+            self.stability = 1;
         }
     }
 
@@ -94,7 +94,7 @@ impl TimeManager {
             soft_bound *= (1.5 - effort) * NODE_TM_MULTIPLIER;
 
             // Adjust based on stability of the best move between iterations
-            soft_bound *= 0.75 + 0.75 / self.stability.min(6) as f64;
+            soft_bound *= 0.75 + 0.75 / self.stability.min(7) as f64;
         }
 
         self.start_time.elapsed() >= Duration::from_secs_f64(soft_bound)
