@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::types::MAX_PLY;
+use crate::types::{Move, MAX_PLY};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Limits {
@@ -38,6 +38,8 @@ pub struct TimeManager {
     hard_bound: Duration,
     max_depth: i32,
     max_nodes: u64,
+    stability: usize,
+    last_best_move: Option<Move>,
 }
 
 impl TimeManager {
@@ -57,6 +59,23 @@ impl TimeManager {
                 Limits::FixedNodes(nodes) => nodes.max(MIN_NODES),
                 _ => u64::MAX,
             },
+            stability: 0,
+            last_best_move: None,
+        }
+    }
+
+    /// Informs the time manager that a search iteration has finished.
+    pub fn update(&mut self, depth: i32, best_move: Move) {
+        // The results of the first few iterations are not reliable
+        if depth < NODE_TM_DEPTH_MARGIN {
+            return;
+        }
+
+        if self.last_best_move == Some(best_move) {
+            self.stability += 1;
+        } else {
+            self.last_best_move = Some(best_move);
+            self.stability = 0;
         }
     }
 
@@ -71,7 +90,11 @@ impl TimeManager {
         let mut soft_bound = self.soft_bound.as_secs_f64();
 
         if depth >= NODE_TM_DEPTH_MARGIN {
+            // Adjust based on distribution of root nodes
             soft_bound *= (1.5 - effort) * NODE_TM_MULTIPLIER;
+
+            // Adjust based on stability of the best move between iterations
+            soft_bound *= 0.75 + 0.75 / self.stability.min(6) as f64;
         }
 
         self.start_time.elapsed() >= Duration::from_secs_f64(soft_bound)
