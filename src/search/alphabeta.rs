@@ -35,6 +35,8 @@ impl super::SearchThread<'_> {
             return self.quiescence_search(alpha, beta);
         }
 
+        depth = depth.max(0);
+
         // Update UCI statistics after the quiescence search to avoid counting the same node twice
         self.nodes.inc();
         self.sel_depth = self.sel_depth.max(self.board.ply);
