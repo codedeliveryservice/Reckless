@@ -9,7 +9,7 @@ impl super::SearchThread<'_> {
     /// Returns `true` if the static exchange evaluation of the given move
     /// is greater than the given threshold. It means that the sequence of
     /// captures starting with the given move is winning for the side to move.
-    pub fn see(&mut self, mv: Move, threshold: i32) -> bool {
+    pub fn see(&self, mv: Move, threshold: i32) -> bool {
         // The best case is a free capture or a safe promotion
         let mut balance = self.move_value(mv);
 
@@ -86,7 +86,7 @@ impl super::SearchThread<'_> {
         PIECE_VALUES[capture]
     }
 
-    fn least_valuable_attacker(&mut self, our_attackers: Bitboard) -> Piece {
+    fn least_valuable_attacker(&self, our_attackers: Bitboard) -> Piece {
         for index in 0..Piece::NUM {
             let piece = Piece::new(index);
             let piece_bb = self.board.pieces(piece) & our_attackers;
