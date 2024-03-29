@@ -35,12 +35,11 @@ impl super::SearchThread<'_> {
 
     /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.
     fn mvv_lva(&self, mv: Move) -> i32 {
-        let attacker = self.board.piece_on(mv.start()) as i32;
-        
         if mv.is_en_passant() {
-            return Self::MVV_LVA - attacker;
+            return Self::MVV_LVA;
         }
 
+        let attacker = self.board.piece_on(mv.start()) as i32;
         let victim = self.board.piece_on(mv.target()) as i32;
         Self::MVV_LVA + 10 * victim - attacker
     }
