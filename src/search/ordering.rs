@@ -1,9 +1,10 @@
 use crate::types::{FullMove, Move, MoveList, MAX_MOVES};
 
 impl super::SearchThread<'_> {
-    const TT_MOVE: i32 = 300_000_000;
-    const MVV_LVA: i32 = 200_000_000;
-    const KILLERS: i32 = 100_000_000;
+    const HASH_MOVE:  i32 =  300_000_000;
+    const GOOD_NOISY: i32 =  200_000_000;
+    const KILLERS:    i32 =  100_000_000;
+    const BAD_NOISY:  i32 = -100_000_000;
 
     /// Returns an array of move ratings for the specified move list.
     pub fn build_ordering(&self, moves: &MoveList, tt_move: Option<Move>) -> [i32; MAX_MOVES] {
@@ -18,10 +19,11 @@ impl super::SearchThread<'_> {
     /// Returns the rating of the specified move.
     fn get_move_rating(&self, mv: Move, tt_move: Option<Move>, continuations: &[FullMove; 2]) -> i32 {
         if Some(mv) == tt_move {
-            return Self::TT_MOVE;
+            return Self::HASH_MOVE;
         }
         if mv.is_capture() {
-            return self.mvv_lva(mv);
+            let base = if self.see(mv, 0) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
+            return base + self.mvv_lva(mv);
         }
         if self.killers[self.board.ply][0] == mv || self.killers[self.board.ply][1] == mv {
             return Self::KILLERS;
@@ -36,11 +38,11 @@ impl super::SearchThread<'_> {
     /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.
     fn mvv_lva(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return Self::MVV_LVA;
+            return 0;
         }
 
         let attacker = self.board.piece_on(mv.start()) as i32;
         let victim = self.board.piece_on(mv.target()) as i32;
-        Self::MVV_LVA + 10 * victim - attacker
+        10 * victim - attacker
     }
 }
