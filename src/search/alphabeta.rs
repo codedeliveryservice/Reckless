@@ -9,7 +9,7 @@ const IIR_DEPTH: i32 = 4;
 
 impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, beta: i32, mut depth: i32) -> i32 {
+    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, mut beta: i32, mut depth: i32) -> i32 {
         self.pv_table.clear(self.board.ply);
 
         // The search has been stopped by the UCI or the time control
@@ -17,12 +17,22 @@ impl super::SearchThread<'_> {
             return Score::INVALID;
         }
 
-        // Draw detection, excluding the root node to ensure a valid move is returned
-        if !ROOT && self.board.is_draw() {
-            // Use a little randomness to avoid 3-fold repetition blindness
-            return -1 + (self.nodes.local() as i32 & 0x2);
-        }
+        if !ROOT {
+            // Draw detection (50-move rule, threefold repetition)
+            if self.board.is_draw() {
+                // Use a little randomness to avoid 3-fold repetition blindness
+                return -1 + (self.nodes.local() as i32 & 0x2);
+            }
 
+            // Mate Distance Pruning
+            alpha = alpha.max(-Score::MATE + self.board.ply as i32);
+            beta = beta.min(Score::MATE - (self.board.ply as i32) - 1);
+
+            if alpha >= beta {
+                return alpha;
+            }
+        }
+    
         // Prevent overflows
         if self.board.ply >= MAX_PLY - 1 {
             return self.board.evaluate();
