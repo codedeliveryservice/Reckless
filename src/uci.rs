@@ -2,7 +2,7 @@ use crate::{
     board::Board,
     search::{self, Options},
     tables::{History, TranspositionTable},
-    timeman::Limits,
+    time::Limits,
     tools,
     types::Color,
 };

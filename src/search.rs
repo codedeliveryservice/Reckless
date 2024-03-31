@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use crate::{
     board::Board,
     tables::{History, TranspositionTable},
-    timeman::Limits,
+    time::Limits,
     types::Move,
 };
 

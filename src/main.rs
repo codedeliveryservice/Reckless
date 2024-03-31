@@ -3,7 +3,7 @@ mod lookup;
 mod nnue;
 mod search;
 mod tables;
-mod timeman;
+mod time;
 mod tools;
 mod types;
 mod uci;

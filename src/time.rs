@@ -20,8 +20,7 @@ const TIME_OVERHEAD_MS: u64 = 15;
 const MAX_DEPTH: i32 = MAX_PLY as i32;
 const MIN_NODES: u64 = 1024;
 
-const NODE_TM_DEPTH_MARGIN: i32 = 10;
-const NODE_TM_MULTIPLIER: f64 = 1.35;
+const UPDATE_DEPTH_MARGIN: i32 = 10;
 
 const INCREMENT_MULT: f64 = 0.75;
 
@@ -67,7 +66,7 @@ impl TimeManager {
     /// Informs the time manager that a search iteration has finished.
     pub fn update(&mut self, depth: i32, best_move: Move) {
         // The results of the first few iterations are not reliable
-        if depth < NODE_TM_DEPTH_MARGIN {
+        if depth < UPDATE_DEPTH_MARGIN {
             return;
         }
 
@@ -89,9 +88,9 @@ impl TimeManager {
 
         let mut soft_bound = self.soft_bound.as_secs_f64();
 
-        if depth >= NODE_TM_DEPTH_MARGIN {
+        if depth >= UPDATE_DEPTH_MARGIN {
             // Adjust based on distribution of root nodes
-            soft_bound *= (1.5 - effort) * NODE_TM_MULTIPLIER;
+            soft_bound *= 2.025 - 1.35 * effort;
 
             // Adjust based on stability of the best move between iterations
             soft_bound *= 0.75 + 0.75 / self.stability.min(7) as f64;

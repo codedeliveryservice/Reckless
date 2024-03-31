@@ -1,7 +1,7 @@
 use crate::{
     board::Board,
     tables::{History, NodeTable, PrincipleVariationTable, TranspositionTable},
-    timeman::{Limits, TimeManager},
+    time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
 
