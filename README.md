@@ -44,6 +44,8 @@ combines established concepts, as the name suggests.
 -   Futility Pruning
 -   Late Move Pruning
 -   Delta Pruning
+-   Static Exchange Evaluation Pruning
+-   Mate Distance Pruning
 
 #### Reductions
 
@@ -57,9 +59,9 @@ combines established concepts, as the name suggests.
 ### Move ordering
 
 -   Hash Move
--   MVV-LVA
 -   Killer Move Heuristic
--   History Heuristic
+-   SEE with MVV-LVA as a tiebreaker for captures
+-   History Heuristic for quiet moves
     -   Butterfly History
     -   Counter Move History
     -   Follow-Up History
@@ -73,10 +75,17 @@ combines established concepts, as the name suggests.
 -   Trained on original data generated entirely through self-play
 -   Handwritten SIMD for AVX2 instructions
 
+### Time management
+
+-   Soft and hard bounds
+-   Best move stability
+-   Distribution of root nodes
+
 ## Rating
 
 | Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
 | ------------------------- | ---------------------- | ----------------------- | ------------ |
+| [Reckless v0.6.0][v0.6.0] | 3387 +/- 23 [#73]      | 3311 +/- 21 [#78]       | Mar 22, 2024 |
 | [Reckless v0.5.0][v0.5.0] | 3243 +/- 19 [#94]      | 3213 +/- 21 [#94]       | Feb 4, 2024  |
 | [Reckless v0.4.0][v0.4.0] | 2933 +/- 19 [#151]     | 2929 +/- 21 [#158]      | Dec 13, 2023 |
 | [Reckless v0.3.0][v0.3.0] | 2617 +/- 20 [#229]     | 2615 +/- 21 [#251]      | Nov 6, 2023  |
@@ -88,6 +97,7 @@ combines established concepts, as the name suggests.
 [v0.3.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.3.0
 [v0.4.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.4.0
 [v0.5.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.5.0
+[v0.6.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.6.0
 [ccrl-404]: https://www.computerchess.org.uk/ccrl/404/
 [crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/
 
