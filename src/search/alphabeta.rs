@@ -106,14 +106,14 @@ impl super::SearchThread<'_> {
 
         while let Some(mv) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]
-            if !ROOT && !PV &&  moves_played > 0 && best_score > -Score::MATE_BOUND {
-                if mv.is_quiet() && futility_pruning(depth, alpha, eval) {
+            if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
+                if !PV && mv.is_quiet() && futility_pruning(depth, alpha, eval) {
                     break;
                 }
                 if mv.is_quiet() && quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
                     break;
                 }
-                if mv.is_capture() && depth < 6 && !self.see(mv, -100 * depth) {
+                if !PV && mv.is_capture() && depth < 6 && !self.see(mv, -100 * depth) {
                     continue;
                 }
             }
