@@ -110,7 +110,7 @@ impl super::SearchThread<'_> {
                 if !PV && mv.is_quiet() && futility_pruning(depth, alpha, eval) {
                     break;
                 }
-                if mv.is_quiet() && quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
+                if !PV && mv.is_quiet() && quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
                     break;
                 }
                 if !PV && mv.is_capture() && depth < 6 && !self.see(mv, -100 * depth) {
