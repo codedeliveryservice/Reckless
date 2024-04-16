@@ -79,4 +79,4 @@ struct Parameters {
     output_bias: i16,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!("../networks/model.nnue")) };
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };

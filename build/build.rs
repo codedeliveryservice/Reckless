@@ -10,6 +10,9 @@ mod magics;
 mod maps;
 
 fn main() {
+    let model = env::var("EVALFILE").unwrap_or(String::from("../networks/model.nnue"));
+    println!("cargo:rustc-env=MODEL={model}");
+
     let dir = env::var("OUT_DIR").unwrap();
     let path = Path::new(&dir).join("lookup.rs");
     let out = File::create(path).unwrap();
