@@ -2,7 +2,7 @@
 name = "reckless"
 version = "0.7.0-dev"
 edition = "2021"
-build = "src/lookup/build.rs"
+build = "build/build.rs"
 
 [profile.release]
 lto = "fat"
