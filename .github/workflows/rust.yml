@@ -13,6 +13,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Set up NNUE model
+      run: |
+        url=$(curl -s https://api.github.com/repos/codedeliveryservice/RecklessNetworks/releases/latest | \
+              grep -o '"browser_download_url": *"[^"]*"' | head -n 1 | cut -d '"' -f 4)
+        wget -O model.nnue "$url"
+        echo "EVALFILE=$(pwd)/model.nnue" >> $GITHUB_ENV
+
     - name: Build
       run: cargo build --verbose --release
 
