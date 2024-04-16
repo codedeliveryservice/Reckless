@@ -2,7 +2,7 @@ use std::{
     env,
     fs::File,
     io::{BufWriter, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 mod attacks;
@@ -10,9 +10,26 @@ mod magics;
 mod maps;
 
 fn main() {
-    let model = env::var("EVALFILE").unwrap_or(String::from("../networks/model.nnue"));
-    println!("cargo:rustc-env=MODEL={model}");
+    generate_model_env();
+    generate_attack_maps();
 
+    println!("cargo:rerun-if-env-changed=EVALFILE");
+    println!("cargo:rerun-if-changed=src/networks/model.nnue");
+}
+
+fn generate_model_env() {
+    let mut path = env::var("EVALFILE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| Path::new("networks").join("model.nnue"));
+
+    if path.is_relative() {
+        path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+    }
+
+    println!("cargo:rustc-env=MODEL={}", path.display());
+}
+
+fn generate_attack_maps() {
     let dir = env::var("OUT_DIR").unwrap();
     let path = Path::new(&dir).join("lookup.rs");
     let out = File::create(path).unwrap();
