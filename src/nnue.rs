@@ -3,7 +3,7 @@ use crate::types::{Color, Piece, Square};
 mod simd;
 
 const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 128;
+const HIDDEN_SIZE: usize = 256;
 
 const EVAL_SCALE: i32 = 400;
 const L0_SCALE: i32 = 256;
