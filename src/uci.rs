@@ -20,7 +20,7 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(threads, board.clone(), &tt, &mut history, tokens),
+            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
             ["ucinewgame"] => reset(&mut board, &mut history, &mut tt),
@@ -53,9 +53,9 @@ fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTa
     tt.clear();
 }
 
-fn go(threads: usize, board: Board, tt: &TranspositionTable, history: &mut History, tokens: &[&str]) {
+fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    search::start(Options { threads, silent: false }, limits, board, tt, history);
+    search::start(Options { threads, silent: false }, limits, board, history, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {

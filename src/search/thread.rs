@@ -18,11 +18,11 @@ pub struct SearchThread<'a> {
     pub silent: bool,
 
     /// The board state to start the search from.
-    pub board: Board,
-    /// Hash table with interior mutability for shared memory parallelism.
-    pub tt: &'a TranspositionTable,
+    pub board: &'a mut Board,
     /// Persistent between searches history table for move ordering.
     pub history: &'a mut History,
+    /// Hash table with interior mutability for shared memory parallelism.
+    pub tt: &'a TranspositionTable,
 
     /// Moves that caused a beta cutoff in a sibling node at each ply.
     pub killers: [[Move; 2]; MAX_PLY],
@@ -44,14 +44,14 @@ pub struct SearchThread<'a> {
 
 impl<'a> SearchThread<'a> {
     /// Creates a new search thread instance.
-    pub fn new(limits: Limits, board: Board, history: &'a mut History, tt: &'a TranspositionTable) -> Self {
+    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut History, tt: &'a TranspositionTable) -> Self {
         Self {
             time_manager: TimeManager::new(&ABORT_SIGNAL, limits),
             stopped: false,
             silent: false,
             board,
-            tt,
             history,
+            tt,
             killers: [[Move::NULL; 2]; MAX_PLY],
             eval_stack: [0; MAX_PLY],
             pv_table: PrincipleVariationTable::default(),
