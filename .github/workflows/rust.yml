@@ -23,5 +23,8 @@ jobs:
     - name: Build
       run: cargo build --verbose --release
 
+    - name: Build with `datagen` feature
+      run: cargo build --verbose --release --features datagen
+
     - name: Run tests
       run: cargo test --verbose --release
