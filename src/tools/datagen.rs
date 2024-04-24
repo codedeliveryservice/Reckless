@@ -11,7 +11,7 @@ use crate::{
     board::Board,
     search::{self, Options, SearchResult},
     tables::{History, TranspositionTable},
-    timeman::Limits,
+    time::Limits,
     tools::datagen::random::Random,
     types::{Color, Move},
 };
