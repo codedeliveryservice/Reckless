@@ -32,7 +32,7 @@ const WRITE_MIN_PLY: usize = 16;
 const WRITE_MAX_PLY: usize = 400;
 
 const VALIDATION_LIMITS: Limits = Limits::FixedDepth(10);
-const GENERATION_LIMITS: Limits = Limits::FixedNodes(7500);
+const GENERATION_LIMITS: Limits = Limits::FixedNodes(5000);
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);

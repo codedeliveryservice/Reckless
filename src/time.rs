@@ -81,8 +81,8 @@ impl TimeManager {
     /// Checks if the search should be stopped due to reaching the maximum depth or time.
     ///
     /// This method is used as a soft limit at the end of an iteration of iterative deepening.
-    pub fn if_finished(&self, depth: i32, effort: f64) -> bool {
-        if depth >= self.max_depth {
+    pub fn if_finished(&self, depth: i32, nodes: u64, effort: f64) -> bool {
+        if depth >= self.max_depth || nodes >= self.max_nodes {
             return true;
         }
 
@@ -101,6 +101,7 @@ impl TimeManager {
 
     /// Checks if the maximum allocated time or nodes have been reached.
     pub fn is_time_up(&self, nodes: u64) -> bool {
+        #[cfg(not(feature = "datagen"))]
         if nodes >= self.max_nodes {
             return true;
         }
