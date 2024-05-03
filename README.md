@@ -121,20 +121,25 @@ For detailed information on the specific features needed for each level, refer t
 To build the engine from source, make sure you have `Rust 1.65` or a later version installed.
 If you don't have Rust, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
-Then, compile the engine using `Cargo`:
+The source code doesn't include an NNUE model to keep the repository lightweight. Instead,
+models are stored in the [Reckless Networks][reckless-networks] repository.
+
+You can download the latest model using the `fetch-nnue.sh` (or `fetch-nnue.ps1` on Windows) script,
+which will be placed in the `networks` directory and automatically detected during the build.
+
+Alternatively, you can specify the path to the model file using the `EVALFILE` variable:
 
 ```bash
-cargo rustc --release -- -C target-cpu=native
-```
-
-Alternatively, you can use the provided `Makefile`:
-
-```bash
-# Build for the current CPU architecture
+# Build the engine with a `./networks/model.nnue` model
 make
-# Build release binaries for all microarchitecture levels
-make release
+
+# Build the engine with a specific model
+make EVALFILE=networks/model.nnue
 ```
+
+Keep in mind that older models may be incompatible with the current version of the engine.
+
+[reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
 
 ### Usage
 
