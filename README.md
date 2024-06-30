@@ -69,7 +69,7 @@ combines established concepts, as the name suggests.
 ### Evaluation
 
 -   [NNUE](https://www.chessprogramming.org/NNUE)
--   Architecture: `(768 -> 128)x2 -> 1`
+-   Architecture: `(768 -> 384)x2 -> 1`
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
 -   Quantization: `i16` (`256`/`64`)
 -   Trained on original data generated entirely through self-play
