@@ -34,7 +34,10 @@ impl super::SearchThread<'_> {
             }
         }
 
-        let mut eval = self.board.evaluate();
+        let mut eval = match entry {
+            Some(entry) => entry.eval,
+            None => self.board.evaluate(),
+        };
 
         if let Some(entry) = entry {
             adjust_eval(&mut eval, &entry);
@@ -88,7 +91,7 @@ impl super::SearchThread<'_> {
         }
 
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
-        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, eval, self.board.ply);
         best_score
     }
 

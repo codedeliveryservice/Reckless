@@ -8,10 +8,11 @@ const MEGABYTE: usize = 1024 * 1024;
 const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
 
 #[allow(clippy::assertions_on_constants)]
-const _: () = assert!(INTERNAL_ENTRY_SIZE == 8, "InternalEntry size is not 8 bytes");
+const _: () = assert!(INTERNAL_ENTRY_SIZE == 16, "InternalEntry size is not 16 bytes");
 
 #[derive(Copy, Clone)]
 pub struct Entry {
+    pub eval: i32,
     pub depth: i32,
     pub score: i32,
     pub bound: Bound,
@@ -26,45 +27,55 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (8 bytes).
+/// Internal representation of a transposition table entry (16 bytes).
 #[derive(Copy, Clone)]
 struct InternalEntry {
-    key: u16,     // 2 bytes
+    key: u64,     // 8 bytes
     depth: u8,    // 1 byte
     score: i16,   // 2 bytes
     bound: Bound, // 1 byte
     mv: Move,     // 2 bytes
+    eval: i16,    // 2 bytes
 }
 
 impl InternalEntry {
     /// Creates a new internal entry from a packed 64-bit integer.
-    pub const fn new(packed: u64) -> Self {
+    pub const fn new(packed: [u64; 2]) -> Self {
         unsafe { std::mem::transmute(packed) }
     }
 
     /// Packs the entry into a 64-bit integer.
-    pub const fn pack(self) -> u64 {
+    pub const fn pack(self) -> [u64; 2] {
         unsafe { std::mem::transmute(self) }
     }
 }
 
-struct Packed(AtomicU64);
+struct Packed {
+    hash: AtomicU64,
+    data: AtomicU64,
+}
 
 impl Packed {
-    pub fn load(&self) -> u64 {
-        self.0.load(Ordering::Relaxed)
+    pub fn load(&self) -> [u64; 2] {
+        [self.hash.load(Ordering::Relaxed), self.data.load(Ordering::Relaxed)]
     }
 }
 
 impl Default for Packed {
     fn default() -> Self {
-        Self(AtomicU64::new(0))
+        Self {
+            hash: AtomicU64::new(0),
+            data: AtomicU64::new(0),
+        }
     }
 }
 
 impl Clone for Packed {
     fn clone(&self) -> Self {
-        Self(AtomicU64::new(self.load()))
+        Self {
+            hash: AtomicU64::new(self.hash.load(Ordering::Relaxed)),
+            data: AtomicU64::new(self.data.load(Ordering::Relaxed)),
+        }
     }
 }
 
@@ -104,12 +115,13 @@ impl TranspositionTable {
         let packed = self.vector[index].load();
 
         // The entry is invalid or the hash key doesn't match
-        if !is_valid(packed) || (packed as u16) != verification_key(hash) {
+        if !is_valid(packed) || packed[0] != verification_key(hash) {
             return None;
         }
 
         let entry = InternalEntry::new(packed);
         let mut hit = Entry {
+            eval: i32::from(entry.eval),
             depth: i32::from(entry.depth),
             score: i32::from(entry.score),
             bound: entry.bound,
@@ -124,7 +136,7 @@ impl TranspositionTable {
     }
 
     /// Writes an entry to the transposition table overwriting an existing one.
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
+    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, eval: i32, ply: usize) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if score.abs() > Score::MATE_BOUND {
             score += score.signum() * ply as i32;
@@ -146,10 +158,13 @@ impl TranspositionTable {
             key,
             depth: depth as u8,
             score: score as i16,
+            eval: eval as i16,
             bound,
             mv,
         };
-        self.vector[index].0.store(entry.pack(), Ordering::Relaxed);
+
+        self.vector[index].hash.store(entry.pack()[0], Ordering::Relaxed);
+        self.vector[index].data.store(entry.pack()[1], Ordering::Relaxed);
     }
 
     /// Prefetches the entry in the transposition table.
@@ -174,13 +189,13 @@ impl TranspositionTable {
 }
 
 /// Checks if the entry is valid.
-fn is_valid(packed: u64) -> bool {
-    packed != 0
+fn is_valid(packed: [u64; 2]) -> bool {
+    packed[1] != 0
 }
 
 /// Returns the verification key of the hash (bottom 16 bits).
-fn verification_key(hash: u64) -> u16 {
-    hash as u16
+fn verification_key(hash: u64) -> u64 {
+    hash
 }
 
 impl Default for TranspositionTable {

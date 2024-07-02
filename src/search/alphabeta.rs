@@ -175,7 +175,7 @@ impl super::SearchThread<'_> {
             self.update_ordering_heuristics(depth, best_move, quiets);
         }
 
-        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, eval, self.board.ply);
         best_score
     }
 
