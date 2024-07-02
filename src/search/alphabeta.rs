@@ -52,7 +52,7 @@ impl super::SearchThread<'_> {
         self.sel_depth = self.sel_depth.max(self.board.ply);
 
         // Transposition table lookup and potential cutoff
-        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read::<false>(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
             if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
@@ -119,7 +119,7 @@ impl super::SearchThread<'_> {
             }
 
             let key_after = self.board.key_after(mv);
-            self.tt.prefetch(key_after);
+            self.tt.prefetch::<false>(key_after);
 
             if self.board.make_move::<true>(mv).is_err() {
                 continue;
@@ -175,7 +175,7 @@ impl super::SearchThread<'_> {
             self.update_ordering_heuristics(depth, best_move, quiets);
         }
 
-        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
+        self.tt.write::<false>(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
         best_score
     }
 

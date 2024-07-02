@@ -23,7 +23,7 @@ impl super::SearchThread<'_> {
             return self.board.evaluate();
         }
 
-        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read::<true>(self.board.hash(), self.board.ply);
         if let Some(entry) = entry {
             if match entry.bound {
                 Bound::Exact => true,
@@ -68,7 +68,7 @@ impl super::SearchThread<'_> {
             }
 
             let key_after = self.board.key_after(mv);
-            self.tt.prefetch(key_after);
+            self.tt.prefetch::<true>(key_after);
 
             if self.board.make_move::<true>(mv).is_ok() {
                 let score = -self.quiescence_search(-beta, -alpha);
@@ -88,7 +88,7 @@ impl super::SearchThread<'_> {
         }
 
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
-        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
+        self.tt.write::<true>(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
         best_score
     }
 

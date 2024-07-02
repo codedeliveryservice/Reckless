@@ -70,38 +70,55 @@ impl Clone for Packed {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: Vec<Packed>,
+    ab_vector: Vec<Packed>,
+    qs_vector: Vec<Packed>,
 }
 
 impl TranspositionTable {
     /// Creates a new transposition table with a total allocated size in megabytes.
     pub fn new(megabytes: usize) -> Self {
+        // The AB and QS vectors are allocated in a 2:1 ratio
+        let size = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
+        let ab_size = size * 2 / 3;
+        let qs_size = size - ab_size;
+
         Self {
-            vector: vec![Packed::default(); megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE],
+            ab_vector: vec![Packed::default(); ab_size],
+            qs_vector: vec![Packed::default(); qs_size],
         }
     }
 
     /// Sets all entries to `None` without affecting the allocated memory or vector length.
     pub fn clear(&mut self) {
-        self.vector.iter_mut().for_each(|entry| *entry = Packed::default());
+        self.ab_vector.iter_mut().for_each(|entry| *entry = Packed::default());
+        self.qs_vector.iter_mut().for_each(|entry| *entry = Packed::default());
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&mut self, megabytes: usize) {
-        self.vector = vec![Packed::default(); megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE];
+        let size = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
+        let ab_size = size * 2 / 3;
+        let qs_size = size - ab_size;
+
+        self.ab_vector = vec![Packed::default(); ab_size];
+        self.qs_vector = vec![Packed::default(); qs_size];
+
         println!("info string set Hash to {megabytes} MB");
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn get_load_factor(&self) -> usize {
-        const BATCH_SIZE: usize = 10_000;
-        self.vector.iter().take(BATCH_SIZE).filter(|slot| is_valid(slot.load())).count() * 1000 / BATCH_SIZE
+        // const BATCH_SIZE: usize = 10_000;
+        // self.vector.iter().take(BATCH_SIZE).filter(|slot| is_valid(slot.load())).count() * 1000 / BATCH_SIZE
+        0
     }
 
     /// Reads an entry from the transposition table.
-    pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
-        let index = self.get_index(hash);
-        let packed = self.vector[index].load();
+    pub fn read<const QS: bool>(&self, hash: u64, ply: usize) -> Option<Entry> {
+        let vector = if QS { &self.qs_vector } else { &self.ab_vector };
+
+        let index = self.get_index::<QS>(hash);
+        let packed = vector[index].load();
 
         // The entry is invalid or the hash key doesn't match
         if !is_valid(packed) || (packed as u16) != verification_key(hash) {
@@ -124,15 +141,17 @@ impl TranspositionTable {
     }
 
     /// Writes an entry to the transposition table overwriting an existing one.
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
+    pub fn write<const QS: bool>(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
+        let vector = if QS { &self.qs_vector } else { &self.ab_vector };
+
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if score.abs() > Score::MATE_BOUND {
             score += score.signum() * ply as i32;
         }
 
         let key = verification_key(hash);
-        let index = self.get_index(hash);
-        let packed = self.vector[index].load();
+        let index = self.get_index::<QS>(hash);
+        let packed = vector[index].load();
 
         // Preserve the previous move if the new one is sourced from an upper bound node
         if is_valid(packed) {
@@ -149,26 +168,29 @@ impl TranspositionTable {
             bound,
             mv,
         };
-        self.vector[index].0.store(entry.pack(), Ordering::Relaxed);
+        vector[index].0.store(entry.pack(), Ordering::Relaxed);
     }
 
     /// Prefetches the entry in the transposition table.
-    pub fn prefetch(&self, hash: u64) {
+    pub fn prefetch<const QS: bool>(&self, hash: u64) {
         use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            let index = self.get_index(hash);
-            let ptr = self.vector.as_ptr().add(index).cast();
+            let index = self.get_index::<QS>(hash);
+            let vector = if QS { &self.qs_vector } else { &self.ab_vector };
+            let ptr = vector.as_ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
     }
 
     /// Returns the index of the entry in the transposition table.
-    fn get_index(&self, hash: u64) -> usize {
+    fn get_index<const QS: bool>(&self, hash: u64) -> usize {
+        let vector = if QS { &self.qs_vector } else { &self.ab_vector };
+
         // Fast hash table index calculation
         // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
-        let len = self.vector.len() as u128;
+        let len = vector.len() as u128;
         ((u128::from(hash) * len) >> 64) as usize
     }
 }
