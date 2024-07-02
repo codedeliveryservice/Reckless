@@ -79,9 +79,12 @@ impl TranspositionTable {
     pub fn new(megabytes: usize) -> Self {
         // The AB and QS vectors are allocated in a 2:1 ratio
         let size = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
+        let ab_size = size * 3 / 4;
+        let qs_size = size - ab_size;
+
         Self {
-            ab_vector: vec![Packed::default(); size / 2],
-            qs_vector: vec![Packed::default(); size / 2],
+            ab_vector: vec![Packed::default(); ab_size],
+            qs_vector: vec![Packed::default(); qs_size],
         }
     }
 
@@ -94,8 +97,11 @@ impl TranspositionTable {
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&mut self, megabytes: usize) {
         let size = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
-        self.ab_vector = vec![Packed::default(); size / 2];
-        self.qs_vector = vec![Packed::default(); size / 2];
+        let ab_size = size * 3 / 4;
+        let qs_size = size - ab_size;
+
+        self.ab_vector = vec![Packed::default(); ab_size];
+        self.qs_vector = vec![Packed::default(); qs_size];
 
         println!("info string set Hash to {megabytes} MB");
     }
