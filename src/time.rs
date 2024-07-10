@@ -101,8 +101,7 @@ impl TimeManager {
 
     /// Checks if the maximum allocated time or nodes have been reached.
     pub fn is_time_up(&self, nodes: u64) -> bool {
-        #[cfg(not(feature = "datagen"))]
-        if nodes >= self.max_nodes {
+        if nodes >= self.max_nodes * 5 {
             return true;
         }
 
