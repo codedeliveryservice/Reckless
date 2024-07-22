@@ -36,7 +36,7 @@ impl super::SearchThread<'_> {
             self.sel_depth = 0;
             self.finished_depth = depth;
 
-            self.time_manager.update(depth, result.best_move);
+            self.time_manager.update(depth, score, result.best_move);
 
             let effort = self.node_table.get(result.best_move) as f64 / self.nodes.local() as f64;
             if self.time_manager.if_finished(depth, effort) {
