@@ -1,7 +1,7 @@
 use super::selectivity::{futility_pruning, quiet_late_move_pruning};
 use crate::{
     tables::{Bound, Entry},
-    types::{Move, Score, MAX_PLY},
+    types::{Move, MoveList, Score, MAX_PLY},
 };
 
 const DEEPER_SEARCH_MARGIN: i32 = 80;
@@ -100,7 +100,7 @@ impl super::SearchThread<'_> {
         let mut best_move = Move::NULL;
 
         let mut moves_played = 0;
-        let mut quiets = Vec::with_capacity(32);
+        let mut quiets = MoveList::new();
         let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
@@ -172,7 +172,7 @@ impl super::SearchThread<'_> {
 
         let bound = get_bound(best_score, original_alpha, beta);
         if bound == Bound::Lower && best_move.is_quiet() {
-            self.update_ordering_heuristics(depth, best_move, quiets);
+            self.update_ordering_heuristics(depth, best_move, quiets.as_slice());
         }
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
@@ -217,12 +217,12 @@ impl super::SearchThread<'_> {
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
-    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
         self.killers[self.board.ply][1] = self.killers[self.board.ply][0];
         self.killers[self.board.ply][0] = best_move;
 
-        self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
-        self.history.update_continuation(&self.board, best_move, &quiets, depth);
+        self.history.update_main(self.board.side_to_move, best_move, quiets, depth);
+        self.history.update_continuation(self.board, best_move, quiets, depth);
     }
 }
 
