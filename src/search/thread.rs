@@ -5,7 +5,7 @@ use crate::{
     types::{Move, MAX_PLY},
 };
 
-use super::{counter::NodeCounter, SearchResult, ABORT_SIGNAL, NODES_GLOBAL};
+use super::{counter::NodeCounter, parameters::Parameters, SearchResult, ABORT_SIGNAL, NODES_GLOBAL};
 
 pub struct SearchThread<'a> {
     /// The time manager instance that controls the search time.
@@ -31,7 +31,8 @@ pub struct SearchThread<'a> {
     /// A table for storing the principle variation line.
     pub pv_table: PrincipleVariationTable,
     /// A table for storing the number of nodes searched at root the for each move.
-    pub node_table: NodeTable,
+    pub node_table: NodeTable,    
+    pub params: Parameters,
 
     /// The depth of the last completed search.
     pub finished_depth: i32,
@@ -56,6 +57,7 @@ impl<'a> SearchThread<'a> {
             eval_stack: [0; MAX_PLY],
             pv_table: PrincipleVariationTable::default(),
             node_table: NodeTable::default(),
+            params: Parameters::default(),
             finished_depth: 0,
             sel_depth: 0,
             nodes: NodeCounter::new(&NODES_GLOBAL),

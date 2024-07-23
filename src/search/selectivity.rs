@@ -47,12 +47,8 @@ impl super::SearchThread<'_> {
     pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             // Fractional reductions
-            let mut reduction = (
-                // Use the logarithmic formula as a base
-                LMR_BASE + f64::from(depth).ln() * f64::from(moves_played).ln() / LMR_DIVISOR
-                // Adjust reduction based on history heuristic
-                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR
-            ) as i32;
+            let mut reduction = (self.params.lmr(depth, moves_played)
+                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR) as i32;
 
             // Reduce PV nodes less
             reduction -= i32::from(PV);

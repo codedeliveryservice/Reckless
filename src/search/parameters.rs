@@ -27,3 +27,25 @@ pub const IIR_DEPTH: i32 = 4;
 
 pub const SEE_MARGIN: i32 = 100;
 pub const SEE_DEPTH: i32 = 6;
+
+pub struct Parameters {
+    lmr: [[f64; 64]; 64],
+}
+
+impl Parameters {
+    pub fn lmr(&self, depth: i32, moves_played: i32) -> f64 {
+        self.lmr[depth.min(63) as usize][moves_played.min(63) as usize]
+    }
+}
+
+impl Default for Parameters {
+    fn default() -> Self {
+        let mut lmr = [[0f64; 64]; 64];
+        for depth in 0..64 {
+            for moves in 0..64 {
+                lmr[depth][moves] = LMR_BASE + (depth as f64).ln() * (moves as f64).ln() / LMR_DIVISOR;
+            }
+        }
+        Self { lmr }
+    }
+}
