@@ -22,6 +22,8 @@ const MIN_NODES: u64 = 1024;
 
 const UPDATE_DEPTH_MARGIN: i32 = 10;
 
+const SCORE_STABILITY_MARGIN: i32 = 10;
+
 const INCREMENT_MULT: f64 = 0.75;
 
 const FISCHER_SOFT_MULT: f64 = 0.035;
@@ -37,8 +39,10 @@ pub struct TimeManager {
     hard_bound: Duration,
     max_depth: i32,
     max_nodes: u64,
-    stability: usize,
+    move_stability: usize,
+    score_stability: usize,
     last_best_move: Option<Move>,
+    expected_score: Option<i32>,
 }
 
 impl TimeManager {
@@ -58,23 +62,33 @@ impl TimeManager {
                 Limits::FixedNodes(nodes) => nodes.max(MIN_NODES),
                 _ => u64::MAX,
             },
-            stability: 1,
+            move_stability: 1,
+            score_stability: 1,
             last_best_move: None,
+            expected_score: None,
         }
     }
 
     /// Informs the time manager that a search iteration has finished.
-    pub fn update(&mut self, depth: i32, best_move: Move) {
+    pub fn update(&mut self, depth: i32, score: i32, best_move: Move) {
         // The results of the first few iterations are not reliable
         if depth < UPDATE_DEPTH_MARGIN {
             return;
         }
 
         if self.last_best_move == Some(best_move) {
-            self.stability += 1;
+            self.move_stability += 1;
         } else {
             self.last_best_move = Some(best_move);
-            self.stability = 1;
+            self.move_stability = 1;
+        }
+
+        if self.expected_score.is_some_and(|s| (s - score).abs() <= SCORE_STABILITY_MARGIN) {
+            self.expected_score = Some((self.expected_score.unwrap() + score) / 2);
+            self.score_stability += 1;
+        } else {
+            self.expected_score = Some(score);
+            self.score_stability = 1;
         }
     }
 
@@ -93,7 +107,10 @@ impl TimeManager {
             soft_bound *= 2.025 - 1.35 * effort;
 
             // Adjust based on stability of the best move between iterations
-            soft_bound *= 0.75 + 0.75 / self.stability.min(7) as f64;
+            soft_bound *= 0.75 + 0.75 / self.move_stability.min(7) as f64;
+
+            // Adjust based on stability of the score between iterations
+            soft_bound *= 0.67 + 0.66 / self.score_stability.min(5) as f64;
         }
 
         self.start_time.elapsed() >= Duration::from_secs_f64(soft_bound)
