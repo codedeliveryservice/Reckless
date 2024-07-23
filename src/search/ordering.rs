@@ -25,7 +25,7 @@ impl super::SearchThread<'_> {
             let base = if self.see(mv, 0) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
             return base + self.mvv_lva(mv);
         }
-        if self.killers[self.board.ply][0] == mv || self.killers[self.board.ply][1] == mv {
+        if self.killers[self.board.ply] == mv {
             return Self::KILLERS;
         }
 
