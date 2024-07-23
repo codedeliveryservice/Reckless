@@ -1,28 +1,6 @@
 use crate::types::{Move, Score};
 
-const RFP_MARGIN: i32 = 75;
-const RFP_DEPTH: i32 = 7;
-
-const NMP_DEPTH: i32 = 3;
-const NMP_REDUCTION: i32 = 3;
-const NMP_DIVISOR: i32 = 4;
-
-const RAZORING_DEPTH: i32 = 4;
-const RAZORING_MARGIN: i32 = 220;
-const RAZORING_FIXED_MARGIN: i32 = 135;
-
-const LMR_MOVES_PLAYED: i32 = 3;
-const LMR_DEPTH: i32 = 3;
-const LMR_BASE: f64 = 0.75;
-const LMR_DIVISOR: f64 = 2.25;
-const LMR_HISTORY_DIVISOR: f64 = 6200.0;
-
-const QLMP_DEPTH: i32 = 4;
-const QLMP_QUIETS_PLAYED: i32 = 3;
-
-const FUTILITY_DEPTH: i32 = 5;
-const FUTILITY_MARGIN: i32 = 130;
-const FUTILITY_FIXED_MARGIN: i32 = 45;
+use super::parameters::*;
 
 impl super::SearchThread<'_> {
     /// If the static evaluation of the position is significantly higher than beta
@@ -93,12 +71,12 @@ impl super::SearchThread<'_> {
 /// If enough quiet moves have been searched at a low depth, it's unlikely that
 /// the remaining moves that are ordered later in move list are going to be better.
 pub fn quiet_late_move_pruning(depth: i32, quiets_played: i32, improving: bool) -> bool {
-    depth <= QLMP_DEPTH && quiets_played > QLMP_QUIETS_PLAYED + depth * depth / (1 + i32::from(!improving))
+    depth <= LMP_DEPTH && quiets_played > LMP_MARGIN + depth * depth / (1 + i32::from(!improving))
 }
 
 /// If the static evaluation is significantly lower than alpha at low depths,
 /// it's unlikely that the remaining depth will be sufficient to correct
 /// the position and raise score above alpha, as is the case with later moves.
 pub fn futility_pruning(depth: i32, alpha: i32, eval: i32) -> bool {
-    depth <= FUTILITY_DEPTH && eval + FUTILITY_MARGIN * depth + FUTILITY_FIXED_MARGIN < alpha
+    depth <= FP_DEPTH && eval + FP_MARGIN * depth + FP_FIXED_MARGIN < alpha
 }

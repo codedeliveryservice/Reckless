@@ -1,11 +1,11 @@
-use super::selectivity::{futility_pruning, quiet_late_move_pruning};
+use super::{
+    parameters::*,
+    selectivity::{futility_pruning, quiet_late_move_pruning},
+};
 use crate::{
     tables::{Bound, Entry},
     types::{Move, Score, MAX_PLY},
 };
-
-const DEEPER_SEARCH_MARGIN: i32 = 80;
-const IIR_DEPTH: i32 = 4;
 
 impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
@@ -32,7 +32,7 @@ impl super::SearchThread<'_> {
                 return alpha;
             }
         }
-    
+
         // Prevent overflows
         if self.board.ply >= MAX_PLY - 1 {
             return self.board.evaluate();
@@ -113,7 +113,7 @@ impl super::SearchThread<'_> {
                 if mv.is_quiet() && quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
                     break;
                 }
-                if mv.is_capture() && depth < 6 && !self.see(mv, -100 * depth) {
+                if mv.is_capture() && depth < SEE_DEPTH && !self.see(mv, -SEE_MARGIN * depth) {
                     continue;
                 }
             }
