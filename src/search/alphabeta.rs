@@ -1,7 +1,4 @@
-use super::{
-    parameters::*,
-    selectivity::{futility_pruning, quiet_late_move_pruning},
-};
+use super::parameters::*;
 use crate::{
     tables::{Bound, Entry},
     types::{Move, Score, MAX_PLY},
@@ -78,16 +75,20 @@ impl super::SearchThread<'_> {
         // Reset the killer moves for child nodes
         self.killers[self.board.ply + 1] = [Move::NULL; 2];
 
-        // Node pruning strategies prior to the move loop
         if !ROOT && !PV && !in_check {
-            if let Some(score) = self.reverse_futility_pruning(depth, beta, eval, improving) {
-                return score;
+            // Reverse Futility Pruning
+            if depth < RFP_DEPTH && eval - RFP_MARGIN * (depth - i32::from(improving)) > beta {
+                return eval;
             }
+
+            // Null Move Pruning
             if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
                 return score;
             }
-            if let Some(score) = self.razoring(depth, alpha, beta, eval) {
-                return score;
+
+            // Razoring
+            if depth <= RAZORING_DEPTH && eval + RAZORING_MARGIN * depth + RAZORING_FIXED_MARGIN < alpha {
+                return self.quiescence_search(alpha, beta);
             }
         }
 
@@ -107,12 +108,18 @@ impl super::SearchThread<'_> {
         while let Some(mv) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
-                if !PV && mv.is_quiet() && futility_pruning(depth, alpha, eval) {
+                // Futility Pruning. Leave the node since later moves with worse history
+                // are unlikely to recover a score so far below alpha in very few moves.
+                if !PV && mv.is_quiet() && depth <= FP_DEPTH && eval + FP_MARGIN * depth + FP_FIXED_MARGIN < alpha {
                     break;
                 }
-                if mv.is_quiet() && quiet_late_move_pruning(depth, quiets.len() as i32, improving) {
+
+                // Late Move Pruning. Leave the node after trying enough quiet moves with no success.
+                if mv.is_quiet() && depth <= LMP_DEPTH && quiets.len() as i32 > LMP_MARGIN + (depth * depth >> !improving as i32) {
                     break;
                 }
+
+                // Static Exchange Evaluation Pruning. Skip moves that are losing material.
                 if mv.is_capture() && depth < SEE_DEPTH && !self.see(mv, -SEE_MARGIN * depth) {
                     continue;
                 }
@@ -201,6 +208,48 @@ impl super::SearchThread<'_> {
         }
 
         score
+    }
+
+    /// If giving a free move to the opponent leads to a beta cutoff, it's highly likely
+    /// to result in a cutoff after a real move is made, so the node can be pruned.
+    pub fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
+        if depth >= NMP_DEPTH && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
+            let r = NMP_REDUCTION + depth / NMP_DIVISOR + ((eval - beta) / 200).min(3);
+
+            self.board.make_null_move();
+            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - r);
+            self.board.undo_move::<false>();
+
+            // Avoid returning false mates
+            if score >= Score::MATE_BOUND {
+                return Some(beta);
+            }
+
+            if score >= beta {
+                return Some(score);
+            }
+        }
+        None
+    }
+
+    /// Calculates the Late Move Reduction (LMR) for a given move.
+    pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
+        if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
+            // Fractional reductions
+            let mut reduction = (self.params.lmr(depth, moves_played)
+                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR) as i32;
+
+            // Reduce PV nodes less
+            reduction -= i32::from(PV);
+
+            // Reduce checks less
+            reduction -= i32::from(self.board.is_in_check());
+
+            // Avoid negative reductions
+            reduction.clamp(0, depth)
+        } else {
+            0
+        }
     }
 
     /// Checks if the search should be interrupted.
