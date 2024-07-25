@@ -55,8 +55,12 @@ impl MoveList {
         Some(self.moves[self.length])
     }
 
+    pub fn as_slice(&self) -> &[Move] {
+        &self.moves[..self.length]
+    }
+
     /// Returns the number of moves in the list.
-    pub const fn length(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.length
     }
 
