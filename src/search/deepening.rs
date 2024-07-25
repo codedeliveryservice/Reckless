@@ -60,7 +60,8 @@ impl super::SearchThread<'_> {
 
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {hashfull} pv",
-            self.sel_depth, self.nodes.global(),
+            self.sel_depth,
+            self.nodes.global(),
         );
         self.pv_table.get_line().iter().for_each(|mv| print!(" {mv}"));
         println!();

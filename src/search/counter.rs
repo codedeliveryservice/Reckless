@@ -8,7 +8,11 @@ pub struct NodeCounter<'a> {
 
 impl<'a> NodeCounter<'a> {
     pub fn new(global: &'a AtomicU64) -> Self {
-        Self { buffer: 0, local: 0, global }
+        Self {
+            buffer: 0,
+            local: 0,
+            global,
+        }
     }
 
     pub fn inc(&mut self) {

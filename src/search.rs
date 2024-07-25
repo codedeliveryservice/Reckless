@@ -14,10 +14,10 @@ mod aspiration;
 mod counter;
 mod deepening;
 mod ordering;
+mod parameters;
 mod quiescence;
 mod see;
 mod thread;
-mod parameters;
 
 static NODES_GLOBAL: AtomicU64 = AtomicU64::new(0);
 static ABORT_SIGNAL: AtomicBool = AtomicBool::new(false);

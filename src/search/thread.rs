@@ -31,7 +31,7 @@ pub struct SearchThread<'a> {
     /// A table for storing the principle variation line.
     pub pv_table: PrincipleVariationTable,
     /// A table for storing the number of nodes searched at root the for each move.
-    pub node_table: NodeTable,    
+    pub node_table: NodeTable,
     pub params: Parameters,
 
     /// The depth of the last completed search.
