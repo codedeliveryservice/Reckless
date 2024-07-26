@@ -137,7 +137,7 @@ impl super::SearchThread<'_> {
             let score = if moves_played == 0 {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
-                let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
+                let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played, in_check);
                 self.principle_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
             };
 
@@ -233,7 +233,7 @@ impl super::SearchThread<'_> {
     }
 
     /// Calculates the Late Move Reduction (LMR) for a given move.
-    pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
+    pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32, in_check: bool) -> i32 {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             // Fractional reductions
             let mut reduction = (self.params.lmr(depth, moves_played)
@@ -241,6 +241,8 @@ impl super::SearchThread<'_> {
 
             // Reduce PV nodes less
             reduction -= i32::from(PV);
+
+            reduction -= i32::from(in_check);
 
             // Reduce checks less
             reduction -= i32::from(self.board.is_in_check());
