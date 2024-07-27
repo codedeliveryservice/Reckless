@@ -10,7 +10,7 @@ impl super::SearchThread<'_> {
     pub fn build_ordering(&self, moves: &MoveList, tt_move: Option<Move>) -> [i32; MAX_MOVES] {
         let continuations = [1, 2].map(|ply| self.board.tail_move(ply));
         let mut ordering = [0; MAX_MOVES];
-        for index in 0..moves.length() {
+        for index in 0..moves.len() {
             ordering[index] = self.get_move_rating(moves[index], tt_move, &continuations);
         }
         ordering

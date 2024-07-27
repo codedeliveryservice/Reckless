@@ -148,7 +148,8 @@ impl Board {
     ///
     /// This method does not count the number of encounters.
     pub fn draw_by_repetition(&self) -> bool {
-        self.state_stack.iter()
+        self.state_stack
+            .iter()
             .rev()
             .skip(1)
             .step_by(2)
