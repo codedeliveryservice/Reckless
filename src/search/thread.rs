@@ -25,7 +25,7 @@ pub struct SearchThread<'a> {
     pub tt: &'a TranspositionTable,
 
     /// Moves that caused a beta cutoff in a sibling node at each ply.
-    pub killers: [[Move; 2]; MAX_PLY],
+    pub killers: [Move; MAX_PLY],
     /// A stack for storing the static evaluation of the position at each ply.
     pub eval_stack: [i32; MAX_PLY],
     /// A table for storing the principle variation line.
@@ -53,7 +53,7 @@ impl<'a> SearchThread<'a> {
             board,
             history,
             tt,
-            killers: [[Move::NULL; 2]; MAX_PLY],
+            killers: [Move::NULL; MAX_PLY],
             eval_stack: [0; MAX_PLY],
             pv_table: PrincipleVariationTable::default(),
             node_table: NodeTable::default(),
