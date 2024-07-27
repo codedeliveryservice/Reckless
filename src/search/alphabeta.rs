@@ -266,7 +266,7 @@ impl super::SearchThread<'_> {
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
-    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: Vec<Move>) {
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
         self.killers[self.board.ply] = best_move;
         self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
         self.history.update_continuation(self.board, best_move, &quiets, depth);
