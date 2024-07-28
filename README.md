@@ -27,7 +27,7 @@ combines established concepts, as the name suggests.
 ### Search
 
 -   Fail-Soft Alpha-Beta
--   Principle Variation Search
+-   Principal Variation Search
 -   Quiescence Search
 -   Iterative Deepening
 -   Aspiration Windows

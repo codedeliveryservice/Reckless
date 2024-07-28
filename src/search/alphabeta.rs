@@ -146,7 +146,7 @@ impl super::SearchThread<'_> {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
                 let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
-                self.principle_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
+                self.principal_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
             };
 
             self.revert_move();
@@ -196,7 +196,7 @@ impl super::SearchThread<'_> {
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search<const PV: bool>(
+    fn principal_variation_search<const PV: bool>(
         &mut self,
         alpha: i32,
         beta: i32,

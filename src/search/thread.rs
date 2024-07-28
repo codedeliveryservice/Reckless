@@ -1,7 +1,7 @@
 use super::{counter::NodeCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
-    tables::{History, NodeTable, PrincipleVariationTable, TranspositionTable},
+    tables::{History, NodeTable, PrincipalVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -25,8 +25,8 @@ pub struct SearchThread<'a> {
     pub killers: [Move; MAX_PLY],
     /// A stack for storing the static evaluation of the position at each ply.
     pub eval_stack: [i32; MAX_PLY],
-    /// A table for storing the principle variation line.
-    pub pv_table: PrincipleVariationTable,
+    /// A table for storing the principal variation line.
+    pub pv_table: PrincipalVariationTable,
     /// A table for storing the number of nodes searched at root the for each move.
     pub node_table: NodeTable,
     pub params: Parameters,
@@ -52,7 +52,7 @@ impl<'a> SearchThread<'a> {
             tt,
             killers: [Move::NULL; MAX_PLY],
             eval_stack: [0; MAX_PLY],
-            pv_table: PrincipleVariationTable::default(),
+            pv_table: PrincipalVariationTable::default(),
             node_table: NodeTable::default(),
             params: Parameters::default(),
             ply: 0,

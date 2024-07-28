@@ -84,7 +84,7 @@ fn iterative_deepening(mut thread: SearchThread, silent: bool) -> SearchResult {
             print_uci_info(&thread, depth, score, now);
         }
 
-        current_move = thread.pv_table.get_best_move();
+        current_move = thread.pv_table.best_move();
         current_score = score;
 
         thread.sel_depth = 0;
@@ -124,7 +124,7 @@ fn print_uci_info(thread: &SearchThread, depth: i32, score: i32, now: Instant) {
         thread.nodes.global(),
         thread.tt.hashfull(),
     );
-    for mv in &thread.pv_table.get_line() {
+    for mv in &thread.pv_table.variation() {
         print!(" {mv}")
     }
     println!();
