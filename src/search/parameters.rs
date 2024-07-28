@@ -1,10 +1,6 @@
 pub const RFP_MARGIN: i32 = 75;
 pub const RFP_DEPTH: i32 = 7;
 
-pub const NMP_DEPTH: i32 = 3;
-pub const NMP_REDUCTION: i32 = 3;
-pub const NMP_DIVISOR: i32 = 4;
-
 pub const RAZORING_DEPTH: i32 = 4;
 pub const RAZORING_MARGIN: i32 = 220;
 pub const RAZORING_FIXED_MARGIN: i32 = 135;
