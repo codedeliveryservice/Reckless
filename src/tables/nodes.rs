@@ -16,8 +16,6 @@ impl NodeTable {
 
 impl Default for NodeTable {
     fn default() -> Self {
-        Self {
-            table: Box::new([[0; 64]; 64]),
-        }
+        Self { table: Box::new([[0; 64]; 64]) }
     }
 }

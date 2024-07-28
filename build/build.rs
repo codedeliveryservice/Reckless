@@ -18,9 +18,7 @@ fn main() {
 }
 
 fn generate_model_env() {
-    let mut path = env::var("EVALFILE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| Path::new("networks").join("model.nnue"));
+    let mut path = env::var("EVALFILE").map(PathBuf::from).unwrap_or_else(|_| Path::new("networks").join("model.nnue"));
 
     if path.is_relative() {
         path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
@@ -55,8 +53,5 @@ fn write(mut buf: BufWriter<File>) -> Result<(), std::io::Error> {
     write_map!("ROOK_MAGICS", "MagicEntry", magics::ROOK_MAGICS);
     write_map!("BISHOP_MAGICS", "MagicEntry", magics::BISHOP_MAGICS);
 
-    writeln!(
-        buf,
-        "struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}"
-    )
+    writeln!(buf, "struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}")
 }

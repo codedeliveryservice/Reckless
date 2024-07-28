@@ -9,10 +9,7 @@ pub struct FullMove {
 }
 
 impl FullMove {
-    pub const NULL: Self = Self {
-        piece: Piece::None,
-        inner: Move::NULL,
-    };
+    pub const NULL: Self = Self { piece: Piece::None, inner: Move::NULL };
 
     pub const fn new(piece: Piece, mv: Move) -> Self {
         Self { piece, inner: mv }

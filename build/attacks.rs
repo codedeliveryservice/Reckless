@@ -51,9 +51,7 @@ pub fn knight_attacks(square: u8) -> u64 {
 }
 
 pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
-    directions.iter().fold(0, |output, &direction| {
-        output | generate_sliding_attacks(square, occupancies, direction)
-    })
+    directions.iter().fold(0, |output, &direction| output | generate_sliding_attacks(square, occupancies, direction))
 }
 
 fn generate_sliding_attacks(square: u8, occupancies: u64, direction: (i8, i8)) -> u64 {

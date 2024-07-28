@@ -6,7 +6,12 @@ use crate::{
 
 impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn alpha_beta<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, mut beta: i32, mut depth: i32) -> i32 {
+    pub fn alpha_beta<const PV: bool, const ROOT: bool>(
+        &mut self,
+        mut alpha: i32,
+        mut beta: i32,
+        mut depth: i32,
+    ) -> i32 {
         self.pv_table.clear(self.board.ply);
 
         // The search has been stopped by the UCI or the time control
@@ -115,7 +120,10 @@ impl super::SearchThread<'_> {
                 }
 
                 // Late Move Pruning. Leave the node after trying enough quiet moves with no success.
-                if mv.is_quiet() && depth <= LMP_DEPTH && quiets.len() as i32 > LMP_MARGIN + (depth * depth >> !improving as i32) {
+                if mv.is_quiet()
+                    && depth <= LMP_DEPTH
+                    && quiets.len() as i32 > LMP_MARGIN + depth * depth / (2 - improving as i32)
+                {
                     break;
                 }
 
@@ -188,7 +196,14 @@ impl super::SearchThread<'_> {
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search<const PV: bool>(&mut self, alpha: i32, beta: i32, depth: i32, reduction: i32, best_score: i32) -> i32 {
+    fn principle_variation_search<const PV: bool>(
+        &mut self,
+        alpha: i32,
+        beta: i32,
+        depth: i32,
+        reduction: i32,
+        best_score: i32,
+    ) -> i32 {
         let mut new_depth = depth - 1;
 
         // Null window search with possible late move reduction
@@ -237,7 +252,8 @@ impl super::SearchThread<'_> {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             // Fractional reductions
             let mut reduction = (self.params.lmr(depth, moves_played)
-                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR) as i32;
+                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR)
+                as i32;
 
             // Reduce PV nodes less
             reduction -= i32::from(PV);
@@ -268,8 +284,8 @@ impl super::SearchThread<'_> {
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
         self.killers[self.board.ply] = best_move;
-        self.history.update_main(self.board.side_to_move, best_move, &quiets, depth);
-        self.history.update_continuation(self.board, best_move, &quiets, depth);
+        self.history.update_main(self.board.side_to_move, best_move, quiets, depth);
+        self.history.update_continuation(self.board, best_move, quiets, depth);
     }
 }
 

@@ -1,13 +1,12 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
+use self::thread::SearchThread;
 use crate::{
     board::Board,
     tables::{History, TranspositionTable},
     time::Limits,
     types::Move,
 };
-
-use self::thread::SearchThread;
 
 mod alphabeta;
 mod aspiration;
@@ -34,7 +33,13 @@ pub struct SearchResult {
     pub nodes: u64,
 }
 
-pub fn start(options: Options, limits: Limits, board: &mut Board, history: &mut History, tt: &TranspositionTable) -> SearchResult {
+pub fn start(
+    options: Options,
+    limits: Limits,
+    board: &mut Board,
+    history: &mut History,
+    tt: &TranspositionTable,
+) -> SearchResult {
     NODES_GLOBAL.store(0, Ordering::Relaxed);
     ABORT_SIGNAL.store(false, Ordering::Relaxed);
 

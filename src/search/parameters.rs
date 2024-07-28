@@ -41,9 +41,9 @@ impl Parameters {
 impl Default for Parameters {
     fn default() -> Self {
         let mut lmr = [[0f64; 64]; 64];
-        for depth in 0..64 {
-            for moves in 0..64 {
-                lmr[depth][moves] = LMR_BASE + (depth as f64).ln() * (moves as f64).ln() / LMR_DIVISOR;
+        for (depth, row) in lmr.iter_mut().enumerate() {
+            for (moves, r) in row.iter_mut().enumerate() {
+                *r = LMR_BASE + (depth as f64).ln() * (moves as f64).ln() / LMR_DIVISOR;
             }
         }
         Self { lmr }

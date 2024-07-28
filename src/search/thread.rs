@@ -1,11 +1,10 @@
+use super::{counter::NodeCounter, parameters::Parameters, SearchResult, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
     tables::{History, NodeTable, PrincipleVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
-
-use super::{counter::NodeCounter, parameters::Parameters, SearchResult, ABORT_SIGNAL, NODES_GLOBAL};
 
 pub struct SearchThread<'a> {
     /// The time manager instance that controls the search time.

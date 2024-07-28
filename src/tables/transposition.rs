@@ -142,13 +142,7 @@ impl TranspositionTable {
             }
         }
 
-        let entry = InternalEntry {
-            key,
-            depth: depth as u8,
-            score: score as i16,
-            bound,
-            mv,
-        };
+        let entry = InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv };
         self.vector[index].0.store(entry.pack(), Ordering::Relaxed);
     }
 

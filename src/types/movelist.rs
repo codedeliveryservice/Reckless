@@ -12,10 +12,7 @@ pub struct MoveList {
 impl MoveList {
     /// Creates a new empty move list.
     pub fn new() -> Self {
-        Self {
-            moves: [Move::NULL; MAX_MOVES],
-            length: 0,
-        }
+        Self { moves: [Move::NULL; MAX_MOVES], length: 0 }
     }
 
     /// Pushes a move to the end of the list.
