@@ -190,7 +190,7 @@ fn validation_score(board: &mut Board) -> i32 {
 /// Generates all legal moves for the given board.
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
     let mut legals = Vec::new();
-    for mv in board.generate_all_moves().iter() {
+    for &mv in board.generate_all_moves().iter() {
         if board.make_move::<false>(mv).is_ok() {
             legals.push(mv);
             board.undo_move::<false>();

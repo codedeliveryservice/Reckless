@@ -18,7 +18,7 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
     }
 
     let mut nodes = 0;
-    for mv in board.generate_all_moves().iter() {
+    for &mv in board.generate_all_moves().iter() {
         if board.make_move::<false>(mv).is_ok() {
             assert_eq!(board.generate_hash_key(), board.hash());
             nodes += perft(board, depth - 1);
