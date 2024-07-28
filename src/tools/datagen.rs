@@ -106,8 +106,7 @@ fn generate_data(mut buf: BufWriter<File>) {
         for (index, entry) in entries.iter().enumerate() {
             let ply = index + RANDOM_PLIES;
 
-            if WRITE_MIN_PLY <= ply
-                && ply <= WRITE_MAX_PLY
+            if (WRITE_MIN_PLY..=WRITE_MAX_PLY).contains(&ply)
                 && !board.is_in_check()
                 && !entry.best_move.is_capture()
                 && !entry.best_move.is_promotion()
@@ -126,12 +125,12 @@ fn generate_data(mut buf: BufWriter<File>) {
 
 /// Plays a game and returns the search results and the WDL result.
 fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
+    let tt = TranspositionTable::default();
     let mut history = History::new();
-    let mut tt = TranspositionTable::default();
     let mut entries = Vec::new();
 
     loop {
-        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &mut tt);
+        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &tt);
         let SearchResult { best_move, score, .. } = entry;
 
         // The score is so high that the game is already decided
@@ -183,9 +182,9 @@ fn generate_random_opening(random: &mut Random) -> Board {
 
 /// Returns the score of the position after performing a validation search.
 fn validation_score(board: &mut Board) -> i32 {
+    let tt = TranspositionTable::default();
     let mut history = History::new();
-    let mut tt = TranspositionTable::default();
-    search::start(VALIDATION_OPTIONS, board, &mut history, &mut tt).score
+    search::start(VALIDATION_OPTIONS, board, &mut history, &tt).score
 }
 
 /// Generates all legal moves for the given board.
