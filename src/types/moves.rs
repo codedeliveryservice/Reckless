@@ -2,7 +2,7 @@ use std::{mem, ops::Deref};
 
 use super::{Piece, Square};
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct FullMove {
     piece: Piece,
     inner: Move,
@@ -32,13 +32,13 @@ impl Deref for FullMove {
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
 /// 
 /// See [From-To Based](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 #[rustfmt::skip]
 pub enum MoveKind {
     Quiet             = 0b0000,

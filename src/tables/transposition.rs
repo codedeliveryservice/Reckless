@@ -19,7 +19,7 @@ pub struct Entry {
 }
 
 /// Type of the score returned by the search.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Bound {
     Exact,
     Lower,
@@ -27,7 +27,6 @@ pub enum Bound {
 }
 
 /// Internal representation of a transposition table entry (8 bytes).
-#[derive(Copy, Clone)]
 struct InternalEntry {
     key: u16,     // 2 bytes
     depth: u8,    // 1 byte

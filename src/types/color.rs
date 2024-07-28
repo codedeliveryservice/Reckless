@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut, Not};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Color {
     White,
     Black,

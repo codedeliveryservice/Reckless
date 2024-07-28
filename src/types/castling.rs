@@ -16,8 +16,8 @@ pub trait CastlingKind {
 macro_rules! impl_castling_kind {
     ($($kind:ident => $raw:expr, $path_mask:expr, $start:expr, $adjacent: expr, $target:expr,)*)  => {
         $(
-            #[derive(Clone, Copy)]
             pub struct $kind;
+
             impl CastlingKind for $kind {
                 const MASK: u8 = $raw;
                 const PATH_MASK: Bitboard = Bitboard($path_mask);
@@ -35,7 +35,7 @@ impl_castling_kind! {
     BlackQueenSide  => 8, 0b0000_1110 << 56, Square::E8, Square::D8, Square::C8,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Copy, Clone, Default)]
 #[repr(transparent)]
 pub struct Castling {
     raw: u8,

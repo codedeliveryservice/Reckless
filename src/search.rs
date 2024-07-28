@@ -26,7 +26,6 @@ pub struct Options {
     pub threads: usize,
 }
 
-#[derive(Clone, Copy, Debug)]
 pub struct SearchResult {
     pub best_move: Move,
     pub score: i32,

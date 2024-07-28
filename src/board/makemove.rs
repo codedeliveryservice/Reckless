@@ -1,7 +1,7 @@
 use super::{zobrist::ZOBRIST, Board};
 use crate::types::{FullMove, Move, MoveKind, Piece, Square};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct IllegalMoveError;
 
 impl Board {

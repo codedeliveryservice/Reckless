@@ -17,7 +17,7 @@ mod zobrist;
 /// suitable for copying when making/undoing moves.
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
-#[derive(Default, Clone, Copy)]
+#[derive(Copy, Clone, Default)]
 struct InternalState {
     hash: u64,
     en_passant: Square,
