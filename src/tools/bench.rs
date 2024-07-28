@@ -94,13 +94,13 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
     for position in POSITIONS {
         let now = Instant::now();
 
-        let options = Options { threads: 1, silent: true };
+        let options = Options { threads: 1, silent: true, limits: Limits::FixedDepth(depth) };
 
         let mut board = Board::new(position).unwrap();
         let mut history = History::new();
         let tt = TranspositionTable::default();
 
-        let result = search::start(options, Limits::FixedDepth(depth), &mut board, &mut history, &tt);
+        let result = search::start(options, &mut board, &mut history, &tt);
 
         nodes += result.nodes;
         index += 1;

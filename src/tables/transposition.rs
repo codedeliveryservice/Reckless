@@ -92,7 +92,7 @@ impl TranspositionTable {
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
-    pub fn get_load_factor(&self) -> usize {
+    pub fn hashfull(&self) -> usize {
         const BATCH_SIZE: usize = 10_000;
         self.vector.iter().take(BATCH_SIZE).filter(|slot| is_valid(slot.load())).count() * 1000 / BATCH_SIZE
     }

@@ -19,7 +19,8 @@ use crate::{
 mod position;
 mod random;
 
-const SEARCH_OPTIONS: Options = Options { silent: true, threads: 1 };
+const VALIDATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: VALIDATION_LIMITS };
+const GENERATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: GENERATION_LIMITS };
 
 const REPORT_INTERVAL: Duration = Duration::from_secs(30);
 const BUFFER_SIZE: usize = 128 * 1024;
@@ -130,7 +131,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let mut entries = Vec::new();
 
     loop {
-        let entry = search::start(SEARCH_OPTIONS, GENERATION_LIMITS, &mut board, &mut history, &mut tt);
+        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &mut tt);
         let SearchResult { best_move, score, .. } = entry;
 
         // The score is so high that the game is already decided
@@ -184,7 +185,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
 fn validation_score(board: &mut Board) -> i32 {
     let mut history = History::new();
     let mut tt = TranspositionTable::default();
-    search::start(SEARCH_OPTIONS, VALIDATION_LIMITS, board, &mut history, &mut tt).score
+    search::start(VALIDATION_OPTIONS, board, &mut history, &mut tt).score
 }
 
 /// Generates all legal moves for the given board.

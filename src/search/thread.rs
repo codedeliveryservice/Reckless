@@ -1,4 +1,4 @@
-use super::{counter::NodeCounter, parameters::Parameters, SearchResult, ABORT_SIGNAL, NODES_GLOBAL};
+use super::{counter::NodeCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
     tables::{History, NodeTable, PrincipleVariationTable, TranspositionTable},
@@ -13,8 +13,6 @@ pub struct SearchThread<'a> {
     /// This is set when the time manager has run out of time,
     /// or the main thread has sent an abort signal.
     pub stopped: bool,
-    /// Flag to suppress output during the search (`info` and `bestmove` commands).
-    pub silent: bool,
 
     /// The board state to start the search from.
     pub board: &'a mut Board,
@@ -49,7 +47,6 @@ impl<'a> SearchThread<'a> {
         Self {
             time_manager: TimeManager::new(&ABORT_SIGNAL, limits),
             stopped: false,
-            silent: false,
             board,
             history,
             tt,
@@ -63,16 +60,6 @@ impl<'a> SearchThread<'a> {
             sel_depth: 0,
             nodes: NodeCounter::new(&NODES_GLOBAL),
         }
-    }
-
-    /// This is the main entry point for the search.
-    ///
-    /// It performs an iterative deepening search, incrementally increasing
-    /// the search depth and printing the `info` output at each iteration.
-    ///
-    /// When the search is stopped, the `bestmove` command is sent to the GUI.
-    pub fn run(&mut self) -> SearchResult {
-        self.iterative_deepening()
     }
 
     pub fn apply_null_move(&mut self) {

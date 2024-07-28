@@ -55,7 +55,7 @@ fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTa
 
 fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move, tokens);
-    search::start(Options { threads, silent: false }, limits, board, history, tt);
+    search::start(Options { threads, limits, silent: false }, board, history, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
