@@ -2,12 +2,14 @@
 name = "reckless"
 version = "0.7.0-dev"
 edition = "2021"
+license = "MIT"
 build = "build/build.rs"
+publish = false
+
+[features]
+datagen = []
 
 [profile.release]
 lto = "fat"
 panic = "abort"
 codegen-units = 1
-
-[features]
-datagen = []
