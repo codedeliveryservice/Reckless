@@ -10,11 +10,6 @@ pub struct MoveList {
 }
 
 impl MoveList {
-    /// Creates a new empty move list.
-    pub fn new() -> Self {
-        Self { moves: [Move::NULL; MAX_MOVES], len: 0 }
-    }
-
     /// Pushes a move to the end of the list.
     pub fn push(&mut self, mv: Move) {
         self.moves[self.len] = mv;
@@ -62,6 +57,12 @@ impl MoveList {
 
     pub fn iter(&self) -> std::slice::Iter<Move> {
         self.as_slice().iter()
+    }
+}
+
+impl Default for MoveList {
+    fn default() -> Self {
+        Self { moves: [Move::NULL; MAX_MOVES], len: 0 }
     }
 }
 
