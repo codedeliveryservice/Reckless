@@ -1,2 +1,3 @@
-max_width = 140
-chain_width = 120
+max_width = 120
+struct_lit_width = 60
+use_small_heuristics = "Max"
