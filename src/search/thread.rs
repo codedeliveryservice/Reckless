@@ -33,6 +33,7 @@ pub struct SearchThread<'a> {
     pub node_table: NodeTable,
     pub params: Parameters,
 
+    pub ply: usize,
     /// The depth of the last completed search.
     pub finished_depth: i32,
     /// The maximum depth reached in the current search, including qsearch.
@@ -57,6 +58,7 @@ impl<'a> SearchThread<'a> {
             pv_table: PrincipleVariationTable::default(),
             node_table: NodeTable::default(),
             params: Parameters::default(),
+            ply: 0,
             finished_depth: 0,
             sel_depth: 0,
             nodes: NodeCounter::new(&NODES_GLOBAL),
@@ -70,7 +72,30 @@ impl<'a> SearchThread<'a> {
     ///
     /// When the search is stopped, the `bestmove` command is sent to the GUI.
     pub fn run(&mut self) -> SearchResult {
-        self.board.ply = 0;
         self.iterative_deepening()
+    }
+
+    pub fn apply_null_move(&mut self) {
+        self.ply += 1;
+        self.board.make_null_move();
+    }
+
+    pub fn revert_null_move(&mut self) {
+        self.ply -= 1;
+        self.board.undo_move::<false>();
+    }
+
+    pub fn apply_move(&mut self, mv: Move) -> bool {
+        self.ply += 1;
+        let is_legal = self.board.make_move::<true>(mv);
+        if !is_legal {
+            self.revert_move();
+        }
+        is_legal
+    }
+
+    pub fn revert_move(&mut self) {
+        self.ply -= 1;
+        self.board.undo_move::<true>();
     }
 }

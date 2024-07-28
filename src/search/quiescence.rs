@@ -15,14 +15,14 @@ impl super::SearchThread<'_> {
     /// for more information.
     pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> i32 {
         self.nodes.inc();
-        self.sel_depth = self.sel_depth.max(self.board.ply);
+        self.sel_depth = self.sel_depth.max(self.ply);
 
         // Prevent overflows
-        if self.board.ply >= MAX_PLY - 1 {
+        if self.ply >= MAX_PLY - 1 {
             return self.board.evaluate();
         }
 
-        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read(self.board.hash(), self.ply);
         if let Some(entry) = entry {
             if match entry.bound {
                 Bound::Exact => true,
@@ -69,9 +69,9 @@ impl super::SearchThread<'_> {
             let key_after = self.board.key_after(mv);
             self.tt.prefetch(key_after);
 
-            if self.board.make_move::<true>(mv).is_ok() {
+            if self.apply_move(mv) {
                 let score = -self.quiescence_search(-beta, -alpha);
-                self.board.undo_move::<true>();
+                self.revert_move();
 
                 if score > best_score {
                     best_score = score;
@@ -87,7 +87,7 @@ impl super::SearchThread<'_> {
         }
 
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
-        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.ply);
         best_score
     }
 

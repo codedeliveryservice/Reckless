@@ -31,7 +31,6 @@ struct InternalState {
 #[derive(Clone)]
 pub struct Board {
     pub side_to_move: Color,
-    pub ply: usize,
     state: InternalState,
     state_stack: Vec<InternalState>,
     move_stack: Vec<FullMove>,
@@ -291,7 +290,6 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             side_to_move: Color::White,
-            ply: Default::default(),
             state: InternalState::default(),
             state_stack: Vec::default(),
             move_stack: Vec::default(),

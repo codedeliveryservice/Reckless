@@ -116,7 +116,7 @@ fn generate_data(mut buf: BufWriter<File>) {
                 count += 1;
             }
 
-            board.make_move::<false>(entry.best_move).unwrap();
+            assert!(board.make_move::<false>(entry.best_move));
         }
 
         COUNT.fetch_add(count, Ordering::Relaxed);
@@ -145,7 +145,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
         }
 
         entries.push(entry);
-        board.make_move::<true>(best_move).unwrap();
+        assert!(board.make_move::<true>(best_move));
 
         // Draw by repetition, 50-move rule or insufficient material
         if board.is_draw() || board.draw_by_insufficient_material() {
@@ -171,7 +171,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
         }
 
         let index = random.next() % moves.len();
-        board.make_move::<true>(moves[index]).unwrap();
+        assert!(board.make_move::<true>(moves[index]));
     }
 
     if generate_legal_moves(&mut board).is_empty() {
@@ -191,10 +191,13 @@ fn validation_score(board: &mut Board) -> i32 {
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
     let mut legals = Vec::new();
     for &mv in board.generate_all_moves().iter() {
-        if board.make_move::<false>(mv).is_ok() {
-            legals.push(mv);
+        if !board.make_move::<false>(mv) {
             board.undo_move::<false>();
+            continue;
         }
+
+        legals.push(mv);
+        board.undo_move::<false>();
     }
     legals
 }
