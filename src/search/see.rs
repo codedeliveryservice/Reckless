@@ -19,7 +19,7 @@ impl super::SearchThread<'_> {
         }
 
         // The worst case is losing our piece
-        balance -= match mv.get_promotion_piece() {
+        balance -= match mv.promotion_piece() {
             Some(promotion) => PIECE_VALUES[promotion],
             None => PIECE_VALUES[self.board.piece_on(mv.start())],
         };

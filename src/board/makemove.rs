@@ -75,7 +75,7 @@ impl Board {
             }
             _ if mv.is_promotion() => {
                 self.remove_piece::<UPDATE_NNUE>(Piece::Pawn, self.side_to_move, target);
-                self.add_piece::<UPDATE_NNUE>(mv.get_promotion_piece().unwrap(), self.side_to_move, target);
+                self.add_piece::<UPDATE_NNUE>(mv.promotion_piece().unwrap(), self.side_to_move, target);
             }
             _ => (),
         }

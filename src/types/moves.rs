@@ -105,12 +105,7 @@ impl Move {
         matches!(self.kind(), MoveKind::EnPassant)
     }
 
-    /// Returns the piece to promote for the current move.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the current move is not a pawn promotion.
-    pub const fn get_promotion_piece(self) -> Option<Piece> {
+    pub const fn promotion_piece(self) -> Option<Piece> {
         match self.kind() {
             MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(Piece::Knight),
             MoveKind::PromotionB | MoveKind::PromotionCaptureB => Some(Piece::Bishop),
@@ -125,7 +120,7 @@ impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = format!("{}{}", self.start(), self.target());
 
-        match self.get_promotion_piece() {
+        match self.promotion_piece() {
             Some(Piece::Knight) => output.push('n'),
             Some(Piece::Bishop) => output.push('b'),
             Some(Piece::Rook) => output.push('r'),

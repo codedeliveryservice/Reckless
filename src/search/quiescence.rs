@@ -100,7 +100,7 @@ impl super::SearchThread<'_> {
 
         let piece = self.board.piece_on(mv.target());
 
-        if let Some(promotion) = mv.get_promotion_piece() {
+        if let Some(promotion) = mv.promotion_piece() {
             PIECE_VALUES[promotion] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece]
         } else {
             PIECE_VALUES[piece]
