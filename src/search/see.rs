@@ -33,7 +33,7 @@ impl super::SearchThread<'_> {
         occupancies.clear(mv.start());
 
         let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
-        let mut stm = !self.board.side_to_move;
+        let mut stm = !self.board.side_to_move();
 
         let diagonal = self.board.pieces(Piece::Bishop) | self.board.pieces(Piece::Queen);
         let orthogonal = self.board.pieces(Piece::Rook) | self.board.pieces(Piece::Queen);
@@ -73,7 +73,7 @@ impl super::SearchThread<'_> {
 
         // The last side to move has failed to capture back
         // since it has no more attackers and, therefore, is losing
-        stm != self.board.side_to_move
+        stm != self.board.side_to_move()
     }
 
     fn move_value(&self, mv: Move) -> i32 {

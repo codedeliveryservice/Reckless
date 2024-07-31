@@ -54,7 +54,7 @@ fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTa
 }
 
 fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
-    let limits = parse_limits(board.side_to_move, tokens);
+    let limits = parse_limits(board.side_to_move(), tokens);
     search::start(Options { threads, limits, silent: false }, board, history, tt);
 }
 
@@ -101,7 +101,7 @@ fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str])
 }
 
 fn evaluate(board: &Board) {
-    let eval = match board.side_to_move {
+    let eval = match board.side_to_move() {
         Color::White => board.evaluate(),
         Color::Black => -board.evaluate(),
     };

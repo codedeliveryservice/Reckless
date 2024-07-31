@@ -252,7 +252,7 @@ impl super::SearchThread<'_> {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             // Fractional reductions
             let mut reduction = (self.params.lmr(depth, moves_played)
-                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR)
+                - self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR)
                 as i32;
 
             // Reduce PV nodes less
@@ -284,7 +284,7 @@ impl super::SearchThread<'_> {
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
         self.killers[self.ply] = best_move;
-        self.history.update_main(self.board.side_to_move, best_move, quiets, depth);
+        self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
         self.history.update_continuation(self.board, best_move, quiets, depth);
     }
 }
