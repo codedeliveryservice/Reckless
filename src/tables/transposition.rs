@@ -167,12 +167,12 @@ impl TranspositionTable {
 }
 
 /// Checks if the entry is valid.
-fn is_valid(packed: u64) -> bool {
+const fn is_valid(packed: u64) -> bool {
     packed != 0
 }
 
 /// Returns the verification key of the hash (bottom 16 bits).
-fn verification_key(hash: u64) -> u16 {
+const fn verification_key(hash: u64) -> u16 {
     hash as u16
 }
 

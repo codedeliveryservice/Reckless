@@ -31,7 +31,7 @@ impl Bitboard {
     }
 
     /// Shifts the bits of the bitboard by the specified offset.
-    pub fn shift(self, offset: i8) -> Self {
+    pub const fn shift(self, offset: i8) -> Self {
         if offset > 0 {
             Self(self.0 << offset)
         } else {
@@ -50,7 +50,7 @@ impl Bitboard {
     }
 
     /// Returns the least significant set bit in the bitboard.
-    pub fn lsb(self) -> Square {
+    pub const fn lsb(self) -> Square {
         Square::new(self.0.trailing_zeros() as u8)
     }
 

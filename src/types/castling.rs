@@ -72,7 +72,7 @@ impl Castling {
     }
 
     /// Checks if a specific castling kind is allowed.
-    pub fn is_allowed<KIND: CastlingKind>(self) -> bool {
+    pub const fn is_allowed<KIND: CastlingKind>(self) -> bool {
         (self.raw & KIND::MASK) != 0
     }
 }

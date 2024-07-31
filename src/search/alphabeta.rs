@@ -290,7 +290,7 @@ impl super::SearchThread<'_> {
 }
 
 /// Determines the score bound based on the best score and the original alpha-beta window.
-fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
+const fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
     if score <= alpha {
         return Bound::Upper;
     }
@@ -301,7 +301,7 @@ fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
 }
 
 /// Provides a score for a transposition table cutoff, if applicable.
-fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
+const fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
     if entry.depth < depth {
         return false;
     }

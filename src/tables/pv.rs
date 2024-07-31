@@ -9,7 +9,7 @@ pub struct PrincipalVariationTable {
 }
 
 impl PrincipalVariationTable {
-    pub fn best_move(&self) -> Move {
+    pub const fn best_move(&self) -> Move {
         self.table[0][0]
     }
 
