@@ -92,7 +92,7 @@ impl super::SearchThread<'_> {
     }
 
     /// Estimates the optimistic gain from a capture, i.e., ignoring possible piece loss afterward.
-    fn estimate_gain(&mut self, mv: Move) -> i32 {
+    fn estimate_gain(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
             return OPT_PIECE_VALUES[Piece::Pawn];
         }
