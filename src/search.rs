@@ -125,7 +125,7 @@ fn print_uci_info(thread: &SearchThread, depth: i32, score: i32, now: Instant) {
         thread.tt.hashfull(),
     );
     for mv in &thread.pv_table.variation() {
-        print!(" {mv}")
+        print!(" {mv}");
     }
     println!();
 }
