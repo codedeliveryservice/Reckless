@@ -1,50 +1,40 @@
 use crate::types::{Move, MAX_PLY};
 
-/// Triangular principle variation table.
+/// Implementation of a [Triangular Principal Variation Table][wiki].
 ///
-/// See [Triangular PV Table](https://www.chessprogramming.org/Triangular_PV-Table) for more information.
-pub struct PrincipleVariationTable {
+/// [wiki]: https://www.chessprogramming.org/Triangular_PV-Table
+pub struct PrincipalVariationTable {
     table: [[Move; MAX_PLY + 1]; MAX_PLY + 1],
-    length: [usize; MAX_PLY + 1],
+    len: [usize; MAX_PLY + 1],
 }
 
-impl PrincipleVariationTable {
-    /// Returns the best move found during the search.
-    ///
-    /// This method should only be called after a search has been performed.
-    pub fn get_best_move(&self) -> Move {
+impl PrincipalVariationTable {
+    pub const fn best_move(&self) -> Move {
         self.table[0][0]
     }
 
-    /// Returns the principle variation line of the current search.
-    ///
-    /// This method should only be called after a search has been performed.
-    pub fn get_line(&self) -> Vec<Move> {
-        let mut line = Vec::with_capacity(self.length[0]);
-        for i in 0..self.length[0] {
-            line.push(self.table[0][i]);
-        }
-        line
+    pub fn variation(&self) -> Vec<Move> {
+        self.table[0][..self.len[0]].to_vec()
     }
 
     pub fn clear(&mut self, ply: usize) {
-        self.length[ply] = 0;
+        self.len[ply] = 0;
     }
 
     pub fn update(&mut self, ply: usize, mv: Move) {
         self.table[ply][0] = mv;
-        self.length[ply] = self.length[ply + 1] + 1;
-        for i in 0..self.length[ply + 1] {
+        self.len[ply] = self.len[ply + 1] + 1;
+        for i in 0..self.len[ply + 1] {
             self.table[ply][i + 1] = self.table[ply + 1][i];
         }
     }
 }
 
-impl Default for PrincipleVariationTable {
+impl Default for PrincipalVariationTable {
     fn default() -> Self {
         Self {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
-            length: [0; MAX_PLY + 1],
+            len: [0; MAX_PLY + 1],
         }
     }
 }

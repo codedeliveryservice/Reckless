@@ -1,3 +1,6 @@
+pub const SEE_PIECE_VALUES: [i32; 7] = [100, 400, 400, 650, 1200, 0, 0];
+pub const OPT_PIECE_VALUES: [i32; 7] = [400, 750, 800, 1200, 1900, 0, 0];
+
 pub const RFP_MARGIN: i32 = 75;
 pub const RFP_DEPTH: i32 = 7;
 

@@ -19,7 +19,7 @@ pub struct Entry {
 }
 
 /// Type of the score returned by the search.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Bound {
     Exact,
     Lower,
@@ -27,7 +27,6 @@ pub enum Bound {
 }
 
 /// Internal representation of a transposition table entry (8 bytes).
-#[derive(Copy, Clone)]
 struct InternalEntry {
     key: u16,     // 2 bytes
     depth: u8,    // 1 byte
@@ -93,7 +92,7 @@ impl TranspositionTable {
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
-    pub fn get_load_factor(&self) -> usize {
+    pub fn hashfull(&self) -> usize {
         const BATCH_SIZE: usize = 10_000;
         self.vector.iter().take(BATCH_SIZE).filter(|slot| is_valid(slot.load())).count() * 1000 / BATCH_SIZE
     }
@@ -168,12 +167,12 @@ impl TranspositionTable {
 }
 
 /// Checks if the entry is valid.
-fn is_valid(packed: u64) -> bool {
+const fn is_valid(packed: u64) -> bool {
     packed != 0
 }
 
 /// Returns the verification key of the hash (bottom 16 bits).
-fn verification_key(hash: u64) -> u16 {
+const fn verification_key(hash: u64) -> u16 {
     hash as u16
 }
 

@@ -25,12 +25,12 @@ impl super::SearchThread<'_> {
             let base = if self.see(mv, 0) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
             return base + self.mvv_lva(mv);
         }
-        if self.killers[self.board.ply] == mv {
+        if self.killers[self.ply] == mv {
             return Self::KILLERS;
         }
 
         let piece = self.board.piece_on(mv.start());
-        self.history.get_main(self.board.side_to_move, mv)
+        self.history.get_main(self.board.side_to_move(), mv)
             + self.history.get_continuation(0, continuations[0], piece, mv)
             + self.history.get_continuation(1, continuations[1], piece, mv)
     }

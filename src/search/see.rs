@@ -1,9 +1,8 @@
+use super::parameters::SEE_PIECE_VALUES;
 use crate::{
     lookup::*,
     types::{Bitboard, Color, Move, Piece, Square},
 };
-
-const PIECE_VALUES: [i32; Piece::NUM] = [100, 400, 400, 650, 1200, 0];
 
 impl super::SearchThread<'_> {
     /// Returns `true` if the static exchange evaluation of the given move
@@ -19,9 +18,9 @@ impl super::SearchThread<'_> {
         }
 
         // The worst case is losing our piece
-        balance -= match mv.get_promotion_piece() {
-            Some(promotion) => PIECE_VALUES[promotion],
-            None => PIECE_VALUES[self.board.piece_on(mv.start())],
+        balance -= match mv.promotion_piece() {
+            Some(promotion) => SEE_PIECE_VALUES[promotion],
+            None => SEE_PIECE_VALUES[self.board.piece_on(mv.start())],
         };
 
         // The worst case is still winning
@@ -34,7 +33,7 @@ impl super::SearchThread<'_> {
         occupancies.clear(mv.start());
 
         let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
-        let mut stm = !self.board.side_to_move;
+        let mut stm = !self.board.side_to_move();
 
         let diagonal = self.board.pieces(Piece::Bishop) | self.board.pieces(Piece::Queen);
         let orthogonal = self.board.pieces(Piece::Rook) | self.board.pieces(Piece::Queen);
@@ -57,7 +56,7 @@ impl super::SearchThread<'_> {
             stm = !stm;
 
             // Assume our piece is going to be captured
-            balance = -balance - 1 - PIECE_VALUES[attacker];
+            balance = -balance - 1 - SEE_PIECE_VALUES[attacker];
             if balance >= threshold {
                 break;
             }
@@ -74,16 +73,16 @@ impl super::SearchThread<'_> {
 
         // The last side to move has failed to capture back
         // since it has no more attackers and, therefore, is losing
-        stm != self.board.side_to_move
+        stm != self.board.side_to_move()
     }
 
     fn move_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return PIECE_VALUES[Piece::Pawn];
+            return SEE_PIECE_VALUES[Piece::Pawn];
         }
 
         let capture = self.board.piece_on(mv.target());
-        PIECE_VALUES[capture]
+        SEE_PIECE_VALUES[capture]
     }
 
     fn least_valuable_attacker(&self, our_attackers: Bitboard) -> Piece {

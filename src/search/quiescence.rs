@@ -1,11 +1,10 @@
 use std::cmp::max;
 
+use super::parameters::OPT_PIECE_VALUES;
 use crate::{
     tables::{Bound, Entry},
     types::{Move, Piece, Score, MAX_PLY},
 };
-
-const PIECE_VALUES: [i32; 5] = [400, 750, 800, 1200, 1900];
 
 impl super::SearchThread<'_> {
     /// Performs a search until the position becomes stable enough for static evaluation.
@@ -16,14 +15,14 @@ impl super::SearchThread<'_> {
     /// for more information.
     pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> i32 {
         self.nodes.inc();
-        self.sel_depth = self.sel_depth.max(self.board.ply);
+        self.sel_depth = self.sel_depth.max(self.ply);
 
         // Prevent overflows
-        if self.board.ply >= MAX_PLY - 1 {
+        if self.ply >= MAX_PLY - 1 {
             return self.board.evaluate();
         }
 
-        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read(self.board.hash(), self.ply);
         if let Some(entry) = entry {
             if match entry.bound {
                 Bound::Exact => true,
@@ -61,18 +60,18 @@ impl super::SearchThread<'_> {
                 continue;
             }
 
-            // Futility pruning
+            // Pessimistic forward pruning
             #[cfg(not(feature = "datagen"))]
-            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.maximum_gain(mv) < alpha {
+            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.estimate_gain(mv) < alpha {
                 break;
             }
 
             let key_after = self.board.key_after(mv);
             self.tt.prefetch(key_after);
 
-            if self.board.make_move::<true>(mv).is_ok() {
+            if self.apply_move(mv) {
                 let score = -self.quiescence_search(-beta, -alpha);
-                self.board.undo_move::<true>();
+                self.revert_move();
 
                 if score > best_score {
                     best_score = score;
@@ -88,22 +87,22 @@ impl super::SearchThread<'_> {
         }
 
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
-        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.ply);
         best_score
     }
 
-    /// Returns the material gain of a move.
-    fn maximum_gain(&mut self, mv: Move) -> i32 {
+    /// Estimates the optimistic gain from a capture, i.e., ignoring possible piece loss afterward.
+    fn estimate_gain(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return PIECE_VALUES[Piece::Pawn];
+            return OPT_PIECE_VALUES[Piece::Pawn];
         }
 
         let piece = self.board.piece_on(mv.target());
 
-        if let Some(promotion) = mv.get_promotion_piece() {
-            PIECE_VALUES[promotion] - PIECE_VALUES[Piece::Pawn] + PIECE_VALUES[piece]
+        if let Some(promotion) = mv.promotion_piece() {
+            OPT_PIECE_VALUES[promotion] - OPT_PIECE_VALUES[Piece::Pawn] + OPT_PIECE_VALUES[piece]
         } else {
-            PIECE_VALUES[piece]
+            OPT_PIECE_VALUES[piece]
         }
     }
 }

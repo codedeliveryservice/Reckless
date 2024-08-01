@@ -40,7 +40,7 @@ impl Position {
     /// * `score` - The perspective score of the position in favor of the side to move.
     /// * `wdl` - The result of the position (1.0 for white win, 0.5 for draw, 0.0 for black win).
     pub fn parse(board: &Board, score: i32, wdl: f32) -> Self {
-        let reverse = board.side_to_move == Color::Black;
+        let reverse = board.side_to_move() == Color::Black;
 
         let mut packed = Vec::new();
         for color in [Color::White, Color::Black] {

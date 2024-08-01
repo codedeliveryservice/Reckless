@@ -12,7 +12,7 @@ impl super::SearchThread<'_> {
         mut beta: i32,
         mut depth: i32,
     ) -> i32 {
-        self.pv_table.clear(self.board.ply);
+        self.pv_table.clear(self.ply);
 
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
@@ -27,8 +27,8 @@ impl super::SearchThread<'_> {
             }
 
             // Mate Distance Pruning
-            alpha = alpha.max(-Score::MATE + self.board.ply as i32);
-            beta = beta.min(Score::MATE - (self.board.ply as i32) - 1);
+            alpha = alpha.max(-Score::MATE + self.ply as i32);
+            beta = beta.min(Score::MATE - (self.ply as i32) - 1);
 
             if alpha >= beta {
                 return alpha;
@@ -36,7 +36,7 @@ impl super::SearchThread<'_> {
         }
 
         // Prevent overflows
-        if self.board.ply >= MAX_PLY - 1 {
+        if self.ply >= MAX_PLY - 1 {
             return self.board.evaluate();
         }
 
@@ -51,10 +51,10 @@ impl super::SearchThread<'_> {
 
         // Update UCI statistics after the quiescence search to avoid counting the same node twice
         self.nodes.inc();
-        self.sel_depth = self.sel_depth.max(self.board.ply);
+        self.sel_depth = self.sel_depth.max(self.ply);
 
         // Transposition table lookup and potential cutoff
-        let entry = self.tt.read(self.board.hash(), self.board.ply);
+        let entry = self.tt.read(self.board.hash(), self.ply);
         if let Some(entry) = entry {
             if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
@@ -73,12 +73,12 @@ impl super::SearchThread<'_> {
             None => self.board.evaluate(),
         };
 
-        let improving = !in_check && self.board.ply > 1 && eval > self.eval_stack[self.board.ply - 2];
+        let improving = !in_check && self.ply > 1 && eval > self.eval_stack[self.ply - 2];
 
-        self.eval_stack[self.board.ply] = eval;
+        self.eval_stack[self.ply] = eval;
 
         // Reset the killer moves for child nodes
-        self.killers[self.board.ply + 1] = Move::NULL;
+        self.killers[self.ply + 1] = Move::NULL;
 
         if !ROOT && !PV && !in_check {
             // Reverse Futility Pruning
@@ -106,7 +106,7 @@ impl super::SearchThread<'_> {
         let mut best_move = Move::NULL;
 
         let mut moves_played = 0;
-        let mut quiets = MoveList::new();
+        let mut quiets = MoveList::default();
         let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
 
@@ -136,7 +136,7 @@ impl super::SearchThread<'_> {
             let key_after = self.board.key_after(mv);
             self.tt.prefetch(key_after);
 
-            if self.board.make_move::<true>(mv).is_err() {
+            if !self.apply_move(mv) {
                 continue;
             }
 
@@ -146,10 +146,10 @@ impl super::SearchThread<'_> {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
                 let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
-                self.principle_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
+                self.principal_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
             };
 
-            self.board.undo_move::<true>();
+            self.revert_move();
             moves_played += 1;
 
             if ROOT {
@@ -167,7 +167,7 @@ impl super::SearchThread<'_> {
 
                 if score > alpha {
                     alpha = score;
-                    self.pv_table.update(self.board.ply, mv);
+                    self.pv_table.update(self.ply, mv);
                 }
             }
 
@@ -182,7 +182,7 @@ impl super::SearchThread<'_> {
 
         // Checkmate and stalemate detection
         if moves_played == 0 {
-            return if in_check { Score::mated_in(self.board.ply) } else { Score::DRAW };
+            return if in_check { Score::mated_in(self.ply) } else { Score::DRAW };
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
@@ -190,13 +190,13 @@ impl super::SearchThread<'_> {
             self.update_ordering_heuristics(depth, best_move, quiets.as_slice());
         }
 
-        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.board.ply);
+        self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
         best_score
     }
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
     /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principle_variation_search<const PV: bool>(
+    fn principal_variation_search<const PV: bool>(
         &mut self,
         alpha: i32,
         beta: i32,
@@ -231,9 +231,9 @@ impl super::SearchThread<'_> {
         if depth >= 4 && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
             let r = 3 + depth / 3 + ((eval - beta) / 200).min(4);
 
-            self.board.make_null_move();
+            self.apply_null_move();
             let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - r);
-            self.board.undo_move::<false>();
+            self.revert_null_move();
 
             // Avoid returning false mates
             if score >= Score::MATE_BOUND {
@@ -252,7 +252,7 @@ impl super::SearchThread<'_> {
         if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
             // Fractional reductions
             let mut reduction = (self.params.lmr(depth, moves_played)
-                - self.history.get_main(!self.board.side_to_move, mv) as f64 / LMR_HISTORY_DIVISOR)
+                - self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR)
                 as i32;
 
             // Reduce PV nodes less
@@ -283,14 +283,14 @@ impl super::SearchThread<'_> {
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
     fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
-        self.killers[self.board.ply] = best_move;
-        self.history.update_main(self.board.side_to_move, best_move, quiets, depth);
+        self.killers[self.ply] = best_move;
+        self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
         self.history.update_continuation(self.board, best_move, quiets, depth);
     }
 }
 
 /// Determines the score bound based on the best score and the original alpha-beta window.
-fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
+const fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
     if score <= alpha {
         return Bound::Upper;
     }
@@ -301,7 +301,7 @@ fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
 }
 
 /// Provides a score for a transposition table cutoff, if applicable.
-fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
+const fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
     if entry.depth < depth {
         return false;
     }

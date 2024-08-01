@@ -2,7 +2,7 @@ use std::{mem, ops::Deref};
 
 use super::{Piece, Square};
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct FullMove {
     piece: Piece,
     inner: Move,
@@ -32,13 +32,13 @@ impl Deref for FullMove {
 /// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
 /// 
 /// See [From-To Based](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq)]
 #[rustfmt::skip]
 pub enum MoveKind {
     Quiet             = 0b0000,
@@ -105,12 +105,7 @@ impl Move {
         matches!(self.kind(), MoveKind::EnPassant)
     }
 
-    /// Returns the piece to promote for the current move.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the current move is not a pawn promotion.
-    pub const fn get_promotion_piece(self) -> Option<Piece> {
+    pub const fn promotion_piece(self) -> Option<Piece> {
         match self.kind() {
             MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(Piece::Knight),
             MoveKind::PromotionB | MoveKind::PromotionCaptureB => Some(Piece::Bishop),
@@ -125,7 +120,7 @@ impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = format!("{}{}", self.start(), self.target());
 
-        match self.get_promotion_piece() {
+        match self.promotion_piece() {
             Some(Piece::Knight) => output.push('n'),
             Some(Piece::Bishop) => output.push('b'),
             Some(Piece::Rook) => output.push('r'),

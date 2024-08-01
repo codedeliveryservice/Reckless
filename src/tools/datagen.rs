@@ -19,7 +19,8 @@ use crate::{
 mod position;
 mod random;
 
-const SEARCH_OPTIONS: Options = Options { silent: true, threads: 1 };
+const VALIDATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: VALIDATION_LIMITS };
+const GENERATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: GENERATION_LIMITS };
 
 const REPORT_INTERVAL: Duration = Duration::from_secs(30);
 const BUFFER_SIZE: usize = 128 * 1024;
@@ -105,8 +106,7 @@ fn generate_data(mut buf: BufWriter<File>) {
         for (index, entry) in entries.iter().enumerate() {
             let ply = index + RANDOM_PLIES;
 
-            if WRITE_MIN_PLY <= ply
-                && ply <= WRITE_MAX_PLY
+            if (WRITE_MIN_PLY..=WRITE_MAX_PLY).contains(&ply)
                 && !board.is_in_check()
                 && !entry.best_move.is_capture()
                 && !entry.best_move.is_promotion()
@@ -116,7 +116,7 @@ fn generate_data(mut buf: BufWriter<File>) {
                 count += 1;
             }
 
-            board.make_move::<false>(entry.best_move).unwrap();
+            assert!(board.make_move::<false>(entry.best_move));
         }
 
         COUNT.fetch_add(count, Ordering::Relaxed);
@@ -125,17 +125,17 @@ fn generate_data(mut buf: BufWriter<File>) {
 
 /// Plays a game and returns the search results and the WDL result.
 fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
+    let tt = TranspositionTable::default();
     let mut history = History::new();
-    let mut tt = TranspositionTable::default();
     let mut entries = Vec::new();
 
     loop {
-        let entry = search::start(SEARCH_OPTIONS, GENERATION_LIMITS, &mut board, &mut history, &mut tt);
+        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &tt);
         let SearchResult { best_move, score, .. } = entry;
 
         // The score is so high that the game is already decided
         if score.abs() >= GENERATION_THRESHOLD {
-            let wdl = match board.side_to_move {
+            let wdl = match board.side_to_move() {
                 Color::White if score > 0 => 1.0,
                 Color::Black if score < 0 => 1.0,
                 Color::White => 0.0,
@@ -145,7 +145,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
         }
 
         entries.push(entry);
-        board.make_move::<true>(best_move).unwrap();
+        assert!(board.make_move::<true>(best_move));
 
         // Draw by repetition, 50-move rule or insufficient material
         if board.is_draw() || board.draw_by_insufficient_material() {
@@ -171,7 +171,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
         }
 
         let index = random.next() % moves.len();
-        board.make_move::<true>(moves[index]).unwrap();
+        assert!(board.make_move::<true>(moves[index]));
     }
 
     if generate_legal_moves(&mut board).is_empty() {
@@ -182,19 +182,22 @@ fn generate_random_opening(random: &mut Random) -> Board {
 
 /// Returns the score of the position after performing a validation search.
 fn validation_score(board: &mut Board) -> i32 {
+    let tt = TranspositionTable::default();
     let mut history = History::new();
-    let mut tt = TranspositionTable::default();
-    search::start(SEARCH_OPTIONS, VALIDATION_LIMITS, board, &mut history, &mut tt).score
+    search::start(VALIDATION_OPTIONS, board, &mut history, &tt).score
 }
 
 /// Generates all legal moves for the given board.
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
     let mut legals = Vec::new();
-    for mv in board.generate_all_moves().iter() {
-        if board.make_move::<false>(mv).is_ok() {
-            legals.push(mv);
+    for &mv in board.generate_all_moves().iter() {
+        if !board.make_move::<false>(mv) {
             board.undo_move::<false>();
+            continue;
         }
+
+        legals.push(mv);
+        board.undo_move::<false>();
     }
     legals
 }

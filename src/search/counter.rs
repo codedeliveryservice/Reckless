@@ -7,7 +7,7 @@ pub struct NodeCounter<'a> {
 }
 
 impl<'a> NodeCounter<'a> {
-    pub fn new(global: &'a AtomicU64) -> Self {
+    pub const fn new(global: &'a AtomicU64) -> Self {
         Self { buffer: 0, local: 0, global }
     }
 
@@ -20,7 +20,7 @@ impl<'a> NodeCounter<'a> {
         }
     }
 
-    pub fn local(&self) -> u64 {
+    pub const fn local(&self) -> u64 {
         self.local + self.buffer
     }
 

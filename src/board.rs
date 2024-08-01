@@ -17,7 +17,7 @@ mod zobrist;
 /// suitable for copying when making/undoing moves.
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
-#[derive(Default, Clone, Copy)]
+#[derive(Copy, Clone, Default)]
 struct InternalState {
     hash: u64,
     en_passant: Square,
@@ -30,8 +30,7 @@ struct InternalState {
 /// A wrapper around the `InternalState` with historical tracking.
 #[derive(Clone)]
 pub struct Board {
-    pub side_to_move: Color,
-    pub ply: usize,
+    side_to_move: Color,
     state: InternalState,
     state_stack: Vec<InternalState>,
     move_stack: Vec<FullMove>,
@@ -47,6 +46,10 @@ impl Board {
     /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
         Self::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+    }
+
+    pub const fn side_to_move(&self) -> Color {
+        self.side_to_move
     }
 
     /// Returns the Zobrist hash key for the current position.
@@ -291,7 +294,6 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             side_to_move: Color::White,
-            ply: Default::default(),
             state: InternalState::default(),
             state_stack: Vec::default(),
             move_stack: Vec::default(),

@@ -5,7 +5,7 @@ use std::{
 
 use crate::types::{Move, MAX_PLY};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Debug)]
 pub enum Limits {
     Infinite,
     FixedDepth(i32),

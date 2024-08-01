@@ -1,3 +1,5 @@
+/// Represents the sets of random numbers used to produce an *almost* unique hash value
+/// for a position using [Zobrist Hashing](https://en.wikipedia.org/wiki/Zobrist_hashing).
 pub struct Zobrist {
     pub pieces: [[[u64; 64]; 6]; 2],
     pub en_passant: [u64; 64],
@@ -6,7 +8,7 @@ pub struct Zobrist {
 }
 
 pub const ZOBRIST: Zobrist = {
-    let mut seed = 0xFFAAB58C5833FE89u64;
+    let mut seed = 0xFFAA_B58C_5833_FE89u64;
     let mut zobrist = [0; 849];
 
     let mut i = 0;

@@ -54,8 +54,8 @@ fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTa
 }
 
 fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
-    let limits = parse_limits(board.side_to_move, tokens);
-    search::start(Options { threads, silent: false }, limits, board, history, tt);
+    let limits = parse_limits(board.side_to_move(), tokens);
+    search::start(Options { threads, limits, silent: false }, board, history, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
@@ -86,8 +86,8 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
-    if let Some(mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
-        board.make_move::<true>(mv).expect("UCI move should be legal");
+    if let Some(&mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
+        assert!(board.make_move::<true>(mv), "UCI move should be legal");
     }
 }
 
@@ -101,7 +101,7 @@ fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str])
 }
 
 fn evaluate(board: &Board) {
-    let eval = match board.side_to_move {
+    let eval = match board.side_to_move() {
         Color::White => board.evaluate(),
         Color::Black => -board.evaluate(),
     };

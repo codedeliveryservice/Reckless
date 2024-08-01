@@ -20,7 +20,7 @@ impl super::Board {
     fn generate_moves<const CAPTURE: bool>(&self) -> MoveList {
         let occupancies = self.occupancies();
 
-        let mut list = MoveList::new();
+        let mut list = MoveList::default();
 
         self.collect_pawn_moves::<CAPTURE>(&mut list);
 

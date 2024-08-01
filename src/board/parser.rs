@@ -37,7 +37,7 @@ impl FromStr for Board {
                     continue;
                 }
 
-                let piece = symbol.try_into().map_err(|_| ParseFenError::InvalidPieceType)?;
+                let piece = symbol.try_into().map_err(|()| ParseFenError::InvalidPieceType)?;
                 let color = if symbol.is_uppercase() { Color::White } else { Color::Black };
                 let square = Square::from_rank_file(rank as u8, file);
 
