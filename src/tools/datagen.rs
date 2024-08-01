@@ -135,7 +135,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
 
         // The score is so high that the game is already decided
         if score.abs() >= GENERATION_THRESHOLD {
-            let wdl = match board.side_to_move {
+            let wdl = match board.side_to_move() {
                 Color::White if score > 0 => 1.0,
                 Color::Black if score < 0 => 1.0,
                 Color::White => 0.0,
