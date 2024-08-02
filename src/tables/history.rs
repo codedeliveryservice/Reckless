@@ -13,32 +13,13 @@ type PieceSquare<T> = [T; Square::NUM * (Piece::NUM + 1)];
 /// future as well.
 ///
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
+#[derive(Clone)]
 pub struct History {
-    main: [Butterfly<i32>; Color::NUM],
-    continuations: [PieceSquare<PieceSquare<i32>>; 2],
+    main: Box<[Butterfly<i32>; Color::NUM]>,
+    continuations: Box<[PieceSquare<PieceSquare<i32>>; 2]>,
 }
 
 impl History {
-    /// Creates a new instance of the history heuristic.
-    pub fn new() -> Box<Self> {
-        unsafe {
-            let layout = std::alloc::Layout::new::<Self>();
-            let ptr = std::alloc::alloc_zeroed(layout);
-            if ptr.is_null() {
-                std::alloc::handle_alloc_error(layout);
-            }
-            Box::from_raw(ptr.cast())
-        }
-    }
-
-    /// Clones the history heuristic.
-    pub fn clone(&self) -> Box<Self> {
-        let mut clone = History::new();
-        clone.main = self.main;
-        clone.continuations = self.continuations;
-        clone
-    }
-
     /// Returns the score of the main butterfly history heuristic.
     pub fn get_main(&self, stm: Color, mv: Move) -> i32 {
         self.main[stm][mv.start()][mv.target()]
@@ -83,6 +64,12 @@ impl History {
     }
 }
 
+impl Default for History {
+    fn default() -> Self {
+        Self { main: zeroed_box(), continuations: zeroed_box() }
+    }
+}
+
 /// Returns the bonus for a move based on the depth of the search.
 fn bonus(depth: i32) -> i32 {
     130 * depth.min(14) - 30
@@ -101,5 +88,16 @@ fn update<const IS_GOOD: bool>(v: &mut i32, depth: i32) {
     } else {
         let malus = malus(depth);
         *v -= malus + malus * *v / MAX_HISTORY;
+    }
+}
+
+fn zeroed_box<T>() -> Box<T> {
+    unsafe {
+        let layout = std::alloc::Layout::new::<T>();
+        let ptr = std::alloc::alloc_zeroed(layout);
+        if ptr.is_null() {
+            std::alloc::handle_alloc_error(layout);
+        }
+        Box::<T>::from_raw(ptr.cast())
     }
 }

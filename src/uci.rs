@@ -10,7 +10,7 @@ use crate::{
 pub fn message_loop() {
     let mut threads = 1;
     let mut board = Board::starting_position();
-    let mut history = History::new();
+    let mut history = History::default();
     let mut tt = TranspositionTable::default();
 
     loop {
@@ -47,9 +47,9 @@ fn uci() {
     println!("uciok");
 }
 
-fn reset(board: &mut Board, history: &mut Box<History>, tt: &mut TranspositionTable) {
+fn reset(board: &mut Board, history: &mut History, tt: &mut TranspositionTable) {
     *board = Board::starting_position();
-    *history = History::new();
+    *history = History::default();
     tt.clear();
 }
 

@@ -97,7 +97,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let options = Options { threads: 1, silent: true, limits: Limits::FixedDepth(depth) };
 
         let mut board = Board::new(position).unwrap();
-        let mut history = History::new();
+        let mut history = History::default();
         let tt = TranspositionTable::default();
 
         let result = search::start(options, &mut board, &mut history, &tt);
