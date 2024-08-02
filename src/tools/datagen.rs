@@ -126,7 +126,7 @@ fn generate_data(mut buf: BufWriter<File>) {
 /// Plays a game and returns the search results and the WDL result.
 fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let tt = TranspositionTable::default();
-    let mut history = History::new();
+    let mut history = History::default();
     let mut entries = Vec::new();
 
     loop {
@@ -183,7 +183,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
 /// Returns the score of the position after performing a validation search.
 fn validation_score(board: &mut Board) -> i32 {
     let tt = TranspositionTable::default();
-    let mut history = History::new();
+    let mut history = History::default();
     search::start(VALIDATION_OPTIONS, board, &mut history, &tt).score
 }
 
