@@ -1,4 +1,6 @@
-EXE := reckless
+EXE    := reckless
+MODEL  := v3-72b3fc58.nnue
+REPO   := https://github.com/codedeliveryservice/RecklessNetworks/raw/repository
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
@@ -25,3 +27,7 @@ release:
 	cargo rustc --release -- -C target-cpu=x86-64-v2 --emit link=$(V2NAME)
 	cargo rustc --release -- -C target-cpu=x86-64-v3 --emit link=$(V3NAME)
 	cargo rustc --release -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
+
+fetch:
+	@echo Downloading $(MODEL)
+	@curl -sL $(REPO)/$(MODEL) -o networks/model.nnue --create-dirs
