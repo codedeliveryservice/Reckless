@@ -5,9 +5,85 @@
 Reckless is a [UCI][uci] chess engine written in Rust as a personal project.
 
 Guided by the insights from the chess programming community, it fearlessly
-combines established concepts, as the name suggests.
+combines established concepts with a reckless nature, as the name suggests.
 
 [uci]: https://en.wikipedia.org/wiki/Universal_Chess_Interface
+
+## Rating
+
+| Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
+| ------------------------- | ---------------------- | ----------------------- | ------------ |
+| [Reckless v0.6.0][v0.6.0] | 3387 +/- 23 [#73]      | 3311 +/- 21 [#78]       | Mar 22, 2024 |
+| [Reckless v0.5.0][v0.5.0] | 3243 +/- 19 [#94]      | 3213 +/- 21 [#94]       | Feb 4, 2024  |
+| [Reckless v0.4.0][v0.4.0] | 2933 +/- 19 [#151]     | 2929 +/- 21 [#158]      | Dec 13, 2023 |
+| [Reckless v0.3.0][v0.3.0] | 2617 +/- 20 [#229]     | 2615 +/- 21 [#251]      | Nov 6, 2023  |
+| [Reckless v0.2.0][v0.2.0] | 2358 +/- 19 [#333]     |                         | Oct 7, 2023  |
+| [Reckless v0.1.0][v0.1.0] | 2020 +/- 20 [#471]     |                         | May 16, 2023 |
+
+[v0.1.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.1.0
+[v0.2.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.2.0
+[v0.3.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.3.0
+[v0.4.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.4.0
+[v0.5.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.5.0
+[v0.6.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.6.0
+[ccrl-404]: https://www.computerchess.org.uk/ccrl/404/
+[crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/
+
+## Getting started
+
+### Precompiled binaries
+
+You can download precompiled builds from the [GitHub Releases page](https://github.com/codedeliveryservice/Reckless/releases).
+
+-   `x86_64-v1`: Slowest, compatible with any x86-64 CPU.
+-   `x86_64-v2`: Faster, requires support for `POPCNT`, `SEE3`, etc.
+-   `x86_64-v3`: Even faster, requires support for `AVX2`, etc.
+-   `x86_64-v4`: Fastest, requires support for `AVX512`.
+
+For detailed information on the specific features needed for each level, refer to the [x86-64 microarchitecture levels][microarchitecture] Wikipedia page.
+
+[microarchitecture]: https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
+
+### Building from source
+
+To build the engine from source, make sure you have `Rust 1.70.0` or a later version installed.
+If you don't have Rust, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
+
+The source code doesn't include an NNUE model to keep the repository lightweight. Instead,
+models are stored in the [Reckless Networks][reckless-networks] repository.
+It's required to have a compatible model in `./networks/model.nnue` to build the engine.
+
+```bash
+# Download the latest NNUE model
+make fetch
+# Build the engine
+make
+
+# Alternatively, you can specify the path to the model file manually
+make EVALFILE=path/to/model.nnue
+```
+
+If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between the model and the engine's architecture. In this case, update the source code and fetch the latest model.
+
+[reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
+
+### Usage
+
+Reckless is not a standalone chess program but a chess engine designed for use with UCI-compatible GUIs,
+such as [Cute Chess](https://github.com/cutechess/cutechess) or [ChessBase](https://www.chessbase.com/).
+
+### Custom commands
+
+Along with the standard UCI commands, Reckless supports additional commands for testing and debugging:
+
+| Command         | Description                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
+| `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
+| `eval`          | Print the static evaluation of the current position from white's perspective       |
+
+[perft]: https://www.chessprogramming.org/Perft
+[bench]: /src/tools/bench.rs
 
 ## Features
 
@@ -71,7 +147,7 @@ combines established concepts, as the name suggests.
 -   [NNUE](https://www.chessprogramming.org/NNUE)
 -   Architecture: `(768 -> 384)x2 -> 1`
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
--   Quantization: `i16` (`256`/`64`)
+-   Quantization: `i16` (`256`, `64`)
 -   Trained on original data generated entirely through self-play
 -   Handwritten SIMD for AVX2 instructions
 
@@ -79,93 +155,14 @@ combines established concepts, as the name suggests.
 
 -   Soft and hard bounds
 -   Best move stability
+-   Evaluation stability
 -   Distribution of root nodes
-
-## Rating
-
-| Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
-| ------------------------- | ---------------------- | ----------------------- | ------------ |
-| [Reckless v0.6.0][v0.6.0] | 3387 +/- 23 [#73]      | 3311 +/- 21 [#78]       | Mar 22, 2024 |
-| [Reckless v0.5.0][v0.5.0] | 3243 +/- 19 [#94]      | 3213 +/- 21 [#94]       | Feb 4, 2024  |
-| [Reckless v0.4.0][v0.4.0] | 2933 +/- 19 [#151]     | 2929 +/- 21 [#158]      | Dec 13, 2023 |
-| [Reckless v0.3.0][v0.3.0] | 2617 +/- 20 [#229]     | 2615 +/- 21 [#251]      | Nov 6, 2023  |
-| [Reckless v0.2.0][v0.2.0] | 2358 +/- 19 [#333]     |                         | Oct 7, 2023  |
-| [Reckless v0.1.0][v0.1.0] | 2020 +/- 20 [#471]     |                         | May 16, 2023 |
-
-[v0.1.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.1.0
-[v0.2.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.2.0
-[v0.3.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.3.0
-[v0.4.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.4.0
-[v0.5.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.5.0
-[v0.6.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.6.0
-[ccrl-404]: https://www.computerchess.org.uk/ccrl/404/
-[crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/
-
-## Getting started
-
-### Precompiled binaries
-
-You can download precompiled builds from the [GitHub Releases page](https://github.com/codedeliveryservice/Reckless/releases).
-
--   `x86_64-v1`: Slowest, compatible with any x86-64 CPU.
--   `x86_64-v2`: Faster, requires support for `POPCNT`, `SEE3`, etc.
--   `x86_64-v3`: Even faster, requires support for `AVX2`, etc.
--   `x86_64-v4`: Fastest, requires support for `AVX512`.
-
-For detailed information on the specific features needed for each level, refer to the [x86-64 microarchitecture levels][microarchitecture] Wikipedia page.
-
-[microarchitecture]: https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
-
-### Building from source
-
-To build the engine from source, make sure you have `Rust 1.65` or a later version installed.
-If you don't have Rust, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
-
-The source code doesn't include an NNUE model to keep the repository lightweight. Instead,
-models are stored in the [Reckless Networks][reckless-networks] repository.
-
-You can download the latest model using the `fetch-nnue.sh` (or `fetch-nnue.ps1` on Windows) script,
-which will be placed in the `networks` directory and automatically detected during the build.
-
-Alternatively, you can specify the path to the model file using the `EVALFILE` variable:
-
-```bash
-# Build the engine with a `./networks/model.nnue` model
-make
-
-# Build the engine with a specific model
-make EVALFILE=networks/model.nnue
-```
-
-Keep in mind that older models may be incompatible with the current version of the engine.
-
-[reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
-
-### Usage
-
-Reckless is not a standalone chess program but a chess engine designed for use with UCI-compatible GUIs,
-such as [Cute Chess](https://github.com/cutechess/cutechess) or [ChessBase](https://www.chessbase.com/).
-
-Alternatively, you can communicate with the engine directly using the [UCI protocol](https://backscattering.de/chess/uci).
-
-### Custom commands
-
-Along with the standard UCI commands, Reckless supports additional commands for testing and debugging:
-
-| Command         | Description                                                                         |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth.       |
-| `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance. |
-| `eval`          | Print the static evaluation of the current position from white's perspective.       |
-
-[perft]: https://www.chessprogramming.org/Perft
-[bench]: /src/tools/bench.rs
 
 ## Acknowledgements
 
 -   [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess).
 -   Open source chess engines, like [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and numerous others, for serving as inspiration and providing ideas that fuel development.
--   [Stockfish Discord server](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
+-   [Stockfish Discord server members](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
 -   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) for contributing to the project's foundation.
 -   Many thanks to the [CCRL](https://www.computerchess.org.uk/ccrl/) team and all chess engine testers for their valuable contributions.
 
