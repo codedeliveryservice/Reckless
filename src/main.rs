@@ -13,7 +13,7 @@ fn main() {
     datagen(std::env::args());
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(10),
+        Some("bench") => tools::bench::<false>(12),
         _ => uci::message_loop(),
     }
 }
