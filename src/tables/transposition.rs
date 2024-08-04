@@ -147,14 +147,18 @@ impl TranspositionTable {
 
     /// Prefetches the entry in the transposition table.
     pub fn prefetch(&self, hash: u64) {
-        use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
-
         #[cfg(target_arch = "x86_64")]
         unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+
             let index = self.get_index(hash);
             let ptr = self.vector.as_ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
+
+        // No prefetching for non-x86_64 architectures
+        #[cfg(not(target_arch = "x86_64"))]
+        let _ = hash;
     }
 
     /// Returns the index of the entry in the transposition table.
