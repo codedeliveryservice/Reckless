@@ -7,30 +7,55 @@ env:
 
 jobs:
   engine:
+    runs-on: ${{ matrix.os }}
 
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        rust: [1.70.0, stable]
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up NNUE model
-      run: |
-        url=$(curl -s https://api.github.com/repos/codedeliveryservice/RecklessNetworks/releases/latest | \
-              grep -o '"browser_download_url": *"[^"]*"' | head -n 1 | cut -d '"' -f 4)
-        wget -O model.nnue "$url"
-        echo "EVALFILE=$(pwd)/model.nnue" >> $GITHUB_ENV
+    - name: Setup Rust toolchain
+      uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: clippy, rustfmt
+
+    - name: Fetch NNUE model
+      run: make fetch
 
     - name: Build
       run: cargo build --verbose --release
 
-    - name: Build with `datagen` feature
-      run: cargo build --verbose --release --features datagen
-
     - name: Run tests
       run: cargo test --verbose --release
+
+    - name: Run bench
+      run: cargo run --verbose --release -- bench
 
     - name: Run rustfmt
       run: cargo fmt -- --check
 
     - name: Run clippy
       run: cargo clippy -- -D warnings
+
+  datagen:
+    runs-on: ubuntu-latest
+
+    env:
+      RUSTFLAGS: -A dead_code -A unused_variables
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Fetch NNUE model
+      run: make fetch
+
+    - name: Build with `datagen` feature
+      run: cargo build --verbose --release --features datagen
+
+    - name: Run tests with `datagen` feature
+      run: cargo test --verbose --release --features datagen
