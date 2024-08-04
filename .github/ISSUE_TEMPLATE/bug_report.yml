@@ -3,33 +3,24 @@ description: File a bug report
 labels: ["bug"]
 
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report!
-
   - type: textarea
     attributes:
       label: Bug description
-      description: A clear and concise description of the bug you encountered.
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Reproduction steps
-      description:  |
-        A detailed description of the steps that can reproduce the behavior.
-        It should include any relevant command line input and output, such as sent UCI commands.
     validations:
       required: true
 
   - type: textarea
     attributes:
       label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
     validations:
-      required: true
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+      description: This can include relevant command line input and output, such as UCI commands.
+    validations:
+      required: false
 
   - type: dropdown
     id: browsers
@@ -48,11 +39,6 @@ body:
     attributes:
       label: Version
       description: |
-        e.g., Reckless 0.1.1, Commit SHA: e9b341b
+        e.g., 0.7.0-dev, commit SHA: b7d8952
     validations:
       required: true
-
-  - type: textarea
-    attributes:
-      label: Additional context
-      description: Any other context about the problem.
