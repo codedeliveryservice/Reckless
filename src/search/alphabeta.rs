@@ -108,7 +108,7 @@ impl super::SearchThread<'_> {
         let mut moves_played = 0;
         let mut quiets = MoveList::default();
         let mut moves = self.board.generate_all_moves();
-        let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv));
+        let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv), 0);
 
         while let Some(mv) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]

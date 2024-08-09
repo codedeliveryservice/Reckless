@@ -53,7 +53,7 @@ impl super::SearchThread<'_> {
         let mut best_score = eval;
 
         let mut moves = self.board.generate_capture_moves();
-        let mut ordering = self.build_ordering(&moves, None);
+        let mut ordering = self.build_ordering(&moves, None, 1);
 
         while let Some(mv) = moves.next(&mut ordering) {
             if !mv.is_capture() {
