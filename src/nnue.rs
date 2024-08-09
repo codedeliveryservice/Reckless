@@ -72,7 +72,7 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
 impl Default for Network {
     fn default() -> Self {
         Self {
-            accumulators: [PARAMETERS.input_bias; 2],
+            accumulators: [PARAMETERS.input_bias.data; 2],
             stack: Vec::default(),
         }
     }
@@ -80,10 +80,23 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    input_weights: [[i16; HIDDEN_SIZE]; INPUT_SIZE],
-    input_bias: [i16; HIDDEN_SIZE],
-    output_weights: [[[i16; HIDDEN_SIZE]; 2]; OUTPUT_BUCKETS],
-    output_bias: [i16; OUTPUT_BUCKETS],
+    input_weights: AlignedBlock<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
+    input_bias: AlignedBlock<[i16; HIDDEN_SIZE]>,
+    output_weights: AlignedBlock<[[[i16; HIDDEN_SIZE]; 2]; OUTPUT_BUCKETS]>,
+    output_bias: AlignedBlock<[i16; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+
+#[repr(align(64))]
+struct AlignedBlock<T> {
+    data: T,
+}
+
+impl<T> std::ops::Deref for AlignedBlock<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
