@@ -136,6 +136,11 @@ impl TranspositionTable {
         // Preserve the previous move if the new one is sourced from an upper bound node
         if is_valid(packed) {
             let old = InternalEntry::new(packed);
+
+            if !(bound == Bound::Exact || old.key != key || depth + 4 > i32::from(old.depth)) {
+                return;
+            }
+
             if bound == Bound::Upper && old.key == key && old.mv != Move::NULL {
                 mv = old.mv;
             }
