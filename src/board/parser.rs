@@ -41,7 +41,8 @@ impl FromStr for Board {
                 let color = if symbol.is_uppercase() { Color::White } else { Color::Black };
                 let square = Square::from_rank_file(rank as u8, file);
 
-                board.add_piece::<true>(piece, color, square);
+                board.add_piece::<false>(piece, color, square);
+                board.nnue.accumulate(color, piece, square);
                 file += 1;
             }
         }

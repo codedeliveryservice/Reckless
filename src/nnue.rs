@@ -10,10 +10,20 @@ const EVAL_SCALE: i32 = 400;
 const L0_SCALE: i32 = 256;
 const L1_SCALE: i32 = 64;
 
+type FtIndex = (usize, usize);
+
+macro_rules! ft {
+    ($feature:expr, $i:expr) => {
+        PARAMETERS.input_weights[$feature][$i]
+    };
+}
+
 #[derive(Clone)]
 pub struct Network {
     accumulators: [[i16; HIDDEN_SIZE]; 2],
     stack: Vec<[[i16; HIDDEN_SIZE]; 2]>,
+    adds: Vec<FtIndex>,
+    subs: Vec<FtIndex>,
 }
 
 impl Network {
@@ -39,8 +49,41 @@ impl Network {
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias[bucket])) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
-    /// Activates the specified piece.
-    pub fn activate(&mut self, color: Color, piece: Piece, square: Square) {
+    pub fn commit(&mut self) {
+        match (&self.adds[..], &self.subs[..]) {
+            (&[add], &[sub]) => self.add1_sub1(add, sub),
+            (&[add], &[sub1, sub2]) => self.add1_sub2(add, sub1, sub2),
+            (&[add1, add2], &[sub1, sub2]) => self.add2_sub2(add1, add2, sub1, sub2),
+            (&[add1, add2], &[sub1, sub2, _]) => self.add2_sub2(add1, add2, sub1, sub2),
+            _ => panic!(),
+        }
+
+        self.adds.clear();
+        self.subs.clear();
+    }
+
+    fn add1_sub1(&mut self, add: FtIndex, sub: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.accumulators[0][i] += ft!(add.0, i) - ft!(sub.0, i);
+            self.accumulators[1][i] += ft!(add.1, i) - ft!(sub.1, i);
+        }
+    }
+
+    fn add1_sub2(&mut self, add: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.accumulators[0][i] += ft!(add.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            self.accumulators[1][i] += ft!(add.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        }
+    }
+
+    fn add2_sub2(&mut self, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.accumulators[0][i] += ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            self.accumulators[1][i] += ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        }
+    }
+
+    pub fn accumulate(&mut self, color: Color, piece: Piece, square: Square) {
         let (white, black) = index(color, piece, square);
         for i in 0..HIDDEN_SIZE {
             self.accumulators[0][i] += PARAMETERS.input_weights[white][i];
@@ -48,13 +91,12 @@ impl Network {
         }
     }
 
-    /// Deactivates the specified piece.
+    pub fn activate(&mut self, color: Color, piece: Piece, square: Square) {
+        self.adds.push(index(color, piece, square));
+    }
+
     pub fn deactivate(&mut self, color: Color, piece: Piece, square: Square) {
-        let (white, black) = index(color, piece, square);
-        for i in 0..HIDDEN_SIZE {
-            self.accumulators[0][i] -= PARAMETERS.input_weights[white][i];
-            self.accumulators[1][i] -= PARAMETERS.input_weights[black][i];
-        }
+        self.subs.push(index(color, piece, square));
     }
 }
 
@@ -62,7 +104,7 @@ fn bucket(count: usize) -> usize {
     (count - 2) / 8
 }
 
-fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
+fn index(color: Color, piece: Piece, square: Square) -> FtIndex {
     (
         384 * color as usize + 64 * piece as usize + square as usize,
         384 * !color as usize + 64 * piece as usize + (square ^ 56) as usize,
@@ -74,6 +116,8 @@ impl Default for Network {
         Self {
             accumulators: [PARAMETERS.input_bias.data; 2],
             stack: Vec::default(),
+            adds: Vec::default(),
+            subs: Vec::default(),
         }
     }
 }
