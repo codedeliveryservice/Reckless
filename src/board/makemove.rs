@@ -73,6 +73,10 @@ impl Board {
         self.state.hash ^= ZOBRIST.castling[self.state.castling];
         self.side_to_move = !self.side_to_move;
 
+        if NNUE {
+            self.nnue.commit();
+        }
+
         let king = self.their(Piece::King).pop();
         !self.is_square_attacked(king, !self.side_to_move)
     }
