@@ -1,4 +1,4 @@
-# Reckless – Bitboard Chess Engine
+# Reckless – Chess Engine in Rust
 
 [![Build and Test](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 
@@ -98,7 +98,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   Pseudo legal move generator
 -   Pre-calculated attack maps using [Fancy Magic Bitboards](https://www.chessprogramming.org/Magic_Bitboards#Fancy)
 -   Magic numbers are pre-generated using [Reckless Magics](https://github.com/codedeliveryservice/RecklessMagics)
--   Compile time generation of move maps using a [build script](/src/lookup/build.rs)
+-   Compile time generation of move maps using a [build script](/build/build.rs)
 
 ### Search
 
@@ -145,7 +145,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 ### Evaluation
 
 -   [NNUE](https://www.chessprogramming.org/NNUE)
--   Architecture: `(768 -> 384)x2 -> 1`
+-   Architecture: `(768 -> 384)x2 -> 1x4`
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
 -   Quantization: `i16` (`256`, `64`)
 -   Trained on original data generated entirely through self-play
