@@ -4,6 +4,7 @@ mod simd;
 
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 384;
+const OUTPUT_BUCKETS: usize = 4;
 
 const EVAL_SCALE: i32 = 400;
 const L0_SCALE: i32 = 256;
@@ -27,13 +28,15 @@ impl Network {
     }
 
     /// Computes the output score for the given color.
-    pub fn evaluate(&self, side_to_move: Color) -> i32 {
+    pub fn evaluate(&self, side_to_move: Color, piece_count: usize) -> i32 {
         let stm = self.accumulators[side_to_move];
         let nstm = self.accumulators[!side_to_move];
-        let weights = &PARAMETERS.output_weights;
+
+        let bucket = bucket(piece_count);
+        let weights = &PARAMETERS.output_weights[bucket];
 
         let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
-        (output / L0_SCALE + i32::from(PARAMETERS.output_bias)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
+        (output / L0_SCALE + i32::from(PARAMETERS.output_bias[bucket])) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
     /// Activates the specified piece.
@@ -55,6 +58,10 @@ impl Network {
     }
 }
 
+fn bucket(count: usize) -> usize {
+    (count - 2) / 8
+}
+
 fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
     (
         384 * color as usize + 64 * piece as usize + square as usize,
@@ -65,7 +72,7 @@ fn index(color: Color, piece: Piece, square: Square) -> (usize, usize) {
 impl Default for Network {
     fn default() -> Self {
         Self {
-            accumulators: [PARAMETERS.input_bias; 2],
+            accumulators: [PARAMETERS.input_bias.data; 2],
             stack: Vec::default(),
         }
     }
@@ -73,10 +80,23 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    input_weights: [[i16; HIDDEN_SIZE]; INPUT_SIZE],
-    input_bias: [i16; HIDDEN_SIZE],
-    output_weights: [[i16; HIDDEN_SIZE]; 2],
-    output_bias: i16,
+    input_weights: AlignedBlock<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
+    input_bias: AlignedBlock<[i16; HIDDEN_SIZE]>,
+    output_weights: AlignedBlock<[[[i16; HIDDEN_SIZE]; 2]; OUTPUT_BUCKETS]>,
+    output_bias: AlignedBlock<[i16; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+
+#[repr(align(64))]
+struct AlignedBlock<T> {
+    data: T,
+}
+
+impl<T> std::ops::Deref for AlignedBlock<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
