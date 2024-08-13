@@ -145,7 +145,7 @@ impl super::SearchThread<'_> {
             let score = if moves_played == 0 {
                 -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
             } else {
-                let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played);
+                let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played, improving);
                 self.principal_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
             };
 
@@ -248,24 +248,27 @@ impl super::SearchThread<'_> {
     }
 
     /// Calculates the Late Move Reduction (LMR) for a given move.
-    pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves_played: i32) -> i32 {
-        if mv.is_quiet() && moves_played >= LMR_MOVES_PLAYED && depth >= LMR_DEPTH {
-            // Fractional reductions
-            let mut reduction = (self.params.lmr(depth, moves_played)
-                - self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR)
-                as i32;
-
-            // Reduce PV nodes less
-            reduction -= i32::from(PV);
-
-            // Reduce checks less
-            reduction -= i32::from(self.board.is_in_check());
-
-            // Avoid negative reductions
-            reduction.clamp(0, depth)
-        } else {
-            0
+    pub fn calculate_reduction<const PV: bool>(&self, mv: Move, depth: i32, moves: i32, improving: bool) -> i32 {
+        fn to_f64(v: bool) -> f64 {
+            i32::from(v) as f64
         }
+
+        if !mv.is_quiet() || moves < LMR_MOVES_PLAYED || depth < LMR_DEPTH {
+            return 0;
+        }
+
+        // Fractional reductions
+        let mut reduction = self.params.lmr(depth, moves);
+
+        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR;
+
+        reduction -= 0.88 * to_f64(PV);
+        reduction -= 0.78 * to_f64(self.board.is_in_check());
+
+        reduction += 0.48 * to_f64(improving);
+
+        // Avoid negative reductions
+        (reduction as i32).clamp(0, depth)
     }
 
     /// Checks if the search should be interrupted.
