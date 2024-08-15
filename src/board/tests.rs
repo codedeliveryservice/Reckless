@@ -13,10 +13,6 @@ macro_rules! assert_perft {
 }
 
 fn perft(board: &mut Board, depth: usize) -> u32 {
-    if depth == 0 {
-        return 1;
-    }
-
     let mut nodes = 0;
     for &mv in board.generate_all_moves().iter() {
         if !board.make_move::<false>(mv) {
@@ -25,7 +21,7 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
         }
 
         assert_eq!(board.generate_hash_key(), board.hash());
-        nodes += perft(board, depth - 1);
+        nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
         board.undo_move::<false>();
     }
     nodes
