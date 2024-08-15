@@ -1,4 +1,4 @@
-use crate::types::{Color, Piece, Square};
+use crate::types::{Color, Piece, Square, MAX_PLY};
 
 mod simd;
 
@@ -20,8 +20,8 @@ macro_rules! ft {
 
 #[derive(Clone)]
 pub struct Network {
-    accumulators: [[i16; HIDDEN_SIZE]; 2],
-    stack: Vec<[[i16; HIDDEN_SIZE]; 2]>,
+    index: usize,
+    stack: Box<[[[i16; HIDDEN_SIZE]; 2]; MAX_PLY]>,
     adds: Vec<FtIndex>,
     subs: Vec<FtIndex>,
 }
@@ -29,18 +29,21 @@ pub struct Network {
 impl Network {
     /// Pushes the current state of accumulators onto the stack.
     pub fn push(&mut self) {
-        self.stack.push(self.accumulators);
+        self.stack[self.index + 1] = self.stack[self.index];
+        self.index += 1;
     }
 
     /// Pops the topmost state from the stack and restores the accumulators.
     pub fn pop(&mut self) {
-        self.accumulators = self.stack.pop().unwrap();
+        self.index -= 1;
     }
 
     /// Computes the output score for the given color.
     pub fn evaluate(&self, side_to_move: Color, piece_count: usize) -> i32 {
-        let stm = self.accumulators[side_to_move];
-        let nstm = self.accumulators[!side_to_move];
+        let accumulators = &self.stack[self.index];
+
+        let stm = accumulators[side_to_move];
+        let nstm = accumulators[!side_to_move];
 
         let bucket = bucket(piece_count);
         let weights = &PARAMETERS.output_weights[bucket];
@@ -63,31 +66,35 @@ impl Network {
     }
 
     fn add1_sub1(&mut self, add: FtIndex, sub: FtIndex) {
+        let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            self.accumulators[0][i] += ft!(add.0, i) - ft!(sub.0, i);
-            self.accumulators[1][i] += ft!(add.1, i) - ft!(sub.1, i);
+            accumulators[0][i] += ft!(add.0, i) - ft!(sub.0, i);
+            accumulators[1][i] += ft!(add.1, i) - ft!(sub.1, i);
         }
     }
 
     fn add1_sub2(&mut self, add: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            self.accumulators[0][i] += ft!(add.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            self.accumulators[1][i] += ft!(add.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+            accumulators[0][i] += ft!(add.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            accumulators[1][i] += ft!(add.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
         }
     }
 
     fn add2_sub2(&mut self, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            self.accumulators[0][i] += ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            self.accumulators[1][i] += ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+            accumulators[0][i] += ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            accumulators[1][i] += ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
         }
     }
 
     pub fn accumulate(&mut self, color: Color, piece: Piece, square: Square) {
         let (white, black) = index(color, piece, square);
+        let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            self.accumulators[0][i] += PARAMETERS.input_weights[white][i];
-            self.accumulators[1][i] += PARAMETERS.input_weights[black][i];
+            accumulators[0][i] += PARAMETERS.input_weights[white][i];
+            accumulators[1][i] += PARAMETERS.input_weights[black][i];
         }
     }
 
@@ -114,8 +121,8 @@ fn index(color: Color, piece: Piece, square: Square) -> FtIndex {
 impl Default for Network {
     fn default() -> Self {
         Self {
-            accumulators: [PARAMETERS.input_bias.data; 2],
-            stack: Vec::default(),
+            index: 0,
+            stack: Box::new([[PARAMETERS.input_bias.data; 2]; MAX_PLY]),
             adds: Vec::default(),
             subs: Vec::default(),
         }
