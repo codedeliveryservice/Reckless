@@ -87,7 +87,7 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
     if let Some(&mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
-        assert!(board.make_move::<true>(mv), "UCI move should be legal");
+        assert!(board.make_move::<true, true>(mv), "UCI move should be legal");
     }
 }
 

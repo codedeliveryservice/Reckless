@@ -16,7 +16,7 @@ impl Board {
         }
     }
 
-    pub fn make_move<const NNUE: bool>(&mut self, mv: Move) -> bool {
+    pub fn make_move<const NNUE: bool, const IN_PLACE: bool>(&mut self, mv: Move) -> bool {
         let start = mv.start();
         let target = mv.target();
         let piece = self.piece_on(start);
@@ -24,7 +24,7 @@ impl Board {
         self.move_stack.push(FullMove::new(piece, mv));
         self.state_stack.push(self.state);
 
-        if NNUE {
+        if NNUE && !IN_PLACE {
             self.nnue.push();
         }
 

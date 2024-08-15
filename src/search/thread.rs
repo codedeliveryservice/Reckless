@@ -74,7 +74,7 @@ impl<'a> SearchThread<'a> {
 
     pub fn apply_move(&mut self, mv: Move) -> bool {
         self.ply += 1;
-        let is_legal = self.board.make_move::<true>(mv);
+        let is_legal = self.board.make_move::<true, false>(mv);
         if !is_legal {
             self.revert_move();
         }
