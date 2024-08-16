@@ -196,48 +196,25 @@ impl Board {
         self.move_stack.last() == Some(&FullMove::NULL)
     }
 
-    /// Returns `true` if the king of the current turn color is in check.
-    ///
-    /// # Panics
-    ///
-    /// Panics if there is no king on the board.
+    /// Returns `true` if the square is attacked by pieces of the specified color.
+    pub fn is_square_attacked_by(&self, square: Square, color: Color) -> bool {
+        !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
+    }
+
     pub fn is_in_check(&self) -> bool {
-        let king = self.our(Piece::King).pop();
-        self.is_under_attack(king)
+        let king = self.our(Piece::King).lsb();
+        self.is_square_attacked_by(king, !self.side_to_move)
     }
 
-    /// Returns `true` if any enemy piece can attack the `Square` of the current turn color.
-    pub fn is_under_attack(&self, square: Square) -> bool {
-        self.is_square_attacked(square, self.side_to_move)
-    }
+    pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
+        use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
 
-    /// Returns `true` if any enemy piece can attack the `Square` of the specified `Color`.
-    pub fn is_square_attacked(&self, square: Square, color: Color) -> bool {
-        let possible_attackers = (self.get_attacks(square, Piece::Knight) & self.pieces(Piece::Knight))
-            | (self.get_attacks(square, Piece::Bishop) & (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen)))
-            | (self.get_attacks(square, Piece::Rook) & (self.pieces(Piece::Rook) | self.pieces(Piece::Queen)))
-            | (self.get_attacks(square, Piece::King) & self.pieces(Piece::King))
-            | (crate::lookup::pawn_attacks(square, color) & self.pieces(Piece::Pawn));
-
-        !(possible_attackers & self.colors(!color)).is_empty()
-    }
-
-    /// Returns a `Bitboard` with all the squares that the specified `Piece` type can attack.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the piece is a pawn because pawn attacks are color dependent.
-    pub fn get_attacks(&self, square: Square, piece: Piece) -> Bitboard {
-        use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks};
-        match piece {
-            Piece::Knight => knight_attacks(square),
-            Piece::Bishop => bishop_attacks(square, self.occupancies()),
-            Piece::Rook => rook_attacks(square, self.occupancies()),
-            Piece::Queen => queen_attacks(square, self.occupancies()),
-            Piece::King => king_attacks(square),
-            Piece::Pawn => panic!("get_attacks() should not be called for `Piece::Pawn`"),
-            Piece::None => panic!("get_attacks() should not be called for `Piece::None`"),
-        }
+        king_attacks(square) & self.pieces(Piece::King)
+            | knight_attacks(square) & self.pieces(Piece::Knight)
+            | pawn_attacks(square, Color::White) & self.of(Piece::Pawn, Color::Black)
+            | pawn_attacks(square, Color::Black) & self.of(Piece::Pawn, Color::White)
+            | rook_attacks(square, occupancies) & (self.pieces(Piece::Rook) | self.pieces(Piece::Queen))
+            | bishop_attacks(square, occupancies) & (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen))
     }
 
     /// Estimates the resulting Zobrist hash key after making the move.

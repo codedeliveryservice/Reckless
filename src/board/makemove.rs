@@ -78,7 +78,7 @@ impl Board {
         }
 
         let king = self.their(Piece::King).pop();
-        !self.is_square_attacked(king, !self.side_to_move)
+        !self.is_square_attacked_by(king, self.side_to_move)
     }
 
     pub fn undo_move<const NNUE: bool>(&mut self) {

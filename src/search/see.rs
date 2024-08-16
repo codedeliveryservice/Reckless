@@ -1,7 +1,7 @@
 use super::parameters::SEE_PIECE_VALUES;
 use crate::{
-    lookup::*,
-    types::{Bitboard, Color, Move, Piece, Square},
+    lookup::{bishop_attacks, rook_attacks},
+    types::{Bitboard, Move, Piece},
 };
 
 impl super::SearchThread<'_> {
@@ -32,7 +32,7 @@ impl super::SearchThread<'_> {
         // The moving piece is no longer on the board
         occupancies.clear(mv.start());
 
-        let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
+        let mut attackers = self.board.attackers_to(mv.target(), occupancies) & occupancies;
         let mut stm = !self.board.side_to_move();
 
         let diagonal = self.board.pieces(Piece::Bishop) | self.board.pieces(Piece::Queen);
@@ -94,17 +94,5 @@ impl super::SearchThread<'_> {
             }
         }
         panic!("There should be at least one attacker");
-    }
-
-    fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        let bishop_or_queen = self.board.pieces(Piece::Bishop) | self.board.pieces(Piece::Queen);
-        let rook_or_queen = self.board.pieces(Piece::Rook) | self.board.pieces(Piece::Queen);
-
-        king_attacks(square) & self.board.pieces(Piece::King)
-            | knight_attacks(square) & self.board.pieces(Piece::Knight)
-            | pawn_attacks(square, Color::White) & self.board.of(Piece::Pawn, Color::Black)
-            | pawn_attacks(square, Color::Black) & self.board.of(Piece::Pawn, Color::White)
-            | rook_attacks(square, occupancies) & rook_or_queen
-            | bishop_attacks(square, occupancies) & bishop_or_queen
     }
 }
