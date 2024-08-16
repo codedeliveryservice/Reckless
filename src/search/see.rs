@@ -5,32 +5,25 @@ use crate::{
 };
 
 impl super::SearchThread<'_> {
-    /// Returns `true` if the static exchange evaluation of the given move
-    /// is greater than the given threshold. It means that the sequence of
-    /// captures starting with the given move is winning for the side to move.
+    /// Checks if the static exchange evaluation (SEE) of a move meets the `threshold`,
+    /// indicating that the sequence of captures on a single square, starting with the move,
+    /// results in a non-negative balance for the side to move.
     pub fn see(&self, mv: Move, threshold: i32) -> bool {
-        // The best case is a free capture or a safe promotion
-        let mut balance = self.move_value(mv);
-
-        // The best case is still losing
-        if balance < threshold {
+        // In the best case, we win a piece, but still end up with a negative balance
+        let mut balance = self.move_value(mv) - threshold;
+        if balance < 0 {
             return false;
         }
 
-        // The worst case is losing our piece
-        balance -= match mv.promotion_piece() {
-            Some(promotion) => SEE_PIECE_VALUES[promotion],
-            None => SEE_PIECE_VALUES[self.board.piece_on(mv.start())],
-        };
-
-        // The worst case is still winning
-        if balance >= threshold {
+        // In the worst case, we lose a piece, but still end up with a non-negative balance
+        balance -= SEE_PIECE_VALUES[self.board.piece_on(mv.start())];
+        if balance >= 0 {
             return true;
         }
 
         let mut occupancies = self.board.occupancies();
-        // The moving piece is no longer on the board
         occupancies.clear(mv.start());
+        occupancies.set(mv.target());
 
         let mut attackers = self.board.attackers_to(mv.target(), occupancies) & occupancies;
         let mut stm = !self.board.side_to_move();
@@ -39,25 +32,25 @@ impl super::SearchThread<'_> {
         let orthogonal = self.board.pieces(Piece::Rook) | self.board.pieces(Piece::Queen);
 
         loop {
-            let out_attackers = attackers & self.board.colors(stm);
-            if out_attackers.is_empty() {
+            let our_attackers = attackers & self.board.colors(stm);
+            if our_attackers.is_empty() {
                 break;
             }
 
-            let attacker = self.least_valuable_attacker(out_attackers);
+            let attacker = self.least_valuable_attacker(our_attackers);
 
-            // The exchange is losing, since we cannot capture a protected piece with the king
+            // The king cannot capture a protected piece; the side to move loses the exchange
             if attacker == Piece::King && !(attackers & self.board.colors(!stm)).is_empty() {
                 break;
             }
 
             // Make the capture
-            occupancies.clear((self.board.pieces(attacker) & out_attackers).lsb());
+            occupancies.clear((self.board.pieces(attacker) & our_attackers).lsb());
             stm = !stm;
 
             // Assume our piece is going to be captured
             balance = -balance - 1 - SEE_PIECE_VALUES[attacker];
-            if balance >= threshold {
+            if balance >= 0 {
                 break;
             }
 
@@ -65,7 +58,7 @@ impl super::SearchThread<'_> {
             if [Piece::Pawn, Piece::Bishop, Piece::Queen].contains(&attacker) {
                 attackers |= bishop_attacks(mv.target(), occupancies) & diagonal;
             }
-            if [Piece::Pawn, Piece::Rook, Piece::Queen].contains(&attacker) {
+            if [Piece::Rook, Piece::Queen].contains(&attacker) {
                 attackers |= rook_attacks(mv.target(), occupancies) & orthogonal;
             }
             attackers &= occupancies;
@@ -85,14 +78,13 @@ impl super::SearchThread<'_> {
         SEE_PIECE_VALUES[capture]
     }
 
-    fn least_valuable_attacker(&self, our_attackers: Bitboard) -> Piece {
+    fn least_valuable_attacker(&self, attackers: Bitboard) -> Piece {
         for index in 0..Piece::NUM {
             let piece = Piece::new(index);
-            let piece_bb = self.board.pieces(piece) & our_attackers;
-            if !piece_bb.is_empty() {
+            if !(self.board.pieces(piece) & attackers).is_empty() {
                 return piece;
             }
         }
-        panic!("There should be at least one attacker");
+        unreachable!();
     }
 }
