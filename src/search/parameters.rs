@@ -10,9 +10,9 @@ pub const RAZORING_FIXED_MARGIN: i32 = 135;
 
 pub const LMR_MOVES_PLAYED: i32 = 3;
 pub const LMR_DEPTH: i32 = 3;
-pub const LMR_BASE: f64 = 0.75;
-pub const LMR_DIVISOR: f64 = 2.25;
-pub const LMR_HISTORY_DIVISOR: f64 = 6200.0;
+pub const LMR_BASE: f64 = 0.73;
+pub const LMR_DIVISOR: f64 = 2.22;
+pub const LMR_HISTORY_DIVISOR: f64 = 6210.0;
 
 pub const FP_DEPTH: i32 = 5;
 pub const FP_MARGIN: i32 = 130;
@@ -32,8 +32,8 @@ pub struct Parameters {
 }
 
 impl Parameters {
-    pub fn lmr(&self, depth: i32, moves_played: i32) -> f64 {
-        self.lmr[depth.min(63) as usize][moves_played.min(63) as usize]
+    pub fn lmr(&self, depth: i32, moves: i32) -> f64 {
+        self.lmr[depth.min(63) as usize][moves.min(63) as usize]
     }
 }
 
