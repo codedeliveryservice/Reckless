@@ -12,6 +12,9 @@ mod movegen;
 mod parser;
 mod zobrist;
 
+const MAX_PHASE: i32 = 62;
+const PHASE_WEIGHTS: [i32; Piece::NUM - 1] = [0, 3, 3, 5, 9];
+
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
 /// suitable for copying when making/undoing moves.
@@ -136,9 +139,24 @@ impl Board {
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        let eval = self.nnue.evaluate(self.side_to_move, self.occupancies().count());
-        // Clamp static evaluation within mate bounds
+        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().count());
+
+        #[cfg(not(feature = "datagen"))]
+        {
+            // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
+            eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
+        }
+
+        // Clamp the evaluation within mate bounds
         eval.clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
+    }
+
+    pub fn game_phase(&self) -> i32 {
+        [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen]
+            .iter()
+            .map(|&piece| self.pieces(piece).count() as i32 * PHASE_WEIGHTS[piece])
+            .sum::<i32>()
+            .min(MAX_PHASE)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
