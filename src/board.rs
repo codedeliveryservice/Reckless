@@ -141,8 +141,11 @@ impl Board {
     pub fn evaluate(&self) -> i32 {
         let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().count());
 
-        // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
-        eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
+        #[cfg(not(feature = "datagen"))]
+        {
+            // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
+            eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
+        }
 
         // Clamp the evaluation within mate bounds
         eval.clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
