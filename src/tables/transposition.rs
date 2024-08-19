@@ -89,8 +89,6 @@ impl TranspositionTable {
             self.parallel_clear(threads, len);
             self.vector.set_len(len);
         }
-
-        println!("info string set Hash to {megabytes} MB");
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).

@@ -94,8 +94,14 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str]) {
     match tokens {
         ["name", "Clear", "Hash"] => tt.clear(*threads),
-        ["name", "Hash", "value", v] => tt.resize(*threads, v.parse().unwrap()),
-        ["name", "Threads", "value", v] => *threads = v.parse().unwrap(),
+        ["name", "Hash", "value", v] => {
+            tt.resize(*threads, v.parse().unwrap());
+            println!("info string set Hash to {v} MB");
+        }
+        ["name", "Threads", "value", v] => {
+            *threads = v.parse().unwrap();
+            println!("info string set Threads to {v}");
+        }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
 }
