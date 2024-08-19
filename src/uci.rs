@@ -23,7 +23,7 @@ pub fn message_loop() {
             ["go", tokens @ ..] => go(threads, &mut board, &mut history, &tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
-            ["ucinewgame"] => reset(&mut board, &mut history, &mut tt),
+            ["ucinewgame"] => reset(threads, &mut board, &mut history, &mut tt),
 
             ["quit"] => std::process::exit(0),
 
@@ -47,10 +47,10 @@ fn uci() {
     println!("uciok");
 }
 
-fn reset(board: &mut Board, history: &mut History, tt: &mut TranspositionTable) {
+fn reset(threads: usize, board: &mut Board, history: &mut History, tt: &mut TranspositionTable) {
     *board = Board::starting_position();
     *history = History::default();
-    tt.clear();
+    tt.clear(threads);
 }
 
 fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
@@ -93,8 +93,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 
 fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str]) {
     match tokens {
-        ["name", "Clear", "Hash"] => tt.clear(),
-        ["name", "Hash", "value", v] => tt.resize(v.parse().unwrap()),
+        ["name", "Clear", "Hash"] => tt.clear(*threads),
+        ["name", "Hash", "value", v] => tt.resize(*threads, v.parse().unwrap()),
         ["name", "Threads", "value", v] => *threads = v.parse().unwrap(),
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
