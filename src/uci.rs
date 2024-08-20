@@ -41,7 +41,7 @@ fn uci() {
     use crate::tables::DEFAULT_TT_SIZE;
 
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
-    println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 65536");
+    println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 262144");
     println!("option name Threads type spin default 1 min 1 max 256");
     println!("option name Clear Hash type button");
     println!("uciok");
