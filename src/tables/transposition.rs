@@ -73,22 +73,22 @@ pub struct TranspositionTable {
 }
 
 impl TranspositionTable {
-    /// Creates a new transposition table with a total allocated size in megabytes.
-    pub fn new(megabytes: usize) -> Self {
-        Self {
-            vector: vec![Packed::default(); megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE],
-        }
-    }
-
-    /// Sets all entries to `None` without affecting the allocated memory or vector length.
-    pub fn clear(&mut self) {
-        self.vector.iter_mut().for_each(|entry| *entry = Packed::default());
+    /// Clears the transposition table. This will remove all entries but keep the allocated memory.
+    pub fn clear(&mut self, threads: usize) {
+        unsafe { self.parallel_clear(threads, self.vector.len()) }
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
-    pub fn resize(&mut self, megabytes: usize) {
-        self.vector = vec![Packed::default(); megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE];
-        println!("info string set Hash to {megabytes} MB");
+    pub fn resize(&mut self, threads: usize, megabytes: usize) {
+        let len = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
+
+        self.vector = Vec::new();
+        self.vector.reserve_exact(len);
+
+        unsafe {
+            self.parallel_clear(threads, len);
+            self.vector.set_len(len);
+        }
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
@@ -168,6 +168,18 @@ impl TranspositionTable {
         let len = self.vector.len() as u128;
         ((u128::from(hash) * len) >> 64) as usize
     }
+
+    unsafe fn parallel_clear(&mut self, threads: usize, len: usize) {
+        std::thread::scope(|scope| {
+            let ptr = self.vector.as_mut_ptr() as *mut std::mem::MaybeUninit<Packed>;
+            let slice = std::slice::from_raw_parts_mut(ptr, len);
+
+            let chunk_size = (len + threads - 1) / threads;
+            for chunk in slice.chunks_mut(chunk_size) {
+                scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
+            }
+        });
+    }
 }
 
 /// Checks if the entry is valid.
@@ -182,6 +194,8 @@ const fn verification_key(hash: u64) -> u16 {
 
 impl Default for TranspositionTable {
     fn default() -> Self {
-        Self::new(DEFAULT_TT_SIZE)
+        Self {
+            vector: vec![Packed::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE],
+        }
     }
 }
