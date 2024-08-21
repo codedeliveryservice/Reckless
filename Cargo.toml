@@ -1,6 +1,6 @@
 [package]
 name = "reckless"
-version = "0.7.0-dev"
+version = "0.7.0"
 edition = "2021"
 license = "MIT"
 build = "build/build.rs"
