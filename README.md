@@ -5,7 +5,7 @@
 Reckless is a [UCI][uci] chess engine written in Rust as a personal project.
 
 Guided by the insights from the chess programming community, it fearlessly
-combines established concepts with a reckless nature, as the name suggests.
+combines established concepts with its reckless nature, as the name suggests.
 
 [uci]: https://en.wikipedia.org/wiki/Universal_Chess_Interface
 
@@ -13,7 +13,7 @@ combines established concepts with a reckless nature, as the name suggests.
 
 | Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
 | ------------------------- | ---------------------- | ----------------------- | ------------ |
-| [Reckless v0.6.0][v0.6.0] | 3387 +/- 23 [#73]      | 3311 +/- 21 [#78]       | Mar 22, 2024 |
+| [Reckless v0.6.0][v0.6.0] | 3386 +/- 16 [#78]      | 3318 +/- 16 [#83]       | Mar 22, 2024 |
 | [Reckless v0.5.0][v0.5.0] | 3243 +/- 19 [#94]      | 3213 +/- 21 [#94]       | Feb 4, 2024  |
 | [Reckless v0.4.0][v0.4.0] | 2933 +/- 19 [#151]     | 2929 +/- 21 [#158]      | Dec 13, 2023 |
 | [Reckless v0.3.0][v0.3.0] | 2617 +/- 20 [#229]     | 2615 +/- 21 [#251]      | Nov 6, 2023  |
@@ -46,26 +46,30 @@ For detailed information on the specific features needed for each level, refer t
 
 ### Building from source
 
-To build the engine from source, make sure you have `Rust 1.70.0` or a later version installed.
-If you don't have Rust, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
+1. Make sure you have `Rust 1.70.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
-The source code doesn't include an NNUE model to keep the repository lightweight. Instead,
-models are stored in the [Reckless Networks][reckless-networks] repository.
-It's required to have a compatible model in `./networks/model.nnue` to build the engine.
+2. Download the latest NNUE model either from the [Reckless Networks][reckless-networks] repository or by running the following command:
 
 ```bash
-# Download the latest NNUE model
+# Fetch the latest NNUE model
 make fetch
+```
+
+3. To build the engine, a compatible model must be present in `./networks/model.nnue`. If the model is located elsewhere, specify the path manually:
+
+```bash
 # Build the engine
 make
 
-# Alternatively, you can specify the path to the model file manually
+# Optionally, specify a custom path for the model file
 make EVALFILE=path/to/model.nnue
 ```
 
-If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between the model and the engine's architecture. In this case, update the source code and fetch the latest model.
-
 [reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
+
+#### Troubleshooting
+
+If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between the model and the engine's architecture. In this case, update the source code and fetch the latest model.
 
 ### Usage
 
