@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use super::parameters::OPT_PIECE_VALUES;
 use crate::{
-    tables::{Bound, Entry},
+    tables::Bound,
     types::{Move, Piece, Score, MAX_PLY},
 };
 
@@ -33,11 +33,10 @@ impl super::SearchThread<'_> {
             }
         }
 
-        let mut eval = self.board.evaluate();
-
-        if let Some(entry) = entry {
-            adjust_eval(&mut eval, &entry);
-        }
+        let eval = match entry {
+            Some(entry) => entry.score,
+            None => self.board.evaluate(),
+        };
 
         alpha = max(alpha, eval);
 
@@ -104,18 +103,5 @@ impl super::SearchThread<'_> {
         } else {
             OPT_PIECE_VALUES[piece]
         }
-    }
-}
-
-fn adjust_eval(eval: &mut i32, entry: &Entry) {
-    // If the TT entry has an exact bound or indicates that the current static evaluation
-    // exceeds a bound (lower or upper), we can believe that the TT score is more accurate
-    if match entry.bound {
-        Bound::Exact => true,
-        Bound::Lower => entry.score > *eval,
-        Bound::Upper => entry.score < *eval,
-    } && entry.score.abs() < Score::MATE_BOUND
-    {
-        *eval = entry.score;
     }
 }
