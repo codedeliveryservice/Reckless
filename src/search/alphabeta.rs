@@ -73,12 +73,10 @@ impl super::SearchThread<'_> {
             None => self.board.evaluate(),
         };
 
-        let improving = !in_check && self.ply > 1 && eval > self.eval_stack[self.ply - 2];
-
-        self.eval_stack[self.ply] = eval;
-
-        // Reset the killer moves for child nodes
         self.killers[self.ply + 1] = Move::NULL;
+        self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
+
+        let improving = self.is_improving(in_check);
 
         if !ROOT && !PV && !in_check {
             // Reverse Futility Pruning
@@ -192,6 +190,17 @@ impl super::SearchThread<'_> {
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
         best_score
+    }
+
+    fn is_improving(&self, in_check: bool) -> bool {
+        let improving = || {
+            let mut previous = self.eval_stack[self.ply - 2];
+            if previous == -Score::INFINITY && self.ply >= 4 {
+                previous = self.eval_stack[self.ply - 4];
+            }
+            self.eval_stack[self.ply] > previous
+        };
+        self.ply < 2 || (!in_check && improving())
     }
 
     /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
