@@ -278,11 +278,11 @@ impl super::SearchThread<'_> {
 
         reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR;
 
-        reduction -= 0.88 * to_f64(PV);
-        reduction -= 0.78 * to_f64(self.board.is_in_check());
+        reduction -= 0.24 * to_f64(PV);
+        reduction -= 0.51 * to_f64(self.board.is_in_check());
 
-        reduction += 0.91 * to_f64(entry.is_some_and(|e| e.mv.is_capture()));
-        reduction += 0.48 * to_f64(improving);
+        reduction += 0.34 * to_f64(entry.is_some_and(|e| e.mv.is_capture()));
+        reduction += 0.93 * to_f64(improving);
 
         // Avoid negative reductions
         (reduction as i32).clamp(0, depth)

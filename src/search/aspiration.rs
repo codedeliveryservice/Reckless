@@ -1,8 +1,8 @@
 use super::SearchThread;
 use crate::types::Score;
 
-const ASPIRATION_WINDOW_DEPTH: i32 = 6;
-const ASPIRATION_WINDOW: i32 = 30;
+const ASPIRATION_WINDOW_DEPTH: i32 = 3;
+const ASPIRATION_WINDOW: i32 = 27;
 
 impl<'a> SearchThread<'a> {
     pub fn aspiration_search(&mut self, mut score: i32, depth: i32) -> i32 {
