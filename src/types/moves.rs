@@ -105,6 +105,10 @@ impl Move {
         matches!(self.kind(), MoveKind::EnPassant)
     }
 
+    pub const fn is_castling(&self) -> bool {
+        matches!(self.kind(), MoveKind::Castling)
+    }
+
     pub const fn promotion_piece(self) -> Option<Piece> {
         match self.kind() {
             MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(Piece::Knight),

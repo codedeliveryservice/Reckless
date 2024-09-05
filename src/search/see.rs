@@ -9,6 +9,10 @@ impl super::SearchThread<'_> {
     /// indicating that the sequence of captures on a single square, starting with the move,
     /// results in a non-negative balance for the side to move.
     pub fn see(&self, mv: Move, threshold: i32) -> bool {
+        if mv.is_promotion() || mv.is_castling() {
+            return true;
+        }
+
         // In the best case, we win a piece, but still end up with a negative balance
         let mut balance = self.move_value(mv) - threshold;
         if balance < 0 {

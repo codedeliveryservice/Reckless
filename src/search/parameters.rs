@@ -24,7 +24,8 @@ pub const LMP_MARGIN: i32 = 3;
 pub const DEEPER_SEARCH_MARGIN: i32 = 80;
 pub const IIR_DEPTH: i32 = 4;
 
-pub const SEE_MARGIN: i32 = 100;
+pub const SEE_NOISY_MARGIN: i32 = 100;
+pub const SEE_QUIET_MARGIN: i32 = 70;
 pub const SEE_DEPTH: i32 = 6;
 
 pub struct Parameters {
