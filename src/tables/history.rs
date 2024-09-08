@@ -15,12 +15,16 @@ type PieceSquare<T> = [T; Square::NUM * (Piece::NUM + 1)];
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 #[derive(Clone)]
 pub struct History {
+    capture: Box<[Butterfly<[i32; Piece::NUM]>; Color::NUM]>,
     main: Box<[Butterfly<i32>; Color::NUM]>,
     continuations: Box<[PieceSquare<PieceSquare<i32>>; 2]>,
 }
 
 impl History {
-    /// Returns the score of the main butterfly history heuristic.
+    pub fn get_capture(&self, stm: Color, mv: Move, capture: Piece) -> i32 {
+        self.capture[stm][mv.start()][mv.target()][capture]
+    }
+
     pub fn get_main(&self, stm: Color, mv: Move) -> i32 {
         self.main[stm][mv.start()][mv.target()]
     }
@@ -30,6 +34,16 @@ impl History {
         let current = piece as usize * Square::NUM + current.target() as usize;
 
         self.continuations[index][previous][current]
+    }
+
+    pub fn update_capture(&mut self, board: &Board, mv: Move, fails: &[Move], depth: i32) {
+        let stm = board.side_to_move();
+        let capture = if mv.is_en_passant() { Piece::Pawn } else { board.piece_on(mv.target()) };
+        update::<true>(&mut self.capture[stm][mv.start()][mv.target()][capture], depth);
+        for &fail in fails {
+            let capture = if fail.is_en_passant() { Piece::Pawn } else { board.piece_on(fail.target()) };
+            update::<false>(&mut self.capture[stm][fail.start()][fail.target()][capture], depth);
+        }
     }
 
     pub fn update_main(&mut self, stm: Color, mv: Move, fails: &[Move], depth: i32) {
@@ -66,7 +80,11 @@ impl History {
 
 impl Default for History {
     fn default() -> Self {
-        Self { main: zeroed_box(), continuations: zeroed_box() }
+        Self {
+            capture: zeroed_box(),
+            main: zeroed_box(),
+            continuations: zeroed_box(),
+        }
     }
 }
 
