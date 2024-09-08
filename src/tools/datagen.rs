@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{BufWriter, Write},
+    io::{BufRead, BufReader, BufWriter, Write},
     path::Path,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     thread,
@@ -25,7 +25,9 @@ const GENERATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: 
 const REPORT_INTERVAL: Duration = Duration::from_secs(30);
 const BUFFER_SIZE: usize = 128 * 1024;
 
-const RANDOM_PLIES: usize = 10;
+const RANDOM_PLIES: usize = 4;
+const AVERAGE_BOOK_PLY: usize = 8;
+
 const VALIDATION_THRESHOLD: i32 = 400;
 const GENERATION_THRESHOLD: i32 = 2400;
 
@@ -39,13 +41,18 @@ static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Starts the data generation process.
-pub fn datagen<P: AsRef<Path>>(output: P, threads: usize) {
+pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
+    let reader = BufReader::new(File::open(&book).unwrap());
+    let lines = BufReader::new(reader).lines().map(Result::unwrap).collect::<Vec<_>>();
+
     fs::create_dir_all(&output).unwrap();
 
     let seed = Random::new().seed as u32;
 
     println!("Output path          | {}", output.as_ref().display());
     println!("File seed            | {seed:08x}");
+    println!("Opening book         | {}", book.as_ref().display());
+    println!("Opening positions    | {}", lines.len());
     println!("Threads              | {threads}");
     println!("Random plies         | {RANDOM_PLIES}");
     println!("Validation limits    | {VALIDATION_LIMITS:?}");
@@ -76,7 +83,7 @@ pub fn datagen<P: AsRef<Path>>(output: P, threads: usize) {
         for id in 0..threads {
             let path = output.as_ref().join(format!("{seed:08x}_{id}.bin"));
             let buf = BufWriter::with_capacity(BUFFER_SIZE, File::create(path).unwrap());
-            scope.spawn(move || generate_data(buf));
+            scope.spawn(|| generate_data(buf, &lines));
         }
 
         std::io::stdin().read_line(&mut String::new()).unwrap();
@@ -89,11 +96,11 @@ pub fn datagen<P: AsRef<Path>>(output: P, threads: usize) {
 }
 
 /// Generates training data for the neural network.
-fn generate_data(mut buf: BufWriter<File>) {
+fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
     let mut random = Random::new();
 
     while !STOP_FLAG.load(Ordering::Relaxed) {
-        let mut board = generate_random_opening(&mut random);
+        let mut board = generate_random_opening(&mut random, book);
         let score = validation_score(&mut board);
 
         if score.abs() >= VALIDATION_THRESHOLD {
@@ -104,7 +111,7 @@ fn generate_data(mut buf: BufWriter<File>) {
         let mut count = 0;
 
         for (index, entry) in entries.iter().enumerate() {
-            let ply = index + RANDOM_PLIES;
+            let ply = AVERAGE_BOOK_PLY + RANDOM_PLIES + index;
 
             if (WRITE_MIN_PLY..=WRITE_MAX_PLY).contains(&ply)
                 && !board.is_in_check()
@@ -161,13 +168,14 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
 }
 
 /// Generates a random opening position.
-fn generate_random_opening(random: &mut Random) -> Board {
-    let mut board = Board::starting_position();
+fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
+    let index = random.next() % book.len();
+    let mut board = Board::new(&book[index]).unwrap();
 
     for _ in 0..RANDOM_PLIES {
         let moves = generate_legal_moves(&mut board);
         if moves.is_empty() {
-            return generate_random_opening(random);
+            return generate_random_opening(random, book);
         }
 
         let index = random.next() % moves.len();
@@ -175,7 +183,7 @@ fn generate_random_opening(random: &mut Random) -> Board {
     }
 
     if generate_legal_moves(&mut board).is_empty() {
-        return generate_random_opening(random);
+        return generate_random_opening(random, book);
     }
     board
 }

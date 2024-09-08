@@ -20,13 +20,14 @@ fn main() {
 
 #[cfg(feature = "datagen")]
 fn datagen(mut args: std::env::Args) {
-    const USAGE: &str = "Usage: datagen <output> <threads>";
+    const USAGE: &str = "Usage: datagen <output> <book> <threads>";
 
     if let Some("datagen") = args.nth(1).as_deref() {
         let output = args.next().expect(USAGE);
+        let book = args.next().expect(USAGE);
         let threads = args.next().and_then(|v| v.parse().ok()).expect(USAGE);
 
-        tools::datagen(output, threads)
+        tools::datagen(output, book, threads)
     } else {
         println!("The 'datagen' feature is enabled, but no arguments were provided.");
         println!("{USAGE}");
