@@ -22,7 +22,7 @@ mod random;
 const VALIDATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: VALIDATION_LIMITS };
 const GENERATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: GENERATION_LIMITS };
 
-const REPORT_INTERVAL: Duration = Duration::from_secs(30);
+const REPORT_INTERVAL: Duration = Duration::from_secs(60);
 const BUFFER_SIZE: usize = 128 * 1024;
 
 const RANDOM_PLIES: usize = 4;
@@ -39,6 +39,7 @@ const GENERATION_LIMITS: Limits = Limits::FixedNodes(7500);
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);
+static GAMES: AtomicUsize = AtomicUsize::new(0);
 
 /// Starts the data generation process.
 pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
@@ -70,10 +71,14 @@ pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
         let now = Instant::now();
         loop {
             thread::sleep(REPORT_INTERVAL);
+
+            let positions = COUNT.load(Ordering::Relaxed);
+            let games = GAMES.load(Ordering::Relaxed);
+
             println!(
-                "{:>8.0} positions ({:4.0} pos/s) [{:.1} min]",
-                COUNT.load(Ordering::Relaxed),
-                COUNT.load(Ordering::Relaxed) as f64 / now.elapsed().as_secs_f64(),
+                "{positions:>8.0} positions | {games:>5} games ({:3.0} pos/game) ({:4.0} pos/s) [{:.1} min]",
+                positions as f64 / games as f64,
+                positions as f64 / now.elapsed().as_secs_f64(),
                 now.elapsed().as_secs_f64() / 60.0,
             );
         }
@@ -127,6 +132,7 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
         }
 
         COUNT.fetch_add(count, Ordering::Relaxed);
+        GAMES.fetch_add(1, Ordering::Relaxed);
     }
 }
 
