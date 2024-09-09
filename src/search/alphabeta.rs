@@ -108,7 +108,7 @@ impl super::SearchThread<'_> {
         let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv), 0);
 
-        while let Some(mv) = moves.next(&mut ordering) {
+        while let Some((mv, mv_score)) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
@@ -127,6 +127,7 @@ impl super::SearchThread<'_> {
 
                 // Static Exchange Evaluation Pruning. Skip moves that are losing material.
                 if depth < SEE_DEPTH
+                    && mv_score < Self::GOOD_NOISY
                     && !self.see(mv, -[SEE_QUIET_MARGIN, SEE_NOISY_MARGIN][mv.is_capture() as usize] * depth)
                 {
                     continue;
