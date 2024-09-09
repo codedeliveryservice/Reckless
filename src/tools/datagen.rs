@@ -31,6 +31,10 @@ const AVERAGE_BOOK_PLY: usize = 8;
 const VALIDATION_THRESHOLD: i32 = 400;
 const GENERATION_THRESHOLD: i32 = 2400;
 
+const DRAW_SCORE: i32 = 20;
+const DRAW_PLY_COUNT: i32 = 12;
+const DRAW_PLY_NUMBER: usize = 80;
+
 const WRITE_MIN_PLY: usize = 16;
 const WRITE_MAX_PLY: usize = 400;
 
@@ -59,7 +63,7 @@ pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
     println!("Validation limits    | {VALIDATION_LIMITS:?}");
     println!("Generation limits    | {GENERATION_LIMITS:?}");
     println!("Validation threshold | {VALIDATION_THRESHOLD}");
-    println!("Generation threshold | {GENERATION_THRESHOLD}");
+    println!("Draw adjudication    | {DRAW_SCORE} for {DRAW_PLY_COUNT} plies, from ply {DRAW_PLY_NUMBER}");
     println!("Write minimum ply    | {WRITE_MIN_PLY}");
     println!("Write maximum ply    | {WRITE_MAX_PLY}");
     println!();
@@ -141,20 +145,22 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let tt = TranspositionTable::default();
     let mut history = History::default();
     let mut entries = Vec::new();
+    let mut draw_counter = 0;
 
     loop {
         let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &tt);
         let SearchResult { best_move, score, .. } = entry;
 
-        // The score is so high that the game is already decided
+        draw_counter = if score.abs() <= DRAW_SCORE { draw_counter + 1 } else { 0 };
+
+        // Resignation
         if score.abs() >= GENERATION_THRESHOLD {
-            let wdl = match board.side_to_move() {
-                Color::White if score > 0 => 1.0,
-                Color::Black if score < 0 => 1.0,
-                Color::White => 0.0,
-                Color::Black => 0.0,
-            };
-            return (entries, wdl);
+            return (entries, winner(&board, score));
+        }
+
+        // Draw adjudication
+        if draw_counter >= DRAW_PLY_COUNT && entries.len() >= DRAW_PLY_NUMBER {
+            return (entries, 0.5);
         }
 
         entries.push(entry);
@@ -170,6 +176,15 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
             assert!(!board.is_in_check(), "Stalemate in check");
             return (entries, 0.5);
         }
+    }
+}
+
+fn winner(board: &Board, score: i32) -> f32 {
+    match board.side_to_move() {
+        Color::White if score > 0 => 1.0,
+        Color::Black if score < 0 => 1.0,
+        Color::White => 0.0,
+        Color::Black => 0.0,
     }
 }
 
