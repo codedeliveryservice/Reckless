@@ -69,7 +69,7 @@ impl<'a> SearchThread<'a> {
 
     pub fn revert_null_move(&mut self) {
         self.ply -= 1;
-        self.board.undo_move::<false>();
+        self.board.undo_null_move();
     }
 
     pub fn apply_move(&mut self, mv: Move) -> bool {

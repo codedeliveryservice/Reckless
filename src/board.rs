@@ -26,14 +26,15 @@ struct InternalState {
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
-    pieces: [Bitboard; Piece::NUM],
-    colors: [Bitboard; Color::NUM],
+    captured: Option<Piece>,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
+    pieces: [Bitboard; Piece::NUM],
+    colors: [Bitboard; Color::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
     move_stack: Vec<FullMove>,
@@ -62,12 +63,12 @@ impl Board {
 
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
-        self.state.colors[color]
+        self.colors[color]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type.
     pub fn pieces(&self, piece: Piece) -> Bitboard {
-        self.state.pieces[piece]
+        self.pieces[piece]
     }
 
     /// Returns a `Bitboard` for all pieces on the board.
@@ -103,7 +104,7 @@ impl Board {
     /// Finds a piece on the specified square, if found; otherwise, `Piece::None`.
     pub fn piece_on(&self, square: Square) -> Piece {
         for index in 0..Piece::NUM {
-            if self.state.pieces[index].contains(square) {
+            if self.pieces[index].contains(square) {
                 return Piece::new(index);
             }
         }
@@ -119,8 +120,8 @@ impl Board {
 
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
-        self.state.pieces[piece].set(square);
-        self.state.colors[color].set(square);
+        self.pieces[piece].set(square);
+        self.colors[color].set(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
         if UPDATE_NNUE {
             self.nnue.activate(color, piece, square);
@@ -129,8 +130,8 @@ impl Board {
 
     /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
-        self.state.pieces[piece].clear(square);
-        self.state.colors[color].clear(square);
+        self.pieces[piece].clear(square);
+        self.colors[color].clear(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
         if UPDATE_NNUE {
             self.nnue.deactivate(color, piece, square);
@@ -290,6 +291,8 @@ impl Default for Board {
         Self {
             side_to_move: Color::White,
             state: InternalState::default(),
+            pieces: [Bitboard::default(); Piece::NUM],
+            colors: [Bitboard::default(); Color::NUM],
             state_stack: Vec::default(),
             move_stack: Vec::default(),
             nnue: Network::default(),
