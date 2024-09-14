@@ -16,6 +16,12 @@ impl Board {
         }
     }
 
+    pub fn undo_null_move(&mut self) {
+        self.side_to_move = !self.side_to_move;
+        self.state = self.state_stack.pop().unwrap();
+        self.move_stack.pop();
+    }
+
     pub fn make_move<const NNUE: bool, const IN_PLACE: bool>(&mut self, mv: Move) -> bool {
         let start = mv.start();
         let target = mv.target();
@@ -36,14 +42,18 @@ impl Board {
             self.state.en_passant = Square::None;
         }
 
+        self.state.captured = None;
+
         if mv.is_capture() || piece == Piece::Pawn {
             self.state.halfmove_clock = 0;
         } else {
             self.state.halfmove_clock += 1;
         }
 
-        if mv.is_capture() && !mv.is_en_passant() {
-            self.remove_piece::<NNUE>(self.piece_on(target), !self.side_to_move, target);
+        let captured = self.piece_on(target);
+        if captured != Piece::None {
+            self.remove_piece::<NNUE>(captured, !self.side_to_move, target);
+            self.state.captured = Some(captured);
         }
 
         self.remove_piece::<NNUE>(piece, self.side_to_move, start);
@@ -82,13 +92,41 @@ impl Board {
     }
 
     pub fn undo_move<const NNUE: bool>(&mut self) {
-        self.side_to_move = !self.side_to_move;
-        self.state = self.state_stack.pop().unwrap();
-        self.move_stack.pop().unwrap();
-
         if NNUE {
             self.nnue.pop();
         }
+
+        self.side_to_move = !self.side_to_move;
+
+        let mv = self.move_stack.pop().unwrap();
+        let start = mv.start();
+        let target = mv.target();
+        let piece = self.piece_on(target);
+
+        self.add_piece::<false>(piece, self.side_to_move, start);
+        self.remove_piece::<false>(piece, self.side_to_move, target);
+
+        if let Some(piece) = self.state.captured {
+            self.add_piece::<false>(piece, !self.side_to_move, target);
+        }
+
+        match mv.kind() {
+            MoveKind::EnPassant => {
+                self.add_piece::<false>(Piece::Pawn, !self.side_to_move, target ^ 8);
+            }
+            MoveKind::Castling => {
+                let (rook_start, rook_target) = get_rook_move(target);
+                self.add_piece::<false>(Piece::Rook, self.side_to_move, rook_start);
+                self.remove_piece::<false>(Piece::Rook, self.side_to_move, rook_target);
+            }
+            _ if mv.is_promotion() => {
+                self.remove_piece::<false>(piece, self.side_to_move, start);
+                self.add_piece::<false>(Piece::Pawn, self.side_to_move, start);
+            }
+            _ => (),
+        }
+
+        self.state = self.state_stack.pop().unwrap();
     }
 }
 
