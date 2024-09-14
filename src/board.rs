@@ -115,23 +115,23 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
-    pub fn add_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn add_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
         self.pieces[piece].set(square);
         self.colors[color].set(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
-        if UPDATE_NNUE {
+        if NNUE {
             self.nnue.activate(color, piece, square);
         }
     }
 
     /// Removes a piece of the specified type and color from the square.
-    pub fn remove_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn remove_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.pieces[piece].clear(square);
         self.colors[color].clear(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
-        if UPDATE_NNUE {
+        if NNUE {
             self.nnue.deactivate(color, piece, square);
         }
     }
