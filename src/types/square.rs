@@ -39,11 +39,6 @@ impl Square {
     pub const fn shift(self, offset: i8) -> Self {
         Self::new((self as i8 + offset) as u8)
     }
-
-    /// Returns the file of the square.
-    pub const fn file(self) -> usize {
-        self as usize & 7
-    }
 }
 
 impl TryFrom<&str> for Square {

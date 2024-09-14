@@ -87,7 +87,7 @@ impl Board {
             self.nnue.commit();
         }
 
-        let king = self.their(Piece::King).pop();
+        let king = self.their(Piece::King).lsb();
         !self.is_square_attacked_by(king, self.side_to_move)
     }
 
