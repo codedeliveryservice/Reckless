@@ -14,7 +14,7 @@ fn main() {
     generate_attack_maps();
 
     println!("cargo:rerun-if-env-changed=EVALFILE");
-    println!("cargo:rerun-if-changed=src/networks/model.nnue");
+    println!("cargo:rerun-if-changed=networks/model.nnue");
 }
 
 fn generate_model_env() {
