@@ -105,6 +105,7 @@ impl super::SearchThread<'_> {
 
         let mut moves_played = 0;
         let mut quiets = MoveList::default();
+        let mut captures = MoveList::default();
         let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv), 0);
 
@@ -177,6 +178,8 @@ impl super::SearchThread<'_> {
 
             if mv.is_quiet() {
                 quiets.push(mv);
+            } else {
+                captures.push(mv);
             }
         }
 
@@ -186,8 +189,8 @@ impl super::SearchThread<'_> {
         }
 
         let bound = get_bound(best_score, original_alpha, beta);
-        if bound == Bound::Lower && best_move.is_quiet() {
-            self.update_ordering_heuristics(depth, best_move, quiets.as_slice());
+        if bound == Bound::Lower {
+            self.update_ordering_heuristics(depth, best_move, captures.as_slice(), quiets.as_slice());
         }
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
@@ -304,10 +307,14 @@ impl super::SearchThread<'_> {
     }
 
     /// Updates the ordering heuristics to improve the move ordering in future searches.
-    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, quiets: &[Move]) {
-        self.killers[self.ply] = best_move;
-        self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
-        self.history.update_continuation(self.board, best_move, quiets, depth);
+    fn update_ordering_heuristics(&mut self, depth: i32, best_move: Move, captures: &[Move], quiets: &[Move]) {
+        if best_move.is_capture() {
+            self.history.update_capture(self.board, best_move, captures, depth);
+        } else {
+            self.killers[self.ply] = best_move;
+            self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
+            self.history.update_continuation(self.board, best_move, quiets, depth);
+        }
     }
 }
 

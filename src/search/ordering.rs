@@ -1,4 +1,4 @@
-use crate::types::{FullMove, Move, MoveList, MAX_MOVES};
+use crate::types::{FullMove, Move, MoveList, Piece, MAX_MOVES};
 
 impl super::SearchThread<'_> {
     const HASH_MOVE: i32 = 300_000_000;
@@ -22,8 +22,10 @@ impl super::SearchThread<'_> {
             return Self::HASH_MOVE;
         }
         if mv.is_capture() {
+            let capture = if mv.is_en_passant() { Piece::Pawn } else { self.board.piece_on(mv.target()) };
             let base = if self.see(mv, threshold) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
-            return base + self.mvv_lva(mv);
+            let history = self.history.get_capture(self.board.side_to_move(), mv, capture);
+            return base + history + self.mvv(mv);
         }
         if self.killers[self.ply] == mv {
             return Self::KILLERS;
@@ -35,14 +37,11 @@ impl super::SearchThread<'_> {
             + self.history.get_continuation(1, continuations[1], piece, mv)
     }
 
-    /// Returns the Most Valuable Victim - Least Valuable Attacker score for the specified move.
-    fn mvv_lva(&self, mv: Move) -> i32 {
+    fn mvv(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return 0;
+            0
+        } else {
+            1_000_000 * self.board.piece_on(mv.target()) as i32
         }
-
-        let attacker = self.board.piece_on(mv.start()) as i32;
-        let victim = self.board.piece_on(mv.target()) as i32;
-        10 * victim - attacker
     }
 }
