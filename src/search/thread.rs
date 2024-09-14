@@ -1,4 +1,4 @@
-use super::{counter::NodeCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
+use super::{counter::AtomicCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
     tables::{History, NodeTable, PrincipalVariationTable, TranspositionTable},
@@ -38,7 +38,7 @@ pub struct SearchThread<'a> {
     pub sel_depth: usize,
 
     /// Atomic counter for multi-threaded node counting.
-    pub nodes: NodeCounter<'a>,
+    pub nodes: AtomicCounter<'a>,
 }
 
 impl<'a> SearchThread<'a> {
@@ -58,7 +58,7 @@ impl<'a> SearchThread<'a> {
             ply: 0,
             finished_depth: 0,
             sel_depth: 0,
-            nodes: NodeCounter::new(&NODES_GLOBAL),
+            nodes: AtomicCounter::new(&NODES_GLOBAL),
         }
     }
 

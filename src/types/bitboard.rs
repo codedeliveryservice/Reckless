@@ -21,7 +21,7 @@ impl Bitboard {
     }
 
     /// Counts the number of set bits in the bitboard.
-    pub const fn count(self) -> usize {
+    pub const fn len(self) -> usize {
         self.0.count_ones() as usize
     }
 

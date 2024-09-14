@@ -138,7 +138,7 @@ impl Board {
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().count());
+        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().len());
 
         #[cfg(not(feature = "datagen"))]
         {
@@ -153,7 +153,7 @@ impl Board {
     pub fn game_phase(&self) -> i32 {
         [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen]
             .iter()
-            .map(|&piece| self.pieces(piece).count() as i32 * PHASE_WEIGHTS[piece])
+            .map(|&piece| self.pieces(piece).len() as i32 * PHASE_WEIGHTS[piece])
             .sum::<i32>()
             .min(MAX_PHASE)
     }

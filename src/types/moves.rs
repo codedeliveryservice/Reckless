@@ -41,7 +41,7 @@ pub struct Move(u16);
 #[derive(Copy, Clone, PartialEq)]
 #[rustfmt::skip]
 pub enum MoveKind {
-    Quiet             = 0b0000,
+    Normal            = 0b0000,
     DoublePush        = 0b0001,
     Castling          = 0b0010,
 

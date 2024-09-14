@@ -1,12 +1,12 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-pub struct NodeCounter<'a> {
+pub struct AtomicCounter<'a> {
     buffer: u64,
     local: u64,
     global: &'a AtomicU64,
 }
 
-impl<'a> NodeCounter<'a> {
+impl<'a> AtomicCounter<'a> {
     pub const fn new(global: &'a AtomicU64) -> Self {
         Self { buffer: 0, local: 0, global }
     }
