@@ -7,15 +7,12 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
 
-#[allow(clippy::assertions_on_constants)]
-const _: () = assert!(INTERNAL_ENTRY_SIZE == 8, "InternalEntry size is not 8 bytes");
-
 #[derive(Copy, Clone)]
 pub struct Entry {
-    pub depth: i32,
-    pub score: i32,
-    pub bound: Bound,
     pub mv: Move,
+    pub score: i32,
+    pub depth: i32,
+    pub bound: Bound,
 }
 
 /// Type of the score returned by the search.
@@ -29,39 +26,33 @@ pub enum Bound {
 /// Internal representation of a transposition table entry (8 bytes).
 struct InternalEntry {
     key: u16,     // 2 bytes
-    depth: u8,    // 1 byte
-    score: i16,   // 2 bytes
-    bound: Bound, // 1 byte
     mv: Move,     // 2 bytes
+    score: i16,   // 2 bytes
+    depth: u8,    // 1 byte
+    bound: Bound, // 1 byte
 }
 
-impl InternalEntry {
-    /// Creates a new internal entry from a packed 64-bit integer.
-    pub const fn new(packed: u64) -> Self {
-        unsafe { std::mem::transmute(packed) }
-    }
+#[derive(Default)]
+struct Block(AtomicU64);
 
-    /// Packs the entry into a 64-bit integer.
-    pub const fn pack(self) -> u64 {
-        unsafe { std::mem::transmute(self) }
-    }
-}
-
-struct Packed(AtomicU64);
-
-impl Packed {
-    pub fn load(&self) -> u64 {
+impl Block {
+    fn load(&self) -> u64 {
         self.0.load(Ordering::Relaxed)
     }
-}
 
-impl Default for Packed {
-    fn default() -> Self {
-        Self(AtomicU64::new(0))
+    fn read(&self) -> Option<InternalEntry> {
+        match self.load() {
+            0 => None,
+            v => Some(unsafe { std::mem::transmute(v) }),
+        }
+    }
+
+    fn write(&self, entry: InternalEntry) {
+        self.0.store(unsafe { std::mem::transmute(entry) }, Ordering::Relaxed);
     }
 }
 
-impl Clone for Packed {
+impl Clone for Block {
     fn clone(&self) -> Self {
         Self(AtomicU64::new(self.load()))
     }
@@ -69,7 +60,7 @@ impl Clone for Packed {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: Vec<Packed>,
+    vector: Vec<Block>,
 }
 
 impl TranspositionTable {
@@ -93,21 +84,15 @@ impl TranspositionTable {
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        const BATCH_SIZE: usize = 10_000;
-        self.vector.iter().take(BATCH_SIZE).filter(|slot| is_valid(slot.load())).count() * 1000 / BATCH_SIZE
+        self.vector.iter().take(1000).filter(|slot| slot.load() != 0).count()
     }
 
-    /// Reads an entry from the transposition table.
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
-        let index = self.get_index(hash);
-        let packed = self.vector[index].load();
+        let entry = match self.entry(hash).read() {
+            Some(v) if v.key == verification_key(hash) => v,
+            _ => return None,
+        };
 
-        // The entry is invalid or the hash key doesn't match
-        if !is_valid(packed) || (packed as u16) != verification_key(hash) {
-            return None;
-        }
-
-        let entry = InternalEntry::new(packed);
         let mut hit = Entry {
             depth: i32::from(entry.depth),
             score: i32::from(entry.score),
@@ -122,7 +107,6 @@ impl TranspositionTable {
         Some(hit)
     }
 
-    /// Writes an entry to the transposition table overwriting an existing one.
     pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if score.abs() > Score::MATE_BOUND {
@@ -130,28 +114,24 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let index = self.get_index(hash);
-        let packed = self.vector[index].load();
+        let entry = self.entry(hash);
 
         // Preserve the previous move if the new one is sourced from an upper bound node
-        if is_valid(packed) {
-            let old = InternalEntry::new(packed);
+        if let Some(old) = entry.read() {
             if bound == Bound::Upper && old.key == key && old.mv != Move::NULL {
                 mv = old.mv;
             }
         }
 
-        let entry = InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv };
-        self.vector[index].0.store(entry.pack(), Ordering::Relaxed);
+        entry.write(InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv });
     }
 
-    /// Prefetches the entry in the transposition table.
     pub fn prefetch(&self, hash: u64) {
         #[cfg(target_arch = "x86_64")]
         unsafe {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
-            let index = self.get_index(hash);
+            let index = self.index(hash);
             let ptr = self.vector.as_ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
@@ -161,17 +141,20 @@ impl TranspositionTable {
         let _ = hash;
     }
 
-    /// Returns the index of the entry in the transposition table.
-    fn get_index(&self, hash: u64) -> usize {
+    fn entry(&self, hash: u64) -> &Block {
+        let index = self.index(hash);
+        unsafe { self.vector.get_unchecked(index) }
+    }
+
+    fn index(&self, hash: u64) -> usize {
         // Fast hash table index calculation
         // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
-        let len = self.vector.len() as u128;
-        ((u128::from(hash) * len) >> 64) as usize
+        (((hash as u128) * (self.vector.len() as u128)) >> 64) as usize
     }
 
     unsafe fn parallel_clear(&mut self, threads: usize, len: usize) {
         std::thread::scope(|scope| {
-            let ptr = self.vector.as_mut_ptr() as *mut std::mem::MaybeUninit<Packed>;
+            let ptr = self.vector.as_mut_ptr() as *mut std::mem::MaybeUninit<Block>;
             let slice = std::slice::from_raw_parts_mut(ptr, len);
 
             let chunk_size = (len + threads - 1) / threads;
@@ -182,11 +165,6 @@ impl TranspositionTable {
     }
 }
 
-/// Checks if the entry is valid.
-const fn is_valid(packed: u64) -> bool {
-    packed != 0
-}
-
 /// Returns the verification key of the hash (bottom 16 bits).
 const fn verification_key(hash: u64) -> u16 {
     hash as u16
@@ -195,7 +173,7 @@ const fn verification_key(hash: u64) -> u16 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            vector: vec![Packed::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE],
+            vector: vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE],
         }
     }
 }
