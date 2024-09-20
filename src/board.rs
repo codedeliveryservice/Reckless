@@ -138,7 +138,7 @@ impl Board {
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().len());
+        let mut eval = self.nnue.evaluate(self.side_to_move);
 
         #[cfg(not(feature = "datagen"))]
         {
