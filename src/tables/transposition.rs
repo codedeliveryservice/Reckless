@@ -43,12 +43,12 @@ impl Block {
     fn read(&self) -> Option<InternalEntry> {
         match self.load() {
             0 => None,
-            v => Some(unsafe { std::mem::transmute(v) }),
+            v => Some(unsafe { std::mem::transmute::<u64, InternalEntry>(v) }),
         }
     }
 
     fn write(&self, entry: InternalEntry) {
-        self.0.store(unsafe { std::mem::transmute(entry) }, Ordering::Relaxed);
+        self.0.store(unsafe { std::mem::transmute::<InternalEntry, u64>(entry) }, Ordering::Relaxed);
     }
 }
 
