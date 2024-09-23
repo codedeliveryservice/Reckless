@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use super::parameters::OPT_PIECE_VALUES;
 use crate::{
-    tables::Bound,
+    tables::{Bound, Entry},
     types::{Move, Piece, Score, MAX_PLY},
 };
 
@@ -18,17 +18,9 @@ impl super::SearchThread<'_> {
         self.sel_depth = self.sel_depth.max(self.ply);
 
         let entry = self.tt.read(self.board.hash(), self.ply);
-        if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Exact => true,
-                Bound::Lower => entry.score >= beta,
-                Bound::Upper => entry.score <= alpha,
-            } {
-                return entry.score;
-            }
-        }
 
         let eval = match entry {
+            Some(entry) if should_cutoff(entry, alpha, beta) => return entry.score,
             Some(entry) => entry.score,
             None => self.board.evaluate(),
         };
@@ -98,5 +90,13 @@ impl super::SearchThread<'_> {
         } else {
             OPT_PIECE_VALUES[piece]
         }
+    }
+}
+
+const fn should_cutoff(entry: Entry, alpha: i32, beta: i32) -> bool {
+    match entry.bound {
+        Bound::Exact => true,
+        Bound::Lower => entry.score >= beta,
+        Bound::Upper => entry.score <= alpha,
     }
 }

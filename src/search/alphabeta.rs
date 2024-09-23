@@ -56,7 +56,7 @@ impl super::SearchThread<'_> {
         // Transposition table lookup and potential cutoff
         let entry = self.tt.read(self.board.hash(), self.ply);
         if let Some(entry) = entry {
-            if !PV && transposition_table_cutoff(entry, alpha, beta, depth) {
+            if !PV && should_cutoff(entry, alpha, beta, depth) {
                 return entry.score;
             }
         }
@@ -188,7 +188,7 @@ impl super::SearchThread<'_> {
             return if in_check { Score::mated_in(self.ply) } else { Score::DRAW };
         }
 
-        let bound = get_bound(best_score, original_alpha, beta);
+        let bound = determine_bound(best_score, original_alpha, beta);
         if bound == Bound::Lower {
             self.update_ordering_heuristics(depth, best_move, captures.as_slice(), quiets.as_slice());
         }
@@ -249,14 +249,11 @@ impl super::SearchThread<'_> {
             let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - r);
             self.revert_null_move();
 
-            // Avoid returning false mates
-            if score >= Score::MATE_BOUND {
-                return Some(beta);
-            }
-
-            if score >= beta {
-                return Some(score);
-            }
+            return match score {
+                s if s >= Score::MATE_BOUND => Some(beta),
+                s if s >= beta => Some(score),
+                _ => None,
+            };
         }
         None
     }
@@ -318,24 +315,17 @@ impl super::SearchThread<'_> {
     }
 }
 
-/// Determines the score bound based on the best score and the original alpha-beta window.
-const fn get_bound(score: i32, alpha: i32, beta: i32) -> Bound {
-    if score <= alpha {
-        return Bound::Upper;
+const fn determine_bound(score: i32, alpha: i32, beta: i32) -> Bound {
+    match score {
+        s if s <= alpha => Bound::Upper,
+        s if s >= beta => Bound::Lower,
+        _ => Bound::Exact,
     }
-    if score >= beta {
-        return Bound::Lower;
-    }
-    Bound::Exact
 }
 
-/// Provides a score for a transposition table cutoff, if applicable.
-const fn transposition_table_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
-    if entry.depth < depth {
-        return false;
-    }
-    // The score is outside the alpha-beta window, resulting in a cutoff
+const fn should_cutoff(entry: Entry, alpha: i32, beta: i32, depth: i32) -> bool {
     match entry.bound {
+        _ if depth > entry.depth => false,
         Bound::Exact => true,
         Bound::Lower => entry.score >= beta,
         Bound::Upper => entry.score <= alpha,
