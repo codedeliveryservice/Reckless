@@ -1,5 +1,5 @@
-use super::parameters::*;
 use crate::{
+    parameters::*,
     tables::{Bound, Entry},
     types::{Move, MoveList, Score, MAX_PLY},
 };

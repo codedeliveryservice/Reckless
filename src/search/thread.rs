@@ -1,6 +1,7 @@
-use super::{counter::AtomicCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
+use super::{counter::AtomicCounter, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
+    parameters::Parameters,
     tables::{History, NodeTable, PrincipalVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
