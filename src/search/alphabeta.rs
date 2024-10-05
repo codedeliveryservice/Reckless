@@ -279,7 +279,7 @@ impl super::SearchThread<'_> {
         // Fractional reductions
         let mut reduction = self.params.lmr(depth, moves);
 
-        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR;
+        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / lmr_history() as f64;
 
         reduction -= 0.88 * to_f64(PV);
         reduction -= 0.78 * to_f64(self.board.is_in_check());
