@@ -5,7 +5,6 @@ pub const LMR_MOVES_PLAYED: i32 = 3;
 pub const LMR_DEPTH: i32 = 3;
 pub const LMR_BASE: f64 = 0.73;
 pub const LMR_DIVISOR: f64 = 2.22;
-pub const LMR_HISTORY_DIVISOR: f64 = 6210.0;
 
 pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
@@ -122,4 +121,14 @@ define!(
 
     aspiration_depth:        6, 1..12;
     aspiration_delta:       30, 15..45;
+
+    lmr_history:          6210, 4000..8000;
+
+    history_bonus:         130, 0..400;
+    history_bonus_base:    -30, -150..150;
+    history_bonus_max:    1790, 1000..3500;
+
+    history_malus:         180, 0..400;
+    history_malus_base:     20, -150..150;
+    history_malus_max:    1640, 1000..3500;
 );

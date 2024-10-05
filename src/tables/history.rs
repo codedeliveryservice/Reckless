@@ -1,5 +1,6 @@
 use crate::{
     board::Board,
+    parameters::*,
     types::{Color, FullMove, Move, Piece, Square},
 };
 
@@ -87,11 +88,11 @@ impl Default for History {
 }
 
 fn bonus(depth: i32) -> i32 {
-    130 * depth.min(14) - 30
+    (history_bonus() * depth + history_bonus_base()).min(history_bonus_max())
 }
 
 fn malus(depth: i32) -> i32 {
-    180 * depth.min(9) + 20
+    (history_malus() * depth + history_malus_base()).min(history_malus_max())
 }
 
 fn increase(v: &mut i32, depth: i32) {
