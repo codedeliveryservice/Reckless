@@ -52,12 +52,12 @@ impl Board {
 
         let captured = self.piece_on(target);
         if captured != Piece::None {
-            self.remove_piece::<NNUE>(captured, !self.side_to_move, target);
+            self.remove_piece::<NNUE>(!self.side_to_move, captured, target);
             self.state.captured = Some(captured);
         }
 
-        self.remove_piece::<NNUE>(piece, self.side_to_move, start);
-        self.add_piece::<NNUE>(piece, self.side_to_move, target);
+        self.remove_piece::<NNUE>(self.side_to_move, piece, start);
+        self.add_piece::<NNUE>(self.side_to_move, piece, target);
 
         match mv.kind() {
             MoveKind::DoublePush => {
@@ -65,16 +65,16 @@ impl Board {
                 self.state.hash ^= ZOBRIST.en_passant[self.state.en_passant];
             }
             MoveKind::EnPassant => {
-                self.remove_piece::<NNUE>(Piece::Pawn, !self.side_to_move, target ^ 8);
+                self.remove_piece::<NNUE>(!self.side_to_move, Piece::Pawn, target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.remove_piece::<NNUE>(Piece::Rook, self.side_to_move, rook_start);
-                self.add_piece::<NNUE>(Piece::Rook, self.side_to_move, rook_target);
+                self.remove_piece::<NNUE>(self.side_to_move, Piece::Rook, rook_start);
+                self.add_piece::<NNUE>(self.side_to_move, Piece::Rook, rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece::<NNUE>(Piece::Pawn, self.side_to_move, target);
-                self.add_piece::<NNUE>(mv.promotion_piece().unwrap(), self.side_to_move, target);
+                self.remove_piece::<NNUE>(self.side_to_move, Piece::Pawn, target);
+                self.add_piece::<NNUE>(self.side_to_move, mv.promotion_piece().unwrap(), target);
             }
             _ => (),
         }
@@ -87,7 +87,7 @@ impl Board {
             self.nnue.commit();
         }
 
-        let king = self.their(Piece::King).pop();
+        let king = self.their(Piece::King).lsb();
         !self.is_square_attacked_by(king, self.side_to_move)
     }
 
@@ -103,25 +103,25 @@ impl Board {
         let target = mv.target();
         let piece = self.piece_on(target);
 
-        self.add_piece::<false>(piece, self.side_to_move, start);
-        self.remove_piece::<false>(piece, self.side_to_move, target);
+        self.add_piece::<false>(self.side_to_move, piece, start);
+        self.remove_piece::<false>(self.side_to_move, piece, target);
 
         if let Some(piece) = self.state.captured {
-            self.add_piece::<false>(piece, !self.side_to_move, target);
+            self.add_piece::<false>(!self.side_to_move, piece, target);
         }
 
         match mv.kind() {
             MoveKind::EnPassant => {
-                self.add_piece::<false>(Piece::Pawn, !self.side_to_move, target ^ 8);
+                self.add_piece::<false>(!self.side_to_move, Piece::Pawn, target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.add_piece::<false>(Piece::Rook, self.side_to_move, rook_start);
-                self.remove_piece::<false>(Piece::Rook, self.side_to_move, rook_target);
+                self.add_piece::<false>(self.side_to_move, Piece::Rook, rook_start);
+                self.remove_piece::<false>(self.side_to_move, Piece::Rook, rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece::<false>(piece, self.side_to_move, start);
-                self.add_piece::<false>(Piece::Pawn, self.side_to_move, start);
+                self.remove_piece::<false>(self.side_to_move, piece, start);
+                self.add_piece::<false>(self.side_to_move, Piece::Pawn, start);
             }
             _ => (),
         }

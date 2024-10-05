@@ -44,7 +44,7 @@ impl super::Board {
 
             list.add_many(start, targets & self.them(), MoveKind::Capture);
             if !CAPTURE {
-                list.add_many(start, targets & !self.them(), MoveKind::Quiet);
+                list.add_many(start, targets & !self.them(), MoveKind::Normal);
             }
         }
     }
@@ -110,7 +110,7 @@ impl super::Board {
         let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
         for target in single_pushes {
-            list.add(target.shift(-up), target, MoveKind::Quiet);
+            list.add(target.shift(-up), target, MoveKind::Normal);
         }
 
         for target in double_pushes {

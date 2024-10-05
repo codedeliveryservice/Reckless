@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use super::parameters::OPT_PIECE_VALUES;
 use crate::{
-    tables::Bound,
+    tables::{Bound, Entry},
     types::{Move, Piece, Score, MAX_PLY},
 };
 
@@ -17,32 +17,19 @@ impl super::SearchThread<'_> {
         self.nodes.inc();
         self.sel_depth = self.sel_depth.max(self.ply);
 
-        // Prevent overflows
-        if self.ply >= MAX_PLY - 1 {
-            return self.board.evaluate();
-        }
-
         let entry = self.tt.read(self.board.hash(), self.ply);
-        if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Exact => true,
-                Bound::Lower => entry.score >= beta,
-                Bound::Upper => entry.score <= alpha,
-            } {
-                return entry.score;
-            }
-        }
 
         let eval = match entry {
+            Some(entry) if should_cutoff(entry, alpha, beta) => return entry.score,
             Some(entry) => entry.score,
             None => self.board.evaluate(),
         };
 
-        alpha = max(alpha, eval);
+        if eval > alpha {
+            alpha = eval;
+        }
 
-        // The stand pat is the lower bound for the position, since doing nothing is *usually*
-        // the least we can expect and it's already good enough to cause a beta cutoff
-        if alpha >= beta {
+        if alpha >= beta || self.ply >= MAX_PLY - 1 {
             return eval;
         }
 
@@ -103,5 +90,13 @@ impl super::SearchThread<'_> {
         } else {
             OPT_PIECE_VALUES[piece]
         }
+    }
+}
+
+const fn should_cutoff(entry: Entry, alpha: i32, beta: i32) -> bool {
+    match entry.bound {
+        Bound::Exact => true,
+        Bound::Lower => entry.score >= beta,
+        Bound::Upper => entry.score <= alpha,
     }
 }

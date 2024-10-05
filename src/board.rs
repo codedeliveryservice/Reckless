@@ -115,30 +115,30 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
-    pub fn add_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn add_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
         self.pieces[piece].set(square);
         self.colors[color].set(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
-        if UPDATE_NNUE {
+        if NNUE {
             self.nnue.activate(color, piece, square);
         }
     }
 
     /// Removes a piece of the specified type and color from the square.
-    pub fn remove_piece<const UPDATE_NNUE: bool>(&mut self, piece: Piece, color: Color, square: Square) {
+    pub fn remove_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.pieces[piece].clear(square);
         self.colors[color].clear(square);
         self.state.hash ^= ZOBRIST.pieces[color][piece][square];
-        if UPDATE_NNUE {
+        if NNUE {
             self.nnue.deactivate(color, piece, square);
         }
     }
 
     /// Calculates the score of the current position from the perspective of the side to move.
     pub fn evaluate(&self) -> i32 {
-        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().count());
+        let mut eval = self.nnue.evaluate(self.side_to_move, self.occupancies().len());
 
         #[cfg(not(feature = "datagen"))]
         {
@@ -153,7 +153,7 @@ impl Board {
     pub fn game_phase(&self) -> i32 {
         [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen]
             .iter()
-            .map(|&piece| self.pieces(piece).count() as i32 * PHASE_WEIGHTS[piece])
+            .map(|&piece| self.pieces(piece).len() as i32 * PHASE_WEIGHTS[piece])
             .sum::<i32>()
             .min(MAX_PHASE)
     }

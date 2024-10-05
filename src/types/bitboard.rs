@@ -20,14 +20,14 @@ impl Bitboard {
         self.0 == 0
     }
 
-    /// Checks if the bitboard contains a set bit at the specified square position.
-    pub const fn contains(self, square: Square) -> bool {
-        (self.0 >> square as u64) & 1 != 0
+    /// Counts the number of set bits in the bitboard.
+    pub const fn len(self) -> usize {
+        self.0.count_ones() as usize
     }
 
-    /// Counts the number of set bits in the bitboard.
-    pub const fn count(self) -> usize {
-        self.0.count_ones() as usize
+    /// Returns the least significant set bit in the bitboard.
+    pub const fn lsb(self) -> Square {
+        Square::new(self.0.trailing_zeros() as u8)
     }
 
     /// Shifts the bits of the bitboard by the specified offset.
@@ -48,20 +48,6 @@ impl Bitboard {
     pub fn clear(&mut self, square: Square) {
         self.0 &= !(1 << square as u64);
     }
-
-    /// Returns the least significant set bit in the bitboard.
-    pub const fn lsb(self) -> Square {
-        Square::new(self.0.trailing_zeros() as u8)
-    }
-
-    /// Pops and returns the least significant set bit in the bitboard.
-    ///
-    /// `Square::None` is returned if the bitboard is empty.
-    pub fn pop(&mut self) -> Square {
-        let lsb = self.lsb();
-        self.0 &= self.0 - 1;
-        lsb
-    }
 }
 
 impl Iterator for Bitboard {
@@ -71,7 +57,9 @@ impl Iterator for Bitboard {
         if self.is_empty() {
             None
         } else {
-            Some(self.pop())
+            let lsb = self.lsb();
+            self.0 &= self.0 - 1;
+            Some(lsb)
         }
     }
 }
