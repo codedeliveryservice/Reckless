@@ -80,7 +80,7 @@ impl super::SearchThread<'_> {
 
         if !ROOT && !PV && !in_check {
             // Reverse Futility Pruning
-            if depth < RFP_DEPTH && eval - RFP_MARGIN * (depth - i32::from(improving)) > beta {
+            if depth < rfp_depth() && eval - rfp_margin() * (depth - i32::from(improving)) > beta {
                 return eval;
             }
 
@@ -90,7 +90,7 @@ impl super::SearchThread<'_> {
             }
 
             // Razoring
-            if depth <= RAZORING_DEPTH && eval + RAZORING_MARGIN * depth + RAZORING_FIXED_MARGIN < alpha {
+            if depth <= razoring_depth() && eval + razoring_margin() * depth + razoring_fixed_margin() < alpha {
                 return self.quiescence_search(alpha, beta);
             }
         }
@@ -114,7 +114,8 @@ impl super::SearchThread<'_> {
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
                 // are unlikely to recover a score so far below alpha in very few moves.
-                if !PV && mv.is_quiet() && depth <= FP_DEPTH && eval + FP_MARGIN * depth + FP_FIXED_MARGIN < alpha {
+                if !PV && mv.is_quiet() && depth <= fp_depth() && eval + fp_margin() * depth + fp_fixed_margin() < alpha
+                {
                     break;
                 }
 
