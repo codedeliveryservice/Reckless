@@ -10,12 +10,7 @@ pub const LMR_HISTORY_DIVISOR: f64 = 6210.0;
 pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
 
-pub const DEEPER_SEARCH_MARGIN: i32 = 80;
 pub const IIR_DEPTH: i32 = 4;
-
-pub const SEE_NOISY_MARGIN: i32 = 100;
-pub const SEE_QUIET_MARGIN: i32 = 70;
-pub const SEE_DEPTH: i32 = 6;
 
 pub struct Parameters {
     lmr: [[f64; 64]; 64],
@@ -118,4 +113,13 @@ define!(
     fp_depth:                5, 1..10;
     fp_margin:             130, 0..260;
     fp_fixed_margin:        45, 0..90;
+
+    search_deeper_margin:   80, 0..160;
+
+    see_depth:               6, 1..112;
+    see_noisy_margin:      100, 50..150;
+    see_quiet_margin:       70, 50..150;
+
+    aspiration_depth:        6, 1..12;
+    aspiration_delta:       30, 15..45;
 );

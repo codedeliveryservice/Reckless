@@ -128,8 +128,8 @@ impl super::SearchThread<'_> {
                 }
 
                 // Static Exchange Evaluation Pruning. Skip moves that are losing material.
-                if depth < SEE_DEPTH
-                    && !self.see(mv, -[SEE_QUIET_MARGIN, SEE_NOISY_MARGIN][mv.is_capture() as usize] * depth)
+                if depth < see_depth()
+                    && !self.see(mv, -[see_quiet_margin(), see_noisy_margin()][mv.is_capture() as usize] * depth)
                 {
                     continue;
                 }
@@ -227,7 +227,7 @@ impl super::SearchThread<'_> {
         // If the search fails and reduction applied, re-search with full depth
         if alpha < score && reduction > 0 {
             // Adjust the search depth based on results of the LMR search
-            new_depth += i32::from(score > best_score + DEEPER_SEARCH_MARGIN);
+            new_depth += i32::from(score > best_score + search_deeper_margin());
 
             score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
         }
