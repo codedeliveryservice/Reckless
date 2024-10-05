@@ -1,6 +1,6 @@
-use super::parameters::SEE_PIECE_VALUES;
 use crate::{
     lookup::{bishop_attacks, rook_attacks},
+    parameters::SEE_PIECE_VALUES,
     types::{Bitboard, Move, Piece},
 };
 

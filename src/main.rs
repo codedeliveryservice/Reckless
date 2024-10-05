@@ -1,6 +1,7 @@
 mod board;
 mod lookup;
 mod nnue;
+mod parameters;
 mod search;
 mod tables;
 mod time;

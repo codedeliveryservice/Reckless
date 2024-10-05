@@ -1,7 +1,7 @@
 use std::cmp::max;
 
-use super::parameters::OPT_PIECE_VALUES;
 use crate::{
+    parameters::OPT_PIECE_VALUES,
     tables::{Bound, Entry},
     types::{Move, Piece, Score, MAX_PLY},
 };

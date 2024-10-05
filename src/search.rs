@@ -15,7 +15,6 @@ mod alphabeta;
 mod aspiration;
 mod counter;
 mod ordering;
-mod parameters;
 mod quiescence;
 mod see;
 mod thread;
