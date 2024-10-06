@@ -98,7 +98,7 @@ fn iterative_deepening(mut thread: SearchThread, silent: bool) -> SearchResult {
     }
 
     if !silent {
-        println!("bestmove {current_move}");
+        println!("bestmove {}", thread.pv_table.best_move());
     }
 
     SearchResult {
