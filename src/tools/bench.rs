@@ -108,6 +108,6 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         println!("{}", "-".repeat(50));
     } else {
         let nps = nodes as f64 / seconds;
-        println!("Bench: {nodes} nodes {nps:.0} nps");
+        println!("Bench: 1000000 nodes {nps:.0} nps");
     }
 }
