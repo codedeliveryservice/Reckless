@@ -23,6 +23,7 @@ const PHASE_WEIGHTS: [i32; Piece::NUM - 1] = [0, 3, 3, 5, 9];
 #[derive(Copy, Clone, Default)]
 struct InternalState {
     hash: u64,
+    pawn_key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -60,6 +61,10 @@ impl Board {
     /// Returns the Zobrist hash key for the current position.
     pub const fn hash(&self) -> u64 {
         self.state.hash
+    }
+
+    pub const fn pawn_key(&self) -> u64 {
+        self.state.pawn_key
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -119,7 +124,7 @@ impl Board {
         self.mailbox[square] = piece;
         self.pieces[piece].set(square);
         self.colors[color].set(square);
-        self.state.hash ^= ZOBRIST.pieces[color][piece][square];
+        self.update_hash(color, piece, square);
         if NNUE {
             self.nnue.activate(color, piece, square);
         }
@@ -130,9 +135,17 @@ impl Board {
         self.mailbox[square] = Piece::None;
         self.pieces[piece].clear(square);
         self.colors[color].clear(square);
-        self.state.hash ^= ZOBRIST.pieces[color][piece][square];
+        self.update_hash(color, piece, square);
         if NNUE {
             self.nnue.deactivate(color, piece, square);
+        }
+    }
+
+    pub fn update_hash(&mut self, color: Color, piece: Piece, square: Square) {
+        self.state.hash ^= ZOBRIST.pieces[color][piece][square];
+
+        if piece == Piece::Pawn {
+            self.state.pawn_key ^= ZOBRIST.pieces[color][piece][square];
         }
     }
 
@@ -280,6 +293,16 @@ impl Board {
         }
 
         hash ^= ZOBRIST.castling[self.state.castling];
+        hash
+    }
+
+    pub fn generate_pawn_key(&self) -> u64 {
+        let mut hash = 0;
+        for color in [Color::White, Color::Black] {
+            for square in self.of(Piece::Pawn, color) {
+                hash ^= ZOBRIST.pieces[color][Piece::Pawn][square];
+            }
+        }
         hash
     }
 }

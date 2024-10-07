@@ -67,11 +67,13 @@ impl super::SearchThread<'_> {
             depth -= 1;
         }
 
-        let eval = match entry {
+        let raw_eval = match entry {
             Some(entry) => entry.score,
             None if in_check => -Score::INFINITY,
             None => self.board.evaluate(),
         };
+
+        let eval = raw_eval + self.correction.get(self.board);
 
         self.killers[self.ply + 1] = Move::NULL;
         self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
@@ -193,7 +195,12 @@ impl super::SearchThread<'_> {
             self.update_ordering_heuristics(depth, best_move, captures.as_slice(), quiets.as_slice());
         }
 
+        if !(in_check || best_move.is_capture() || (bound == Bound::Lower && best_score <= raw_eval)) {
+            self.correction.update(self.board, depth, best_score - raw_eval);
+        }
+
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
+
         best_score
     }
 

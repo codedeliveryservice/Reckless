@@ -1,7 +1,7 @@
 use super::{counter::AtomicCounter, parameters::Parameters, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
-    tables::{History, NodeTable, PrincipalVariationTable, TranspositionTable},
+    tables::{CorrectionHistory, History, NodeTable, PrincipalVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -25,6 +25,7 @@ pub struct SearchThread<'a> {
     pub killers: [Move; MAX_PLY],
     /// A stack for storing the static evaluation of the position at each ply.
     pub eval_stack: [i32; MAX_PLY],
+    pub correction: CorrectionHistory,
     /// A table for storing the principal variation line.
     pub pv_table: PrincipalVariationTable,
     /// A table for storing the number of nodes searched at root the for each move.
@@ -52,6 +53,7 @@ impl<'a> SearchThread<'a> {
             tt,
             killers: [Move::NULL; MAX_PLY],
             eval_stack: [0; MAX_PLY],
+            correction: CorrectionHistory::default(),
             pv_table: PrincipalVariationTable::default(),
             node_table: NodeTable::default(),
             params: Parameters::default(),
