@@ -3,6 +3,8 @@ use crate::{
     types::{Color, FullMove, Move, Piece, Square},
 };
 
+use super::CorrectionHistory;
+
 const MAX_HISTORY: i32 = 16384;
 
 type Butterfly<T> = [[T; Square::NUM]; Square::NUM];
@@ -15,6 +17,7 @@ type PieceSquare<T> = [[T; Square::NUM]; Piece::NUM + 1];
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 #[derive(Clone)]
 pub struct History {
+    pub correction: CorrectionHistory,
     main: Box<[Butterfly<i32>; Color::NUM]>,
     followup: Box<PieceSquare<PieceSquare<i32>>>,
     counter: Box<PieceSquare<PieceSquare<i32>>>,
@@ -82,6 +85,7 @@ impl Default for History {
             main: zeroed_box(),
             counter: zeroed_box(),
             followup: zeroed_box(),
+            correction: CorrectionHistory::default(),
         }
     }
 }

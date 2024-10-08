@@ -73,7 +73,7 @@ impl super::SearchThread<'_> {
             None => self.board.evaluate(),
         };
 
-        let eval = raw_eval + self.correction.get(self.board);
+        let eval = raw_eval + self.history.correction.get(self.board);
 
         self.killers[self.ply + 1] = Move::NULL;
         self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
@@ -196,7 +196,7 @@ impl super::SearchThread<'_> {
         }
 
         if !(in_check || best_move.is_capture() || (bound == Bound::Lower && best_score <= raw_eval)) {
-            self.correction.update(self.board, depth, best_score - raw_eval);
+            self.history.correction.update(self.board, depth, best_score - raw_eval);
         }
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);

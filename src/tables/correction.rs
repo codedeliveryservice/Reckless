@@ -6,6 +6,7 @@ const GRAIN: i32 = 256;
 const MAX_DELTA: i32 = 64;
 const SMOOTHING_FACTOR: i32 = 1024;
 
+#[derive(Clone)]
 pub struct CorrectionHistory {
     table: Box<[[i32; SIZE]; Color::NUM]>,
 }
