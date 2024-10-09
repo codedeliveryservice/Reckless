@@ -195,7 +195,11 @@ impl super::SearchThread<'_> {
             self.update_ordering_heuristics(depth, best_move, captures.as_slice(), quiets.as_slice());
         }
 
-        if !(in_check || best_move.is_capture() || (bound == Bound::Lower && best_score <= raw_eval)) {
+        if !(in_check
+            || best_move.is_capture()
+            || (bound == Bound::Upper && raw_eval < best_score)
+            || (bound == Bound::Lower && raw_eval > best_score))
+        {
             self.history.correction.update(self.board, depth, best_score - raw_eval);
         }
 

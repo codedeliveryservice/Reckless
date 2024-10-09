@@ -3,7 +3,7 @@ use crate::{board::Board, types::Color};
 const SIZE: usize = 32768;
 const GRAIN: i32 = 256;
 
-const MAX_DELTA: i32 = 64;
+const MAX_DELTA: i32 = 96;
 const SMOOTHING_FACTOR: i32 = 1024;
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ impl CorrectionHistory {
         let entry = &mut self.table[board.side_to_move()][index(board)];
 
         let delta = delta.clamp(-MAX_DELTA, MAX_DELTA) * GRAIN;
-        let weight = (10 * depth).min(128);
+        let weight = (16 * depth).min(128);
 
         *entry = (*entry * (SMOOTHING_FACTOR - weight) + delta * weight) / SMOOTHING_FACTOR;
     }
