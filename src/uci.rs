@@ -32,9 +32,6 @@ pub fn message_loop() {
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
 
-            #[cfg(feature = "tuning")]
-            ["params"] => crate::parameters::print_parameters(),
-
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
         };
     }
@@ -111,7 +108,7 @@ fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str])
         }
         #[cfg(feature = "tuning")]
         ["name", name, "value", v] => {
-            crate::parameters::set_parameter(name, v.parse().unwrap());
+            crate::parameters::set_parameter(name, v);
             println!("info string set {name} to {v}");
         }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),

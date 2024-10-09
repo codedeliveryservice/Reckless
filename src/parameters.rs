@@ -35,100 +35,66 @@ impl Default for Parameters {
 
 #[cfg(not(feature = "tuning"))]
 macro_rules! define {
-    ($($name:ident: $value:expr, $range:expr; )*) => {$(
-        pub const fn $name() -> i32 {
+    ($($type:ident $name:ident: $value:expr, $min:expr, $max:expr; )*) => {
+        $(pub const fn $name() -> $type {
             $value
-        }
-    )*};
+        })*
+    };
 }
 
 #[cfg(feature = "tuning")]
 macro_rules! define {
-    ($($name:ident: $value:expr, $range:expr; )*) => {
-        use std::sync::atomic::{AtomicI32, Ordering};
-
-        static PARAMETERS: &[&Parameter] = &[$(&parameters::$name),*];
-
-        pub fn set_parameter(name: &str, value: i32) {
-            match PARAMETERS.iter().find(|p| p.name == name) {
-                Some(p) => p.value.store(value, Ordering::Relaxed),
-                None => panic!("Unknown tunable parameters: {name}"),
+    ($($type:ident $name:ident: $value:expr, $min:expr, $max:expr; )*) => {
+        pub fn set_parameter(name: &str, value: &str) {
+            match name {
+                $(stringify!($name) => unsafe { parameters::$name = value.parse().unwrap() },)*
+                _ => panic!("Unknown tunable parameter: {}", name),
             }
         }
 
         pub fn print_options() {
-            for v in PARAMETERS {
-                let current = v.value.load(Ordering::Relaxed);
-                println!("option name {} type spin default {current} min {} max {}", v.name, v.min, v.max);
-            }
+            $(println!("option name {} type string default {}", stringify!($name), $value);)*
         }
 
-        pub fn print_parameters() {
-            for v in PARAMETERS {
-                let step = (v.max - v.min) as f64 / 15.0;
-                let step = if step < 1.0 { 0.5 } else { step.round() };
+        $(pub fn $name() -> $type {
+            unsafe { parameters::$name }
+        })*
 
-                println!("{}, int, {}, {}, {}, {step}, 0.002", v.name, v.value.load(Ordering::Relaxed), v.min, v.max);
-            }
-        }
-
-        pub struct Parameter {
-            name: &'static str,
-            value: AtomicI32,
-            min: i32,
-            max: i32,
-        }
-
-        $(
-            pub fn $name() -> i32 {
-                parameters::$name.value.load(std::sync::atomic::Ordering::Relaxed)
-            }
-        )*
-
+        #[allow(non_upper_case_globals)]
         mod parameters {
-            use super::Parameter;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                pub static $name: Parameter = Parameter {
-                    name: stringify!($name),
-                    value: std::sync::atomic::AtomicI32::new($value),
-                    min: $range.start,
-                    max: $range.end,
-                };
-            )*
+            $(pub static mut $name: $type = $value;)*
         }
     };
 }
 
 define!(
-    rfp_margin:             75, 0..150;
-    rfp_depth:               7, 1..15;
+    i32 rfp_margin:             75, 0, 150;
+    i32 rfp_depth:               7, 1, 15;
 
-    razoring_depth:          4, 1..10;
-    razoring_margin:       220, 0..440;
-    razoring_fixed_margin: 135, 0..270;
+    i32 razoring_depth:          4, 1, 10;
+    i32 razoring_margin:       220, 0, 440;
+    i32 razoring_fixed_margin: 135, 0, 270;
 
-    fp_depth:                5, 1..10;
-    fp_margin:             130, 0..260;
-    fp_fixed_margin:        45, 0..90;
+    i32 fp_depth:                5, 1, 10;
+    i32 fp_margin:             130, 0, 260;
+    i32 fp_fixed_margin:        45, 0, 90;
 
-    search_deeper_margin:   80, 0..160;
+    i32 search_deeper_margin:   80, 0, 160;
 
-    see_depth:               6, 1..112;
-    see_noisy_margin:      100, 50..150;
-    see_quiet_margin:       70, 50..150;
+    i32 see_depth:               6, 1, 112;
+    i32 see_noisy_margin:      100, 50, 150;
+    i32 see_quiet_margin:       70, 50, 150;
 
-    aspiration_depth:        6, 1..12;
-    aspiration_delta:       30, 15..45;
+    i32 aspiration_depth:        6, 1, 12;
+    i32 aspiration_delta:       30, 15, 45;
 
-    lmr_history:          6210, 4000..8000;
+    i32 lmr_history:          6210, 4000, 8000;
 
-    history_bonus:         130, 0..400;
-    history_bonus_base:    -30, -150..150;
-    history_bonus_max:    1790, 1000..3500;
+    i32 history_bonus:         130, 0, 400;
+    i32 history_bonus_base:    -30, -150, 150;
+    i32 history_bonus_max:    1790, 1000, 3500;
 
-    history_malus:         180, 0..400;
-    history_malus_base:     20, -150..150;
-    history_malus_max:    1640, 1000..3500;
+    i32 history_malus:         180, 0, 400;
+    i32 history_malus_base:     20, -150, 150;
+    i32 history_malus_max:    1640, 1000, 3500;
 );
