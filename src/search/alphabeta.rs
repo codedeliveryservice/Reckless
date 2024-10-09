@@ -197,10 +197,10 @@ impl super::SearchThread<'_> {
 
         if !(in_check
             || best_move.is_capture()
-            || (bound == Bound::Upper && best_score >= eval)
-            || (bound == Bound::Lower && best_score <= eval))
+            || (bound == Bound::Upper && best_score >= raw_eval)
+            || (bound == Bound::Lower && best_score <= raw_eval))
         {
-            self.history.correction.update(self.board, depth, best_score - eval);
+            self.history.correction.update(self.board, depth, best_score - raw_eval);
         }
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);

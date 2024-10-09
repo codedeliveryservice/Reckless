@@ -2,9 +2,8 @@ use crate::{board::Board, types::Color};
 
 const SIZE: usize = 32768;
 const GRAIN: i32 = 256;
-
-const MAX_DELTA: i32 = 96;
-const SMOOTHING_FACTOR: i32 = 1024;
+const SCALE: i32 = 256;
+const MAX: i32 = GRAIN * 32;
 
 #[derive(Clone)]
 pub struct CorrectionHistory {
@@ -18,11 +17,12 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, board: &mut Board, depth: i32, delta: i32) {
         let entry = &mut self.table[board.side_to_move()][index(board)];
+        let delta = delta * GRAIN;
 
-        let delta = delta.clamp(-MAX_DELTA, MAX_DELTA) * GRAIN;
-        let weight = (16 * depth).min(128);
+        let weight = (depth + 1).min(16);
+        let change = *entry * (SCALE - weight) + delta * weight;
 
-        *entry = (*entry * (SMOOTHING_FACTOR - weight) + delta * weight) / SMOOTHING_FACTOR;
+        *entry = (change / SCALE).clamp(-MAX, MAX);
     }
 }
 
