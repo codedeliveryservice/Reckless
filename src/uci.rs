@@ -1,7 +1,7 @@
 use crate::{
     board::Board,
     search::{self, Options},
-    tables::{History, TranspositionTable},
+    tables::{CorrectionHistory, History, TranspositionTable},
     time::Limits,
     tools,
     types::Color,
@@ -11,6 +11,7 @@ pub fn message_loop() {
     let mut threads = 1;
     let mut board = Board::starting_position();
     let mut history = History::default();
+    let mut correction = CorrectionHistory::default();
     let mut tt = TranspositionTable::default();
 
     loop {
@@ -20,7 +21,7 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &tt, tokens),
+            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &mut correction, &tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
             ["ucinewgame"] => reset(threads, &mut board, &mut history, &mut tt),
@@ -53,9 +54,16 @@ fn reset(threads: usize, board: &mut Board, history: &mut History, tt: &mut Tran
     tt.clear(threads);
 }
 
-fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
+fn go(
+    threads: usize,
+    board: &mut Board,
+    history: &mut History,
+    correction: &mut CorrectionHistory,
+    tt: &TranspositionTable,
+    tokens: &[&str],
+) {
     let limits = parse_limits(board.side_to_move(), tokens);
-    search::start(Options { threads, limits, silent: false }, board, history, tt);
+    search::start(Options { threads, limits, silent: false }, board, history, correction, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {
