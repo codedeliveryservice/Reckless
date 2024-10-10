@@ -2,7 +2,7 @@ use crate::{board::Board, types::Color};
 
 const SIZE: usize = 32768;
 const GRAIN: i32 = 256;
-const SCALE: i32 = 256;
+const SCALE: i32 = 2048;
 const MAX: i32 = GRAIN * 32;
 
 #[derive(Clone)]
@@ -17,12 +17,11 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, board: &mut Board, depth: i32, delta: i32) {
         let entry = &mut self.table[board.side_to_move()][index(board)];
-        let delta = delta * GRAIN;
 
-        let weight = (depth + 1).min(16);
-        let change = *entry * (SCALE - weight) + delta * weight;
+        let weight = (3 * depth * depth + 6 * depth + 3).min(350);
+        let value = (*entry * (SCALE - weight) + delta * weight * GRAIN) / SCALE;
 
-        *entry = (change / SCALE).clamp(-MAX, MAX);
+        *entry = value.clamp(-MAX, MAX);
     }
 }
 
