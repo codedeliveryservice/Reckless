@@ -9,8 +9,6 @@ pub const LMR_DIVISOR: f64 = 2.22;
 pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
 
-pub const IIR_DEPTH: i32 = 4;
-
 pub struct Parameters {
     lmr: [[f64; 64]; 64],
 }
@@ -84,6 +82,8 @@ define!(
     i32 see_depth:               6, 1, 112;
     i32 see_noisy_margin:      100, 50, 150;
     i32 see_quiet_margin:       70, 50, 150;
+
+    i32 iir_depth:               4, 1, 10;
 
     i32 aspiration_depth:        6, 1, 12;
     i32 aspiration_delta:       30, 15, 45;
