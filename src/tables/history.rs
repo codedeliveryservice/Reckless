@@ -55,18 +55,20 @@ impl History {
     }
 
     pub fn update_continuation(&mut self, board: &Board, current: Move, fails: &[Move], depth: i32) {
+        if board.tail_move(1) == FullMove::NULL || board.tail_move(2) == FullMove::NULL {
+            return;
+        }
+
         let piece = board.piece_on(current.start());
 
         macro_rules! update_history {
             ($table:expr, ply: $ply:expr) => {
                 let prev = board.tail_move($ply);
-                if prev != FullMove::NULL {
-                    increase(&mut $table[prev.piece()][prev.target()][piece][current.target()], depth);
+                increase(&mut $table[prev.piece()][prev.target()][piece][current.target()], depth);
 
-                    for &fail in fails {
-                        let piece = board.piece_on(fail.start());
-                        decrease(&mut $table[prev.piece()][prev.target()][piece][fail.target()], depth);
-                    }
+                for &fail in fails {
+                    let piece = board.piece_on(fail.start());
+                    decrease(&mut $table[prev.piece()][prev.target()][piece][fail.target()], depth);
                 }
             };
         }
@@ -80,8 +82,8 @@ impl Default for History {
         Self {
             capture: zeroed_box(),
             main: zeroed_box(),
-            counter: zeroed_box(),
             followup: zeroed_box(),
+            counter: zeroed_box(),
         }
     }
 }
