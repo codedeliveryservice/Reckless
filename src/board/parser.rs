@@ -56,7 +56,9 @@ impl FromStr for Board {
         board.state.castling = parts.next().unwrap_or_default().into();
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
-        board.state.hash = board.generate_hash_key();
+
+        board.state.hash_key = board.generate_hash_key();
+        board.state.pawn_key = board.generate_pawn_key();
 
         Ok(board)
     }

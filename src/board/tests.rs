@@ -21,6 +21,8 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
         }
 
         assert_eq!(board.generate_hash_key(), board.hash());
+        assert_eq!(board.generate_pawn_key(), board.pawn_key());
+
         nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
         board.undo_move::<false>();
     }
