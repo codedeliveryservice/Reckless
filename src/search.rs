@@ -6,7 +6,7 @@ use std::{
 use crate::{
     board::Board,
     search::thread::SearchThread,
-    tables::{History, TranspositionTable},
+    tables::{CorrectionHistory, History, TranspositionTable},
     time::Limits,
     types::{Move, Score},
 };
@@ -36,7 +36,13 @@ pub struct SearchResult {
     pub nodes: u64,
 }
 
-pub fn start(options: Options, board: &mut Board, history: &mut History, tt: &TranspositionTable) -> SearchResult {
+pub fn start(
+    options: Options,
+    board: &mut Board,
+    history: &mut History,
+    corrhist: &mut CorrectionHistory,
+    tt: &TranspositionTable,
+) -> SearchResult {
     NODES_GLOBAL.store(0, Ordering::Relaxed);
     ABORT_SIGNAL.store(false, Ordering::Relaxed);
 
@@ -46,16 +52,17 @@ pub fn start(options: Options, board: &mut Board, history: &mut History, tt: &Tr
         for _ in 0..(options.threads - 1) {
             let mut board = board.clone();
             let mut history = history.clone();
+            let mut corrhist = corrhist.clone();
 
             let thread = scope.spawn(move || {
-                let thread = SearchThread::new(Limits::Infinite, &mut board, &mut history, tt);
+                let thread = SearchThread::new(Limits::Infinite, &mut board, &mut history, &mut corrhist, tt);
                 iterative_deepening(thread, true)
             });
 
             threads.push(thread);
         }
 
-        let thread = SearchThread::new(options.limits, board, history, tt);
+        let thread = SearchThread::new(options.limits, board, history, corrhist, tt);
         let result = iterative_deepening(thread, options.silent);
 
         ABORT_SIGNAL.store(true, Ordering::Relaxed);
