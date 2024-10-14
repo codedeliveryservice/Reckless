@@ -70,7 +70,6 @@ pub fn start(options: Options, board: &mut Board, history: &mut History, tt: &Tr
 fn iterative_deepening(mut thread: SearchThread, silent: bool) -> SearchResult {
     let now = Instant::now();
 
-    let mut current_move = Move::NULL;
     let mut current_score = 0;
 
     for depth in 1.. {
@@ -84,25 +83,24 @@ fn iterative_deepening(mut thread: SearchThread, silent: bool) -> SearchResult {
             print_uci_info(&thread, depth, score, now);
         }
 
-        current_move = thread.pv_table.best_move();
         current_score = score;
 
         thread.sel_depth = 0;
         thread.finished_depth = depth;
-        thread.time_manager.update(depth, score, current_move);
+        thread.time_manager.update(depth, score, thread.pv_table.best_move());
 
-        let effort = thread.node_table.get(current_move) as f64 / thread.nodes.local() as f64;
+        let effort = thread.node_table.get(thread.pv_table.best_move()) as f64 / thread.nodes.local() as f64;
         if thread.time_manager.if_finished(depth, effort) {
             break;
         }
     }
 
     if !silent {
-        println!("bestmove {current_move}");
+        println!("bestmove {}", thread.pv_table.best_move());
     }
 
     SearchResult {
-        best_move: current_move,
+        best_move: thread.pv_table.best_move(),
         score: current_score,
         nodes: thread.nodes.global(),
     }
