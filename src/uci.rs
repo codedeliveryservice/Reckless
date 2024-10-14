@@ -1,7 +1,7 @@
 use crate::{
     board::Board,
     search::{self, Options},
-    tables::{History, TranspositionTable},
+    tables::{CorrectionHistory, History, TranspositionTable},
     time::Limits,
     tools,
     types::Color,
@@ -11,6 +11,7 @@ pub fn message_loop() {
     let mut threads = 1;
     let mut board = Board::starting_position();
     let mut history = History::default();
+    let mut corrhist = CorrectionHistory::default();
     let mut tt = TranspositionTable::default();
 
     loop {
@@ -20,10 +21,10 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &tt, tokens),
+            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &mut corrhist, &tt, tokens),
             ["position", tokens @ ..] => position(&mut board, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
-            ["ucinewgame"] => reset(threads, &mut board, &mut history, &mut tt),
+            ["ucinewgame"] => reset(threads, &mut board, &mut history, &mut corrhist, &mut tt),
 
             ["quit"] => std::process::exit(0),
 
@@ -51,15 +52,29 @@ fn uci() {
     println!("uciok");
 }
 
-fn reset(threads: usize, board: &mut Board, history: &mut History, tt: &mut TranspositionTable) {
+fn reset(
+    threads: usize,
+    board: &mut Board,
+    history: &mut History,
+    corrhist: &mut CorrectionHistory,
+    tt: &mut TranspositionTable,
+) {
     *board = Board::starting_position();
     *history = History::default();
+    *corrhist = CorrectionHistory::default();
     tt.clear(threads);
 }
 
-fn go(threads: usize, board: &mut Board, history: &mut History, tt: &TranspositionTable, tokens: &[&str]) {
+fn go(
+    threads: usize,
+    board: &mut Board,
+    history: &mut History,
+    corrhist: &mut CorrectionHistory,
+    tt: &TranspositionTable,
+    tokens: &[&str],
+) {
     let limits = parse_limits(board.side_to_move(), tokens);
-    search::start(Options { threads, limits, silent: false }, board, history, tt);
+    search::start(Options { threads, limits, silent: false }, board, history, corrhist, tt);
 }
 
 fn position(board: &mut Board, mut tokens: &[&str]) {

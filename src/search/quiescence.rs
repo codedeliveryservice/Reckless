@@ -23,7 +23,7 @@ impl super::SearchThread<'_> {
             Some(entry) if should_cutoff(entry, alpha, beta) => return entry.score,
             Some(entry) => entry.score,
             None => self.board.evaluate(),
-        };
+        } + self.corrhist.get(self.board);
 
         if eval > alpha {
             alpha = eval;

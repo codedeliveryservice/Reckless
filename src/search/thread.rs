@@ -2,7 +2,7 @@ use super::{counter::AtomicCounter, ABORT_SIGNAL, NODES_GLOBAL};
 use crate::{
     board::Board,
     parameters::Parameters,
-    tables::{History, NodeTable, PrincipalVariationTable, TranspositionTable},
+    tables::{CorrectionHistory, History, NodeTable, PrincipalVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
     types::{Move, MAX_PLY},
 };
@@ -19,6 +19,7 @@ pub struct SearchThread<'a> {
     pub board: &'a mut Board,
     /// Persistent between searches history table for move ordering.
     pub history: &'a mut History,
+    pub corrhist: &'a mut CorrectionHistory,
     /// Hash table with interior mutability for shared memory parallelism.
     pub tt: &'a TranspositionTable,
 
@@ -44,12 +45,19 @@ pub struct SearchThread<'a> {
 
 impl<'a> SearchThread<'a> {
     /// Creates a new search thread instance.
-    pub fn new(limits: Limits, board: &'a mut Board, history: &'a mut History, tt: &'a TranspositionTable) -> Self {
+    pub fn new(
+        limits: Limits,
+        board: &'a mut Board,
+        history: &'a mut History,
+        corrhist: &'a mut CorrectionHistory,
+        tt: &'a TranspositionTable,
+    ) -> Self {
         Self {
             time_manager: TimeManager::new(&ABORT_SIGNAL, limits),
             stopped: false,
             board,
             history,
+            corrhist,
             tt,
             killers: [Move::NULL; MAX_PLY],
             eval_stack: [0; MAX_PLY],

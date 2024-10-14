@@ -12,7 +12,7 @@ use std::time::Instant;
 use crate::{
     board::Board,
     search::{self, Options},
-    tables::{History, TranspositionTable},
+    tables::{CorrectionHistory, History, TranspositionTable},
     time::Limits,
 };
 
@@ -84,9 +84,10 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
 
         let mut board = Board::new(position).unwrap();
         let mut history = History::default();
+        let mut corrhist = CorrectionHistory::default();
         let tt = TranspositionTable::default();
 
-        let result = search::start(options, &mut board, &mut history, &tt);
+        let result = search::start(options, &mut board, &mut history, &mut corrhist, &tt);
 
         nodes += result.nodes;
         index += 1;

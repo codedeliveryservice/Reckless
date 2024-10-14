@@ -10,7 +10,7 @@ use std::{
 use crate::{
     board::Board,
     search::{self, Options, SearchResult},
-    tables::{History, TranspositionTable},
+    tables::{CorrectionHistory, History, TranspositionTable},
     time::Limits,
     tools::datagen::random::Random,
     types::{Color, Move},
@@ -144,11 +144,12 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
 fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
     let tt = TranspositionTable::default();
     let mut history = History::default();
+    let mut corrhist = CorrectionHistory::default();
     let mut entries = Vec::new();
     let mut draw_counter = 0;
 
     loop {
-        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &tt);
+        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &mut corrhist, &tt);
         let SearchResult { best_move, score, .. } = entry;
 
         draw_counter = if score.abs() <= DRAW_SCORE { draw_counter + 1 } else { 0 };
@@ -213,7 +214,8 @@ fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
 fn validation_score(board: &mut Board) -> i32 {
     let tt = TranspositionTable::default();
     let mut history = History::default();
-    search::start(VALIDATION_OPTIONS, board, &mut history, &tt).score
+    let mut corrhist = CorrectionHistory::default();
+    search::start(VALIDATION_OPTIONS, board, &mut history, &mut corrhist, &tt).score
 }
 
 /// Generates all legal moves for the given board.

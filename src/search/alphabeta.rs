@@ -67,11 +67,15 @@ impl super::SearchThread<'_> {
             depth -= 1;
         }
 
-        let eval = match entry {
+        let mut eval = match entry {
             Some(entry) => entry.score,
             None if in_check => -Score::INFINITY,
             None => self.board.evaluate(),
         };
+
+        if !in_check {
+            eval += self.corrhist.get(self.board);
+        }
 
         self.killers[self.ply + 1] = Move::NULL;
         self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
@@ -192,6 +196,14 @@ impl super::SearchThread<'_> {
         let bound = determine_bound(best_score, original_alpha, beta);
         if bound == Bound::Lower {
             self.update_ordering_heuristics(depth, best_move, captures.as_slice(), quiets.as_slice());
+        }
+
+        if !(in_check
+            || best_move.is_capture()
+            || (bound == Bound::Upper && best_score >= eval)
+            || (bound == Bound::Lower && best_score <= eval))
+        {
+            self.corrhist.update(self.board, depth, best_score - eval);
         }
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
