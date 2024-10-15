@@ -3,8 +3,6 @@ pub const OPT_PIECE_VALUES: [i32; 7] = [400, 750, 800, 1200, 1900, 0, 0];
 
 pub const LMR_MOVES_PLAYED: i32 = 3;
 pub const LMR_DEPTH: i32 = 3;
-pub const LMR_BASE: f64 = 0.73;
-pub const LMR_DIVISOR: f64 = 2.22;
 
 pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
@@ -21,10 +19,10 @@ impl Parameters {
 
 impl Default for Parameters {
     fn default() -> Self {
-        let mut lmr = [[0f64; 64]; 64];
+        let mut lmr = [[0.0; 64]; 64];
         for (depth, row) in lmr.iter_mut().enumerate() {
             for (moves, r) in row.iter_mut().enumerate() {
-                *r = LMR_BASE + (depth as f64).ln() * (moves as f64).ln() / LMR_DIVISOR;
+                *r = lmr_base() + (depth as f64).ln() * (moves as f64).ln() / lmr_divisor();
             }
         }
         Self { lmr }
@@ -87,6 +85,9 @@ define!(
 
     i32 aspiration_depth: 6, 1, 12;
     i32 aspiration_delta: 30, 15, 45;
+
+    f64 lmr_base: 0.73, 0.5, 1.5;
+    f64 lmr_divisor: 2.22, 1.5, 3.5;
 
     i32 lmr_history: 6210, 4000, 8000;
 
