@@ -66,35 +66,35 @@ macro_rules! define {
 }
 
 define!(
-    i32 rfp_margin:             75, 0, 150;
-    i32 rfp_depth:               7, 1, 15;
+    i32 rfp_depth: 7, 1, 15;
+    i32 rfp_margin: 75, 0, 150;
 
-    i32 razoring_depth:          4, 1, 10;
-    i32 razoring_margin:       220, 0, 440;
+    i32 razoring_depth: 4, 1, 10;
+    i32 razoring_margin: 220, 0, 440;
     i32 razoring_fixed_margin: 135, 0, 270;
 
-    i32 fp_depth:                5, 1, 10;
-    i32 fp_margin:             130, 0, 260;
-    i32 fp_fixed_margin:        45, 0, 90;
+    i32 fp_depth: 5, 1, 10;
+    i32 fp_margin: 130, 0, 260;
+    i32 fp_fixed_margin: 45, 0, 90;
 
-    i32 search_deeper_margin:   80, 0, 160;
+    i32 search_deeper_margin: 80, 0, 160;
 
-    i32 see_depth:               6, 1, 112;
-    i32 see_noisy_margin:      100, 50, 150;
-    i32 see_quiet_margin:       70, 50, 150;
+    i32 see_depth: 6, 1, 112;
+    i32 see_noisy_margin: 100, 50, 150;
+    i32 see_quiet_margin: 70, 50, 150;
 
-    i32 iir_depth:               4, 1, 10;
+    i32 iir_depth: 4, 1, 10;
 
-    i32 aspiration_depth:        6, 1, 12;
-    i32 aspiration_delta:       30, 15, 45;
+    i32 aspiration_depth: 6, 1, 12;
+    i32 aspiration_delta: 30, 15, 45;
 
-    i32 lmr_history:          6210, 4000, 8000;
+    i32 lmr_history: 6210, 4000, 8000;
 
-    i32 history_bonus:         130, 0, 400;
-    i32 history_bonus_base:    -30, -150, 150;
-    i32 history_bonus_max:    1790, 1000, 3500;
+    i32 history_bonus: 130, 0, 400;
+    i32 history_bonus_base: -30, -150, 150;
+    i32 history_bonus_max: 1790, 1000, 3500;
 
-    i32 history_malus:         180, 0, 400;
-    i32 history_malus_base:     20, -150, 150;
-    i32 history_malus_max:    1640, 1000, 3500;
+    i32 history_malus: 180, 0, 400;
+    i32 history_malus_base: 20, -150, 150;
+    i32 history_malus_max: 1640, 1000, 3500;
 );
