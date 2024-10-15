@@ -3,34 +3,38 @@ use crate::{
     types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, Piece, Rank, Square},
 };
 
+const ALL: u8 = 0;
+const QUIET: u8 = 1;
+const CAPTURE: u8 = 2;
+
 impl super::Board {
     /// Generates all possible pseudo legal moves for the current position.
     pub fn generate_all_moves(&self) -> MoveList {
-        self.generate_moves::<false>()
+        self.generate_moves::<ALL>()
     }
 
     /// Generates only pseudo legal capture moves for the current position.
     pub fn generate_capture_moves(&self) -> MoveList {
-        self.generate_moves::<true>()
+        self.generate_moves::<CAPTURE>()
     }
 
     /// Generates pseudo legal moves for the current position.
     ///
     /// If `CAPTURE` is `true`, only capture moves are generated.
-    fn generate_moves<const CAPTURE: bool>(&self) -> MoveList {
+    fn generate_moves<const TYPE: u8>(&self) -> MoveList {
         let occupancies = self.occupancies();
 
         let mut list = MoveList::default();
 
-        self.collect_pawn_moves::<CAPTURE>(&mut list);
+        self.collect_pawn_moves::<TYPE>(&mut list);
 
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Knight, knight_attacks);
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Queen, |square| queen_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::King, king_attacks);
+        self.collect_for::<TYPE, _>(&mut list, Piece::Knight, knight_attacks);
+        self.collect_for::<TYPE, _>(&mut list, Piece::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(&mut list, Piece::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(&mut list, Piece::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(&mut list, Piece::King, king_attacks);
 
-        if !CAPTURE {
+        if TYPE == ALL || TYPE == QUIET {
             self.collect_castling(&mut list);
         }
 
@@ -38,13 +42,16 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const CAPTURE: bool, T: Fn(Square) -> Bitboard>(&self, list: &mut MoveList, piece: Piece, gen: T) {
+    fn collect_for<const TYPE: u8, T: Fn(Square) -> Bitboard>(&self, list: &mut MoveList, piece: Piece, gen: T) {
         for start in self.our(piece) {
             let targets = gen(start) & !self.us();
 
-            list.add_many(start, targets & self.them(), MoveKind::Capture);
-            if !CAPTURE {
+            if TYPE == ALL || TYPE == QUIET {
                 list.add_many(start, targets & !self.them(), MoveKind::Normal);
+            }
+
+            if TYPE == ALL || TYPE == CAPTURE {
+                list.add_many(start, targets & self.them(), MoveKind::Capture);
             }
         }
     }
@@ -81,19 +88,21 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<const TYPE: u8>(&self, list: &mut MoveList) {
         let pawns = self.our(Piece::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        if !CAPTURE {
+        if TYPE == ALL || TYPE == QUIET {
             self.collect_pawn_pushes(list, pawns, seventh_rank);
         }
 
-        self.collect_pawn_captures(list, pawns, seventh_rank);
-        self.collect_en_passant_moves(list, pawns);
+        if TYPE == ALL || TYPE == CAPTURE {
+            self.collect_pawn_captures(list, pawns, seventh_rank);
+            self.collect_en_passant_moves(list, pawns);
+        }
     }
 
     /// Adds single, double and promotion pawn pushes to the move list.
