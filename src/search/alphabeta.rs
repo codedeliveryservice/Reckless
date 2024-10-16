@@ -1,5 +1,5 @@
-use super::parameters::*;
 use crate::{
+    parameters::*,
     tables::{Bound, Entry},
     types::{Move, MoveList, Score, MAX_PLY},
 };
@@ -63,7 +63,7 @@ impl super::SearchThread<'_> {
 
         // Internal Iterative Reductions. If no hash move is found in the TT, reduce the search depth
         // to counter a potentially poor move ordering that could slow down the search on higher depths
-        if entry.is_none() && depth >= IIR_DEPTH {
+        if entry.is_none() && depth >= iir_depth() {
             depth -= 1;
         }
 
@@ -80,7 +80,7 @@ impl super::SearchThread<'_> {
 
         if !ROOT && !PV && !in_check {
             // Reverse Futility Pruning
-            if depth < RFP_DEPTH && eval - RFP_MARGIN * (depth - i32::from(improving)) > beta {
+            if depth < rfp_depth() && eval - rfp_margin() * (depth - i32::from(improving)) > beta {
                 return eval;
             }
 
@@ -90,7 +90,7 @@ impl super::SearchThread<'_> {
             }
 
             // Razoring
-            if depth <= RAZORING_DEPTH && eval + RAZORING_MARGIN * depth + RAZORING_FIXED_MARGIN < alpha {
+            if depth <= razoring_depth() && eval + razoring_margin() * depth + razoring_fixed_margin() < alpha {
                 return self.quiescence_search(alpha, beta);
             }
         }
@@ -114,7 +114,8 @@ impl super::SearchThread<'_> {
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
                 // are unlikely to recover a score so far below alpha in very few moves.
-                if !PV && mv.is_quiet() && depth <= FP_DEPTH && eval + FP_MARGIN * depth + FP_FIXED_MARGIN < alpha {
+                if !PV && mv.is_quiet() && depth <= fp_depth() && eval + fp_margin() * depth + fp_fixed_margin() < alpha
+                {
                     break;
                 }
 
@@ -127,8 +128,8 @@ impl super::SearchThread<'_> {
                 }
 
                 // Static Exchange Evaluation Pruning. Skip moves that are losing material.
-                if depth < SEE_DEPTH
-                    && !self.see(mv, -[SEE_QUIET_MARGIN, SEE_NOISY_MARGIN][mv.is_capture() as usize] * depth)
+                if depth < see_depth()
+                    && !self.see(mv, -[see_quiet_margin(), see_noisy_margin()][mv.is_capture() as usize] * depth)
                 {
                     continue;
                 }
@@ -226,7 +227,7 @@ impl super::SearchThread<'_> {
         // If the search fails and reduction applied, re-search with full depth
         if alpha < score && reduction > 0 {
             // Adjust the search depth based on results of the LMR search
-            new_depth += i32::from(score > best_score + DEEPER_SEARCH_MARGIN);
+            new_depth += i32::from(score > best_score + search_deeper_margin());
 
             score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
         }
@@ -278,7 +279,7 @@ impl super::SearchThread<'_> {
         // Fractional reductions
         let mut reduction = self.params.lmr(depth, moves);
 
-        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / LMR_HISTORY_DIVISOR;
+        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / lmr_history() as f64;
 
         reduction -= 0.88 * to_f64(PV);
         reduction -= 0.78 * to_f64(self.board.is_in_check());

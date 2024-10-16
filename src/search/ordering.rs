@@ -1,4 +1,7 @@
-use crate::types::{FullMove, Move, MoveList, Piece, MAX_MOVES};
+use crate::{
+    parameters::*,
+    types::{FullMove, Move, MoveList, Piece, MAX_MOVES},
+};
 
 impl super::SearchThread<'_> {
     const HASH_MOVE: i32 = 300_000_000;
@@ -32,7 +35,10 @@ impl super::SearchThread<'_> {
         }
 
         let piece = self.board.piece_on(mv.start());
-        self.history.get_main(self.board.side_to_move(), mv) + self.history.get_continuations(continuations, piece, mv)
+
+        ordering_main() * self.history.get_main(self.board.side_to_move(), mv)
+            + ordering_counter() * self.history.get_followup(continuations[1], piece, mv)
+            + ordering_followup() * self.history.get_counter(continuations[0], piece, mv)
     }
 
     fn mvv(&self, mv: Move) -> i32 {
