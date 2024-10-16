@@ -67,15 +67,11 @@ impl super::SearchThread<'_> {
             depth -= 1;
         }
 
-        let mut eval = match entry {
+        let eval = match entry {
             Some(entry) => entry.score,
             None if in_check => -Score::INFINITY,
-            None => self.board.evaluate(),
+            None => self.board.evaluate() + self.corrhist.get(self.board),
         };
-
-        if !in_check {
-            eval += self.corrhist.get(self.board);
-        }
 
         self.killers[self.ply + 1] = Move::NULL;
         self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
