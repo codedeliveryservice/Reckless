@@ -98,4 +98,8 @@ define!(
     i32 history_malus: 180, 0, 400;
     i32 history_malus_base: 20, -150, 150;
     i32 history_malus_max: 1640, 1000, 3500;
+
+    i32 ordering_main: 40, 0, 160;
+    i32 ordering_counter: 40, 0, 160;
+    i32 ordering_followup: 40, 0, 160;
 );
