@@ -32,7 +32,9 @@ impl super::SearchThread<'_> {
         }
 
         let piece = self.board.piece_on(mv.start());
-        self.history.get_main(self.board.side_to_move(), mv) + self.history.get_continuations(continuations, piece, mv)
+        self.history.get_main(self.board.side_to_move(), mv)
+            + self.history.get_followup(continuations[1], piece, mv)
+            + self.history.get_counter(continuations[0], piece, mv)
     }
 
     fn mvv(&self, mv: Move) -> i32 {

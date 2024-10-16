@@ -17,8 +17,8 @@ type PieceSquare<T> = [[T; Square::NUM]; Piece::NUM + 1];
 #[derive(Clone)]
 pub struct History {
     main: Box<[Butterfly<i32>; Color::NUM]>,
-    followup: Box<PieceSquare<PieceSquare<i32>>>,
     counter: Box<PieceSquare<PieceSquare<i32>>>,
+    followup: Box<PieceSquare<PieceSquare<i32>>>,
     capture: Box<[Butterfly<[i32; Piece::NUM]>; Color::NUM]>,
 }
 
@@ -31,10 +31,12 @@ impl History {
         self.main[stm][mv.start()][mv.target()]
     }
 
-    pub fn get_continuations(&self, continuations: &[FullMove; 2], piece: Piece, current: Move) -> i32 {
-        let followup = self.followup[continuations[0].piece()][continuations[0].target()][piece][current.target()];
-        let counter = self.counter[continuations[1].piece()][continuations[1].target()][piece][current.target()];
-        followup + counter
+    pub fn get_counter(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
+        self.counter[continuation.piece()][continuation.target()][piece][current.target()]
+    }
+
+    pub fn get_followup(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
+        self.followup[continuation.piece()][continuation.target()][piece][current.target()]
     }
 
     pub fn update_capture(&mut self, board: &Board, mv: Move, fails: &[Move], depth: i32) {
@@ -71,18 +73,18 @@ impl History {
                 }
             };
         }
-        update_history!(self.followup, ply: 1);
-        update_history!(self.counter, ply: 2);
+        update_history!(self.counter, ply: 1);
+        update_history!(self.followup, ply: 2);
     }
 }
 
 impl Default for History {
     fn default() -> Self {
         Self {
-            capture: zeroed_box(),
             main: zeroed_box(),
             counter: zeroed_box(),
             followup: zeroed_box(),
+            capture: zeroed_box(),
         }
     }
 }
