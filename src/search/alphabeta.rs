@@ -114,7 +114,11 @@ impl super::SearchThread<'_> {
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
                 // are unlikely to recover a score so far below alpha in very few moves.
-                if !PV && mv.is_quiet() && depth <= fp_depth() && eval + fp_margin() * depth + fp_fixed_margin() < alpha
+                if !PV
+                    && !in_check
+                    && mv.is_quiet()
+                    && depth <= fp_depth()
+                    && eval + fp_margin() * depth + fp_fixed_margin() < alpha
                 {
                     break;
                 }
