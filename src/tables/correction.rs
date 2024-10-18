@@ -27,7 +27,7 @@ fn update_entry(entry: &mut i32, depth: i32, delta: i32) {
 }
 
 fn weight(depth: i32) -> i32 {
-    (3 * depth * depth + 6 * depth + 3).min(350)
+    (20 * depth + 10).min(250)
 }
 
 #[derive(Clone)]
