@@ -7,11 +7,11 @@ impl Board {
         self.move_stack.push(FullMove::NULL);
         self.state_stack.push(self.state);
 
-        self.state.hash ^= ZOBRIST.side;
-        self.state.hash ^= ZOBRIST.castling[self.state.castling];
+        self.state.hash_key ^= ZOBRIST.side;
+        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
 
         if self.state.en_passant != Square::None {
-            self.state.hash ^= ZOBRIST.en_passant[self.state.en_passant];
+            self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
     }
@@ -34,11 +34,11 @@ impl Board {
             self.nnue.push();
         }
 
-        self.state.hash ^= ZOBRIST.side;
-        self.state.hash ^= ZOBRIST.castling[self.state.castling];
+        self.state.hash_key ^= ZOBRIST.side;
+        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
 
         if self.state.en_passant != Square::None {
-            self.state.hash ^= ZOBRIST.en_passant[self.state.en_passant];
+            self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
 
@@ -62,7 +62,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 self.state.en_passant = Square::new((start as u8 + target as u8) / 2);
-                self.state.hash ^= ZOBRIST.en_passant[self.state.en_passant];
+                self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             }
             MoveKind::EnPassant => {
                 self.remove_piece::<NNUE>(!self.side_to_move, Piece::Pawn, target ^ 8);
@@ -80,7 +80,7 @@ impl Board {
         }
 
         self.state.castling.update(start, target);
-        self.state.hash ^= ZOBRIST.castling[self.state.castling];
+        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
         self.side_to_move = !self.side_to_move;
 
         if NNUE {
