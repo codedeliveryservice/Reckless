@@ -27,8 +27,10 @@ impl super::SearchThread<'_> {
         if mv.is_capture() {
             let capture = if mv.is_en_passant() { Piece::Pawn } else { self.board.piece_on(mv.target()) };
             let base = if self.board.see(mv, threshold) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
+            let mvv = 32 * PIECE_VALUES[capture];
             let history = self.history.get_capture(self.board.side_to_move(), mv, capture);
-            return base + history + self.mvv(mv);
+
+            return base + mvv + history;
         }
         if self.killers[self.ply] == mv {
             return Self::KILLERS;
@@ -39,13 +41,5 @@ impl super::SearchThread<'_> {
         ordering_main() * self.history.get_main(self.board.side_to_move(), mv)
             + ordering_counter() * self.history.get_counter(continuations[0], piece, mv)
             + ordering_followup() * self.history.get_followup(continuations[1], piece, mv)
-    }
-
-    fn mvv(&self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            0
-        } else {
-            1_000_000 * self.board.piece_on(mv.target()) as i32
-        }
     }
 }
