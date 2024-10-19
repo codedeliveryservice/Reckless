@@ -10,6 +10,7 @@ mod tests;
 mod makemove;
 mod movegen;
 mod parser;
+mod see;
 mod zobrist;
 
 const MAX_PHASE: i32 = 62;

@@ -16,7 +16,6 @@ mod aspiration;
 mod counter;
 mod ordering;
 mod quiescence;
-mod see;
 mod thread;
 
 static NODES_GLOBAL: AtomicU64 = AtomicU64::new(0);

@@ -4,7 +4,7 @@ use crate::{
     types::{Bitboard, Move, Piece},
 };
 
-impl super::SearchThread<'_> {
+impl super::Board {
     /// Checks if the static exchange evaluation (SEE) of a move meets the `threshold`,
     /// indicating that the sequence of captures on a single square, starting with the move,
     /// results in a non-negative balance for the side to move.
@@ -20,23 +20,23 @@ impl super::SearchThread<'_> {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= SEE_PIECE_VALUES[self.board.piece_on(mv.start())];
+        balance -= SEE_PIECE_VALUES[self.piece_on(mv.start())];
         if balance >= 0 {
             return true;
         }
 
-        let mut occupancies = self.board.occupancies();
+        let mut occupancies = self.occupancies();
         occupancies.clear(mv.start());
         occupancies.set(mv.target());
 
-        let mut attackers = self.board.attackers_to(mv.target(), occupancies) & occupancies;
-        let mut stm = !self.board.side_to_move();
+        let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
+        let mut stm = !self.side_to_move();
 
-        let diagonal = self.board.pieces(Piece::Bishop) | self.board.pieces(Piece::Queen);
-        let orthogonal = self.board.pieces(Piece::Rook) | self.board.pieces(Piece::Queen);
+        let diagonal = self.pieces(Piece::Bishop) | self.pieces(Piece::Queen);
+        let orthogonal = self.pieces(Piece::Rook) | self.pieces(Piece::Queen);
 
         loop {
-            let our_attackers = attackers & self.board.colors(stm);
+            let our_attackers = attackers & self.colors(stm);
             if our_attackers.is_empty() {
                 break;
             }
@@ -44,12 +44,12 @@ impl super::SearchThread<'_> {
             let attacker = self.least_valuable_attacker(our_attackers);
 
             // The king cannot capture a protected piece; the side to move loses the exchange
-            if attacker == Piece::King && !(attackers & self.board.colors(!stm)).is_empty() {
+            if attacker == Piece::King && !(attackers & self.colors(!stm)).is_empty() {
                 break;
             }
 
             // Make the capture
-            occupancies.clear((self.board.pieces(attacker) & our_attackers).lsb());
+            occupancies.clear((self.pieces(attacker) & our_attackers).lsb());
             stm = !stm;
 
             // Assume our piece is going to be captured
@@ -70,7 +70,7 @@ impl super::SearchThread<'_> {
 
         // The last side to move has failed to capture back
         // since it has no more attackers and, therefore, is losing
-        stm != self.board.side_to_move()
+        stm != self.side_to_move()
     }
 
     fn move_value(&self, mv: Move) -> i32 {
@@ -78,14 +78,14 @@ impl super::SearchThread<'_> {
             return SEE_PIECE_VALUES[Piece::Pawn];
         }
 
-        let capture = self.board.piece_on(mv.target());
+        let capture = self.piece_on(mv.target());
         SEE_PIECE_VALUES[capture]
     }
 
     fn least_valuable_attacker(&self, attackers: Bitboard) -> Piece {
         for index in 0..Piece::NUM {
             let piece = Piece::new(index);
-            if !(self.board.pieces(piece) & attackers).is_empty() {
+            if !(self.pieces(piece) & attackers).is_empty() {
                 return piece;
             }
         }
