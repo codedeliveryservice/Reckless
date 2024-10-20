@@ -20,10 +20,13 @@ impl super::SearchThread<'_> {
         }
 
         if !ROOT {
-            // Draw detection (50-move rule, threefold repetition)
-            if self.board.is_draw() {
+            if self.board.draw_by_repetition() {
                 // Use a little randomness to avoid 3-fold repetition blindness
-                return -1 + (self.nodes.local() as i32 & 0x2);
+                return self.nodes.local() as i32 & 0x2 - 1;
+            }
+
+            if self.board.draw_by_fifty_move_rule() || self.board.draw_by_insufficient_material() {
+                return Score::DRAW;
             }
 
             // Mate Distance Pruning

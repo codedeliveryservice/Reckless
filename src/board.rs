@@ -172,11 +172,6 @@ impl Board {
             .min(MAX_PHASE)
     }
 
-    /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self) -> bool {
-        self.draw_by_repetition() || self.draw_by_fifty_move_rule()
-    }
-
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
     ///
@@ -191,19 +186,13 @@ impl Board {
             .any(|state| state.hash_key == self.state.hash_key)
     }
 
-    /// Returns `true` if the current position is a known draw by insufficient material:
-    /// - Two kings only
-    /// - Two kings and one minor piece
-    ///
-    /// This method is only used for data generation.
-    #[cfg(feature = "datagen")]
+    /// Checks for a known draw due to insufficient material.
     pub fn draw_by_insufficient_material(&self) -> bool {
-        match self.occupancies().count() {
+        match self.occupancies().len() {
             2 => true,
-            3 => {
-                let minors = self.pieces(Piece::Knight) | self.pieces(Piece::Bishop);
-                !minors.is_empty()
-            }
+            3 => !(self.pieces(Piece::Knight) | self.pieces(Piece::Bishop)).is_empty(),
+            4 if self.pieces(Piece::Bishop).len() == 2 && self.colors(Color::White).len() == 2 => true,
+            4 if self.pieces(Piece::Knight).len() == 2 => true,
             _ => false,
         }
     }
