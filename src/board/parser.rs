@@ -59,6 +59,7 @@ impl FromStr for Board {
 
         board.state.hash_key = board.generate_hash_key();
         board.state.pawn_key = board.generate_pawn_key();
+        board.state.minor_key = board.generate_minor_key();
 
         Ok(board)
     }
