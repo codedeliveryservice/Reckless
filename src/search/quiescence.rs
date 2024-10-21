@@ -1,9 +1,8 @@
 use std::cmp::max;
 
 use crate::{
-    parameters::OPT_PIECE_VALUES,
     tables::{Bound, Entry},
-    types::{Move, Piece, Score, MAX_PLY},
+    types::{Move, MAX_PLY},
 };
 
 impl super::SearchThread<'_> {
@@ -33,8 +32,6 @@ impl super::SearchThread<'_> {
             return eval;
         }
 
-        let last_target = self.board.tail_move(1).target();
-
         let mut best_move = Move::NULL;
         let mut best_score = eval;
 
@@ -44,12 +41,6 @@ impl super::SearchThread<'_> {
         while let Some(mv) = moves.next(&mut ordering) {
             if !self.board.see(mv, 0) {
                 continue;
-            }
-
-            // Pessimistic forward pruning
-            #[cfg(not(feature = "datagen"))]
-            if best_score > -Score::MATE_BOUND && mv.target() != last_target && eval + self.estimate_gain(mv) < alpha {
-                break;
             }
 
             let key_after = self.board.key_after(mv);
@@ -75,21 +66,6 @@ impl super::SearchThread<'_> {
         let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
         self.tt.write(self.board.hash(), 0, best_score, bound, best_move, self.ply);
         best_score
-    }
-
-    /// Estimates the optimistic gain from a capture, i.e., ignoring possible piece loss afterward.
-    fn estimate_gain(&self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            return OPT_PIECE_VALUES[Piece::Pawn];
-        }
-
-        let piece = self.board.piece_on(mv.target());
-
-        if let Some(promotion) = mv.promotion_piece() {
-            OPT_PIECE_VALUES[promotion] - OPT_PIECE_VALUES[Piece::Pawn] + OPT_PIECE_VALUES[piece]
-        } else {
-            OPT_PIECE_VALUES[piece]
-        }
     }
 }
 
