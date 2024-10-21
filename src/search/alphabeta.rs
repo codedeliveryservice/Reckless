@@ -109,7 +109,7 @@ impl super::SearchThread<'_> {
         let mut moves = self.board.generate_all_moves();
         let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv), 0);
 
-        while let Some(mv) = moves.next(&mut ordering) {
+        while let Some((mv, mv_score)) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
@@ -131,11 +131,7 @@ impl super::SearchThread<'_> {
                     break;
                 }
 
-                if mv.is_quiet()
-                    && !in_check
-                    && depth <= 4
-                    && self.history.get_main(self.board.side_to_move(), mv) < -4096 * depth + 2048
-                {
+                if !in_check && mv.is_quiet() && mv_score < -4096 * depth + 2048 {
                     continue;
                 }
 

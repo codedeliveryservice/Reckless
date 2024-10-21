@@ -29,7 +29,7 @@ impl MoveList {
     }
 
     /// Retrieves the next move with the highest ordering value from the list.
-    pub fn next(&mut self, ordering: &mut [i32]) -> Option<Move> {
+    pub fn next(&mut self, ordering: &mut [i32]) -> Option<(Move, i32)> {
         if self.len == 0 {
             return None;
         }
@@ -44,7 +44,7 @@ impl MoveList {
         self.len -= 1;
         ordering.swap(self.len, best);
         self.moves.swap(self.len, best);
-        Some(self.moves[self.len])
+        Some((self.moves[self.len], ordering[self.len]))
     }
 
     pub const fn len(&self) -> usize {
