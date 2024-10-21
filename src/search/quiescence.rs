@@ -42,7 +42,7 @@ impl super::SearchThread<'_> {
         let mut ordering = self.build_ordering(&moves, None, 1);
 
         while let Some(mv) = moves.next(&mut ordering) {
-            if !mv.is_capture() {
+            if !self.board.see(mv, 0) {
                 continue;
             }
 
