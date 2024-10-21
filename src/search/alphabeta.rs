@@ -131,6 +131,14 @@ impl super::SearchThread<'_> {
                     break;
                 }
 
+                if mv.is_quiet()
+                    && !in_check
+                    && depth <= 4
+                    && self.history.get_main(self.board.side_to_move(), mv) < -4096 * depth + 2048
+                {
+                    continue;
+                }
+
                 // Static Exchange Evaluation Pruning. Skip moves that are losing material.
                 if depth < see_depth()
                     && !self.board.see(mv, -[see_quiet_margin(), see_noisy_margin()][mv.is_capture() as usize] * depth)
