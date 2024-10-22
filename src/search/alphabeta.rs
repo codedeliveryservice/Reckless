@@ -1,7 +1,7 @@
 use crate::{
     parameters::*,
     tables::{Bound, Entry},
-    types::{Move, MoveList, Score, MAX_PLY},
+    types::{Move, MoveList, Piece, Score, MAX_PLY},
 };
 
 impl super::SearchThread<'_> {
@@ -284,8 +284,15 @@ impl super::SearchThread<'_> {
             i32::from(v) as f64
         }
 
-        if !mv.is_quiet() || moves < LMR_MOVES_PLAYED || depth < LMR_DEPTH {
+        if moves < LMR_MOVES_PLAYED || depth < LMR_DEPTH {
             return 0;
+        }
+
+        if mv.is_capture() {
+            let capture = if mv.is_en_passant() { Piece::Pawn } else { self.board.piece_on(mv.target()) };
+            let history = self.history.get_capture(!self.board.side_to_move(), mv, capture);
+
+            return (history / 5000).clamp(0, depth);
         }
 
         // Fractional reductions
