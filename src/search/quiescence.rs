@@ -38,9 +38,9 @@ impl super::SearchThread<'_> {
         let mut moves = self.board.generate_capture_moves();
         let mut ordering = self.build_ordering(&moves, None, 1);
 
-        while let Some(mv) = moves.next(&mut ordering) {
-            if !self.board.see(mv, 0) {
-                continue;
+        while let Some((mv, mv_score)) = moves.next(&mut ordering) {
+            if mv_score < 0 {
+                break;
             }
 
             let key_after = self.board.key_after(mv);

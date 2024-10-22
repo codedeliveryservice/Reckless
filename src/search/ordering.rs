@@ -4,10 +4,10 @@ use crate::{
 };
 
 impl super::SearchThread<'_> {
-    const HASH_MOVE: i32 = 300_000_000;
-    const GOOD_NOISY: i32 = 200_000_000;
-    const KILLERS: i32 = 100_000_000;
-    const BAD_NOISY: i32 = -100_000_000;
+    pub const HASH_MOVE: i32 = 300_000_000;
+    pub const GOOD_NOISY: i32 = 200_000_000;
+    pub const KILLERS: i32 = 100_000_000;
+    pub const BAD_NOISY: i32 = -100_000_000;
 
     /// Returns an array of move ratings for the specified move list.
     pub fn build_ordering(&self, moves: &MoveList, tt_move: Option<Move>, threshold: i32) -> [i32; MAX_MOVES] {
