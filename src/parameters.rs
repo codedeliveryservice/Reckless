@@ -82,8 +82,8 @@ define!(
 
     i32 iir_depth: 4, 1, 10;
 
-    i32 aspiration_depth: 4, 1, 12;
-    i32 aspiration_delta: 12, 15, 45;
+    i32 aspiration_depth: 6, 1, 12;
+    i32 aspiration_delta: 14, 15, 45;
 
     f64 lmr_base: 0.73, 0.5, 1.5;
     f64 lmr_divisor: 2.22, 1.5, 3.5;
