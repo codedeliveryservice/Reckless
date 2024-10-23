@@ -27,7 +27,7 @@ impl super::SearchThread<'_> {
         if mv.is_capture() {
             let capture = if mv.is_en_passant() { Piece::Pawn } else { self.board.piece_on(mv.target()) };
             let base = if self.board.see(mv, threshold) { Self::GOOD_NOISY } else { Self::BAD_NOISY };
-            let mvv = 1_000_000 * [0, 1, 1, 2, 3][capture];
+            let mvv = 32 * PIECE_VALUES[capture];
             let history = self.history.get_capture(self.board.side_to_move(), mv, capture);
 
             return base + mvv + history;
