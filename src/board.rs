@@ -26,6 +26,7 @@ struct InternalState {
     hash_key: u64,
     pawn_key: u64,
     minor_key: u64,
+    major_key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -71,6 +72,10 @@ impl Board {
 
     pub const fn minor_key(&self) -> u64 {
         self.state.minor_key
+    }
+
+    pub const fn major_key(&self) -> u64 {
+        self.state.major_key
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -152,8 +157,10 @@ impl Board {
 
         if piece == Piece::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[color][piece][square];
-        } else if piece == Piece::Knight || piece == Piece::Bishop {
+        } else if [Piece::Knight, Piece::Bishop].contains(&piece) {
             self.state.minor_key ^= ZOBRIST.pieces[color][piece][square];
+        } else if [Piece::Rook, Piece::Queen].contains(&piece) {
+            self.state.major_key ^= ZOBRIST.pieces[color][piece][square];
         }
     }
 
@@ -318,6 +325,18 @@ impl Board {
         let mut hash = 0;
         for color in [Color::White, Color::Black] {
             for piece in [Piece::Knight, Piece::Bishop] {
+                for square in self.of(piece, color) {
+                    hash ^= ZOBRIST.pieces[color][piece][square];
+                }
+            }
+        }
+        hash
+    }
+
+    pub fn generate_major_key(&self) -> u64 {
+        let mut hash = 0;
+        for color in [Color::White, Color::Black] {
+            for piece in [Piece::Rook, Piece::Queen] {
                 for square in self.of(piece, color) {
                     hash ^= ZOBRIST.pieces[color][piece][square];
                 }

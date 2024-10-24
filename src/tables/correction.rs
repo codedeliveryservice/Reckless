@@ -8,16 +8,22 @@ const LIMIT: i32 = 32;
 pub struct CorrectionHistory {
     pawn: CorrectionTable,
     minor: CorrectionTable,
+    major: CorrectionTable,
 }
 
 impl CorrectionHistory {
     pub fn get(&self, board: &Board) -> i32 {
-        (self.pawn.get(board, board.pawn_key()) + self.minor.get(board, board.minor_key())) / GRAIN
+        let correction = self.pawn.get(board, board.pawn_key())
+            + self.minor.get(board, board.minor_key())
+            + self.major.get(board, board.major_key());
+
+        correction / GRAIN
     }
 
     pub fn update(&mut self, board: &mut Board, depth: i32, delta: i32) {
         update_entry(self.pawn.get_mut(board, board.pawn_key()), depth, delta);
         update_entry(self.minor.get_mut(board, board.minor_key()), depth, delta);
+        update_entry(self.major.get_mut(board, board.major_key()), depth, delta);
     }
 }
 
