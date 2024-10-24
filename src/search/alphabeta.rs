@@ -108,9 +108,9 @@ impl super::SearchThread<'_> {
         let mut quiets = MoveList::default();
         let mut captures = MoveList::default();
 
-        let mut move_picker = MovePicker::new(entry.map(|e| e.mv), self.killers[self.ply], self.board, self.history);
+        let mut move_picker = MovePicker::new(entry.map(|entry| entry.mv), self.killers[self.ply], self.board);
 
-        while let Some(mv) = move_picker.next() {
+        while let Some(mv) = move_picker.next(self.board, self.history) {
             #[cfg(not(feature = "datagen"))]
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history

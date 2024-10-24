@@ -47,6 +47,11 @@ impl MoveList {
         Some(self.moves[self.len])
     }
 
+    pub fn swap_remove(&mut self, index: usize) {
+        self.len -= 1;
+        self.moves.swap(index, self.len);
+    }
+
     pub const fn len(&self) -> usize {
         self.len
     }
