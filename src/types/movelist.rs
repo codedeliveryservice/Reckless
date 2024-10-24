@@ -28,25 +28,6 @@ impl MoveList {
         }
     }
 
-    /// Retrieves the next move with the highest ordering value from the list.
-    pub fn next(&mut self, ordering: &mut [i32]) -> Option<Move> {
-        if self.len == 0 {
-            return None;
-        }
-
-        let mut best = 0;
-        for current in 0..self.len {
-            if ordering[current] > ordering[best] {
-                best = current;
-            }
-        }
-
-        self.len -= 1;
-        ordering.swap(self.len, best);
-        self.moves.swap(self.len, best);
-        Some(self.moves[self.len])
-    }
-
     pub fn swap_remove(&mut self, index: usize) {
         self.len -= 1;
         self.moves.swap(index, self.len);

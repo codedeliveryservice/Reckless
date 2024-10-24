@@ -69,7 +69,22 @@ impl MovePicker {
             }
         }
 
-        self.moves.next(&mut self.scores)
+        // Stage::Other
+        if self.moves.len() == 0 {
+            return None;
+        }
+
+        let mut index = 0;
+        for current in 0..self.moves.len() {
+            if self.scores[current] > self.scores[index] {
+                index = current;
+            }
+        }
+
+        self.moves.swap_remove(index);
+        self.scores.swap(index, self.moves.len());
+
+        Some(self.moves[self.moves.len()])
     }
 
     fn get_score(&self, mv: Move, continuations: [FullMove; 2], board: &Board, history: &History) -> i32 {
