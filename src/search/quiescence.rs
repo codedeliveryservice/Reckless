@@ -1,6 +1,7 @@
 use std::cmp::max;
 
 use crate::{
+    search::MovePicker,
     tables::{Bound, Entry},
     types::{Move, MAX_PLY},
 };
@@ -35,10 +36,9 @@ impl super::SearchThread<'_> {
         let mut best_move = Move::NULL;
         let mut best_score = eval;
 
-        let mut moves = self.board.generate_capture_moves();
-        let mut ordering = self.build_ordering(&moves, None, 1);
+        let mut move_picker = MovePicker::new_noisy(self.board, self.history);
 
-        while let Some(mv) = moves.next(&mut ordering) {
+        while let Some(mv) = move_picker.next() {
             if !self.board.see(mv, 0) {
                 continue;
             }

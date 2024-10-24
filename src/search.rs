@@ -14,9 +14,11 @@ use crate::{
 mod alphabeta;
 mod aspiration;
 mod counter;
-mod ordering;
+mod movepicker;
 mod quiescence;
 mod thread;
+
+use movepicker::MovePicker;
 
 static NODES_GLOBAL: AtomicU64 = AtomicU64::new(0);
 static ABORT_SIGNAL: AtomicBool = AtomicBool::new(false);

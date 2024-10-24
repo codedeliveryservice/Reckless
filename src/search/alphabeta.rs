@@ -1,5 +1,6 @@
 use crate::{
     parameters::*,
+    search::MovePicker,
     tables::{Bound, Entry},
     types::{Move, MoveList, Score, MAX_PLY},
 };
@@ -106,10 +107,10 @@ impl super::SearchThread<'_> {
         let mut moves_played = 0;
         let mut quiets = MoveList::default();
         let mut captures = MoveList::default();
-        let mut moves = self.board.generate_all_moves();
-        let mut ordering = self.build_ordering(&moves, entry.map(|entry| entry.mv), 0);
 
-        while let Some(mv) = moves.next(&mut ordering) {
+        let mut move_picker = MovePicker::new(entry.map(|e| e.mv), self.killers[self.ply], self.board, self.history);
+
+        while let Some(mv) = move_picker.next() {
             #[cfg(not(feature = "datagen"))]
             if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
