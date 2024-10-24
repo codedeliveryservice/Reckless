@@ -13,11 +13,11 @@ pub struct CorrectionHistory {
 
 impl CorrectionHistory {
     pub fn get(&self, board: &Board) -> i32 {
-        let correction = self.pawn.get(board, board.pawn_key())
-            + self.minor.get(board, board.minor_key())
-            + self.major.get(board, board.major_key());
+        let correction = 120 * self.pawn.get(board, board.pawn_key())
+            + 90 * self.minor.get(board, board.minor_key())
+            + 90 * self.major.get(board, board.major_key());
 
-        correction / GRAIN
+        correction / 100 / GRAIN
     }
 
     pub fn update(&mut self, board: &mut Board, depth: i32, delta: i32) {
