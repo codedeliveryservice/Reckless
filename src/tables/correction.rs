@@ -9,13 +9,17 @@ pub struct CorrectionHistory {
     pawn: CorrectionTable,
     minor: CorrectionTable,
     major: CorrectionTable,
+    non_pawn_white: CorrectionTable,
+    non_pawn_black: CorrectionTable,
 }
 
 impl CorrectionHistory {
     pub fn get(&self, board: &Board) -> i32 {
         let correction = self.pawn.get(board, board.pawn_key())
             + self.minor.get(board, board.minor_key())
-            + self.major.get(board, board.major_key());
+            + self.major.get(board, board.major_key())
+            + self.non_pawn_white.get(board, board.non_pawn_key(Color::White))
+            + self.non_pawn_black.get(board, board.non_pawn_key(Color::Black));
 
         correction / GRAIN
     }
@@ -24,6 +28,8 @@ impl CorrectionHistory {
         update_entry(self.pawn.get_mut(board, board.pawn_key()), depth, delta);
         update_entry(self.minor.get_mut(board, board.minor_key()), depth, delta);
         update_entry(self.major.get_mut(board, board.major_key()), depth, delta);
+        update_entry(self.non_pawn_white.get_mut(board, board.non_pawn_key(Color::White)), depth, delta);
+        update_entry(self.non_pawn_black.get_mut(board, board.non_pawn_key(Color::Black)), depth, delta);
     }
 }
 

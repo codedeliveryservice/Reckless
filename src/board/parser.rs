@@ -61,6 +61,7 @@ impl FromStr for Board {
         board.state.pawn_key = board.generate_pawn_key();
         board.state.minor_key = board.generate_minor_key();
         board.state.major_key = board.generate_major_key();
+        board.state.non_pawn_keys = board.generate_non_pawn_keys();
 
         Ok(board)
     }
