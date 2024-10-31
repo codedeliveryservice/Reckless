@@ -212,12 +212,9 @@ impl Board {
     /// This method is only used for data generation.
     #[cfg(feature = "datagen")]
     pub fn draw_by_insufficient_material(&self) -> bool {
-        match self.occupancies().count() {
+        match self.occupancies().len() {
             2 => true,
-            3 => {
-                let minors = self.pieces(Piece::Knight) | self.pieces(Piece::Bishop);
-                !minors.is_empty()
-            }
+            3 => !(self.pieces(Piece::Knight) | self.pieces(Piece::Bishop)).is_empty(),
             _ => false,
         }
     }
