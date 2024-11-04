@@ -84,14 +84,14 @@ impl super::SearchThread<'_> {
                 return eval;
             }
 
-            // Null Move Pruning
-            if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
-                return score;
-            }
-
             // Razoring
             if depth <= razoring_depth() && eval + razoring_margin() * depth + razoring_fixed_margin() < alpha {
                 return self.quiescence_search(alpha, beta);
+            }
+
+            // Null Move Pruning
+            if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
+                return score;
             }
         }
 
