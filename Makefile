@@ -1,5 +1,5 @@
 EXE    := reckless
-MODEL  := v5-0aa6d222.nnue
+MODEL  := v6-eee46357.nnue
 REPO   := https://github.com/codedeliveryservice/RecklessNetworks/raw/main
 
 ifeq ($(OS),Windows_NT)
