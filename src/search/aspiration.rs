@@ -1,7 +1,7 @@
 use super::SearchThread;
 use crate::{parameters::*, types::Score};
 
-impl<'a> SearchThread<'a> {
+impl SearchThread<'_> {
     pub fn aspiration_search(&mut self, mut score: i32, depth: i32) -> i32 {
         // Avoid using an aspiration window for shallow depths, as the score is inconsistent
         if depth <= aspiration_depth() {

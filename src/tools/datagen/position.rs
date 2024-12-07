@@ -3,7 +3,7 @@ use crate::{
     types::{Color, Piece},
 };
 
-const POSITION_SIZE: usize = std::mem::size_of::<Position>();
+const POSITION_SIZE: usize = size_of::<Position>();
 
 #[allow(clippy::assertions_on_constants)]
 const _: () = assert!(POSITION_SIZE == 32, "Position size is not 32 bytes");

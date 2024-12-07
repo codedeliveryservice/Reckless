@@ -5,7 +5,7 @@ use crate::types::{Move, Score};
 pub const DEFAULT_TT_SIZE: usize = 16;
 
 const MEGABYTE: usize = 1024 * 1024;
-const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
+const INTERNAL_ENTRY_SIZE: usize = size_of::<InternalEntry>();
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -157,7 +157,7 @@ impl TranspositionTable {
             let ptr = self.vector.as_mut_ptr() as *mut std::mem::MaybeUninit<Block>;
             let slice = std::slice::from_raw_parts_mut(ptr, len);
 
-            let chunk_size = (len + threads - 1) / threads;
+            let chunk_size = len.div_ceil(threads);
             for chunk in slice.chunks_mut(chunk_size) {
                 scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
             }
