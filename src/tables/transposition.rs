@@ -5,7 +5,7 @@ use crate::types::{Move, Score};
 pub const DEFAULT_TT_SIZE: usize = 16;
 
 const MEGABYTE: usize = 1024 * 1024;
-const INTERNAL_ENTRY_SIZE: usize = size_of::<InternalEntry>();
+const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
 
 #[derive(Copy, Clone)]
 pub struct Entry {
