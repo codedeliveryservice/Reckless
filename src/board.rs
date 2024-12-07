@@ -27,6 +27,7 @@ struct InternalState {
     pawn_key: u64,
     minor_key: u64,
     major_key: u64,
+    non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -76,6 +77,10 @@ impl Board {
 
     pub const fn major_key(&self) -> u64 {
         self.state.major_key
+    }
+
+    pub fn non_pawn_key(&self, color: Color) -> u64 {
+        self.state.non_pawn_keys[color]
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -157,10 +162,14 @@ impl Board {
 
         if piece == Piece::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[color][piece][square];
-        } else if [Piece::Knight, Piece::Bishop].contains(&piece) {
-            self.state.minor_key ^= ZOBRIST.pieces[color][piece][square];
-        } else if [Piece::Rook, Piece::Queen].contains(&piece) {
-            self.state.major_key ^= ZOBRIST.pieces[color][piece][square];
+        } else {
+            self.state.non_pawn_keys[color] ^= ZOBRIST.pieces[color][piece][square];
+
+            if [Piece::Knight, Piece::Bishop].contains(&piece) {
+                self.state.minor_key ^= ZOBRIST.pieces[color][piece][square];
+            } else if [Piece::Rook, Piece::Queen].contains(&piece) {
+                self.state.major_key ^= ZOBRIST.pieces[color][piece][square];
+            }
         }
     }
 
@@ -340,6 +349,18 @@ impl Board {
             }
         }
         hash
+    }
+
+    pub fn generate_non_pawn_keys(&self) -> [u64; Color::NUM] {
+        let mut hashes = [0; Color::NUM];
+        for color in [Color::White, Color::Black] {
+            for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen, Piece::King] {
+                for square in self.of(piece, color) {
+                    hashes[color] ^= ZOBRIST.pieces[color][piece][square];
+                }
+            }
+        }
+        hashes
     }
 }
 
