@@ -48,7 +48,7 @@ For detailed information on the specific features needed for each level, refer t
 
 ### Building from source
 
-1. Make sure you have `Rust 1.70.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
+1. Make sure you have `Rust 1.78.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
 2. Download the latest NNUE model either from the [Reckless Networks][reckless-networks] repository or by running the following command:
 
