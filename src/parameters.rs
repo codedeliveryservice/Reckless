@@ -73,14 +73,13 @@ define!(
 
     i32 search_deeper_margin: 80, 0, 160;
 
-    i32 see_depth: 6, 1, 112;
-    i32 see_noisy_margin: 100, 50, 150;
-    i32 see_quiet_margin: 70, 50, 150;
+    i32 see_noisy: 100, 50, 150;
+    i32 see_quiet: 70, 50, 150;
 
     i32 iir_depth: 4, 1, 10;
 
     i32 aspiration_depth: 6, 1, 12;
-    i32 aspiration_delta: 30, 15, 45;
+    i32 aspiration_delta: 15, 5, 25;
 
     f64 lmr_base: 0.73, 0.5, 1.5;
     f64 lmr_divisor: 2.22, 1.5, 3.5;

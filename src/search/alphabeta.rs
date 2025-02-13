@@ -127,9 +127,7 @@ impl super::SearchThread<'_> {
                 }
 
                 // Static Exchange Evaluation Pruning. Skip moves that are losing material.
-                if depth < see_depth()
-                    && !self.board.see(mv, -[see_quiet_margin(), see_noisy_margin()][mv.is_capture() as usize] * depth)
-                {
+                if !self.board.see(mv, -[see_quiet(), see_noisy()][mv.is_capture() as usize] * depth) {
                     continue;
                 }
             }
