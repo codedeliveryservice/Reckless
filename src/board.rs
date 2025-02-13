@@ -252,7 +252,7 @@ impl Board {
         !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
     }
 
-    pub fn is_in_check(&self) -> bool {
+    pub fn in_check(&self) -> bool {
         let king = self.our(Piece::King).lsb();
         self.is_square_attacked_by(king, !self.side_to_move)
     }

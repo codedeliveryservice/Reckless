@@ -6,17 +6,12 @@ use crate::{
 
 impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn alpha_beta<const PV: bool, const ROOT: bool>(
-        &mut self,
-        mut alpha: i32,
-        mut beta: i32,
-        mut depth: i32,
-    ) -> i32 {
+    pub fn search<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, mut beta: i32, mut depth: i32) -> i32 {
         self.pv_table.clear(self.ply);
 
         // The search has been stopped by the UCI or the time control
         if self.should_interrupt_search() {
-            return Score::INVALID;
+            return Score::ZERO;
         }
 
         if !ROOT {
@@ -40,7 +35,7 @@ impl super::SearchThread<'_> {
             return self.board.evaluate();
         }
 
-        let in_check = self.board.is_in_check();
+        let in_check = self.board.in_check();
 
         // Quiescence search at the leaf nodes, skip if in check to avoid horizon effect
         if depth <= 0 && !in_check {
@@ -149,27 +144,27 @@ impl super::SearchThread<'_> {
             let nodes_before = self.nodes.local();
 
             let mut new_depth = depth - 1;
-            let mut score = 0;
+            let mut score = Score::NONE;
 
             if depth >= 3 && moves_played >= 3 {
                 let r = self.calculate_reduction::<PV>(mv, depth, moves_played, improving, &entry);
                 let d = new_depth - r;
 
-                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, d);
+                score = -self.search::<false, false>(-alpha - 1, -alpha, d);
 
                 if score > alpha && r > 0 {
                     new_depth += i32::from(score > best_score + search_deeper_margin());
 
                     if new_depth > d {
-                        score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+                        score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
                     }
                 }
             } else if !PV || moves_played > 0 {
-                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+                score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
             }
 
             if PV && (moves_played == 0 || score > alpha) {
-                score = -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth);
+                score = -self.search::<PV, false>(-beta, -alpha, new_depth);
             }
 
             self.revert_move();
@@ -181,7 +176,7 @@ impl super::SearchThread<'_> {
 
             // Early return to prevent processing potentially corrupted search results
             if self.stopped {
-                return Score::INVALID;
+                return Score::ZERO;
             }
 
             if score > best_score {
@@ -245,7 +240,7 @@ impl super::SearchThread<'_> {
             let r = 3 + depth / 3 + ((eval - beta) / 200).min(4);
 
             self.apply_null_move();
-            let score = -self.alpha_beta::<PV, false>(-beta, -beta + 1, depth - r);
+            let score = -self.search::<PV, false>(-beta, -beta + 1, depth - r);
             self.revert_null_move();
 
             return match score {
@@ -280,7 +275,7 @@ impl super::SearchThread<'_> {
         reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / lmr_history() as f64;
 
         reduction -= 0.88 * to_f64(PV);
-        reduction -= 0.78 * to_f64(self.board.is_in_check());
+        reduction -= 0.78 * to_f64(self.board.in_check());
 
         reduction += 0.91 * to_f64(entry.is_some_and(|e| e.mv.is_capture()));
         reduction += 0.48 * to_f64(improving);

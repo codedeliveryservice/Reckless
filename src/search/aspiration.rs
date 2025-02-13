@@ -5,7 +5,7 @@ impl SearchThread<'_> {
     pub fn aspiration_search(&mut self, mut score: i32, depth: i32) -> i32 {
         // Avoid using an aspiration window for shallow depths, as the score is inconsistent
         if depth <= aspiration_depth() {
-            return self.alpha_beta::<true, true>(-Score::INFINITY, Score::INFINITY, depth);
+            return self.search::<true, true>(-Score::INFINITY, Score::INFINITY, depth);
         }
 
         let mut delta = (aspiration_delta() - depth).max(10);
@@ -15,7 +15,7 @@ impl SearchThread<'_> {
 
         loop {
             let adjusted_depth = (depth - fail_high_count).max(1);
-            score = self.alpha_beta::<true, true>(alpha, beta, adjusted_depth);
+            score = self.search::<true, true>(alpha, beta, adjusted_depth);
 
             if self.stopped {
                 return 0;
