@@ -10,37 +10,33 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [1.73.0, stable]
+        rust: [1.73.0, 1.84.1]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Rust toolchain
-      uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
-      with:
-        toolchain: ${{ matrix.rust }}
-        components: clippy, rustfmt
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-    - name: Fetch NNUE model
-      run: make fetch
+      - name: Fetch NNUE model
+        run: make fetch
 
-    - name: Build
-      run: cargo build --verbose --release
+      - name: Build
+        run: cargo build --verbose --release
 
-    - name: Run tests
-      run: cargo test --verbose --release
+      - name: Run tests
+        run: cargo test --verbose --release
 
-    - name: Run bench
-      run: cargo run --verbose --release -- bench
+      - name: Run bench
+        run: cargo run --verbose --release -- bench
 
-    - name: Run rustfmt
-      run: cargo fmt -- --check
+      - name: Run rustfmt
+        run: cargo fmt -- --check
 
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
 
   datagen:
     runs-on: ubuntu-latest
@@ -49,13 +45,13 @@ jobs:
       RUSTFLAGS: -A dead_code -A unused_variables
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Fetch NNUE model
-      run: make fetch
+      - name: Fetch NNUE model
+        run: make fetch
 
-    - name: Build with `datagen` feature
-      run: cargo build --verbose --release --features datagen
+      - name: Build with `datagen` feature
+        run: cargo build --verbose --release --features datagen
 
-    - name: Run tests with `datagen` feature
-      run: cargo test --verbose --release --features datagen
+      - name: Run tests with `datagen` feature
+        run: cargo test --verbose --release --features datagen
