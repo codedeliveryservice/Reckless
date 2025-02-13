@@ -148,16 +148,21 @@ impl super::SearchThread<'_> {
 
             let nodes_before = self.nodes.local();
 
-            let new_depth = depth - 1;
+            let mut new_depth = depth - 1;
             let mut score = 0;
 
             if depth >= 3 && moves_played >= 3 {
                 let r = self.calculate_reduction::<PV>(mv, depth, moves_played, improving, &entry);
+                let d = new_depth - r;
 
-                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth - r);
+                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, d);
 
                 if score > alpha && r > 0 {
-                    score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+                    new_depth += i32::from(score > best_score + search_deeper_margin());
+
+                    if new_depth > d {
+                        score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+                    }
                 }
             } else if !PV || moves_played > 0 {
                 score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
