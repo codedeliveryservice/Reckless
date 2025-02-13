@@ -148,12 +148,24 @@ impl super::SearchThread<'_> {
 
             let nodes_before = self.nodes.local();
 
-            let score = if moves_played == 0 {
-                -self.alpha_beta::<PV, false>(-beta, -alpha, depth - 1)
-            } else {
-                let reduction = self.calculate_reduction::<PV>(mv, depth, moves_played, improving, &entry);
-                self.principal_variation_search::<PV>(alpha, beta, depth, reduction, best_score)
-            };
+            let new_depth = depth - 1;
+            let mut score = 0;
+
+            if depth >= 3 && moves_played >= 3 {
+                let r = self.calculate_reduction::<PV>(mv, depth, moves_played, improving, &entry);
+
+                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth - r);
+
+                if score > alpha && r > 0 {
+                    score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+                }
+            } else if !PV || moves_played > 0 {
+                score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
+            }
+
+            if PV && (moves_played == 0 || score > alpha) {
+                score = -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth);
+            }
 
             self.revert_move();
             moves_played += 1;
@@ -221,37 +233,6 @@ impl super::SearchThread<'_> {
         self.ply < 2 || (!in_check && improving())
     }
 
-    /// Performs a Principal Variation Search (PVS), optimizing the search efforts by testing moves
-    /// with a null window and re-searching when promising. It also applies late move reductions.
-    fn principal_variation_search<const PV: bool>(
-        &mut self,
-        alpha: i32,
-        beta: i32,
-        depth: i32,
-        reduction: i32,
-        best_score: i32,
-    ) -> i32 {
-        let mut new_depth = depth - 1;
-
-        // Null window search with possible late move reduction
-        let mut score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth - reduction);
-
-        // If the search fails and reduction applied, re-search with full depth
-        if alpha < score && reduction > 0 {
-            // Adjust the search depth based on results of the LMR search
-            new_depth += i32::from(score > best_score + search_deeper_margin());
-
-            score = -self.alpha_beta::<false, false>(-alpha - 1, -alpha, new_depth);
-        }
-
-        // If the search fails again, proceed to a full window search with full depth
-        if alpha < score && score < beta {
-            score = -self.alpha_beta::<PV, false>(-beta, -alpha, new_depth);
-        }
-
-        score
-    }
-
     /// If giving a free move to the opponent leads to a beta cutoff, it's highly likely
     /// to result in a cutoff after a real move is made, so the node can be pruned.
     pub fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
@@ -284,7 +265,7 @@ impl super::SearchThread<'_> {
             i32::from(v) as f64
         }
 
-        if !mv.is_quiet() || moves < LMR_MOVES_PLAYED || depth < LMR_DEPTH {
+        if !mv.is_quiet() {
             return 0;
         }
 

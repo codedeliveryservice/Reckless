@@ -1,8 +1,5 @@
 pub const PIECE_VALUES: [i32; 7] = [100, 400, 400, 650, 1200, 0, 0];
 
-pub const LMR_MOVES_PLAYED: i32 = 3;
-pub const LMR_DEPTH: i32 = 3;
-
 pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
 
