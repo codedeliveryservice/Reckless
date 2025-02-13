@@ -1,5 +1,6 @@
 mod board;
 mod lookup;
+mod misc;
 mod nnue;
 mod parameters;
 mod search;
@@ -17,6 +18,8 @@ fn main() {
         Some("bench") => tools::bench::<false>(12),
         _ => uci::message_loop(),
     }
+
+    misc::dbg_print();
 }
 
 #[cfg(feature = "datagen")]
