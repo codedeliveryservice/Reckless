@@ -8,7 +8,7 @@ impl SearchThread<'_> {
             return self.search::<true, true>(-Score::INFINITY, Score::INFINITY, depth);
         }
 
-        let mut delta = (aspiration_delta() - depth).max(10);
+        let mut delta = aspiration_delta();
         let mut alpha = (score - delta).max(-Score::INFINITY);
         let mut beta = (score + delta).min(Score::INFINITY);
         let mut fail_high_count = 0;
