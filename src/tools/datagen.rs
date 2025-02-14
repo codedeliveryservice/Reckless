@@ -123,7 +123,7 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
             let ply = AVERAGE_BOOK_PLY + RANDOM_PLIES + index;
 
             if (WRITE_MIN_PLY..=WRITE_MAX_PLY).contains(&ply)
-                && !board.is_in_check()
+                && !board.in_check()
                 && !entry.best_move.is_capture()
                 && !entry.best_move.is_promotion()
             {
@@ -174,7 +174,7 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
 
         // Stalemate
         if generate_legal_moves(&mut board).is_empty() {
-            assert!(!board.is_in_check(), "Stalemate in check");
+            assert!(!board.in_check(), "Stalemate in check");
             return (entries, 0.5);
         }
     }
