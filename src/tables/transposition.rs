@@ -118,7 +118,7 @@ impl TranspositionTable {
 
         // Preserve the previous move if the new one is sourced from an upper bound node
         if let Some(old) = entry.read() {
-            if bound == Bound::Upper && old.key == key && old.mv != Move::NULL {
+            if old.key == key && (mv == Move::NULL || bound == Bound::Upper && old.mv != Move::NULL) {
                 mv = old.mv;
             }
         }

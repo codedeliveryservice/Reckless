@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use crate::{
     tables::{Bound, Entry},
     types::{Move, MAX_PLY},
@@ -52,10 +50,12 @@ impl super::SearchThread<'_> {
 
                 if score > best_score {
                     best_score = score;
-                    best_move = mv;
-                }
 
-                alpha = max(alpha, score);
+                    if score > alpha {
+                        best_move = mv;
+                        alpha = score;
+                    }
+                }
 
                 if alpha >= beta {
                     break;
