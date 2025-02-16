@@ -76,8 +76,6 @@ define!(
     i32 see_noisy: 100, 50, 150;
     i32 see_quiet: 70, 50, 150;
 
-    i32 iir_depth: 4, 1, 10;
-
     i32 aspiration_depth: 6, 1, 12;
     i32 aspiration_delta: 15, 5, 25;
 
