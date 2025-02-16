@@ -6,7 +6,13 @@ use crate::{
 
 impl super::SearchThread<'_> {
     /// Performs an alpha-beta search in a fail-soft environment.
-    pub fn search<const PV: bool, const ROOT: bool>(&mut self, mut alpha: i32, mut beta: i32, mut depth: i32) -> i32 {
+    pub fn search<const PV: bool, const ROOT: bool>(
+        &mut self,
+        mut alpha: i32,
+        mut beta: i32,
+        mut depth: i32,
+        cut_node: bool,
+    ) -> i32 {
         self.pv_table.clear(self.ply);
 
         // The search has been stopped by the UCI or the time control
@@ -85,8 +91,18 @@ impl super::SearchThread<'_> {
             }
 
             // Null Move Pruning
-            if let Some(score) = self.null_move_pruning::<PV>(depth, beta, eval) {
-                return score;
+            if depth >= 4 && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
+                let r = 3 + depth / 3 + ((eval - beta) / 200).min(4);
+
+                self.apply_null_move();
+                let score = -self.search::<PV, false>(-beta, -beta + 1, depth - r, !cut_node);
+                self.revert_null_move();
+
+                match score {
+                    s if s >= Score::MATE_BOUND => return beta,
+                    s if s >= beta => return score,
+                    _ => (),
+                }
             }
         }
 
@@ -148,24 +164,27 @@ impl super::SearchThread<'_> {
 
             // Late move reductions (LMR)
             if depth > 2 && move_count > 3 {
-                let r = self.params.lmr(depth, move_count);
-                let d = (new_depth - r).clamp(1, new_depth);
+                let mut reduction = self.params.lmr(depth, move_count);
 
-                score = -self.search::<false, false>(-alpha - 1, -alpha, d);
+                reduction += 2 * cut_node as i32;
 
-                if score > alpha && r > 0 {
+                let d = (new_depth - reduction).clamp(1, new_depth);
+
+                score = -self.search::<false, false>(-alpha - 1, -alpha, d, true);
+
+                if score > alpha && reduction > 0 {
                     new_depth += i32::from(score > best_score + search_deeper_margin());
 
                     if new_depth > d {
-                        score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
+                        score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth, !cut_node);
                     }
                 }
             } else if !PV || move_count > 1 {
-                score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
+                score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth, !cut_node);
             }
 
             if PV && (move_count == 1 || score > alpha) {
-                score = -self.search::<PV, false>(-beta, -alpha, new_depth);
+                score = -self.search::<PV, false>(-beta, -alpha, new_depth, false);
             }
 
             self.revert_move();
@@ -231,25 +250,6 @@ impl super::SearchThread<'_> {
             self.eval_stack[self.ply] > previous
         };
         self.ply < 2 || (!in_check && improving())
-    }
-
-    /// If giving a free move to the opponent leads to a beta cutoff, it's highly likely
-    /// to result in a cutoff after a real move is made, so the node can be pruned.
-    pub fn null_move_pruning<const PV: bool>(&mut self, depth: i32, beta: i32, eval: i32) -> Option<i32> {
-        if depth >= 4 && eval > beta && !self.board.is_last_move_null() && self.board.has_non_pawn_material() {
-            let r = 3 + depth / 3 + ((eval - beta) / 200).min(4);
-
-            self.apply_null_move();
-            let score = -self.search::<PV, false>(-beta, -beta + 1, depth - r);
-            self.revert_null_move();
-
-            return match score {
-                s if s >= Score::MATE_BOUND => Some(beta),
-                s if s >= beta => Some(score),
-                _ => None,
-            };
-        }
-        None
     }
 
     /// Checks if the search should be interrupted.
