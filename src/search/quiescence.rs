@@ -36,10 +36,10 @@ impl super::SearchThread<'_> {
         let mut best_score = eval;
 
         let mut moves = self.board.generate_capture_moves();
-        let mut ordering = self.build_ordering(&moves, None, 1);
+        let mut ordering = self.build_ordering(&moves, None, 0);
 
         while let Some(mv) = moves.next(&mut ordering) {
-            if !self.board.see(mv, 0) {
+            if !self.board.see(mv, -100) {
                 continue;
             }
 
