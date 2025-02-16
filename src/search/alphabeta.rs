@@ -63,15 +63,15 @@ impl super::SearchThread<'_> {
         }
 
         let eval = match entry {
-            _ if in_check => -Score::INFINITY,
+            _ if in_check => Score::INFINITY,
             Some(entry) => entry.score,
             None => self.board.evaluate() + self.corrhist.get(self.board),
         };
 
         self.killers[self.ply + 1] = Move::NULL;
-        self.eval_stack[self.ply] = if in_check { -Score::INFINITY } else { eval };
+        self.eval_stack[self.ply] = if in_check { Score::INFINITY } else { eval };
 
-        let improving = self.is_improving(in_check);
+        let improving = !in_check && self.ply >= 2 && self.eval_stack[self.ply] > self.eval_stack[self.ply - 2];
 
         if !ROOT && !PV && !in_check {
             // Reverse Futility Pruning
@@ -218,17 +218,6 @@ impl super::SearchThread<'_> {
 
         self.tt.write(self.board.hash(), depth, best_score, bound, best_move, self.ply);
         best_score
-    }
-
-    fn is_improving(&self, in_check: bool) -> bool {
-        let improving = || {
-            let mut previous = self.eval_stack[self.ply - 2];
-            if previous == -Score::INFINITY && self.ply >= 4 {
-                previous = self.eval_stack[self.ply - 4];
-            }
-            self.eval_stack[self.ply] > previous
-        };
-        self.ply < 2 || (!in_check && improving())
     }
 
     /// If giving a free move to the opponent leads to a beta cutoff, it's highly likely
