@@ -166,6 +166,8 @@ impl super::SearchThread<'_> {
             if depth > 2 && move_count > 3 {
                 let mut reduction = self.params.lmr(depth, move_count);
 
+                reduction -= PV as i32;
+
                 reduction += 2 * cut_node as i32;
 
                 let d = (new_depth - reduction).clamp(1, new_depth);
