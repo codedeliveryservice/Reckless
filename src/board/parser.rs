@@ -63,6 +63,8 @@ impl FromStr for Board {
         board.state.major_key = board.generate_major_key();
         board.state.non_pawn_keys = board.generate_non_pawn_keys();
 
+        board.state.threats = board.generate_threats();
+
         Ok(board)
     }
 }
