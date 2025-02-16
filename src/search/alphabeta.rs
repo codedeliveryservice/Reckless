@@ -168,6 +168,8 @@ impl super::SearchThread<'_> {
 
                 reduction += 2 * cut_node as i32;
 
+                reduction += !improving as i32;
+
                 let d = (new_depth - reduction).clamp(1, new_depth);
 
                 score = -self.search::<false, false>(-alpha - 1, -alpha, d, true);
