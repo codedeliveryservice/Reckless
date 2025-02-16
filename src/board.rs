@@ -32,6 +32,7 @@ struct InternalState {
     castling: Castling,
     halfmove_clock: u8,
     captured: Option<Piece>,
+    threats: Bitboard,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -252,9 +253,13 @@ impl Board {
         !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
     }
 
+    pub fn is_attacked(&self, square: Square) -> bool {
+        self.state.threats.contains(square)
+    }
+
     pub fn in_check(&self) -> bool {
         let king = self.our(Piece::King).lsb();
-        self.is_square_attacked_by(king, !self.side_to_move)
+        self.state.threats.contains(king)
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
@@ -266,6 +271,39 @@ impl Board {
             | pawn_attacks(square, Color::Black) & self.of(Piece::Pawn, Color::White)
             | rook_attacks(square, occupancies) & (self.pieces(Piece::Rook) | self.pieces(Piece::Queen))
             | bishop_attacks(square, occupancies) & (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen))
+    }
+
+    pub fn generate_threats(&self) -> Bitboard {
+        use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
+
+        let mut threats = Bitboard::default();
+
+        let bitboard = self.of(Piece::Pawn, !self.side_to_move);
+        for square in bitboard {
+            threats |= pawn_attacks(square, !self.side_to_move);
+        }
+
+        let bitboard = self.of(Piece::Knight, !self.side_to_move);
+        for square in bitboard {
+            threats |= knight_attacks(square);
+        }
+
+        let bitboard = self.of(Piece::Bishop, !self.side_to_move) | self.of(Piece::Queen, !self.side_to_move);
+        for square in bitboard {
+            threats |= bishop_attacks(square, self.occupancies());
+        }
+
+        let bitboard = self.of(Piece::Rook, !self.side_to_move) | self.of(Piece::Queen, !self.side_to_move);
+        for square in bitboard {
+            threats |= rook_attacks(square, self.occupancies());
+        }
+
+        let bitboard = self.of(Piece::King, !self.side_to_move);
+        for square in bitboard {
+            threats |= king_attacks(square);
+        }
+
+        return threats;
     }
 
     /// Estimates the resulting Zobrist hash key after making the move.

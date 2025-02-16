@@ -270,7 +270,8 @@ impl super::SearchThread<'_> {
         // Fractional reductions
         let mut reduction = self.params.lmr(depth, moves);
 
-        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / lmr_history() as f64;
+        reduction -= self.history.get_main(self.board.is_attacked(mv.start()), !self.board.side_to_move(), mv) as f64
+            / lmr_history() as f64;
 
         reduction -= 0.88 * to_f64(PV);
         reduction -= 0.78 * to_f64(self.board.in_check());
@@ -301,7 +302,7 @@ impl super::SearchThread<'_> {
             self.history.update_capture(self.board, best_move, captures, depth);
         } else {
             self.killers[self.ply] = best_move;
-            self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
+            self.history.update_main(self.board, best_move, quiets, depth);
             self.history.update_continuation(self.board, best_move, quiets, depth);
         }
     }

@@ -20,6 +20,10 @@ impl Bitboard {
         self.0 == 0
     }
 
+    pub const fn contains(self, square: Square) -> bool {
+        self.0 & (1 << square as u64) != 0
+    }
+
     /// Counts the number of set bits in the bitboard.
     pub const fn len(self) -> usize {
         self.0.count_ones() as usize

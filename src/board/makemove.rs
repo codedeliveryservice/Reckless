@@ -14,6 +14,8 @@ impl Board {
             self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
+
+        self.state.threats = self.generate_threats();
     }
 
     pub fn undo_null_move(&mut self) {
@@ -82,6 +84,8 @@ impl Board {
         self.state.castling.update(start, target);
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
         self.side_to_move = !self.side_to_move;
+
+        self.state.threats = self.generate_threats();
 
         if NNUE {
             self.nnue.commit();
