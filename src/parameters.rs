@@ -4,23 +4,25 @@ pub const LMP_DEPTH: i32 = 4;
 pub const LMP_MARGIN: i32 = 3;
 
 pub struct Parameters {
-    lmr: [[f64; 64]; 64],
+    lmr: [[i32; 64]; 64],
 }
 
 impl Parameters {
-    pub fn lmr(&self, depth: i32, moves: i32) -> f64 {
+    pub fn lmr(&self, depth: i32, moves: i32) -> i32 {
         self.lmr[depth.min(63) as usize][moves.min(63) as usize]
     }
 }
 
 impl Default for Parameters {
     fn default() -> Self {
-        let mut lmr = [[0.0; 64]; 64];
-        for (depth, row) in lmr.iter_mut().enumerate() {
-            for (moves, r) in row.iter_mut().enumerate() {
-                *r = lmr_base() + (depth as f64).ln() * (moves as f64).ln() / lmr_divisor();
+        let mut lmr = [[0; 64]; 64];
+
+        for depth in 0..64 {
+            for moves in 0..64 {
+                lmr[depth][moves] = (0.75 + (depth as f32).ln() * (moves as f32).ln() / 2.0) as i32;
             }
         }
+
         Self { lmr }
     }
 }
@@ -80,11 +82,6 @@ define!(
 
     i32 aspiration_depth: 6, 1, 12;
     i32 aspiration_delta: 15, 5, 25;
-
-    f64 lmr_base: 0.73, 0.5, 1.5;
-    f64 lmr_divisor: 2.22, 1.5, 3.5;
-
-    i32 lmr_history: 6210, 4000, 8000;
 
     i32 history_bonus: 130, 0, 400;
     i32 history_bonus_base: -30, -150, 150;

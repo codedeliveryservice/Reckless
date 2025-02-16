@@ -98,7 +98,7 @@ impl super::SearchThread<'_> {
         let mut best_score = -Score::INFINITY;
         let mut best_move = Move::NULL;
 
-        let mut moves_played = 0;
+        let mut move_count = 0;
         let mut quiets = MoveList::default();
         let mut captures = MoveList::default();
         let mut moves = self.board.generate_all_moves();
@@ -106,7 +106,7 @@ impl super::SearchThread<'_> {
 
         while let Some(mv) = moves.next(&mut ordering) {
             #[cfg(not(feature = "datagen"))]
-            if !ROOT && moves_played > 0 && best_score > -Score::MATE_BOUND {
+            if !ROOT && move_count > 0 && best_score > -Score::MATE_BOUND {
                 // Futility Pruning. Leave the node since later moves with worse history
                 // are unlikely to recover a score so far below alpha in very few moves.
                 if !PV
@@ -139,14 +139,17 @@ impl super::SearchThread<'_> {
                 continue;
             }
 
+            move_count += 1;
+
             let nodes_before = self.nodes.local();
 
             let mut new_depth = depth - 1;
             let mut score = Score::NONE;
 
-            if depth >= 3 && moves_played >= 3 {
-                let r = self.calculate_reduction::<PV>(mv, depth, moves_played, improving, &entry);
-                let d = new_depth - r;
+            // Late move reductions (LMR)
+            if depth > 2 && move_count > 3 {
+                let r = self.params.lmr(depth, move_count);
+                let d = (new_depth - r).clamp(1, new_depth);
 
                 score = -self.search::<false, false>(-alpha - 1, -alpha, d);
 
@@ -157,16 +160,15 @@ impl super::SearchThread<'_> {
                         score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
                     }
                 }
-            } else if !PV || moves_played > 0 {
+            } else if !PV || move_count > 1 {
                 score = -self.search::<false, false>(-alpha - 1, -alpha, new_depth);
             }
 
-            if PV && (moves_played == 0 || score > alpha) {
+            if PV && (move_count == 1 || score > alpha) {
                 score = -self.search::<PV, false>(-beta, -alpha, new_depth);
             }
 
             self.revert_move();
-            moves_played += 1;
 
             if ROOT {
                 self.node_table.add(mv, self.nodes.local() - nodes_before);
@@ -199,7 +201,7 @@ impl super::SearchThread<'_> {
         }
 
         // Checkmate and stalemate detection
-        if moves_played == 0 {
+        if move_count == 0 {
             return if in_check { Score::mated_in(self.ply) } else { Score::DRAW };
         }
 
@@ -248,38 +250,6 @@ impl super::SearchThread<'_> {
             };
         }
         None
-    }
-
-    /// Calculates the Late Move Reduction (LMR) for a given move.
-    pub fn calculate_reduction<const PV: bool>(
-        &self,
-        mv: Move,
-        depth: i32,
-        moves: i32,
-        improving: bool,
-        entry: &Option<Entry>,
-    ) -> i32 {
-        fn to_f64(v: bool) -> f64 {
-            i32::from(v) as f64
-        }
-
-        if !mv.is_quiet() {
-            return 0;
-        }
-
-        // Fractional reductions
-        let mut reduction = self.params.lmr(depth, moves);
-
-        reduction -= self.history.get_main(!self.board.side_to_move(), mv) as f64 / lmr_history() as f64;
-
-        reduction -= 0.88 * to_f64(PV);
-        reduction -= 0.78 * to_f64(self.board.in_check());
-
-        reduction += 0.91 * to_f64(entry.is_some_and(|e| e.mv.is_capture()));
-        reduction += 0.48 * to_f64(improving);
-
-        // Avoid negative reductions
-        (reduction as i32).clamp(0, depth)
     }
 
     /// Checks if the search should be interrupted.
