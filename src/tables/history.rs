@@ -16,7 +16,7 @@ type PieceSquare<T> = [[T; Square::NUM]; Piece::NUM + 1];
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 #[derive(Clone)]
 pub struct History {
-    main: Box<[[Butterfly<i32>; Color::NUM]; 2]>,
+    main: Box<[[[Butterfly<i32>; Color::NUM]; 2]; 2]>,
     counter: Box<PieceSquare<PieceSquare<i32>>>,
     followup: Box<PieceSquare<PieceSquare<i32>>>,
     capture: Box<[Butterfly<[i32; Piece::NUM]>; Color::NUM]>,
@@ -27,8 +27,10 @@ impl History {
         self.capture[stm][mv.start()][mv.target()][capture]
     }
 
-    pub fn get_main(&self, attacked: bool, stm: Color, mv: Move) -> i32 {
-        self.main[attacked as usize][stm][mv.start()][mv.target()]
+    pub fn get_main(&self, board: &Board, mv: Move) -> i32 {
+        let from_attacked = board.is_attacked(mv.start()) as usize;
+        let to_attacked = board.is_attacked(mv.target()) as usize;
+        self.main[from_attacked][to_attacked][board.side_to_move()][mv.start()][mv.target()]
     }
 
     pub fn get_counter(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
@@ -53,10 +55,14 @@ impl History {
     pub fn update_main(&mut self, board: &Board, mv: Move, fails: &[Move], depth: i32) {
         let stm = board.side_to_move();
 
-        increase(&mut self.main[board.is_attacked(mv.start()) as usize][stm][mv.start()][mv.target()], depth);
+        let from_attacked = board.is_attacked(mv.start()) as usize;
+        let to_attacked = board.is_attacked(mv.target()) as usize;
+        increase(&mut self.main[from_attacked][to_attacked][stm][mv.start()][mv.target()], depth);
+
         for &fail in fails {
-            let attacked = board.is_attacked(fail.start()) as usize;
-            decrease(&mut self.main[attacked][stm][fail.start()][fail.target()], depth);
+            let from_attacked = board.is_attacked(fail.start()) as usize;
+            let to_attacked = board.is_attacked(fail.target()) as usize;
+            decrease(&mut self.main[from_attacked][to_attacked][stm][fail.start()][fail.target()], depth);
         }
     }
 
