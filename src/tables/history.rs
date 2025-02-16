@@ -16,7 +16,7 @@ type PieceSquare<T> = [[T; Square::NUM]; Piece::NUM + 1];
 /// See [History Heuristic](https://www.chessprogramming.org/History_Heuristic) for more information.
 #[derive(Clone)]
 pub struct History {
-    main: Box<[Butterfly<i32>; Color::NUM]>,
+    main: Box<[[Butterfly<i32>; Color::NUM]; 2]>,
     counter: Box<PieceSquare<PieceSquare<i32>>>,
     followup: Box<PieceSquare<PieceSquare<i32>>>,
     capture: Box<[Butterfly<[i32; Piece::NUM]>; Color::NUM]>,
@@ -27,8 +27,8 @@ impl History {
         self.capture[stm][mv.start()][mv.target()][capture]
     }
 
-    pub fn get_main(&self, stm: Color, mv: Move) -> i32 {
-        self.main[stm][mv.start()][mv.target()]
+    pub fn get_main(&self, attacked: bool, stm: Color, mv: Move) -> i32 {
+        self.main[attacked as usize][stm][mv.start()][mv.target()]
     }
 
     pub fn get_counter(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
@@ -50,10 +50,13 @@ impl History {
         }
     }
 
-    pub fn update_main(&mut self, stm: Color, mv: Move, fails: &[Move], depth: i32) {
-        increase(&mut self.main[stm][mv.start()][mv.target()], depth);
+    pub fn update_main(&mut self, board: &Board, mv: Move, fails: &[Move], depth: i32) {
+        let stm = board.side_to_move();
+
+        increase(&mut self.main[board.is_attacked(mv.start()) as usize][stm][mv.start()][mv.target()], depth);
         for &fail in fails {
-            decrease(&mut self.main[stm][fail.start()][fail.target()], depth);
+            let attacked = board.is_attacked(fail.start()) as usize;
+            decrease(&mut self.main[attacked][stm][fail.start()][fail.target()], depth);
         }
     }
 

@@ -271,7 +271,7 @@ impl super::SearchThread<'_> {
             self.history.update_capture(self.board, best_move, captures, depth);
         } else {
             self.killers[self.ply] = best_move;
-            self.history.update_main(self.board.side_to_move(), best_move, quiets, depth);
+            self.history.update_main(self.board, best_move, quiets, depth);
             self.history.update_continuation(self.board, best_move, quiets, depth);
         }
     }
