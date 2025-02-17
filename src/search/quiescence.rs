@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use crate::{
     tables::{Bound, Entry},
     types::{Move, MAX_PLY},
@@ -46,19 +44,24 @@ impl super::SearchThread<'_> {
             let key_after = self.board.key_after(mv);
             self.tt.prefetch(key_after);
 
-            if self.apply_move(mv) {
-                let score = -self.quiescence_search(-beta, -alpha);
-                self.revert_move();
+            if !self.apply_move(mv) {
+                continue;
+            }
 
-                if score > best_score {
-                    best_score = score;
+            let score = -self.quiescence_search(-beta, -alpha);
+            self.revert_move();
+
+            if score > best_score {
+                best_score = score;
+
+                if score > alpha {
                     best_move = mv;
-                }
 
-                alpha = max(alpha, score);
+                    if score >= beta {
+                        break;
+                    }
 
-                if alpha >= beta {
-                    break;
+                    alpha = score;
                 }
             }
         }
