@@ -17,8 +17,8 @@ type PieceSquare<T> = [[T; Square::NUM]; Piece::NUM + 1];
 #[derive(Clone)]
 pub struct History {
     main: Box<[[Butterfly<i32>; Color::NUM]; 2]>,
-    counter: Box<PieceSquare<PieceSquare<i32>>>,
-    followup: Box<PieceSquare<PieceSquare<i32>>>,
+    counter: Box<[PieceSquare<PieceSquare<i32>>; 2]>,
+    followup: Box<[PieceSquare<PieceSquare<i32>>; 2]>,
     capture: Box<[Butterfly<[i32; Piece::NUM]>; Color::NUM]>,
 }
 
@@ -32,12 +32,12 @@ impl History {
         self.main[attacked as usize][board.side_to_move()][mv.start()][mv.target()]
     }
 
-    pub fn get_counter(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
-        self.counter[continuation.piece()][continuation.target()][piece][current.target()]
+    pub fn get_counter(&self, in_check: bool, continuation: FullMove, piece: Piece, current: Move) -> i32 {
+        self.counter[in_check as usize][continuation.piece()][continuation.target()][piece][current.target()]
     }
 
-    pub fn get_followup(&self, continuation: FullMove, piece: Piece, current: Move) -> i32 {
-        self.followup[continuation.piece()][continuation.target()][piece][current.target()]
+    pub fn get_followup(&self, in_check: bool, continuation: FullMove, piece: Piece, current: Move) -> i32 {
+        self.followup[in_check as usize][continuation.piece()][continuation.target()][piece][current.target()]
     }
 
     pub fn update_capture(&mut self, board: &Board, mv: Move, fails: &[Move], depth: i32) {
@@ -62,17 +62,18 @@ impl History {
     }
 
     pub fn update_continuation(&mut self, board: &Board, current: Move, fails: &[Move], depth: i32) {
+        let in_check = board.in_check() as usize;
         let piece = board.piece_on(current.start());
 
         macro_rules! update_history {
             ($table:expr, ply: $ply:expr) => {
                 let prev = board.tail_move($ply);
                 if prev != FullMove::NULL {
-                    increase(&mut $table[prev.piece()][prev.target()][piece][current.target()], depth);
+                    increase(&mut $table[in_check][prev.piece()][prev.target()][piece][current.target()], depth);
 
                     for &fail in fails {
                         let piece = board.piece_on(fail.start());
-                        decrease(&mut $table[prev.piece()][prev.target()][piece][fail.target()], depth);
+                        decrease(&mut $table[in_check][prev.piece()][prev.target()][piece][fail.target()], depth);
                     }
                 }
             };

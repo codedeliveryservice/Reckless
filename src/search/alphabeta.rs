@@ -154,8 +154,8 @@ impl super::SearchThread<'_> {
             let piece = self.board.piece_on(mv.start());
 
             let mainhist = self.history.get_main(self.board, mv);
-            let conthist1 = self.history.get_counter(self.board.tail_move(1), piece, mv);
-            let conthist2 = self.history.get_followup(self.board.tail_move(2), piece, mv);
+            let conthist1 = self.history.get_counter(in_check, self.board.tail_move(1), piece, mv);
+            let conthist2 = self.history.get_followup(in_check, self.board.tail_move(2), piece, mv);
 
             if !self.apply_move(mv) {
                 continue;

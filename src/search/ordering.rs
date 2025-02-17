@@ -37,9 +37,10 @@ impl super::SearchThread<'_> {
         }
 
         let piece = self.board.piece_on(mv.start());
+        let in_check = self.board.in_check();
 
-        ordering_main() * self.history.get_main(self.board, mv)
-            + ordering_counter() * self.history.get_counter(continuations[0], piece, mv)
-            + ordering_followup() * self.history.get_followup(continuations[1], piece, mv)
+        self.history.get_main(self.board, mv)
+            + self.history.get_counter(in_check, continuations[0], piece, mv)
+            + self.history.get_followup(in_check, continuations[1], piece, mv)
     }
 }
