@@ -151,6 +151,12 @@ impl super::SearchThread<'_> {
             let key_after = self.board.key_after(mv);
             self.tt.prefetch(key_after);
 
+            let piece = self.board.piece_on(mv.start());
+
+            let mainhist = self.history.get_main(self.board, mv);
+            let conthist1 = self.history.get_counter(self.board.tail_move(1), piece, mv);
+            let conthist2 = self.history.get_followup(self.board.tail_move(2), piece, mv);
+
             if !self.apply_move(mv) {
                 continue;
             }
@@ -167,6 +173,8 @@ impl super::SearchThread<'_> {
                 let mut reduction = self.params.lmr(depth, move_count);
 
                 reduction += 2 * cut_node as i32;
+
+                reduction -= (mainhist + conthist1 + conthist2) / 6000;
 
                 let d = (new_depth - reduction).clamp(1, new_depth);
 
