@@ -174,7 +174,7 @@ impl super::SearchThread<'_> {
 
                 reduction += 2 * cut_node as i32;
 
-                reduction -= (mainhist + conthist1 + conthist2) / 6000;
+                reduction -= (mainhist + conthist1 + conthist2 + 1000) / 6000;
 
                 let d = (new_depth - reduction).clamp(1, new_depth);
 
