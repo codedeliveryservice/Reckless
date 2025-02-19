@@ -1,7 +1,7 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     nnue::Network,
-    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Score, Square},
+    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Square},
 };
 
 #[cfg(test)]
@@ -183,8 +183,7 @@ impl Board {
             eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
         }
 
-        // Clamp the evaluation within mate bounds
-        eval.clamp(-Score::MATE_BOUND + 1, Score::MATE_BOUND - 1)
+        eval.clamp(-16384, 16384)
     }
 
     pub fn game_phase(&self) -> i32 {

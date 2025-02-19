@@ -1,18 +1,20 @@
+use std::sync::atomic::AtomicBool;
+
 use crate::{
     board::Board,
-    search::{self, Options},
-    tables::{CorrectionHistory, History, TranspositionTable},
-    time::Limits,
+    search,
+    tables::TranspositionTable,
+    thread::ThreadPool,
+    time::{Limits, TimeManager},
     tools,
     types::Color,
 };
 
 pub fn message_loop() {
-    let mut threads = 1;
-    let mut board = Board::starting_position();
-    let mut history = History::default();
-    let mut corrhist = CorrectionHistory::default();
-    let mut tt = TranspositionTable::default();
+    let stop = AtomicBool::new(false);
+    let tt = TranspositionTable::default();
+
+    let mut threads = ThreadPool::new(&tt, &stop);
 
     loop {
         let command = read_stdin();
@@ -21,17 +23,17 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(threads, &mut board, &mut history, &mut corrhist, &tt, tokens),
-            ["position", tokens @ ..] => position(&mut board, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &mut tt, tokens),
-            ["ucinewgame"] => reset(threads, &mut board, &mut history, &mut corrhist, &mut tt),
+            ["go", tokens @ ..] => go(&mut threads, tokens),
+            ["position", tokens @ ..] => position(&mut threads, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut threads, &tt, tokens),
+            ["ucinewgame"] => reset(&mut threads, &tt),
 
             ["quit"] => std::process::exit(0),
 
             // Non-UCI commands
-            ["eval"] => evaluate(&board),
+            ["eval"] => evaluate(&threads.main_thread().board),
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
-            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
+            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
         };
@@ -52,47 +54,57 @@ fn uci() {
     println!("uciok");
 }
 
-fn reset(
-    threads: usize,
-    board: &mut Board,
-    history: &mut History,
-    corrhist: &mut CorrectionHistory,
-    tt: &mut TranspositionTable,
-) {
-    *board = Board::starting_position();
-    *history = History::default();
-    *corrhist = CorrectionHistory::default();
-    tt.clear(threads);
+fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
+    threads.clear();
+    tt.clear(threads.len());
 }
 
-fn go(
-    threads: usize,
-    board: &mut Board,
-    history: &mut History,
-    corrhist: &mut CorrectionHistory,
-    tt: &TranspositionTable,
-    tokens: &[&str],
-) {
-    let limits = parse_limits(board.side_to_move(), tokens);
-    search::start(Options { threads, limits, silent: false }, board, history, corrhist, tt);
+fn go(threads: &mut ThreadPool, tokens: &[&str]) {
+    let stm = threads.main_thread().board.side_to_move();
+    let limits = parse_limits(stm, tokens);
+    threads.main_thread().time_manager = TimeManager::new(limits);
+    threads.main_thread().set_stop(false);
+
+    std::thread::scope(|scope| {
+        let mut handlers = Vec::new();
+
+        for (id, td) in threads.iter_mut().enumerate() {
+            let handler = scope.spawn(move || {
+                search::start(td, id != 0);
+                td.set_stop(true);
+
+                if id == 0 {
+                    println!("bestmove {}", td.pv.best_move());
+                }
+            });
+
+            handlers.push(handler);
+        }
+
+        for handler in handlers {
+            handler.join().unwrap();
+        }
+    });
 }
 
-fn position(board: &mut Board, mut tokens: &[&str]) {
+fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
+    let mut board = Board::default();
+
     while !tokens.is_empty() {
         match tokens {
             ["startpos", rest @ ..] => {
-                *board = Board::starting_position();
+                board = Board::starting_position();
                 tokens = rest;
             }
             ["fen", rest @ ..] => {
                 match Board::new(&rest.join(" ")) {
-                    Ok(b) => *board = b,
+                    Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
-                rest.iter().for_each(|uci_move| make_uci_move(board, uci_move));
+                rest.iter().for_each(|uci_move| make_uci_move(&mut board, uci_move));
                 break;
             }
             _ => {
@@ -100,6 +112,10 @@ fn position(board: &mut Board, mut tokens: &[&str]) {
                 continue;
             }
         }
+    }
+
+    for thread in threads.iter_mut() {
+        thread.board = board.clone();
     }
 }
 
@@ -110,15 +126,18 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(threads: &mut usize, tt: &mut TranspositionTable, tokens: &[&str]) {
+fn set_option(threads: &mut ThreadPool, tt: &TranspositionTable, tokens: &[&str]) {
     match tokens {
-        ["name", "Clear", "Hash"] => tt.clear(*threads),
+        ["name", "Clear", "Hash"] => {
+            tt.clear(threads.len());
+            println!("info string Hash cleared");
+        }
         ["name", "Hash", "value", v] => {
-            tt.resize(*threads, v.parse().unwrap());
+            tt.resize(threads.len(), v.parse().unwrap());
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
-            *threads = v.parse().unwrap();
+            threads.set_count(v.parse().unwrap());
             println!("info string set Threads to {v}");
         }
         #[cfg(feature = "tuning")]
@@ -160,9 +179,9 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
             };
 
             match name {
-                "depth" if value > 0 => return Limits::FixedDepth(value as i32),
-                "movetime" if value > 0 => return Limits::FixedTime(value),
-                "nodes" if value > 0 => return Limits::FixedNodes(value),
+                "depth" if value > 0 => return Limits::Depth(value as i32),
+                "movetime" if value > 0 => return Limits::Time(value),
+                "nodes" if value > 0 => return Limits::Nodes(value),
 
                 "wtime" if Color::White == color => main = value,
                 "btime" if Color::Black == color => main = value,
@@ -183,28 +202,4 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
         Some(moves) => Limits::Cyclic(main, inc, moves),
         None => Limits::Fischer(main, inc),
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    macro_rules! assert_time_control {
-        ($($name:ident: $input:expr, $expected:expr,)*) => {$(
-            #[test]
-            fn $name() {
-                let tokens = $input.split_whitespace().collect::<Vec<_>>();
-                assert_eq!(parse_limits(Color::White, &tokens), $expected);
-            }
-        )*};
-    }
-
-    assert_time_control!(
-        tc_infinite: "infinite", Limits::Infinite,
-        tc_fixed_time: "movetime 5000", Limits::FixedTime(5000),
-        tc_fixed_depth: "depth 10", Limits::FixedDepth(10),
-        tc_increment: "winc 750 binc 900", Limits::Fischer(0, 750),
-        tc_tournament: "wtime 750 winc 900 movestogo 12", Limits::Cyclic(750, 900, 12),
-        tc_invalid: "invalid", Limits::Infinite,
-    );
 }

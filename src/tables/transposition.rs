@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use crate::types::{Move, Score};
+use crate::types::{is_decisive, Move};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -111,7 +111,7 @@ impl TranspositionTable {
         };
 
         // Adjust mate distance from "plies from the current position" to "plies from the root"
-        if hit.score.abs() > Score::MATE_BOUND {
+        if is_decisive(hit.score) {
             hit.score -= hit.score.signum() * ply as i32;
         }
         Some(hit)
@@ -119,19 +119,12 @@ impl TranspositionTable {
 
     pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
-        if score.abs() > Score::MATE_BOUND {
+        if is_decisive(score) {
             score += score.signum() * ply as i32;
         }
 
         let key = verification_key(hash);
         let entry = self.entry(hash);
-
-        // Preserve the previous move if the new one is sourced from an upper bound node
-        if let Some(old) = entry.read() {
-            if bound == Bound::Upper && old.key == key && old.mv != Move::NULL {
-                mv = old.mv;
-            }
-        }
 
         entry.write(InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv });
     }
