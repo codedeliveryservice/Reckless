@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::types::{Move, Score};
 
@@ -60,31 +63,38 @@ impl Clone for Block {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: Vec<Block>,
+    vector: UnsafeCell<Vec<Block>>,
 }
+
+unsafe impl Sync for TranspositionTable {}
 
 impl TranspositionTable {
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
-    pub fn clear(&mut self, threads: usize) {
-        unsafe { self.parallel_clear(threads, self.vector.len()) }
+    pub fn clear(&self, threads: usize) {
+        unsafe { self.parallel_clear(threads, self.len()) }
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
-    pub fn resize(&mut self, threads: usize, megabytes: usize) {
+    pub fn resize(&self, threads: usize, megabytes: usize) {
         let len = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
 
-        self.vector = Vec::new();
-        self.vector.reserve_exact(len);
+        let mut vector = Vec::new();
+        vector.reserve_exact(len);
 
         unsafe {
+            let vec = &mut *self.vector.get();
+
+            drop(std::ptr::replace(vec, vector));
+
             self.parallel_clear(threads, len);
-            self.vector.set_len(len);
+            vec.set_len(len);
         }
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        self.vector.iter().take(1000).filter(|slot| slot.load() != 0).count()
+        let vector = unsafe { &*self.vector.get() };
+        vector.iter().take(1000).filter(|slot| slot.load() != 0).count()
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
@@ -132,7 +142,7 @@ impl TranspositionTable {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
             let index = self.index(hash);
-            let ptr = self.vector.as_ptr().add(index).cast();
+            let ptr = (*self.vector.get()).as_ptr().add(index) as *const i8;
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
 
@@ -141,20 +151,28 @@ impl TranspositionTable {
         let _ = hash;
     }
 
+    fn len(&self) -> usize {
+        unsafe { (*self.vector.get()).len() }
+    }
+
     fn entry(&self, hash: u64) -> &Block {
         let index = self.index(hash);
-        unsafe { self.vector.get_unchecked(index) }
+        unsafe {
+            let vec = &*self.vector.get();
+            vec.get_unchecked(index)
+        }
     }
 
     fn index(&self, hash: u64) -> usize {
         // Fast hash table index calculation
         // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
-        (((hash as u128) * (self.vector.len() as u128)) >> 64) as usize
+        (((hash as u128) * (self.len() as u128)) >> 64) as usize
     }
 
-    unsafe fn parallel_clear(&mut self, threads: usize, len: usize) {
+    unsafe fn parallel_clear(&self, threads: usize, len: usize) {
         std::thread::scope(|scope| {
-            let ptr = self.vector.as_mut_ptr() as *mut std::mem::MaybeUninit<Block>;
+            let vec = &mut *self.vector.get();
+            let ptr = vec.as_mut_ptr();
             let slice = std::slice::from_raw_parts_mut(ptr, len);
 
             let chunk_size = len.div_ceil(threads);
@@ -173,7 +191,7 @@ const fn verification_key(hash: u64) -> u16 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            vector: vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE],
+            vector: UnsafeCell::new(vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE]),
         }
     }
 }
