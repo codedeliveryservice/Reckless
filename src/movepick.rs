@@ -44,7 +44,17 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>) -> [i32; MAX_
     let mut scores = [0; MAX_MOVES];
 
     for (i, &mv) in moves.iter().enumerate() {
-        scores[i] = 0;
+        if mv.is_noisy() {
+            let moving = td.board.piece_on(mv.from()).piece_type();
+            let captured = td.board.piece_on(mv.to()).piece_type();
+
+            scores[i] = 1 << 20;
+
+            scores[i] += captured as i32 * 16384;
+            scores[i] -= moving as i32;
+        } else {
+            scores[i] = 0;
+        }
     }
 
     scores
