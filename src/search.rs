@@ -3,7 +3,7 @@ use std::time::Instant;
 use crate::{
     movepick::MovePicker,
     thread::ThreadData,
-    types::{mated_in, Move, Score, MAX_PLY},
+    types::{mated_in, Score, MAX_PLY},
 };
 
 const PV: bool = true;

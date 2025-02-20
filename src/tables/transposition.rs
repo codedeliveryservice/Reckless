@@ -117,7 +117,7 @@ impl TranspositionTable {
         Some(hit)
     }
 
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mut mv: Move, ply: usize) {
+    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) {
             score += score.signum() * ply as i32;
