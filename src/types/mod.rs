@@ -1,16 +1,16 @@
+pub mod arrayvec;
 pub mod bitboard;
 pub mod castling;
 pub mod color;
-pub mod movelist;
 pub mod moves;
 pub mod piece;
 pub mod score;
 pub mod square;
 
+pub use arrayvec::*;
 pub use bitboard::*;
 pub use castling::*;
 pub use color::*;
-pub use movelist::*;
 pub use moves::*;
 pub use piece::*;
 pub use score::*;

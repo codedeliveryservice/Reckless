@@ -1,26 +1,32 @@
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, PieceType, Rank, Square},
+    types::{ArrayVec, Bitboard, CastlingKind, Color, Move, MoveKind, PieceType, Rank, Square, MAX_MOVES},
 };
+
+macro_rules! push {
+    ($list:ident, $start:expr, $target:expr, $kind:expr) => {
+        $list.push(Move::new($start, $target, $kind));
+    };
+}
 
 impl super::Board {
     /// Generates all possible pseudo legal moves for the current position.
-    pub fn generate_all_moves(&self) -> MoveList {
+    pub fn generate_all_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
         self.generate_moves::<false>()
     }
 
     /// Generates only pseudo legal capture moves for the current position.
-    pub fn generate_capture_moves(&self) -> MoveList {
+    pub fn generate_capture_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
         self.generate_moves::<true>()
     }
 
     /// Generates pseudo legal moves for the current position.
     ///
     /// If `CAPTURE` is `true`, only capture moves are generated.
-    fn generate_moves<const CAPTURE: bool>(&self) -> MoveList {
+    fn generate_moves<const CAPTURE: bool>(&self) -> ArrayVec<Move, MAX_MOVES> {
         let occupancies = self.occupancies();
 
-        let mut list = MoveList::default();
+        let mut list = ArrayVec::new();
 
         self.collect_pawn_moves::<CAPTURE>(&mut list);
 
@@ -38,21 +44,26 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut MoveList, piece: PieceType, gen: T)
+    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut ArrayVec<Move, MAX_MOVES>, piece: PieceType, gen: T)
     where
         T: Fn(Square) -> Bitboard,
     {
         for start in self.our(piece) {
             let targets = gen(start) & !self.us();
 
-            list.add_many(start, targets & self.them(), MoveKind::Capture);
+            for target in targets & self.them() {
+                push!(list, start, target, MoveKind::Capture);
+            }
+
             if !CAPTURE {
-                list.add_many(start, targets & !self.them(), MoveKind::Normal);
+                for target in targets & !self.them() {
+                    push!(list, start, target, MoveKind::Normal);
+                }
             }
         }
     }
 
-    fn collect_castling(&self, list: &mut MoveList) {
+    fn collect_castling(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
         use crate::types::{BlackKingSide, BlackQueenSide, WhiteKingSide, WhiteQueenSide};
 
         match self.side_to_move {
@@ -71,7 +82,7 @@ impl super::Board {
     ///
     /// This method does not check if the king is in check after the castling,
     /// as this will be checked by the `make_move` method.
-    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
+    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
         if (KIND::PATH_MASK & self.occupancies()).is_empty() && self.state.castling.is_allowed::<KIND>() {
             for square in KIND::CHECK_SQUARES {
                 if self.is_square_attacked_by(square, !self.side_to_move) {
@@ -84,7 +95,7 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
@@ -100,7 +111,7 @@ impl super::Board {
     }
 
     /// Adds single, double and promotion pawn pushes to the move list.
-    fn collect_pawn_pushes(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_pushes(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
@@ -113,48 +124,50 @@ impl super::Board {
         let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
         for target in single_pushes {
-            list.add(target.shift(-up), target, MoveKind::Normal);
+            push!(list, target.shift(-up), target, MoveKind::Normal);
         }
 
         for target in double_pushes {
-            list.add(target.shift(-up * 2), target, MoveKind::DoublePush);
+            push!(list, target.shift(-up * 2), target, MoveKind::DoublePush);
         }
 
         let promotions = (pawns & seventh_rank).shift(up) & empty;
         for target in promotions {
             let start = target.shift(-up);
-            list.add(start, target, MoveKind::PromotionQ);
-            list.add(start, target, MoveKind::PromotionR);
-            list.add(start, target, MoveKind::PromotionB);
-            list.add(start, target, MoveKind::PromotionN);
+            push!(list, start, target, MoveKind::PromotionQ);
+            push!(list, start, target, MoveKind::PromotionR);
+            push!(list, start, target, MoveKind::PromotionB);
+            push!(list, start, target, MoveKind::PromotionN);
         }
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
-    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
         let promotions = pawns & seventh_rank;
         for start in promotions {
             let captures = self.them() & pawn_attacks(start, self.side_to_move);
             for target in captures {
-                list.add(start, target, MoveKind::PromotionCaptureQ);
-                list.add(start, target, MoveKind::PromotionCaptureR);
-                list.add(start, target, MoveKind::PromotionCaptureB);
-                list.add(start, target, MoveKind::PromotionCaptureN);
+                push!(list, start, target, MoveKind::PromotionCaptureQ);
+                push!(list, start, target, MoveKind::PromotionCaptureR);
+                push!(list, start, target, MoveKind::PromotionCaptureB);
+                push!(list, start, target, MoveKind::PromotionCaptureN);
             }
         }
 
         let non_promotions = pawns & !seventh_rank;
         for start in non_promotions {
             let targets = self.them() & pawn_attacks(start, self.side_to_move);
-            list.add_many(start, targets, MoveKind::Capture);
+            for target in targets {
+                push!(list, start, target, MoveKind::Capture);
+            }
         }
     }
 
-    fn collect_en_passant_moves(&self, list: &mut MoveList, pawns: Bitboard) {
+    fn collect_en_passant_moves(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard) {
         if self.state.en_passant != Square::None {
             let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move);
             for pawn in pawns {
-                list.add(pawn, self.state.en_passant, MoveKind::EnPassant);
+                push!(list, pawn, self.state.en_passant, MoveKind::EnPassant);
             }
         }
     }
