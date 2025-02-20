@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use crate::thread::ThreadData;
+
 pub enum Limits {
     Infinite,
     Depth(i32),
@@ -61,11 +63,19 @@ impl TimeManager {
         }
     }
 
-    pub fn check_time(&self, nodes: u64) -> bool {
+    pub fn check_time(&self, td: &ThreadData) -> bool {
+        if td.completed_depth == 0 {
+            return false;
+        }
+
+        if td.nodes & 2047 == 2047 && td.get_stop() {
+            return true;
+        }
+
         match self.limits {
-            Limits::Depth(_) | Limits::Infinite => false,
-            Limits::Nodes(maximum) => nodes >= maximum,
-            _ => nodes & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
+            Limits::Infinite | Limits::Depth(_) => false,
+            Limits::Nodes(maximum) => td.nodes >= maximum,
+            _ => td.nodes & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
 }

@@ -37,4 +37,15 @@ impl<T, const N: usize> ArrayVec<T, N> {
             None
         }
     }
+
+    pub fn swap_remove(&mut self, index: usize) -> T {
+        unsafe {
+            let value = std::ptr::read(self.data[index].as_ptr());
+
+            self.len -= 1;
+            std::ptr::copy(self.data[self.len].as_ptr(), self.data[index].as_mut_ptr(), 1);
+
+            value
+        }
+    }
 }

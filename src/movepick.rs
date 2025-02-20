@@ -1,0 +1,51 @@
+use crate::{
+    thread::ThreadData,
+    types::{ArrayVec, Move, MAX_MOVES},
+};
+
+pub struct MovePicker {
+    moves: ArrayVec<Move, MAX_MOVES>,
+    scores: [i32; MAX_MOVES],
+}
+
+impl MovePicker {
+    pub fn new(td: &ThreadData) -> Self {
+        let moves = td.board.generate_all_moves();
+        let scores = score_moves(td, &moves);
+
+        Self { moves, scores }
+    }
+
+    pub fn new_noisy(td: &ThreadData) -> Self {
+        let moves = td.board.generate_capture_moves();
+        let scores = score_moves(td, &moves);
+
+        Self { moves, scores }
+    }
+
+    pub fn next(&mut self) -> Option<Move> {
+        if self.moves.len() == 0 {
+            return None;
+        }
+
+        let mut index = 0;
+        for i in 1..self.moves.len() {
+            if self.scores[i] > self.scores[index] {
+                index = i;
+            }
+        }
+
+        self.scores.swap(index, self.moves.len() - 1);
+        Some(self.moves.swap_remove(index))
+    }
+}
+
+fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>) -> [i32; MAX_MOVES] {
+    let mut scores = [0; MAX_MOVES];
+
+    for (i, &mv) in moves.iter().enumerate() {
+        scores[i] = 0;
+    }
+
+    scores
+}

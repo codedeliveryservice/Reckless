@@ -40,7 +40,7 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            thread.clear();
+            *thread = ThreadData::new(thread.tt, thread.stop);
         }
     }
 }
@@ -76,6 +76,10 @@ impl<'a> ThreadData<'a> {
         self.stop.store(value, Ordering::Relaxed);
     }
 
+    pub fn get_stop(&self) -> bool {
+        self.stop.load(Ordering::Relaxed)
+    }
+
     pub fn print_uci_info(&self, depth: i32, score: i32, now: Instant) {
         let nps = self.nodes as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();
@@ -95,9 +99,5 @@ impl<'a> ThreadData<'a> {
             print!(" {mv}");
         }
         println!();
-    }
-
-    pub fn clear(&mut self) {
-        self.board = Board::starting_position();
     }
 }

@@ -1,6 +1,7 @@
 mod board;
 mod lookup;
 mod misc;
+mod movepick;
 mod nnue;
 mod parameters;
 mod search;
@@ -16,7 +17,7 @@ fn main() {
     datagen(std::env::args());
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(12),
+        Some("bench") => tools::bench::<false>(2),
         _ => uci::message_loop(),
     }
 
