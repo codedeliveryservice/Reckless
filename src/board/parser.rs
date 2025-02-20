@@ -38,11 +38,10 @@ impl FromStr for Board {
                 }
 
                 let piece = symbol.try_into().map_err(|()| ParseFenError::InvalidPieceType)?;
-                let color = if symbol.is_uppercase() { Color::White } else { Color::Black };
                 let square = Square::from_rank_file(rank as u8, file);
 
-                board.add_piece::<false>(color, piece, square);
-                board.nnue.accumulate(color, piece, square);
+                board.add_piece::<false>(piece, square);
+                board.nnue.accumulate(piece, square);
                 file += 1;
             }
         }
@@ -58,10 +57,6 @@ impl FromStr for Board {
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
         board.state.hash_key = board.generate_hash_key();
-        board.state.pawn_key = board.generate_pawn_key();
-        board.state.minor_key = board.generate_minor_key();
-        board.state.major_key = board.generate_major_key();
-        board.state.non_pawn_keys = board.generate_non_pawn_keys();
 
         Ok(board)
     }

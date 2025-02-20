@@ -1,7 +1,7 @@
 use crate::{
     lookup::{bishop_attacks, rook_attacks},
     parameters::PIECE_VALUES,
-    types::{Bitboard, Move, Piece},
+    types::{Bitboard, Move, PieceType},
 };
 
 impl super::Board {
@@ -32,8 +32,8 @@ impl super::Board {
         let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
 
-        let diagonal = self.pieces(Piece::Bishop) | self.pieces(Piece::Queen);
-        let orthogonal = self.pieces(Piece::Rook) | self.pieces(Piece::Queen);
+        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
+        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
         loop {
             let our_attackers = attackers & self.colors(stm);
@@ -44,7 +44,7 @@ impl super::Board {
             let attacker = self.least_valuable_attacker(our_attackers);
 
             // The king cannot capture a protected piece; the side to move loses the exchange
-            if attacker == Piece::King && !(attackers & self.colors(!stm)).is_empty() {
+            if attacker == PieceType::King && !(attackers & self.colors(!stm)).is_empty() {
                 break;
             }
 
@@ -59,10 +59,10 @@ impl super::Board {
             }
 
             // Capturing a piece may reveal a new sliding attacker
-            if [Piece::Pawn, Piece::Bishop, Piece::Queen].contains(&attacker) {
+            if [PieceType::Pawn, PieceType::Bishop, PieceType::Queen].contains(&attacker) {
                 attackers |= bishop_attacks(mv.target(), occupancies) & diagonal;
             }
-            if [Piece::Rook, Piece::Queen].contains(&attacker) {
+            if [PieceType::Rook, PieceType::Queen].contains(&attacker) {
                 attackers |= rook_attacks(mv.target(), occupancies) & orthogonal;
             }
             attackers &= occupancies;
@@ -75,16 +75,16 @@ impl super::Board {
 
     fn move_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return PIECE_VALUES[Piece::Pawn];
+            return PIECE_VALUES[PieceType::Pawn];
         }
 
         let capture = self.piece_on(mv.target());
         PIECE_VALUES[capture]
     }
 
-    fn least_valuable_attacker(&self, attackers: Bitboard) -> Piece {
-        for index in 0..Piece::NUM {
-            let piece = Piece::new(index);
+    fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {
+        for index in 0..PieceType::NUM {
+            let piece = PieceType::new(index);
             if !(self.pieces(piece) & attackers).is_empty() {
                 return piece;
             }

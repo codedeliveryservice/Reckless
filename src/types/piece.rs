@@ -1,43 +1,50 @@
 use std::ops::{Index, IndexMut};
 
+use super::Color;
+
 #[derive(Copy, Clone, PartialEq)]
 pub enum Piece {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
+    WhitePawn,
+    BlackPawn,
+    WhiteKnight,
+    BlackKnight,
+    WhiteBishop,
+    BlackBishop,
+    WhiteRook,
+    BlackRook,
+    WhiteQueen,
+    BlackQueen,
+    WhiteKing,
+    BlackKing,
     None,
 }
 
 impl Piece {
-    pub const NUM: usize = 6;
+    pub const NUM: usize = 12;
 
-    /// Creates a new piece from the given value.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the value is in the range `0..6`.
-    pub const fn new(value: usize) -> Self {
-        unsafe { std::mem::transmute(value as u8) }
+    pub const fn new(color: Color, piece_type: PieceType) -> Self {
+        unsafe { std::mem::transmute((piece_type as u8) << 1 | color as u8) }
+    }
+
+    pub const fn from_index(index: usize) -> Self {
+        unsafe { std::mem::transmute(index as u8) }
+    }
+
+    pub const fn piece_color(self) -> Color {
+        unsafe { std::mem::transmute((self as u8) & 1) }
+    }
+
+    pub const fn piece_type(self) -> PieceType {
+        unsafe { std::mem::transmute((self as u8) >> 1) }
     }
 }
 
 impl TryFrom<char> for Piece {
     type Error = ();
 
-    /// Converts a character from the Forsyth–Edwards Notation to a piece.
     fn try_from(value: char) -> Result<Self, Self::Error> {
-        match value {
-            'P' | 'p' => Ok(Self::Pawn),
-            'N' | 'n' => Ok(Self::Knight),
-            'B' | 'b' => Ok(Self::Bishop),
-            'R' | 'r' => Ok(Self::Rook),
-            'Q' | 'q' => Ok(Self::Queen),
-            'K' | 'k' => Ok(Self::King),
-            _ => Err(()),
-        }
+        let index = "PpNnBbRrQqKk".find(value).ok_or(())?;
+        Ok(Piece::from_index(index))
     }
 }
 
@@ -51,6 +58,39 @@ impl<T> Index<Piece> for [T] {
 
 impl<T> IndexMut<Piece> for [T] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum PieceType {
+    Pawn,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King,
+    None,
+}
+
+impl PieceType {
+    pub const NUM: usize = 6;
+
+    pub const fn new(value: usize) -> Self {
+        unsafe { std::mem::transmute(value as u8) }
+    }
+}
+
+impl<T> Index<PieceType> for [T] {
+    type Output = T;
+
+    fn index(&self, index: PieceType) -> &Self::Output {
+        &self[index as usize]
+    }
+}
+
+impl<T> IndexMut<PieceType> for [T] {
+    fn index_mut(&mut self, index: PieceType) -> &mut Self::Output {
         &mut self[index as usize]
     }
 }

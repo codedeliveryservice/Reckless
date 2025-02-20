@@ -1,7 +1,7 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     nnue::Network,
-    types::{Bitboard, Castling, Color, FullMove, Move, Piece, Square},
+    types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
 
 #[cfg(test)]
@@ -14,7 +14,7 @@ mod see;
 mod zobrist;
 
 const MAX_PHASE: i32 = 62;
-const PHASE_WEIGHTS: [i32; Piece::NUM - 1] = [0, 3, 3, 5, 9];
+const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
@@ -24,10 +24,6 @@ const PHASE_WEIGHTS: [i32; Piece::NUM - 1] = [0, 3, 3, 5, 9];
 #[derive(Copy, Clone, Default)]
 struct InternalState {
     hash_key: u64,
-    pawn_key: u64,
-    minor_key: u64,
-    major_key: u64,
-    non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -38,12 +34,12 @@ struct InternalState {
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
-    pieces: [Bitboard; Piece::NUM],
+    pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
-    move_stack: Vec<FullMove>,
+    move_stack: Vec<Move>,
     nnue: Network,
 }
 
@@ -67,30 +63,14 @@ impl Board {
         self.state.hash_key
     }
 
-    pub const fn pawn_key(&self) -> u64 {
-        self.state.pawn_key
-    }
-
-    pub const fn minor_key(&self) -> u64 {
-        self.state.minor_key
-    }
-
-    pub const fn major_key(&self) -> u64 {
-        self.state.major_key
-    }
-
-    pub fn non_pawn_key(&self, color: Color) -> u64 {
-        self.state.non_pawn_keys[color]
-    }
-
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type.
-    pub fn pieces(&self, piece: Piece) -> Bitboard {
-        self.pieces[piece]
+    pub fn pieces(&self, piece_type: PieceType) -> Bitboard {
+        self.pieces[piece_type]
     }
 
     /// Returns a `Bitboard` for all pieces on the board.
@@ -99,8 +79,8 @@ impl Board {
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
-    pub fn of(&self, piece: Piece, color: Color) -> Bitboard {
-        self.pieces(piece) & self.colors(color)
+    pub fn of(&self, piece_type: PieceType, color: Color) -> Bitboard {
+        self.pieces(piece_type) & self.colors(color)
     }
 
     /// Returns a `Bitboard` with friendly pieces for the current state.
@@ -114,13 +94,13 @@ impl Board {
     }
 
     /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
-    pub fn our(&self, piece: Piece) -> Bitboard {
-        self.pieces(piece) & self.us()
+    pub fn our(&self, piece_type: PieceType) -> Bitboard {
+        self.pieces(piece_type) & self.us()
     }
 
     /// Returns a `Bitboard` with enemy pieces of the specified `Piece` type.
-    pub fn their(&self, piece: Piece) -> Bitboard {
-        self.pieces(piece) & self.them()
+    pub fn their(&self, piece_type: PieceType) -> Bitboard {
+        self.pieces(piece_type) & self.them()
     }
 
     /// Finds a piece on the specified square, if found; otherwise, `Piece::None`.
@@ -132,45 +112,35 @@ impl Board {
     ///
     /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
     pub fn has_non_pawn_material(&self) -> bool {
-        self.our(Piece::Pawn) | self.our(Piece::King) != self.us()
+        self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
     }
 
     /// Places a piece of the specified type and color on the square.
-    pub fn add_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
+    pub fn add_piece<const NNUE: bool>(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
-        self.pieces[piece].set(square);
-        self.colors[color].set(square);
-        self.update_hash(color, piece, square);
+        self.colors[piece.piece_color()].set(square);
+        self.pieces[piece.piece_type()].set(square);
+        self.update_hash(piece, square);
+
         if NNUE {
-            self.nnue.activate(color, piece, square);
+            self.nnue.activate(piece, square);
         }
     }
 
     /// Removes a piece of the specified type and color from the square.
-    pub fn remove_piece<const NNUE: bool>(&mut self, color: Color, piece: Piece, square: Square) {
+    pub fn remove_piece<const NNUE: bool>(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
-        self.pieces[piece].clear(square);
-        self.colors[color].clear(square);
-        self.update_hash(color, piece, square);
+        self.colors[piece.piece_color()].clear(square);
+        self.pieces[piece.piece_type()].clear(square);
+        self.update_hash(piece, square);
+
         if NNUE {
-            self.nnue.deactivate(color, piece, square);
+            self.nnue.deactivate(piece, square);
         }
     }
 
-    pub fn update_hash(&mut self, color: Color, piece: Piece, square: Square) {
-        self.state.hash_key ^= ZOBRIST.pieces[color][piece][square];
-
-        if piece == Piece::Pawn {
-            self.state.pawn_key ^= ZOBRIST.pieces[color][piece][square];
-        } else {
-            self.state.non_pawn_keys[color] ^= ZOBRIST.pieces[color][piece][square];
-
-            if [Piece::Knight, Piece::Bishop].contains(&piece) {
-                self.state.minor_key ^= ZOBRIST.pieces[color][piece][square];
-            } else if [Piece::Rook, Piece::Queen].contains(&piece) {
-                self.state.major_key ^= ZOBRIST.pieces[color][piece][square];
-            }
-        }
+    pub fn update_hash(&mut self, piece: Piece, square: Square) {
+        self.state.hash_key ^= ZOBRIST.pieces[piece][square];
     }
 
     /// Calculates the score of the current position from the perspective of the side to move.
@@ -187,7 +157,7 @@ impl Board {
     }
 
     pub fn game_phase(&self) -> i32 {
-        [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen]
+        [PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
             .iter()
             .map(|&piece| self.pieces(piece).len() as i32 * PHASE_WEIGHTS[piece])
             .sum::<i32>()
@@ -196,7 +166,7 @@ impl Board {
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self) -> bool {
-        self.draw_by_repetition() || self.draw_by_fifty_move_rule()
+        self.draw_by_repetition() || self.draw_by_fifty_move_rule() || self.draw_by_insufficient_material()
     }
 
     /// Returns `true` if the current position has already been present at least once
@@ -216,13 +186,10 @@ impl Board {
     /// Returns `true` if the current position is a known draw by insufficient material:
     /// - Two kings only
     /// - Two kings and one minor piece
-    ///
-    /// This method is only used for data generation.
-    #[cfg(feature = "datagen")]
     pub fn draw_by_insufficient_material(&self) -> bool {
         match self.occupancies().len() {
             2 => true,
-            3 => !(self.pieces(Piece::Knight) | self.pieces(Piece::Bishop)).is_empty(),
+            3 => self.pieces(PieceType::Knight) | self.pieces(PieceType::Bishop) != Bitboard(0),
             _ => false,
         }
     }
@@ -232,18 +199,9 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
-    /// Returns the move at the specified index from the tail of the move stack.
-    /// E.g. `tail_move(1)` returns the last move made.
-    pub fn tail_move(&self, index: usize) -> FullMove {
-        match self.move_stack.len().checked_sub(index) {
-            Some(index) => self.move_stack[index],
-            None => FullMove::NULL,
-        }
-    }
-
     /// Returns `true` if the last move made was a null move.
     pub fn is_last_move_null(&self) -> bool {
-        self.move_stack.last() == Some(&FullMove::NULL)
+        self.move_stack.last() == Some(&Move::NULL)
     }
 
     /// Returns `true` if the square is attacked by pieces of the specified color.
@@ -252,56 +210,34 @@ impl Board {
     }
 
     pub fn in_check(&self) -> bool {
-        let king = self.our(Piece::King).lsb();
+        let king = self.our(PieceType::King).lsb();
         self.is_square_attacked_by(king, !self.side_to_move)
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
         use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
 
-        king_attacks(square) & self.pieces(Piece::King)
-            | knight_attacks(square) & self.pieces(Piece::Knight)
-            | pawn_attacks(square, Color::White) & self.of(Piece::Pawn, Color::Black)
-            | pawn_attacks(square, Color::Black) & self.of(Piece::Pawn, Color::White)
-            | rook_attacks(square, occupancies) & (self.pieces(Piece::Rook) | self.pieces(Piece::Queen))
-            | bishop_attacks(square, occupancies) & (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen))
-    }
-
-    /// Estimates the resulting Zobrist hash key after making the move.
-    pub fn key_after(&self, mv: Move) -> u64 {
-        let piece = self.piece_on(mv.start());
-        let start = mv.start();
-        let target = mv.target();
-
-        let mut key = self.state.hash_key;
-
-        key ^= ZOBRIST.pieces[self.side_to_move][piece][start];
-        key ^= ZOBRIST.pieces[self.side_to_move][piece][target];
-
-        if mv.is_capture() && !mv.is_en_passant() {
-            let capture = self.piece_on(target);
-            key ^= ZOBRIST.pieces[!self.side_to_move][capture][target];
-        }
-
-        key ^= ZOBRIST.side;
-        key
+        king_attacks(square) & self.pieces(PieceType::King)
+            | knight_attacks(square) & self.pieces(PieceType::Knight)
+            | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
+            | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
+            | rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
+            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
     }
 
     /// Performs Zobrist hashing on `self`, generating an *almost* unique
     /// position hash key from scratch.
     ///
     /// This method should only be used for the initial hash key generation.
-    /// For further reference, use `self.hash_key` to get a key that is
-    /// incrementally updated during the game due to performance considerations.
+    /// For further reference, use `hash_key()` to get a key that is
+    /// incrementally updated during the game.
     pub fn generate_hash_key(&self) -> u64 {
         let mut hash = 0;
 
         for piece in 0..Piece::NUM {
-            let piece = Piece::new(piece);
-            for color in [Color::White, Color::Black] {
-                for square in self.of(piece, color) {
-                    hash ^= ZOBRIST.pieces[color][piece][square];
-                }
+            let piece = Piece::from_index(piece);
+            for square in self.of(piece.piece_type(), piece.piece_color()) {
+                hash ^= ZOBRIST.pieces[piece][square];
             }
         }
 
@@ -315,52 +251,6 @@ impl Board {
         hash ^= ZOBRIST.castling[self.state.castling];
         hash
     }
-
-    pub fn generate_pawn_key(&self) -> u64 {
-        let mut hash = 0;
-        for color in [Color::White, Color::Black] {
-            for square in self.of(Piece::Pawn, color) {
-                hash ^= ZOBRIST.pieces[color][Piece::Pawn][square];
-            }
-        }
-        hash
-    }
-
-    pub fn generate_minor_key(&self) -> u64 {
-        let mut hash = 0;
-        for color in [Color::White, Color::Black] {
-            for piece in [Piece::Knight, Piece::Bishop] {
-                for square in self.of(piece, color) {
-                    hash ^= ZOBRIST.pieces[color][piece][square];
-                }
-            }
-        }
-        hash
-    }
-
-    pub fn generate_major_key(&self) -> u64 {
-        let mut hash = 0;
-        for color in [Color::White, Color::Black] {
-            for piece in [Piece::Rook, Piece::Queen] {
-                for square in self.of(piece, color) {
-                    hash ^= ZOBRIST.pieces[color][piece][square];
-                }
-            }
-        }
-        hash
-    }
-
-    pub fn generate_non_pawn_keys(&self) -> [u64; Color::NUM] {
-        let mut hashes = [0; Color::NUM];
-        for color in [Color::White, Color::Black] {
-            for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen, Piece::King] {
-                for square in self.of(piece, color) {
-                    hashes[color] ^= ZOBRIST.pieces[color][piece][square];
-                }
-            }
-        }
-        hashes
-    }
 }
 
 impl Default for Board {
@@ -368,7 +258,7 @@ impl Default for Board {
         Self {
             side_to_move: Color::White,
             state: InternalState::default(),
-            pieces: [Bitboard::default(); Piece::NUM],
+            pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::default(),

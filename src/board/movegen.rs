@@ -1,6 +1,6 @@
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, Piece, Rank, Square},
+    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
 impl super::Board {
@@ -24,11 +24,11 @@ impl super::Board {
 
         self.collect_pawn_moves::<CAPTURE>(&mut list);
 
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Knight, knight_attacks);
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::Queen, |square| queen_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, Piece::King, king_attacks);
+        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Knight, knight_attacks);
+        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<CAPTURE, _>(&mut list, PieceType::King, king_attacks);
 
         if !CAPTURE {
             self.collect_castling(&mut list);
@@ -38,7 +38,10 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const CAPTURE: bool, T: Fn(Square) -> Bitboard>(&self, list: &mut MoveList, piece: Piece, gen: T) {
+    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut MoveList, piece: PieceType, gen: T)
+    where
+        T: Fn(Square) -> Bitboard,
+    {
         for start in self.our(piece) {
             let targets = gen(start) & !self.us();
 
@@ -82,7 +85,7 @@ impl super::Board {
 
     /// Adds all pawn moves to the move list.
     fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut MoveList) {
-        let pawns = self.our(Piece::Pawn);
+        let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),

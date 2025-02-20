@@ -1,10 +1,10 @@
 use super::{zobrist::ZOBRIST, Board};
-use crate::types::{FullMove, Move, MoveKind, Piece, Square};
+use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
     pub fn make_null_move(&mut self) {
         self.side_to_move = !self.side_to_move;
-        self.move_stack.push(FullMove::NULL);
+        self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
 
         self.state.hash_key ^= ZOBRIST.side;
@@ -26,8 +26,10 @@ impl Board {
         let start = mv.start();
         let target = mv.target();
         let piece = self.piece_on(start);
+        let pt = piece.piece_type();
+        let stm = self.side_to_move;
 
-        self.move_stack.push(FullMove::new(piece, mv));
+        self.move_stack.push(mv);
         self.state_stack.push(self.state);
 
         if NNUE && !IN_PLACE {
@@ -44,7 +46,7 @@ impl Board {
 
         self.state.captured = None;
 
-        if mv.is_capture() || piece == Piece::Pawn {
+        if mv.is_capture() || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
         } else {
             self.state.halfmove_clock += 1;
@@ -52,12 +54,12 @@ impl Board {
 
         let captured = self.piece_on(target);
         if captured != Piece::None {
-            self.remove_piece::<NNUE>(!self.side_to_move, captured, target);
+            self.remove_piece::<NNUE>(captured, target);
             self.state.captured = Some(captured);
         }
 
-        self.remove_piece::<NNUE>(self.side_to_move, piece, start);
-        self.add_piece::<NNUE>(self.side_to_move, piece, target);
+        self.remove_piece::<NNUE>(piece, start);
+        self.add_piece::<NNUE>(piece, target);
 
         match mv.kind() {
             MoveKind::DoublePush => {
@@ -65,16 +67,16 @@ impl Board {
                 self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             }
             MoveKind::EnPassant => {
-                self.remove_piece::<NNUE>(!self.side_to_move, Piece::Pawn, target ^ 8);
+                self.remove_piece::<NNUE>(Piece::new(!stm, PieceType::Pawn), target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.remove_piece::<NNUE>(self.side_to_move, Piece::Rook, rook_start);
-                self.add_piece::<NNUE>(self.side_to_move, Piece::Rook, rook_target);
+                self.remove_piece::<NNUE>(Piece::new(stm, PieceType::Rook), rook_start);
+                self.add_piece::<NNUE>(Piece::new(stm, PieceType::Rook), rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece::<NNUE>(self.side_to_move, Piece::Pawn, target);
-                self.add_piece::<NNUE>(self.side_to_move, mv.promotion_piece().unwrap(), target);
+                self.remove_piece::<NNUE>(Piece::new(stm, PieceType::Pawn), target);
+                self.add_piece::<NNUE>(Piece::new(stm, mv.promotion_piece().unwrap()), target);
             }
             _ => (),
         }
@@ -87,7 +89,7 @@ impl Board {
             self.nnue.commit();
         }
 
-        let king = self.their(Piece::King).lsb();
+        let king = self.their(PieceType::King).lsb();
         !self.is_square_attacked_by(king, self.side_to_move)
     }
 
@@ -102,26 +104,27 @@ impl Board {
         let start = mv.start();
         let target = mv.target();
         let piece = self.piece_on(target);
+        let stm = self.side_to_move;
 
-        self.add_piece::<false>(self.side_to_move, piece, start);
-        self.remove_piece::<false>(self.side_to_move, piece, target);
+        self.add_piece::<false>(piece, start);
+        self.remove_piece::<false>(piece, target);
 
         if let Some(piece) = self.state.captured {
-            self.add_piece::<false>(!self.side_to_move, piece, target);
+            self.add_piece::<false>(piece, target);
         }
 
         match mv.kind() {
             MoveKind::EnPassant => {
-                self.add_piece::<false>(!self.side_to_move, Piece::Pawn, target ^ 8);
+                self.add_piece::<false>(Piece::new(!stm, PieceType::Pawn), target ^ 8);
             }
             MoveKind::Castling => {
                 let (rook_start, rook_target) = get_rook_move(target);
-                self.add_piece::<false>(self.side_to_move, Piece::Rook, rook_start);
-                self.remove_piece::<false>(self.side_to_move, Piece::Rook, rook_target);
+                self.add_piece::<false>(Piece::new(stm, PieceType::Rook), rook_start);
+                self.remove_piece::<false>(Piece::new(stm, PieceType::Rook), rook_target);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece::<false>(self.side_to_move, piece, start);
-                self.add_piece::<false>(self.side_to_move, Piece::Pawn, start);
+                self.remove_piece::<false>(piece, start);
+                self.add_piece::<false>(Piece::new(stm, PieceType::Pawn), start);
             }
             _ => (),
         }

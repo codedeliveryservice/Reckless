@@ -1,4 +1,4 @@
-use crate::types::{Color, Piece, Square, MAX_PLY};
+use crate::types::{Color, Piece, PieceType, Square, MAX_PLY};
 
 mod simd;
 
@@ -87,8 +87,8 @@ impl Network {
         }
     }
 
-    pub fn accumulate(&mut self, color: Color, piece: Piece, square: Square) {
-        let (white, black) = index(color, piece, square);
+    pub fn accumulate(&mut self, piece: Piece, square: Square) {
+        let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
         let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
             accumulators[0][i] += PARAMETERS.input_weights[white][i];
@@ -96,16 +96,16 @@ impl Network {
         }
     }
 
-    pub fn activate(&mut self, color: Color, piece: Piece, square: Square) {
-        self.adds.push(index(color, piece, square));
+    pub fn activate(&mut self, piece: Piece, square: Square) {
+        self.adds.push(index(piece.piece_color(), piece.piece_type(), square));
     }
 
-    pub fn deactivate(&mut self, color: Color, piece: Piece, square: Square) {
-        self.subs.push(index(color, piece, square));
+    pub fn deactivate(&mut self, piece: Piece, square: Square) {
+        self.subs.push(index(piece.piece_color(), piece.piece_type(), square));
     }
 }
 
-fn index(color: Color, piece: Piece, square: Square) -> FtIndex {
+fn index(color: Color, piece: PieceType, square: Square) -> FtIndex {
     (
         384 * color as usize + 64 * piece as usize + square as usize,
         384 * !color as usize + 64 * piece as usize + (square ^ 56) as usize,
