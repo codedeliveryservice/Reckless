@@ -1,7 +1,6 @@
 use std::time::Instant;
 
 use crate::{
-    board::Board,
     thread::ThreadData,
     types::{Score, MAX_PLY},
 };

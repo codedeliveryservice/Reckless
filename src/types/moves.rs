@@ -2,8 +2,8 @@ use std::mem;
 
 use super::{PieceType, Square};
 
-/// Represents a chess move containing the starting and target squares, as well as flags for special moves.
-/// The information encoded as a 16-bit integer, 6 bits for the start/target square and 4 bits for the flags.
+/// Represents a chess move containing the from and to squares, as well as flags for special moves.
+/// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
 #[derive(Copy, Clone, PartialEq)]
@@ -36,19 +36,16 @@ pub enum MoveKind {
 impl Move {
     pub const NULL: Self = Self(0);
 
-    const START_MASK: u16 = 0b0000_0000_0011_1111;
-    const TARGET_MASK: u16 = 0b0000_1111_1100_0000;
-
-    pub const fn new(start: Square, target: Square, kind: MoveKind) -> Self {
-        Self(start as u16 | (target as u16) << 6 | (kind as u16) << 12)
+    pub const fn new(from: Square, to: Square, kind: MoveKind) -> Self {
+        Self(from as u16 | (to as u16) << 6 | (kind as u16) << 12)
     }
 
-    pub const fn start(self) -> Square {
-        unsafe { mem::transmute((self.0 & Self::START_MASK) as u8) }
+    pub const fn from(self) -> Square {
+        unsafe { mem::transmute((self.0 & 0b0000_0000_0011_1111) as u8) }
     }
 
-    pub const fn target(self) -> Square {
-        unsafe { mem::transmute(((self.0 & Self::TARGET_MASK) >> 6) as u8) }
+    pub const fn to(self) -> Square {
+        unsafe { mem::transmute(((self.0 & 0b0000_1111_1100_0000) >> 6) as u8) }
     }
 
     pub const fn kind(self) -> MoveKind {
@@ -88,7 +85,7 @@ impl Move {
 
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut output = format!("{}{}", self.start(), self.target());
+        let mut output = format!("{}{}", self.from(), self.to());
 
         match self.promotion_piece() {
             Some(PieceType::Knight) => output.push('n'),

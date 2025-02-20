@@ -14,15 +14,15 @@ pub trait CastlingKind {
 }
 
 macro_rules! impl_castling_kind {
-    ($($kind:ident => $raw:expr, $path_mask:expr, $start:expr, $adjacent: expr, $target:expr,)*)  => {
+    ($($kind:ident => $raw:expr, $path_mask:expr, $from:expr, $adjacent: expr, $to:expr,)*)  => {
         $(
             pub struct $kind;
 
             impl CastlingKind for $kind {
                 const MASK: u8 = $raw;
                 const PATH_MASK: Bitboard = Bitboard($path_mask);
-                const CHECK_SQUARES: [Square; 2] = [$start, $adjacent];
-                const CASTLING_MOVE: Move = Move::new($start, $target, MoveKind::Castling);
+                const CHECK_SQUARES: [Square; 2] = [$from, $adjacent];
+                const CASTLING_MOVE: Move = Move::new($from, $to, MoveKind::Castling);
             }
         )*
     };
@@ -67,8 +67,8 @@ impl Castling {
     ];
 
     /// Updates the castling rights based on the movement of a piece.
-    pub fn update(&mut self, start: Square, target: Square) {
-        self.raw &= Self::UPDATES[start] & Self::UPDATES[target];
+    pub fn update(&mut self, from: Square, to: Square) {
+        self.raw &= Self::UPDATES[from] & Self::UPDATES[to];
     }
 
     /// Checks if a specific castling kind is allowed.

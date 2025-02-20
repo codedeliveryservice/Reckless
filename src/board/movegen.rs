@@ -4,8 +4,8 @@ use crate::{
 };
 
 macro_rules! push {
-    ($list:ident, $start:expr, $target:expr, $kind:expr) => {
-        $list.push(Move::new($start, $target, $kind));
+    ($list:ident, $from:expr, $to:expr, $kind:expr) => {
+        $list.push(Move::new($from, $to, $kind));
     };
 }
 
@@ -48,16 +48,16 @@ impl super::Board {
     where
         T: Fn(Square) -> Bitboard,
     {
-        for start in self.our(piece) {
-            let targets = gen(start) & !self.us();
+        for from in self.our(piece) {
+            let targets = gen(from) & !self.us();
 
-            for target in targets & self.them() {
-                push!(list, start, target, MoveKind::Capture);
+            for to in targets & self.them() {
+                push!(list, from, to, MoveKind::Capture);
             }
 
             if !CAPTURE {
-                for target in targets & !self.them() {
-                    push!(list, start, target, MoveKind::Normal);
+                for to in targets & !self.them() {
+                    push!(list, from, to, MoveKind::Normal);
                 }
             }
         }
@@ -123,42 +123,42 @@ impl super::Board {
         let single_pushes = non_promotions.shift(up) & empty;
         let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
-        for target in single_pushes {
-            push!(list, target.shift(-up), target, MoveKind::Normal);
+        for to in single_pushes {
+            push!(list, to.shift(-up), to, MoveKind::Normal);
         }
 
-        for target in double_pushes {
-            push!(list, target.shift(-up * 2), target, MoveKind::DoublePush);
+        for to in double_pushes {
+            push!(list, to.shift(-up * 2), to, MoveKind::DoublePush);
         }
 
         let promotions = (pawns & seventh_rank).shift(up) & empty;
-        for target in promotions {
-            let start = target.shift(-up);
-            push!(list, start, target, MoveKind::PromotionQ);
-            push!(list, start, target, MoveKind::PromotionR);
-            push!(list, start, target, MoveKind::PromotionB);
-            push!(list, start, target, MoveKind::PromotionN);
+        for to in promotions {
+            let from = to.shift(-up);
+            push!(list, from, to, MoveKind::PromotionQ);
+            push!(list, from, to, MoveKind::PromotionR);
+            push!(list, from, to, MoveKind::PromotionB);
+            push!(list, from, to, MoveKind::PromotionN);
         }
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
     fn collect_pawn_captures(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
         let promotions = pawns & seventh_rank;
-        for start in promotions {
-            let captures = self.them() & pawn_attacks(start, self.side_to_move);
-            for target in captures {
-                push!(list, start, target, MoveKind::PromotionCaptureQ);
-                push!(list, start, target, MoveKind::PromotionCaptureR);
-                push!(list, start, target, MoveKind::PromotionCaptureB);
-                push!(list, start, target, MoveKind::PromotionCaptureN);
+        for from in promotions {
+            let captures = self.them() & pawn_attacks(from, self.side_to_move);
+            for to in captures {
+                push!(list, from, to, MoveKind::PromotionCaptureQ);
+                push!(list, from, to, MoveKind::PromotionCaptureR);
+                push!(list, from, to, MoveKind::PromotionCaptureB);
+                push!(list, from, to, MoveKind::PromotionCaptureN);
             }
         }
 
         let non_promotions = pawns & !seventh_rank;
-        for start in non_promotions {
-            let targets = self.them() & pawn_attacks(start, self.side_to_move);
-            for target in targets {
-                push!(list, start, target, MoveKind::Capture);
+        for from in non_promotions {
+            let targets = self.them() & pawn_attacks(from, self.side_to_move);
+            for to in targets {
+                push!(list, from, to, MoveKind::Capture);
             }
         }
     }

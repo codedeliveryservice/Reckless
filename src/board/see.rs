@@ -20,16 +20,16 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= PIECE_VALUES[self.piece_on(mv.start())];
+        balance -= PIECE_VALUES[self.piece_on(mv.from())];
         if balance >= 0 {
             return true;
         }
 
         let mut occupancies = self.occupancies();
-        occupancies.clear(mv.start());
-        occupancies.set(mv.target());
+        occupancies.clear(mv.from());
+        occupancies.set(mv.to());
 
-        let mut attackers = self.attackers_to(mv.target(), occupancies) & occupancies;
+        let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
 
         let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
@@ -60,10 +60,10 @@ impl super::Board {
 
             // Capturing a piece may reveal a new sliding attacker
             if [PieceType::Pawn, PieceType::Bishop, PieceType::Queen].contains(&attacker) {
-                attackers |= bishop_attacks(mv.target(), occupancies) & diagonal;
+                attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
             }
             if [PieceType::Rook, PieceType::Queen].contains(&attacker) {
-                attackers |= rook_attacks(mv.target(), occupancies) & orthogonal;
+                attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
             }
             attackers &= occupancies;
         }
@@ -78,7 +78,7 @@ impl super::Board {
             return PIECE_VALUES[PieceType::Pawn];
         }
 
-        let capture = self.piece_on(mv.target());
+        let capture = self.piece_on(mv.to());
         PIECE_VALUES[capture]
     }
 

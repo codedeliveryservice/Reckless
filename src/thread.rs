@@ -4,7 +4,10 @@ use std::{
 };
 
 use crate::{
-    board::Board, tables::{PrincipalVariationTable, TranspositionTable}, time::{Limits, TimeManager}, types::{is_loss, is_win, Score}
+    board::Board,
+    tables::{PrincipalVariationTable, TranspositionTable},
+    time::{Limits, TimeManager},
+    types::{is_loss, is_win, Score},
 };
 
 pub struct ThreadPool<'a> {
@@ -20,7 +23,7 @@ impl<'a> ThreadPool<'a> {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
 
-        self.vector.resize_with(threads, || ThreadData::new(&tt, stop));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop));
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
