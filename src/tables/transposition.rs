@@ -21,6 +21,7 @@ pub struct Entry {
 /// Type of the score returned by the search.
 #[derive(Copy, Clone, PartialEq)]
 pub enum Bound {
+    None,
     Exact,
     Lower,
     Upper,
@@ -39,15 +40,8 @@ struct InternalEntry {
 struct Block(AtomicU64);
 
 impl Block {
-    fn load(&self) -> u64 {
-        self.0.load(Ordering::Relaxed)
-    }
-
-    fn read(&self) -> Option<InternalEntry> {
-        match self.load() {
-            0 => None,
-            v => Some(unsafe { std::mem::transmute::<u64, InternalEntry>(v) }),
-        }
+    fn load(&self) -> InternalEntry {
+        unsafe { std::mem::transmute(self.0.load(Ordering::Relaxed)) }
     }
 
     fn write(&self, entry: InternalEntry) {
@@ -57,7 +51,7 @@ impl Block {
 
 impl Clone for Block {
     fn clone(&self) -> Self {
-        Self(AtomicU64::new(self.load()))
+        Self(AtomicU64::new(self.0.load(Ordering::Relaxed)))
     }
 }
 
@@ -94,18 +88,19 @@ impl TranspositionTable {
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
-        vector.iter().take(1000).filter(|slot| slot.load() != 0).count()
+        vector.iter().take(1000).filter(|slot| slot.load().bound != Bound::None).count()
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
-        let entry = match self.entry(hash).read() {
-            Some(v) if v.key == verification_key(hash) => v,
-            _ => return None,
-        };
+        let entry = self.entry(hash).load();
+
+        if entry.bound == Bound::None || entry.key != verification_key(hash) {
+            return None;
+        }
 
         let mut hit = Entry {
-            depth: i32::from(entry.depth),
-            score: i32::from(entry.score),
+            depth: entry.depth as i32,
+            score: entry.score as i32,
             bound: entry.bound,
             mv: entry.mv,
         };
@@ -114,6 +109,7 @@ impl TranspositionTable {
         if is_decisive(hit.score) {
             hit.score -= hit.score.signum() * ply as i32;
         }
+
         Some(hit)
     }
 
@@ -124,9 +120,9 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let entry = self.entry(hash);
+        let entry = InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv };
 
-        entry.write(InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv });
+        self.entry(hash).write(entry);
     }
 
     pub fn prefetch(&self, hash: u64) {

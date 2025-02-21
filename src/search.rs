@@ -2,8 +2,9 @@ use std::time::Instant;
 
 use crate::{
     movepick::MovePicker,
+    tables::Bound,
     thread::ThreadData,
-    types::{mated_in, Score, MAX_PLY},
+    types::{mated_in, Move, Score, MAX_PLY},
 };
 
 const PV: bool = true;
@@ -63,7 +64,22 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    let entry = td.tt.read(td.board.hash(), td.ply);
+    if let Some(entry) = entry {
+        if !is_root
+            && entry.depth >= depth
+            && match entry.bound {
+                Bound::Upper => entry.score <= alpha,
+                Bound::Lower => entry.score >= beta,
+                _ => true,
+            }
+        {
+            return entry.score;
+        }
+    }
+
     let mut best_score = -Score::INFINITE;
+    let mut best_move = Move::NULL;
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td);
@@ -90,6 +106,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             best_score = score;
 
             if score > alpha {
+                best_move = mv;
+
                 if PV {
                     td.pv.update(td.ply, mv);
                 }
@@ -106,6 +124,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     if move_count == 0 {
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
+
+    let bound = if best_score >= beta {
+        Bound::Lower
+    } else if best_move == Move::NULL {
+        Bound::Upper
+    } else {
+        Bound::Exact
+    };
+
+    td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply);
 
     best_score
 }
