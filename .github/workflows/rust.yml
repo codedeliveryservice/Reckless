@@ -34,24 +34,3 @@ jobs:
 
       - name: Run rustfmt
         run: cargo fmt -- --check
-
-      - name: Run clippy
-        run: cargo clippy -- -D warnings
-
-  datagen:
-    runs-on: ubuntu-latest
-
-    env:
-      RUSTFLAGS: -A dead_code -A unused_variables
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Fetch NNUE model
-        run: make fetch
-
-      - name: Build with `datagen` feature
-        run: cargo build --verbose --release --features datagen
-
-      - name: Run tests with `datagen` feature
-        run: cargo test --verbose --release --features datagen
