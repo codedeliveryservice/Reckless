@@ -85,12 +85,17 @@ impl Board {
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
         self.side_to_move = !self.side_to_move;
 
+        let king = self.their(PieceType::King).lsb();
+        if self.is_square_attacked_by(king, self.side_to_move) {
+            self.nnue.clear_buffers();
+            return false;
+        }
+
         if NNUE {
             self.nnue.commit();
         }
 
-        let king = self.their(PieceType::King).lsb();
-        !self.is_square_attacked_by(king, self.side_to_move)
+        true
     }
 
     pub fn undo_move<const NNUE: bool>(&mut self) {
