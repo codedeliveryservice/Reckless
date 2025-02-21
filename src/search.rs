@@ -90,7 +90,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && td.stack[td.ply - 1].mv != Move::NULL
         && td.board.has_non_pawns()
     {
-        let r = 3;
+        let r = 3 + depth / 3 + ((eval - beta) / 256).min(3);
 
         td.stack[td.ply].mv = Move::NULL;
         td.board.make_null_move();
