@@ -85,7 +85,7 @@ impl super::Board {
     fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
         if (KIND::PATH_MASK & self.occupancies()).is_empty() && self.state.castling.is_allowed::<KIND>() {
             for square in KIND::CHECK_SQUARES {
-                if self.is_square_attacked_by(square, !self.side_to_move) {
+                if self.is_threatened(square) {
                     return;
                 }
             }

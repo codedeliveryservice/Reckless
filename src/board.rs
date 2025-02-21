@@ -211,13 +211,12 @@ impl Board {
         !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
     }
 
-    pub fn is_threatened(&self, square: Square) -> bool {
-        self.state.threats.contains(square)
+    pub fn in_check(&self) -> bool {
+        self.is_threatened(self.our(PieceType::King).lsb())
     }
 
-    pub fn in_check(&self) -> bool {
-        let king = self.our(PieceType::King).lsb();
-        self.is_square_attacked_by(king, !self.side_to_move)
+    pub fn is_threatened(&self, square: Square) -> bool {
+        self.state.threats.contains(square)
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
