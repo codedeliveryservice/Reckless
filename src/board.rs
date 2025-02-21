@@ -249,9 +249,7 @@ impl Board {
             threats |= rook_attacks(square, occupancies);
         }
 
-        for square in self.their(PieceType::King) {
-            threats |= king_attacks(square);
-        }
+        threats |= king_attacks(self.their(PieceType::King).lsb());
 
         threats
     }
