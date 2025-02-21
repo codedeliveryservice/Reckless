@@ -4,7 +4,6 @@ use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 impl Board {
     pub fn make_null_move(&mut self) {
         self.side_to_move = !self.side_to_move;
-        self.move_stack.push(Move::NULL);
         self.state_stack.push(self.state);
 
         self.state.hash_key ^= ZOBRIST.side;
@@ -21,7 +20,6 @@ impl Board {
     pub fn undo_null_move(&mut self) {
         self.side_to_move = !self.side_to_move;
         self.state = self.state_stack.pop().unwrap();
-        self.move_stack.pop();
     }
 
     pub fn make_move<const NNUE: bool, const IN_PLACE: bool>(&mut self, mv: Move) -> bool {
@@ -31,7 +29,6 @@ impl Board {
         let pt = piece.piece_type();
         let stm = self.side_to_move;
 
-        self.move_stack.push(mv);
         self.state_stack.push(self.state);
 
         if NNUE && !IN_PLACE {
@@ -103,14 +100,13 @@ impl Board {
         true
     }
 
-    pub fn undo_move<const NNUE: bool>(&mut self) {
+    pub fn undo_move<const NNUE: bool>(&mut self, mv: Move) {
         if NNUE {
             self.nnue.pop();
         }
 
         self.side_to_move = !self.side_to_move;
 
-        let mv = self.move_stack.pop().unwrap();
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(to);

@@ -2,7 +2,7 @@ use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     nnue::Network,
-    types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
+    types::{Bitboard, Castling, Color, Piece, PieceType, Square},
 };
 
 #[cfg(test)]
@@ -41,7 +41,6 @@ pub struct Board {
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
-    move_stack: Vec<Move>,
     nnue: Network,
 }
 
@@ -201,11 +200,6 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
-    /// Returns `true` if the last move made was a null move.
-    pub fn is_last_move_null(&self) -> bool {
-        self.move_stack.last() == Some(&Move::NULL)
-    }
-
     /// Returns `true` if the square is attacked by pieces of the specified color.
     pub fn is_square_attacked_by(&self, square: Square, color: Color) -> bool {
         !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
@@ -291,7 +285,6 @@ impl Default for Board {
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::default(),
-            move_stack: Vec::default(),
             nnue: Network::default(),
         }
     }

@@ -93,7 +93,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     while let Some(mv) = move_picker.next() {
         if !td.board.make_move::<true, false>(mv) {
-            td.board.undo_move::<true>();
+            td.board.undo_move::<true>(mv);
             continue;
         }
 
@@ -110,7 +110,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             score = -search::<true>(td, -beta, -alpha, depth - 1);
         }
 
-        td.board.undo_move::<true>();
+        td.board.undo_move::<true>(mv);
         td.ply -= 1;
 
         if td.stopped {
@@ -186,7 +186,7 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
 
     while let Some(mv) = move_picker.next() {
         if !td.board.make_move::<true, false>(mv) {
-            td.board.undo_move::<true>();
+            td.board.undo_move::<true>(mv);
             continue;
         }
 
@@ -194,7 +194,7 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
 
         let score = -qsearch(td, -beta, -alpha);
 
-        td.board.undo_move::<true>();
+        td.board.undo_move::<true>(mv);
         td.ply -= 1;
 
         if td.stopped {
