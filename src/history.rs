@@ -3,6 +3,10 @@ use crate::{
     types::{ArrayVec, Move},
 };
 
+fn bonus(depth: i32) -> i32 {
+    (128 * depth - 64).min(1280)
+}
+
 pub struct MainHistory {
     // [side_to_move][from_to]
     entries: Box<[[i32; 64 * 64]; 2]>,
@@ -16,7 +20,7 @@ impl MainHistory {
     }
 
     pub fn update(&mut self, board: &Board, best_move: Move, quiet_moves: ArrayVec<Move, 32>, depth: i32) {
-        let bonus = 32 * depth;
+        let bonus = bonus(depth);
 
         self.update_single(board, best_move, bonus);
 
