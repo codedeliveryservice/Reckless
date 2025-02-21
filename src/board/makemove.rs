@@ -10,6 +10,8 @@ impl Board {
         self.state.hash_key ^= ZOBRIST.side;
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
 
+        self.state.threats = self.generate_threats();
+
         if self.state.en_passant != Square::None {
             self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
@@ -81,9 +83,12 @@ impl Board {
             _ => (),
         }
 
+        self.side_to_move = !self.side_to_move;
+
         self.state.castling.update(from, to);
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
-        self.side_to_move = !self.side_to_move;
+
+        self.state.threats = self.generate_threats();
 
         let king = self.their(PieceType::King).lsb();
         if self.is_square_attacked_by(king, self.side_to_move) {
