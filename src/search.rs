@@ -94,11 +94,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let mut score = Score::ZERO;
 
-        if move_count > 1 {
+        if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, depth - 1);
         }
 
-        if move_count == 1 || (alpha < score && score < beta) {
+        if PV && (move_count == 1 || score > alpha) {
             score = -search::<true>(td, -beta, -alpha, depth - 1);
         }
 
