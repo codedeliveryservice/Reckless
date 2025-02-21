@@ -4,7 +4,7 @@ use crate::{
     movepick::MovePicker,
     tables::Bound,
     thread::ThreadData,
-    types::{mated_in, Move, Score, MAX_PLY},
+    types::{mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -86,6 +86,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
 
+    let mut quiet_moves = ArrayVec::<Move, 32>::new();
+
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td, tt_move);
 
@@ -126,11 +128,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
+                    update_histories(td, best_move, quiet_moves, depth);
                     break;
                 }
 
                 alpha = score;
             }
+        }
+
+        if mv != best_move && move_count < 32 && !mv.is_noisy() {
+            quiet_moves.push(mv);
         }
     }
 
@@ -208,4 +215,12 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     }
 
     best_score
+}
+
+fn update_histories(td: &mut ThreadData, best_move: Move, quiet_moves: ArrayVec<Move, 32>, depth: i32) {
+    if best_move.is_noisy() {
+        return;
+    }
+
+    td.main_history.update(&td.board, best_move, quiet_moves, depth);
 }

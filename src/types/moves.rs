@@ -48,6 +48,10 @@ impl Move {
         unsafe { mem::transmute(((self.0 & 0b0000_1111_1100_0000) >> 6) as u8) }
     }
 
+    pub const fn from_to(self) -> usize {
+        (self.0 & 0b0000_1111_1111_1111) as usize
+    }
+
     pub const fn kind(self) -> MoveKind {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
