@@ -1,5 +1,6 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
+    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     nnue::Network,
     types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
@@ -28,6 +29,7 @@ struct InternalState {
     castling: Castling,
     halfmove_clock: u8,
     captured: Option<Piece>,
+    threats: Bitboard,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -210,19 +212,46 @@ impl Board {
     }
 
     pub fn in_check(&self) -> bool {
-        let king = self.our(PieceType::King).lsb();
-        self.is_square_attacked_by(king, !self.side_to_move)
+        self.is_threatened(self.our(PieceType::King).lsb())
+    }
+
+    pub fn is_threatened(&self, square: Square) -> bool {
+        self.state.threats.contains(square)
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        use crate::lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
-
         king_attacks(square) & self.pieces(PieceType::King)
             | knight_attacks(square) & self.pieces(PieceType::Knight)
             | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
             | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
             | rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
             | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
+    }
+
+    pub fn generate_threats(&self) -> Bitboard {
+        let occupancies = self.occupancies();
+
+        let mut threats = Bitboard::default();
+
+        for square in self.their(PieceType::Pawn) {
+            threats |= pawn_attacks(square, !self.side_to_move);
+        }
+
+        for square in self.their(PieceType::Knight) {
+            threats |= knight_attacks(square);
+        }
+
+        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
+            threats |= bishop_attacks(square, occupancies);
+        }
+
+        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
+            threats |= rook_attacks(square, occupancies);
+        }
+
+        threats |= king_attacks(self.their(PieceType::King).lsb());
+
+        threats
     }
 
     /// Performs Zobrist hashing on `self`, generating an *almost* unique

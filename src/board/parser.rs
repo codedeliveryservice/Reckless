@@ -56,6 +56,7 @@ impl FromStr for Board {
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
+        board.state.threats = board.generate_threats();
         board.state.hash_key = board.generate_hash_key();
 
         Ok(board)
