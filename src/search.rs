@@ -77,6 +77,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    let eval = if in_check { Score::NONE } else { td.board.evaluate() };
+
+    if !PV && !in_check && depth <= 8 && eval - 80 * depth >= beta {
+        return eval;
+    }
+
     let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
 
