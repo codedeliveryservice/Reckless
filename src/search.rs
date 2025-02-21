@@ -4,7 +4,7 @@ use crate::{
     movepick::MovePicker,
     thread::ThreadData,
     transposition::Bound,
-    types::{mated_in, ArrayVec, Move, Score, MAX_PLY},
+    types::{is_decisive, mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -81,6 +81,27 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     if !PV && !in_check && depth <= 8 && eval - 80 * depth >= beta {
         return eval;
+    }
+
+    if !PV
+        && !in_check
+        && depth >= 3
+        && eval >= beta
+        && td.stack[td.ply - 1].mv != Move::NULL
+        && td.board.has_non_pawns()
+    {
+        let r = 3;
+
+        td.stack[td.ply].mv = Move::NULL;
+        td.board.make_null_move();
+        let score = -search::<false>(td, -beta, -beta + 1, depth - r);
+        td.board.undo_null_move();
+
+        match score {
+            s if is_decisive(s) => return beta,
+            s if s >= beta => return s,
+            _ => (),
+        }
     }
 
     let mut best_score = -Score::INFINITE;
