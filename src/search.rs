@@ -7,9 +7,6 @@ use crate::{
     types::{mated_in, Move, Score, MAX_PLY},
 };
 
-const PV: bool = true;
-const NON_PV: bool = false;
-
 pub fn start(td: &mut ThreadData, silent: bool) {
     td.nodes = 0;
     td.completed_depth = 0;
@@ -19,7 +16,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let now = Instant::now();
 
     for depth in 1..MAX_PLY as i32 {
-        let score = search::<PV>(td, -Score::INFINITE, Score::INFINITE, depth);
+        let score = search::<true>(td, -Score::INFINITE, Score::INFINITE, depth);
 
         if !silent {
             td.print_uci_info(depth, score, now);
@@ -95,7 +92,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         move_count += 1;
         td.ply += 1;
 
-        let score = -search::<PV>(td, -beta, -alpha, depth - 1);
+        let mut score = Score::ZERO;
+
+        if move_count > 1 {
+            score = -search::<false>(td, -alpha - 1, -alpha, depth - 1);
+        }
+
+        if move_count == 1 || (alpha < score && score < beta) {
+            score = -search::<true>(td, -beta, -alpha, depth - 1);
+        }
 
         td.board.undo_move::<true>();
         td.ply -= 1;
