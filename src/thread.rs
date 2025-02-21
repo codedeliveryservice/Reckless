@@ -6,9 +6,9 @@ use std::{
 use crate::{
     board::Board,
     history::MainHistory,
-    tables::{PrincipalVariationTable, TranspositionTable},
     time::{Limits, TimeManager},
-    types::{is_loss, is_win, Score},
+    transposition::TranspositionTable,
+    types::{is_loss, is_win, Move, Score, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -98,9 +98,46 @@ impl<'a> ThreadData<'a> {
             self.nodes,
             self.tt.hashfull(),
         );
-        for mv in &self.pv.variation() {
+        for mv in self.pv.line() {
             print!(" {mv}");
         }
         println!();
+    }
+}
+
+pub struct PrincipalVariationTable {
+    table: [[Move; MAX_PLY + 1]; MAX_PLY + 1],
+    len: [usize; MAX_PLY + 1],
+}
+
+impl PrincipalVariationTable {
+    pub const fn best_move(&self) -> Move {
+        self.table[0][0]
+    }
+
+    pub fn line(&self) -> &[Move] {
+        &self.table[0][..self.len[0]]
+    }
+
+    pub fn clear(&mut self, ply: usize) {
+        self.len[ply] = 0;
+    }
+
+    pub fn update(&mut self, ply: usize, mv: Move) {
+        self.table[ply][0] = mv;
+        self.len[ply] = self.len[ply + 1] + 1;
+
+        for i in 0..self.len[ply + 1] {
+            self.table[ply][i + 1] = self.table[ply + 1][i];
+        }
+    }
+}
+
+impl Default for PrincipalVariationTable {
+    fn default() -> Self {
+        Self {
+            table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
+            len: [0; MAX_PLY + 1],
+        }
     }
 }

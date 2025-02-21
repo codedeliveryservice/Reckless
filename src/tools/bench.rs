@@ -12,9 +12,9 @@ use std::{sync::atomic::AtomicBool, time::Instant};
 use crate::{
     board::Board,
     search,
-    tables::TranspositionTable,
     thread::ThreadData,
     time::{Limits, TimeManager},
+    transposition::TranspositionTable,
 };
 
 const POSITIONS: &[&str] = &[

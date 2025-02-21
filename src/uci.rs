@@ -3,10 +3,10 @@ use std::sync::atomic::AtomicBool;
 use crate::{
     board::Board,
     search,
-    tables::TranspositionTable,
     thread::ThreadPool,
     time::{Limits, TimeManager},
     tools,
+    transposition::{TranspositionTable, DEFAULT_TT_SIZE},
     types::Color,
 };
 
@@ -41,8 +41,6 @@ pub fn message_loop() {
 }
 
 fn uci() {
-    use crate::tables::DEFAULT_TT_SIZE;
-
     println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 262144");
     println!("option name Threads type spin default 1 min 1 max 256");

@@ -2,8 +2,8 @@ use std::time::Instant;
 
 use crate::{
     movepick::MovePicker,
-    tables::Bound,
     thread::ThreadData,
+    transposition::Bound,
     types::{mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 

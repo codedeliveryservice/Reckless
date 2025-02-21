@@ -8,10 +8,10 @@ mod movepick;
 mod nnue;
 mod parameters;
 mod search;
-mod tables;
 mod thread;
 mod time;
 mod tools;
+mod transposition;
 mod types;
 mod uci;
 
