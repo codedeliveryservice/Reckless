@@ -19,7 +19,7 @@ fn main() {
     datagen(std::env::args());
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(4),
+        Some("bench") => tools::bench::<false>(5),
         _ => uci::message_loop(),
     }
 

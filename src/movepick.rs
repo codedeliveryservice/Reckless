@@ -9,16 +9,16 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub fn new(td: &ThreadData) -> Self {
+    pub fn new(td: &ThreadData, tt_move: Move) -> Self {
         let moves = td.board.generate_all_moves();
-        let scores = score_moves(td, &moves);
+        let scores = score_moves(td, &moves, tt_move);
 
         Self { moves, scores }
     }
 
     pub fn new_noisy(td: &ThreadData) -> Self {
         let moves = td.board.generate_capture_moves();
-        let scores = score_moves(td, &moves);
+        let scores = score_moves(td, &moves, Move::NULL);
 
         Self { moves, scores }
     }
@@ -40,10 +40,15 @@ impl MovePicker {
     }
 }
 
-fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>) -> [i32; MAX_MOVES] {
+fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move) -> [i32; MAX_MOVES] {
     let mut scores = [0; MAX_MOVES];
 
     for (i, &mv) in moves.iter().enumerate() {
+        if mv == tt_move {
+            scores[i] = 1 << 21;
+            continue;
+        }
+
         if mv.is_noisy() {
             let moving = td.board.piece_on(mv.from()).piece_type();
             let captured = td.board.piece_on(mv.to()).piece_type();
