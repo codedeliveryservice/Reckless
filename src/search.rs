@@ -65,6 +65,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
+    let tt_move = entry.map(|entry| entry.mv).unwrap_or(Move::NULL);
+
     if let Some(entry) = entry {
         if !is_root
             && entry.depth >= depth
@@ -82,7 +84,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td);
+    let mut move_picker = MovePicker::new(td, tt_move);
 
     while let Some(mv) = move_picker.next() {
         if !td.board.make_move::<true, false>(mv) {
