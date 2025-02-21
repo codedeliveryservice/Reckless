@@ -65,7 +65,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let tt_move = entry.map(|entry| entry.mv).unwrap_or(Move::NULL);
 
     if let Some(entry) = entry {
-        if !is_root
+        if !PV
             && entry.depth >= depth
             && match entry.bound {
                 Bound::Upper => entry.score <= alpha,
