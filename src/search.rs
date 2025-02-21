@@ -126,6 +126,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
+                    update_histories(td, mv, depth);
                     break;
                 }
 
@@ -208,4 +209,12 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     }
 
     best_score
+}
+
+fn update_histories(td: &mut ThreadData, mv: Move, depth: i32) {
+    if mv.is_noisy() {
+        return;
+    }
+
+    td.main_history.update(&td.board, mv, depth);
 }

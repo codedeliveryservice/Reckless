@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
 mod board;
+mod history;
 mod lookup;
 mod misc;
 mod movepick;
@@ -19,7 +20,7 @@ fn main() {
     datagen(std::env::args());
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(5),
+        Some("bench") => tools::bench::<false>(6),
         _ => uci::message_loop(),
     }
 
