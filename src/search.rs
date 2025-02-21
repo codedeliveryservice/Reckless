@@ -97,8 +97,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             continue;
         }
 
-        move_count += 1;
+        td.stack[td.ply].mv = mv;
         td.ply += 1;
+        move_count += 1;
 
         let mut score = Score::ZERO;
 
@@ -190,6 +191,7 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
             continue;
         }
 
+        td.stack[td.ply].mv = mv;
         td.ply += 1;
 
         let score = -qsearch(td, -beta, -alpha);

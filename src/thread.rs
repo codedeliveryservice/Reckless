@@ -1,4 +1,5 @@
 use std::{
+    ops::{Index, IndexMut},
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
@@ -51,6 +52,7 @@ pub struct ThreadData<'a> {
     pub stop: &'a AtomicBool,
     pub board: Board,
     pub time_manager: TimeManager,
+    pub stack: Stack,
     pub pv: PrincipalVariationTable,
     pub main_history: MainHistory,
     pub stopped: bool,
@@ -66,6 +68,7 @@ impl<'a> ThreadData<'a> {
             stop,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite),
+            stack: Stack::default(),
             pv: PrincipalVariationTable::default(),
             main_history: MainHistory::default(),
             stopped: false,
@@ -139,5 +142,40 @@ impl Default for PrincipalVariationTable {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
         }
+    }
+}
+
+pub struct Stack {
+    data: [StackEntry; MAX_PLY],
+}
+
+impl Default for Stack {
+    fn default() -> Self {
+        Self { data: [Default::default(); MAX_PLY] }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct StackEntry {
+    pub mv: Move,
+}
+
+impl Default for StackEntry {
+    fn default() -> Self {
+        Self { mv: Move::NULL }
+    }
+}
+
+impl Index<usize> for Stack {
+    type Output = StackEntry;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
+    }
+}
+
+impl IndexMut<usize> for Stack {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.data[index]
     }
 }
