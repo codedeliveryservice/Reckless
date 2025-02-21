@@ -52,6 +52,10 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
+    pub fn is_noisy(self) -> bool {
+        (self.is_capture() && !self.is_promotion()) || self.promotion_piece() == Some(PieceType::Queen)
+    }
+
     pub const fn is_capture(self) -> bool {
         (self.0 >> 14) & 1 != 0
     }
