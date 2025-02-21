@@ -21,12 +21,12 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     for depth in 1..MAX_PLY as i32 {
         let score = search::<PV>(td, -Score::INFINITE, Score::INFINITE, depth);
 
-        if td.stopped {
-            break;
-        }
-
         if !silent {
             td.print_uci_info(depth, score, now);
+        }
+
+        if td.stopped {
+            break;
         }
 
         td.completed_depth = depth;
