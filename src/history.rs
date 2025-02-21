@@ -9,16 +9,25 @@ pub struct MainHistory {
 }
 
 impl MainHistory {
+    const MAX_HISTORY: i32 = 8192;
+
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
         self.entries[board.side_to_move()][mv.from_to()]
     }
 
     pub fn update(&mut self, board: &Board, best_move: Move, quiet_moves: ArrayVec<Move, 32>, depth: i32) {
-        self.entries[board.side_to_move()][best_move.from_to()] += depth;
+        let bonus = 32 * depth;
 
-        for mv in quiet_moves.iter() {
-            self.entries[board.side_to_move()][mv.from_to()] -= depth;
+        self.update_single(board, best_move, bonus);
+
+        for &mv in quiet_moves.iter() {
+            self.update_single(board, mv, -bonus);
         }
+    }
+
+    fn update_single(&mut self, board: &Board, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[board.side_to_move()][mv.from_to()];
+        *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
 
