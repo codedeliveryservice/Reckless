@@ -97,6 +97,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let score = -search::<false>(td, -beta, -beta + 1, depth - r);
         td.board.undo_null_move();
 
+        if td.stopped {
+            return Score::ZERO;
+        }
+
         match score {
             s if is_decisive(s) => return beta,
             s if s >= beta => return s,
