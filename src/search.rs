@@ -108,6 +108,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut best_move = Move::NULL;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
+    let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td, tt_move);
@@ -150,7 +151,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
-                    update_histories(td, best_move, quiet_moves, depth);
+                    if best_move.is_noisy() {
+                        td.noisy_history.update(&td.board, best_move, noisy_moves, depth);
+                    } else {
+                        td.quiet_history.update(&td.board, best_move, quiet_moves, depth);
+                    }
                     break;
                 }
 
@@ -158,8 +163,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
         }
 
-        if mv != best_move && move_count < 32 && !mv.is_noisy() {
-            quiet_moves.push(mv);
+        if mv != best_move && move_count < 32 {
+            if mv.is_noisy() {
+                noisy_moves.push(mv);
+            } else {
+                quiet_moves.push(mv);
+            }
         }
     }
 
@@ -238,12 +247,4 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     }
 
     best_score
-}
-
-fn update_histories(td: &mut ThreadData, best_move: Move, quiet_moves: ArrayVec<Move, 32>, depth: i32) {
-    if best_move.is_noisy() {
-        return;
-    }
-
-    td.quiet_history.update(&td.board, best_move, quiet_moves, depth);
 }
