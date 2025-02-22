@@ -171,7 +171,3 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   [Stockfish Discord server members](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
 -   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) for contributing to the project's foundation.
 -   Many thanks to the [CCRL](https://www.computerchess.org.uk/ccrl/) team and all chess engine testers for their valuable contributions.
-
-## License
-
-This project is licensed with the [MIT license](LICENSE).
