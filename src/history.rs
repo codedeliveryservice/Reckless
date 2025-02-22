@@ -59,12 +59,12 @@ impl NoisyHistory {
         self.entries[board.piece_on(mv.from())][mv.to()][board.piece_on(mv.to()).piece_type()]
     }
 
-    pub fn update(&mut self, board: &Board, best_move: Move, quiet_moves: ArrayVec<Move, 32>, depth: i32) {
+    pub fn update(&mut self, board: &Board, best_move: Move, noisy_moves: ArrayVec<Move, 32>, depth: i32) {
         let bonus = bonus(depth);
 
         self.update_single(board, best_move, bonus);
 
-        for &mv in quiet_moves.iter() {
+        for &mv in noisy_moves.iter() {
             self.update_single(board, mv, -bonus);
         }
     }
