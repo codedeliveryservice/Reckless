@@ -245,5 +245,5 @@ fn update_histories(td: &mut ThreadData, best_move: Move, quiet_moves: ArrayVec<
         return;
     }
 
-    td.main_history.update(&td.board, best_move, quiet_moves, depth);
+    td.quiet_history.update(&td.board, best_move, quiet_moves, depth);
 }

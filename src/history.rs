@@ -7,12 +7,12 @@ fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
-pub struct MainHistory {
+pub struct QuietHistory {
     // [side_to_move][from_threated][to_threated][from_to]
     entries: Box<[[[[i32; 64 * 64]; 2]; 2]; 2]>,
 }
 
-impl MainHistory {
+impl QuietHistory {
     const MAX_HISTORY: i32 = 8192;
 
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
@@ -41,8 +41,8 @@ impl MainHistory {
     }
 }
 
-impl Default for MainHistory {
+impl Default for QuietHistory {
     fn default() -> Self {
-        MainHistory { entries: Box::new([[[[0; 64 * 64]; 2]; 2]; 2]) }
+        QuietHistory { entries: Box::new([[[[0; 64 * 64]; 2]; 2]; 2]) }
     }
 }

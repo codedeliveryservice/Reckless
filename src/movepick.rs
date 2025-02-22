@@ -58,7 +58,7 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
             scores[i] += captured as i32 * 16384;
             scores[i] -= moving as i32;
         } else {
-            scores[i] = td.main_history.get(&td.board, mv);
+            scores[i] = td.quiet_history.get(&td.board, mv);
         }
     }
 
