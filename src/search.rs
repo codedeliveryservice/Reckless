@@ -40,7 +40,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.pv.clear(td.ply);
 
-    if depth <= 0 {
+    if depth <= 0 && !in_check {
         return qsearch(td, alpha, beta);
     }
 
@@ -60,6 +60,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             return if in_check { Score::DRAW } else { td.board.evaluate() };
         }
     }
+
+    let depth = depth.max(1);
 
     let entry = td.tt.read(td.board.hash(), td.ply);
     let tt_move = entry.map(|entry| entry.mv).unwrap_or(Move::NULL);
