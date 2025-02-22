@@ -120,9 +120,12 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let entry = InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv };
+        let entry = self.entry(hash);
+        let stored = entry.load();
 
-        self.entry(hash).write(entry);
+        let mv = if stored.key == key && mv == Move::NULL { stored.mv } else { mv };
+
+        entry.write(InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv });
     }
 
     pub fn prefetch(&self, hash: u64) {
