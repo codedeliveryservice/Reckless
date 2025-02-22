@@ -50,11 +50,13 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
         }
 
         if mv.is_noisy() {
+            const MVV_VALUES: [i32; 7] = [0, 1, 1, 2, 3, 0, 0];
+
             let captured = td.board.piece_on(mv.to()).piece_type();
 
             scores[i] = 1 << 20;
 
-            scores[i] += captured as i32 * 16384;
+            scores[i] += MVV_VALUES[captured] * 16384;
 
             scores[i] += td.noisy_history.get(&td.board, mv);
         } else {
