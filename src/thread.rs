@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     board::Board,
-    history::QuietHistory,
+    history::{NoisyHistory, QuietHistory},
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
     types::{is_loss, is_win, Move, Score, MAX_PLY},
@@ -55,6 +55,7 @@ pub struct ThreadData<'a> {
     pub stack: Stack,
     pub pv: PrincipalVariationTable,
     pub quiet_history: QuietHistory,
+    pub noisy_history: NoisyHistory,
     pub stopped: bool,
     pub nodes: u64,
     pub completed_depth: i32,
@@ -71,6 +72,7 @@ impl<'a> ThreadData<'a> {
             stack: Stack::default(),
             pv: PrincipalVariationTable::default(),
             quiet_history: QuietHistory::default(),
+            noisy_history: NoisyHistory::default(),
             stopped: false,
             nodes: 0,
             completed_depth: 0,
