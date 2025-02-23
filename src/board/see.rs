@@ -20,7 +20,7 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= PIECE_VALUES[self.piece_on(mv.from())];
+        balance -= PIECE_VALUES[self.piece_on(mv.from()).piece_type()];
         if balance >= 0 {
             return true;
         }
@@ -78,7 +78,7 @@ impl super::Board {
             return PIECE_VALUES[PieceType::Pawn];
         }
 
-        let capture = self.piece_on(mv.to());
+        let capture = self.piece_on(mv.to()).piece_type();
         PIECE_VALUES[capture]
     }
 

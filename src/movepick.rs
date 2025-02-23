@@ -53,7 +53,7 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
         if mv.is_noisy() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
-            scores[i] = 1 << 20;
+            scores[i] = if td.board.see(mv, -110) { 1 << 20 } else { -(1 << 20) };
 
             scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
 
