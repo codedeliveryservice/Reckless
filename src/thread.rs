@@ -56,6 +56,7 @@ pub struct ThreadData<'a> {
     pub pv: PrincipalVariationTable,
     pub quiet_history: QuietHistory,
     pub noisy_history: NoisyHistory,
+    pub lmr: LmrTable,
     pub stopped: bool,
     pub nodes: u64,
     pub completed_depth: i32,
@@ -73,6 +74,7 @@ impl<'a> ThreadData<'a> {
             pv: PrincipalVariationTable::default(),
             quiet_history: QuietHistory::default(),
             noisy_history: NoisyHistory::default(),
+            lmr: LmrTable::default(),
             stopped: false,
             nodes: 0,
             completed_depth: 0,
@@ -179,5 +181,30 @@ impl Index<usize> for Stack {
 impl IndexMut<usize> for Stack {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.data[index]
+    }
+}
+
+pub struct LmrTable {
+    table: [[i32; 64]; 64],
+}
+
+impl LmrTable {
+    pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
+        self.table[depth.min(63) as usize][move_count.min(63) as usize]
+    }
+}
+
+impl Default for LmrTable {
+    fn default() -> Self {
+        let mut table = [[0; 64]; 64];
+
+        for depth in 1..64 {
+            for move_count in 1..64 {
+                let reduction = 820.0 + 455.0 * (depth as f32).ln() * (move_count as f32).ln();
+                table[depth][move_count] = reduction as i32;
+            }
+        }
+
+        Self { table }
     }
 }
