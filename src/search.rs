@@ -96,8 +96,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         td.stack[td.ply].mv = Move::NULL;
         td.board.make_null_move();
+        td.ply += 1;
+
         let score = -search::<false>(td, -beta, -beta + 1, depth - r);
+
         td.board.undo_null_move();
+        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
