@@ -129,14 +129,27 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.ply += 1;
         move_count += 1;
 
+        let is_quiet = !mv.is_noisy();
+        let new_depth = depth - 1;
+
         let mut score = Score::ZERO;
 
-        if !PV || move_count > 1 {
-            score = -search::<false>(td, -alpha - 1, -alpha, depth - 1);
+        if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
+            let reduction = td.lmr.reduction(depth, move_count) / 1024;
+
+            let reduced_depth = (new_depth - reduction).max(1).min(new_depth);
+
+            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth);
+
+            if score > alpha && new_depth > reduced_depth {
+                score = -search::<false>(td, -alpha - 1, -alpha, new_depth);
+            }
+        } else if !PV || move_count > 1 {
+            score = -search::<false>(td, -alpha - 1, -alpha, new_depth);
         }
 
         if PV && (move_count == 1 || score > alpha) {
-            score = -search::<true>(td, -beta, -alpha, depth - 1);
+            score = -search::<true>(td, -beta, -alpha, new_depth);
         }
 
         td.board.undo_move::<true>(mv);
