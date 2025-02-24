@@ -137,6 +137,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             continue;
         }
 
+        td.tt.prefetch(td.board.hash());
+
         td.stack[td.ply].mv = mv;
         td.ply += 1;
         move_count += 1;
