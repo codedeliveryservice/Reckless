@@ -125,7 +125,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut move_picker = MovePicker::new(td, tt_move);
     let mut skip_quiets = false;
 
-    while let Some(mv) = move_picker.next() {
+    while let Some((mv, _)) = move_picker.next() {
         let is_quiet = !mv.is_noisy();
 
         if is_quiet && skip_quiets {
@@ -255,7 +255,11 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
 
     let mut move_picker = MovePicker::new_noisy(td);
 
-    while let Some(mv) = move_picker.next() {
+    while let Some((mv, mv_score)) = move_picker.next() {
+        if mv_score < -(1 << 18) {
+            break;
+        }
+
         if !td.board.make_move::<true, false>(mv) {
             td.board.undo_move::<true>(mv);
             continue;

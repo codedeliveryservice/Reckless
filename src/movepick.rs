@@ -24,7 +24,7 @@ impl MovePicker {
         Self { moves, scores }
     }
 
-    pub fn next(&mut self) -> Option<Move> {
+    pub fn next(&mut self) -> Option<(Move, i32)> {
         if self.moves.len() == 0 {
             return None;
         }
@@ -36,8 +36,9 @@ impl MovePicker {
             }
         }
 
+        let score = self.scores[index];
         self.scores.swap(index, self.moves.len() - 1);
-        Some(self.moves.swap_remove(index))
+        Some((self.moves.swap_remove(index), score))
     }
 }
 
