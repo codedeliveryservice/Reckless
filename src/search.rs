@@ -2,9 +2,10 @@ use std::time::Instant;
 
 use crate::{
     movepick::MovePicker,
+    parameters::lmp_threshold,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, mated_in, ArrayVec, Move, Score, MAX_PLY},
+    types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -122,8 +123,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td, tt_move);
+    let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next() {
+        let is_quiet = !mv.is_noisy();
+
+        if is_quiet && skip_quiets {
+            continue;
+        }
+
         if !td.board.make_move::<true, false>(mv) {
             td.board.undo_move::<true>(mv);
             continue;
@@ -133,7 +141,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.ply += 1;
         move_count += 1;
 
-        let is_quiet = !mv.is_noisy();
+        if !is_loss(best_score) {
+            skip_quiets |= move_count >= lmp_threshold(depth);
+        }
+
         let new_depth = depth - 1;
 
         let mut score = Score::ZERO;
