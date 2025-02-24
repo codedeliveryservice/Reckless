@@ -192,9 +192,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if score >= beta {
                     if best_move.is_noisy() {
-                        td.noisy_history.update(&td.board, best_move, noisy_moves, depth);
+                        td.noisy_history.update(&td.board, best_move, &noisy_moves, depth);
                     } else {
-                        td.quiet_history.update(&td.board, best_move, quiet_moves, depth);
+                        td.quiet_history.update(&td.board, best_move, &quiet_moves, depth);
                     }
                     break;
                 }

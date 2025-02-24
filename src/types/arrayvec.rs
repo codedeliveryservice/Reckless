@@ -30,14 +30,6 @@ impl<T, const N: usize> ArrayVec<T, N> {
         self.len += 1;
     }
 
-    pub fn get(&self, index: usize) -> Option<&T> {
-        if index < self.len {
-            unsafe { Some(&*self.data[index].as_ptr()) }
-        } else {
-            None
-        }
-    }
-
     pub fn swap_remove(&mut self, index: usize) -> T {
         unsafe {
             let value = std::ptr::read(self.data[index].as_ptr());

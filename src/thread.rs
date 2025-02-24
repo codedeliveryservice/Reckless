@@ -54,8 +54,8 @@ pub struct ThreadData<'a> {
     pub time_manager: TimeManager,
     pub stack: Stack,
     pub pv: PrincipalVariationTable,
-    pub quiet_history: QuietHistory,
     pub noisy_history: NoisyHistory,
+    pub quiet_history: QuietHistory,
     pub lmr: LmrTable,
     pub stopped: bool,
     pub nodes: u64,
@@ -72,8 +72,8 @@ impl<'a> ThreadData<'a> {
             time_manager: TimeManager::new(Limits::Infinite),
             stack: Stack::default(),
             pv: PrincipalVariationTable::default(),
-            quiet_history: QuietHistory::default(),
             noisy_history: NoisyHistory::default(),
+            quiet_history: QuietHistory::default(),
             lmr: LmrTable::default(),
             stopped: false,
             nodes: 0,
@@ -195,6 +195,7 @@ impl LmrTable {
 }
 
 impl Default for LmrTable {
+    #[allow(clippy::needless_range_loop)]
     fn default() -> Self {
         let mut table = [[0; 64]; 64];
 
