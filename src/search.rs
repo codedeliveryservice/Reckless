@@ -143,6 +143,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         if !is_root && !is_loss(best_score) {
             skip_quiets |= move_count >= lmp_threshold(depth);
+
+            skip_quiets |= depth < 10 && eval + 100 * depth + 150 <= alpha;
         }
 
         let new_depth = depth - 1;
