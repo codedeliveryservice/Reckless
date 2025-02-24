@@ -156,7 +156,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let mut score = Score::ZERO;
 
         if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
-            let reduction = td.lmr.reduction(depth, move_count) / 1024;
+            let mut reduction = td.lmr.reduction(depth, move_count) / 1024;
+
+            if td.board.in_check() {
+                reduction -= 1;
+            }
 
             let reduced_depth = (new_depth - reduction).max(1).min(new_depth);
 
