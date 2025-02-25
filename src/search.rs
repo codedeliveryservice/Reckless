@@ -65,9 +65,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let depth = depth.max(1);
 
     let entry = td.tt.read(td.board.hash(), td.ply);
-    let tt_move = entry.map(|entry| entry.mv).unwrap_or(Move::NULL);
+    let mut tt_move = Move::NULL;
 
     if let Some(entry) = entry {
+        tt_move = entry.mv;
+
         if !PV
             && entry.depth >= depth
             && match entry.bound {
@@ -96,8 +98,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let r = 3 + depth / 3 + ((eval - beta) / 256).min(3);
 
         td.stack[td.ply].mv = Move::NULL;
-        td.board.make_null_move();
         td.ply += 1;
+
+        td.board.make_null_move();
 
         let score = -search::<false>(td, -beta, -beta + 1, depth - r);
 
@@ -128,19 +131,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     while let Some((mv, _)) = move_picker.next() {
         let is_quiet = !mv.is_noisy();
 
-        if is_quiet && skip_quiets {
+        if (is_quiet && skip_quiets) || !td.board.is_legal(mv) {
             continue;
         }
 
-        if !td.board.is_legal(mv) {
-            continue;
-        }
-
-        td.board.make_move::<true, false>(mv);
-        td.tt.prefetch(td.board.hash());
-
-        td.stack[td.ply].mv = mv;
-        td.ply += 1;
         move_count += 1;
 
         if !is_root && !is_loss(best_score) {
@@ -150,6 +144,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             skip_quiets |= depth < 10 && eval + 100 * lmr_depth + 150 <= alpha;
         }
+
+        td.stack[td.ply].mv = mv;
+        td.ply += 1;
+
+        td.board.make_move::<true, false>(mv);
+        td.tt.prefetch(td.board.hash());
 
         let new_depth = depth - 1;
 
@@ -268,10 +268,10 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
             continue;
         }
 
-        td.board.make_move::<true, false>(mv);
-
         td.stack[td.ply].mv = mv;
         td.ply += 1;
+
+        td.board.make_move::<true, false>(mv);
 
         let score = -qsearch(td, -beta, -alpha);
 

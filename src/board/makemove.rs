@@ -6,14 +6,14 @@ impl Board {
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
-        self.state.hash_key ^= ZOBRIST.side;
-        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.side;
+        self.state.key ^= ZOBRIST.castling[self.state.castling];
 
-        self.state.threats = self.generate_threats();
+        self.update_threats();
         self.update_king_threats();
 
         if self.state.en_passant != Square::None {
-            self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
+            self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
     }
@@ -36,11 +36,11 @@ impl Board {
             self.nnue.push();
         }
 
-        self.state.hash_key ^= ZOBRIST.side;
-        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.side;
+        self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         if self.state.en_passant != Square::None {
-            self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
+            self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
 
@@ -64,7 +64,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 self.state.en_passant = Square::new((from as u8 + to as u8) / 2);
-                self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
+                self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             }
             MoveKind::EnPassant => {
                 self.remove_piece::<NNUE>(Piece::new(!stm, PieceType::Pawn), to ^ 8);
@@ -84,9 +84,9 @@ impl Board {
         self.side_to_move = !self.side_to_move;
 
         self.state.castling.update(from, to);
-        self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.castling[self.state.castling];
 
-        self.state.threats = self.generate_threats();
+        self.update_threats();
         self.update_king_threats();
 
         if NNUE {

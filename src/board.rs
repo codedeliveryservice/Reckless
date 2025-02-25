@@ -25,7 +25,7 @@ const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
 struct InternalState {
-    hash_key: u64,
+    key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -64,7 +64,7 @@ impl Board {
 
     /// Returns the Zobrist hash key for the current position.
     pub const fn hash(&self) -> u64 {
-        self.state.hash_key
+        self.state.key
     }
 
     pub const fn pinners(&self) -> Bitboard {
@@ -152,7 +152,7 @@ impl Board {
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
-        self.state.hash_key ^= ZOBRIST.pieces[piece][square];
+        self.state.key ^= ZOBRIST.pieces[piece][square];
     }
 
     /// Calculates the score of the current position from the perspective of the side to move.
@@ -192,7 +192,7 @@ impl Board {
             .skip(1)
             .step_by(2)
             .take(self.state.halfmove_clock as usize + 1)
-            .any(|state| state.hash_key == self.state.hash_key)
+            .any(|state| state.key == self.state.key)
     }
 
     /// Returns `true` if the current position is a known draw by insufficient material:
@@ -220,63 +220,12 @@ impl Board {
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        king_attacks(square) & self.pieces(PieceType::King)
-            | knight_attacks(square) & self.pieces(PieceType::Knight)
+        rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
+            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
             | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
             | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
-            | rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
-            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
-    }
-
-    pub fn generate_threats(&self) -> Bitboard {
-        let occupancies = self.occupancies();
-
-        let mut threats = Bitboard::default();
-
-        for square in self.their(PieceType::Pawn) {
-            threats |= pawn_attacks(square, !self.side_to_move);
-        }
-
-        for square in self.their(PieceType::Knight) {
-            threats |= knight_attacks(square);
-        }
-
-        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
-            threats |= bishop_attacks(square, occupancies);
-        }
-
-        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
-            threats |= rook_attacks(square, occupancies);
-        }
-
-        threats |= king_attacks(self.their(PieceType::King).lsb());
-
-        threats
-    }
-
-    pub fn update_king_threats(&mut self) {
-        let king = self.our(PieceType::King).lsb();
-
-        self.state.pinners = Bitboard::default();
-        self.state.checkers = Bitboard::default();
-
-        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
-
-        let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-        let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
-
-        let diagonal = bishop_attacks(king, self.them()) & diagonal;
-        let orthogonal = rook_attacks(king, self.them()) & orthogonal;
-
-        for square in diagonal | orthogonal {
-            let blockers = between(king, square) & self.us();
-            match blockers.len() {
-                0 => self.state.checkers.set(square),
-                1 => self.state.pinners |= blockers,
-                _ => (),
-            }
-        }
+            | knight_attacks(square) & self.pieces(PieceType::Knight)
+            | king_attacks(square) & self.pieces(PieceType::King)
     }
 
     pub fn is_legal(&self, mv: Move) -> bool {
@@ -318,31 +267,73 @@ impl Board {
         (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
-    /// Performs Zobrist hashing on `self`, generating an *almost* unique
-    /// position hash key from scratch.
-    ///
-    /// This method should only be used for the initial hash key generation.
-    /// For further reference, use `hash_key()` to get a key that is
-    /// incrementally updated during the game.
-    pub fn generate_hash_key(&self) -> u64 {
-        let mut hash = 0;
+    pub fn update_threats(&mut self) {
+        let occupancies = self.occupancies();
+        let mut threats = Bitboard::default();
+
+        for square in self.their(PieceType::Pawn) {
+            threats |= pawn_attacks(square, !self.side_to_move);
+        }
+
+        for square in self.their(PieceType::Knight) {
+            threats |= knight_attacks(square);
+        }
+
+        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
+            threats |= bishop_attacks(square, occupancies);
+        }
+
+        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
+            threats |= rook_attacks(square, occupancies);
+        }
+
+        self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+    }
+
+    pub fn update_king_threats(&mut self) {
+        let king = self.our(PieceType::King).lsb();
+
+        self.state.pinners = Bitboard::default();
+        self.state.checkers = Bitboard::default();
+
+        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
+        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
+
+        let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
+        let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+
+        let diagonal = bishop_attacks(king, self.them()) & diagonal;
+        let orthogonal = rook_attacks(king, self.them()) & orthogonal;
+
+        for square in diagonal | orthogonal {
+            let blockers = between(king, square) & self.us();
+            match blockers.len() {
+                0 => self.state.checkers.set(square),
+                1 => self.state.pinners |= blockers,
+                _ => (),
+            }
+        }
+    }
+
+    pub fn update_hash_keys(&mut self) {
+        self.state.key = 0;
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
             for square in self.of(piece.piece_type(), piece.piece_color()) {
-                hash ^= ZOBRIST.pieces[piece][square];
+                self.state.key ^= ZOBRIST.pieces[piece][square];
             }
         }
 
         if self.state.en_passant != Square::None {
-            hash ^= ZOBRIST.en_passant[self.state.en_passant];
-        }
-        if self.side_to_move == Color::White {
-            hash ^= ZOBRIST.side;
+            self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
         }
 
-        hash ^= ZOBRIST.castling[self.state.castling];
-        hash
+        if self.side_to_move == Color::White {
+            self.state.key ^= ZOBRIST.side;
+        }
+
+        self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
 }
 
