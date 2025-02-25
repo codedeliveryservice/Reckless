@@ -132,11 +132,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             continue;
         }
 
-        if !td.board.make_move::<true, false>(mv) {
-            td.board.undo_move::<true>(mv);
+        if !td.board.is_legal(mv) {
             continue;
         }
 
+        td.board.make_move::<true, false>(mv);
         td.tt.prefetch(td.board.hash());
 
         td.stack[td.ply].mv = mv;
@@ -264,10 +264,11 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
             break;
         }
 
-        if !td.board.make_move::<true, false>(mv) {
-            td.board.undo_move::<true>(mv);
+        if !td.board.is_legal(mv) {
             continue;
         }
+
+        td.board.make_move::<true, false>(mv);
 
         td.stack[td.ply].mv = mv;
         td.ply += 1;

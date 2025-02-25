@@ -10,6 +10,7 @@ impl Board {
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
 
         self.state.threats = self.generate_threats();
+        self.update_king_threats();
 
         if self.state.en_passant != Square::None {
             self.state.hash_key ^= ZOBRIST.en_passant[self.state.en_passant];
@@ -22,7 +23,7 @@ impl Board {
         self.state = self.state_stack.pop().unwrap();
     }
 
-    pub fn make_move<const NNUE: bool, const IN_PLACE: bool>(&mut self, mv: Move) -> bool {
+    pub fn make_move<const NNUE: bool, const IN_PLACE: bool>(&mut self, mv: Move) {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
@@ -86,18 +87,11 @@ impl Board {
         self.state.hash_key ^= ZOBRIST.castling[self.state.castling];
 
         self.state.threats = self.generate_threats();
-
-        let king = self.their(PieceType::King).lsb();
-        if self.is_square_attacked_by(king, self.side_to_move) {
-            self.nnue.clear_buffers();
-            return false;
-        }
+        self.update_king_threats();
 
         if NNUE {
             self.nnue.commit();
         }
-
-        true
     }
 
     pub fn undo_move<const NNUE: bool>(&mut self, mv: Move) {
