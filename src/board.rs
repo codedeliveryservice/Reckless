@@ -1,8 +1,9 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
+    masks::between,
     nnue::Network,
-    types::{Bitboard, Castling, Color, Piece, PieceType, Square},
+    types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
 
 #[cfg(test)]
@@ -30,6 +31,8 @@ struct InternalState {
     halfmove_clock: u8,
     captured: Option<Piece>,
     threats: Bitboard,
+    pinners: Bitboard,
+    checkers: Bitboard,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -62,6 +65,14 @@ impl Board {
     /// Returns the Zobrist hash key for the current position.
     pub const fn hash(&self) -> u64 {
         self.state.hash_key
+    }
+
+    pub const fn pinners(&self) -> Bitboard {
+        self.state.pinners
+    }
+
+    pub const fn checkers(&self) -> Bitboard {
+        self.state.checkers
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -200,13 +211,8 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
-    /// Returns `true` if the square is attacked by pieces of the specified color.
-    pub fn is_square_attacked_by(&self, square: Square, color: Color) -> bool {
-        !(self.attackers_to(square, self.occupancies()) & self.colors(color)).is_empty()
-    }
-
     pub fn in_check(&self) -> bool {
-        self.is_threatened(self.our(PieceType::King).lsb())
+        !self.state.checkers.is_empty()
     }
 
     pub fn is_threatened(&self, square: Square) -> bool {
@@ -246,6 +252,70 @@ impl Board {
         threats |= king_attacks(self.their(PieceType::King).lsb());
 
         threats
+    }
+
+    pub fn update_king_threats(&mut self) {
+        let king = self.our(PieceType::King).lsb();
+
+        self.state.pinners = Bitboard::default();
+        self.state.checkers = Bitboard::default();
+
+        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
+        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
+
+        let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
+        let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+
+        let diagonal = bishop_attacks(king, self.them()) & diagonal;
+        let orthogonal = rook_attacks(king, self.them()) & orthogonal;
+
+        for square in diagonal | orthogonal {
+            let blockers = between(king, square) & self.us();
+            match blockers.len() {
+                0 => self.state.checkers.set(square),
+                1 => self.state.pinners |= blockers,
+                _ => (),
+            }
+        }
+    }
+
+    pub fn is_legal(&self, mv: Move) -> bool {
+        let from = mv.from();
+        let to = mv.to();
+
+        let king = self.our(PieceType::King).lsb();
+
+        if mv.is_en_passant() {
+            let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
+
+            let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
+            let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+
+            let diagonal = bishop_attacks(king, occupancies) & diagonal;
+            let orthogonal = rook_attacks(king, occupancies) & orthogonal;
+
+            return (orthogonal | diagonal).is_empty();
+        }
+
+        if self.piece_on(from).piece_type() == PieceType::King {
+            let attackers = self.attackers_to(to, self.occupancies() ^ from.to_bb()) & self.them();
+            return attackers.is_empty();
+        }
+
+        if self.pinners().contains(from) {
+            let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
+            return self.checkers().is_empty() && along_pin;
+        }
+
+        if self.checkers().multiple() {
+            return false;
+        }
+
+        if self.checkers().is_empty() {
+            return true;
+        }
+
+        (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
     /// Performs Zobrist hashing on `self`, generating an *almost* unique

@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, Not};
 
 use super::{Rank, Square};
 
@@ -22,6 +22,10 @@ impl Bitboard {
 
     pub const fn contains(self, square: Square) -> bool {
         self.0 & (1 << square as u64) != 0
+    }
+
+    pub const fn multiple(self) -> bool {
+        self.0 & (self.0 - 1) != 0
     }
 
     /// Counts the number of set bits in the bitboard.
@@ -81,6 +85,14 @@ impl BitOr for Bitboard {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(self.0 | rhs.0)
+    }
+}
+
+impl BitXor for Bitboard {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
     }
 }
 

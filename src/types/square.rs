@@ -1,5 +1,7 @@
 use std::ops::{BitXor, Index, IndexMut};
 
+use super::Bitboard;
+
 /// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
 /// [LERFM]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
@@ -38,6 +40,10 @@ impl Square {
     /// Shifts the square by the given offset.
     pub const fn shift(self, offset: i8) -> Self {
         Self::new((self as i8 + offset) as u8)
+    }
+
+    pub const fn to_bb(self) -> Bitboard {
+        Bitboard(1 << (self as u8))
     }
 }
 

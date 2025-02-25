@@ -59,10 +59,6 @@ impl Network {
             _ => panic!(),
         }
 
-        self.clear_buffers();
-    }
-
-    pub fn clear_buffers(&mut self) {
         self.adds.clear();
         self.subs.clear();
     }

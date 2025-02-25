@@ -21,10 +21,11 @@ pub fn perft(depth: usize, board: &mut Board) {
     for &mv in board.generate_all_moves().iter() {
         let now = Instant::now();
 
-        if !board.make_move::<false, false>(mv) {
-            board.undo_move::<false>(mv);
+        if !board.is_legal(mv) {
             continue;
         }
+
+        board.make_move::<false, false>(mv);
 
         let count = perft_internal(depth - 1, board);
         nodes += count;
@@ -50,11 +51,11 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
     let mut nodes = 0;
 
     for &mv in board.generate_all_moves().iter() {
-        if !board.make_move::<false, false>(mv) {
-            board.undo_move::<false>(mv);
+        if !board.is_legal(mv) {
             continue;
         }
 
+        board.make_move::<false, false>(mv);
         nodes += if depth > 1 { perft_internal(depth - 1, board) } else { 1 };
         board.undo_move::<false>(mv);
     }

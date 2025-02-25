@@ -1,3 +1,5 @@
+use crate::types::PieceType;
+
 use super::Board;
 
 macro_rules! assert_perft {
@@ -15,7 +17,10 @@ macro_rules! assert_perft {
 fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
     for &mv in board.generate_all_moves().iter() {
-        if !board.make_move::<false, false>(mv) {
+        board.make_move::<false, false>(mv);
+
+        let attackers = board.attackers_to(board.their(PieceType::King).lsb(), board.occupancies());
+        if !(attackers & board.us()).is_empty() {
             board.undo_move::<false>(mv);
             continue;
         }

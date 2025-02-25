@@ -59,6 +59,8 @@ impl FromStr for Board {
         board.state.threats = board.generate_threats();
         board.state.hash_key = board.generate_hash_key();
 
+        board.update_king_threats();
+
         Ok(board)
     }
 }
