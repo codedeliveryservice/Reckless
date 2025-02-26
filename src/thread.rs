@@ -162,11 +162,12 @@ impl Default for Stack {
 #[derive(Copy, Clone)]
 pub struct StackEntry {
     pub mv: Move,
+    pub eval: i32,
 }
 
 impl Default for StackEntry {
     fn default() -> Self {
-        Self { mv: Move::NULL }
+        Self { mv: Move::NULL, eval: Score::NONE }
     }
 }
 
