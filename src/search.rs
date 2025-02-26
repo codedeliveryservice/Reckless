@@ -16,8 +16,37 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 
     let now = Instant::now();
 
+    let mut score = Score::NONE;
+    let mut alpha = -Score::INFINITE;
+    let mut beta = Score::INFINITE;
+    let mut delta = 24;
+
     for depth in 1..MAX_PLY as i32 {
-        let score = search::<true>(td, -Score::INFINITE, Score::INFINITE, depth, false);
+        if depth >= 4 {
+            alpha = (score - delta).max(-Score::INFINITE);
+            beta = (score + delta).min(Score::INFINITE);
+        }
+
+        loop {
+            score = search::<true>(td, alpha, beta, depth, false);
+
+            if td.stopped {
+                break;
+            }
+
+            match score {
+                s if s <= alpha => {
+                    beta = (alpha + beta) / 2;
+                    alpha = (score - delta).max(-Score::INFINITE);
+                }
+                s if s >= beta => {
+                    beta = (score + delta).min(Score::INFINITE);
+                }
+                _ => break,
+            }
+
+            delta += delta / 2;
+        }
 
         if !silent {
             td.print_uci_info(depth, score, now);
