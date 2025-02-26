@@ -16,6 +16,25 @@ pub struct Entry {
     pub score: i32,
     pub depth: i32,
     pub bound: Bound,
+    pub pv: bool,
+}
+
+pub struct Flags {
+    data: u8,
+}
+
+impl Flags {
+    pub fn new(bound: Bound, pv: bool) -> Self {
+        Self { data: bound as u8 | (pv as u8) << 2 }
+    }
+
+    pub fn bound(&self) -> Bound {
+        unsafe { std::mem::transmute(self.data & 0b11) }
+    }
+
+    pub fn pv(&self) -> bool {
+        (self.data & 0b100) != 0
+    }
 }
 
 /// Type of the score returned by the search.
@@ -33,7 +52,7 @@ struct InternalEntry {
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
     depth: u8,    // 1 byte
-    bound: Bound, // 1 byte
+    flags: Flags, // 1 byte
 }
 
 #[derive(Default)]
@@ -88,20 +107,21 @@ impl TranspositionTable {
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
-        vector.iter().take(1000).filter(|slot| slot.load().bound != Bound::None).count()
+        vector.iter().take(1000).filter(|slot| slot.load().flags.bound() != Bound::None).count()
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
         let entry = self.entry(hash).load();
 
-        if entry.bound == Bound::None || entry.key != verification_key(hash) {
+        if entry.flags.bound() == Bound::None || entry.key != verification_key(hash) {
             return None;
         }
 
         let mut hit = Entry {
             depth: entry.depth as i32,
             score: entry.score as i32,
-            bound: entry.bound,
+            bound: entry.flags.bound(),
+            pv: entry.flags.pv(),
             mv: entry.mv,
         };
 
@@ -113,7 +133,7 @@ impl TranspositionTable {
         Some(hit)
     }
 
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize) {
+    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) {
             score += score.signum() * ply as i32;
@@ -125,7 +145,13 @@ impl TranspositionTable {
 
         let mv = if stored.key == key && mv == Move::NULL { stored.mv } else { mv };
 
-        entry.write(InternalEntry { key, depth: depth as u8, score: score as i16, bound, mv });
+        entry.write(InternalEntry {
+            key,
+            depth: depth as u8,
+            score: score as i16,
+            flags: Flags::new(bound, pv),
+            mv,
+        });
     }
 
     pub fn prefetch(&self, hash: u64) {
