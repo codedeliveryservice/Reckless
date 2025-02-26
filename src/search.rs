@@ -17,7 +17,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let now = Instant::now();
 
     for depth in 1..MAX_PLY as i32 {
-        let score = search::<true>(td, -Score::INFINITE, Score::INFINITE, depth);
+        let score = search::<true>(td, -Score::INFINITE, Score::INFINITE, depth, false);
 
         if !silent {
             td.print_uci_info(depth, score, now);
@@ -35,7 +35,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     }
 }
 
-fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32) -> i32 {
+fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32, cut_node: bool) -> i32 {
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
 
@@ -102,7 +102,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r);
+        let score = -search::<false>(td, -beta, -beta + 1, depth - r, !cut_node);
 
         td.board.undo_null_move();
         td.ply -= 1;
@@ -167,19 +167,23 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 reduction -= 1;
             }
 
+            if cut_node {
+                reduction += 1;
+            }
+
             let reduced_depth = (new_depth - reduction).max(1).min(new_depth);
 
-            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth);
+            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
             if score > alpha && new_depth > reduced_depth {
-                score = -search::<false>(td, -alpha - 1, -alpha, new_depth);
+                score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
             }
         } else if !PV || move_count > 1 {
-            score = -search::<false>(td, -alpha - 1, -alpha, new_depth);
+            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
         }
 
         if PV && (move_count == 1 || score > alpha) {
-            score = -search::<true>(td, -beta, -alpha, new_depth);
+            score = -search::<true>(td, -beta, -alpha, new_depth, false);
         }
 
         td.board.undo_move::<true>(mv);
