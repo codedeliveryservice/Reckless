@@ -22,6 +22,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         let mut beta = Score::INFINITE;
 
         let mut delta = 24;
+        let mut reduction = 0;
 
         if depth >= 4 {
             alpha = (score - delta).max(-Score::INFINITE);
@@ -29,7 +30,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         }
 
         loop {
-            let current = search::<true>(td, alpha, beta, depth, false);
+            let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
                 break;
@@ -39,9 +40,11 @@ pub fn start(td: &mut ThreadData, silent: bool) {
                 s if s <= alpha => {
                     beta = (alpha + beta) / 2;
                     alpha = (current - delta).max(-Score::INFINITE);
+                    reduction = 0;
                 }
                 s if s >= beta => {
                     beta = (current + delta).min(Score::INFINITE);
+                    reduction += 1;
                 }
                 _ => {
                     score = current;
