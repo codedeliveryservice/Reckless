@@ -66,9 +66,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_move = Move::NULL;
+    let mut tt_pv = PV;
 
     if let Some(entry) = entry {
         tt_move = entry.mv;
+        tt_pv |= entry.pv;
 
         if !PV
             && entry.depth >= depth
@@ -167,6 +169,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 reduction -= 1;
             }
 
+            if tt_pv {
+                reduction -= 1;
+            }
+
             if cut_node {
                 reduction += 1;
             }
@@ -237,7 +243,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         Bound::Exact
     };
 
-    td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply);
+    td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
 
     best_score
 }
