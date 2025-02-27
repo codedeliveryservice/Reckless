@@ -25,7 +25,7 @@ impl Bitboard {
     }
 
     pub const fn multiple(self) -> bool {
-        self.0 & (self.0 - 1) != 0
+        self.0 != 0 && self.0 & (self.0 - 1) != 0
     }
 
     /// Counts the number of set bits in the bitboard.
