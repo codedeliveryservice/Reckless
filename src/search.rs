@@ -21,10 +21,12 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 24;
+        let mut delta = 12;
         let mut reduction = 0;
 
         if depth >= 4 {
+            delta += score * score / 32768;
+
             alpha = (score - delta).max(-Score::INFINITE);
             beta = (score + delta).min(Score::INFINITE);
         }
