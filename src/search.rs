@@ -4,7 +4,7 @@ use crate::{
     movepick::MovePicker,
     parameters::lmp_threshold,
     thread::ThreadData,
-    transposition::{Bound, Entry},
+    transposition::Bound,
     types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 
@@ -200,17 +200,34 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
         }
 
-        let is_singular = !is_root && !excluded && mv == tt_move;
+        let mut new_depth = depth - 1;
 
-        let extension = if is_singular { singular(td, depth, cut_node, entry.unwrap()) } else { 0 };
+        if !is_root && !excluded && mv == tt_move {
+            let entry = entry.unwrap();
+
+            if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
+                let singular_beta = entry.score - depth;
+                let singular_depth = (depth - 1) / 2;
+
+                td.stack[td.ply].excluded = entry.mv;
+                let singular_score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+                td.stack[td.ply].excluded = Move::NULL;
+
+                if td.stopped {
+                    return Score::ZERO;
+                }
+
+                if singular_score < singular_beta {
+                    new_depth += 1;
+                }
+            }
+        }
 
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
         td.tt.prefetch(td.board.hash());
-
-        let new_depth = depth + extension - 1;
 
         let mut score = Score::ZERO;
 
@@ -373,23 +390,4 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     }
 
     best_score
-}
-
-fn singular(td: &mut ThreadData, depth: i32, cut_node: bool, entry: Entry) -> i32 {
-    if !(depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score)) {
-        return 0;
-    }
-
-    let singular_beta = entry.score - depth;
-    let singular_depth = (depth - 1) / 2;
-
-    td.stack[td.ply].excluded = entry.mv;
-    let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
-    td.stack[td.ply].excluded = Move::NULL;
-
-    if score < singular_beta {
-        1
-    } else {
-        0
-    }
 }
