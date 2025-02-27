@@ -163,11 +163,12 @@ impl Default for Stack {
 pub struct StackEntry {
     pub mv: Move,
     pub eval: i32,
+    pub excluded: Move,
 }
 
 impl Default for StackEntry {
     fn default() -> Self {
-        Self { mv: Move::NULL, eval: Score::NONE }
+        Self { mv: Move::NULL, eval: Score::NONE, excluded: Move::NULL }
     }
 }
 

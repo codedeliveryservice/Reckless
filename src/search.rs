@@ -4,7 +4,7 @@ use crate::{
     movepick::MovePicker,
     parameters::lmp_threshold,
     thread::ThreadData,
-    transposition::Bound,
+    transposition::{Bound, Entry},
     types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Score, MAX_PLY},
 };
 
@@ -74,6 +74,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32, cut_node: bool) -> i32 {
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
+    let excluded = td.stack[td.ply].excluded != Move::NULL;
 
     td.pv.clear(td.ply);
 
@@ -100,7 +101,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let depth = depth.max(1);
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
@@ -120,18 +121,25 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let eval = if in_check { Score::NONE } else { td.board.evaluate() };
+    let eval = if in_check {
+        Score::NONE
+    } else if excluded {
+        td.stack[td.ply].eval
+    } else {
+        td.board.evaluate()
+    };
 
     let improving = !in_check && td.ply >= 2 && eval > td.stack[td.ply - 2].eval;
 
     td.stack[td.ply].eval = eval;
 
-    if !PV && !in_check && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
+    if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
         return eval;
     }
 
     if !PV
         && !in_check
+        && !excluded
         && depth >= 3
         && eval >= beta
         && td.stack[td.ply - 1].mv != Move::NULL
@@ -173,7 +181,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     while let Some((mv, _)) = move_picker.next() {
         let is_quiet = !mv.is_noisy();
 
-        if (is_quiet && skip_quiets) || !td.board.is_legal(mv) {
+        if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
 
@@ -192,13 +200,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
         }
 
+        let is_singular = !is_root && !excluded && mv == tt_move;
+
+        let extension = if is_singular { singular(td, depth, cut_node, entry.unwrap()) } else { 0 };
+
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
         td.tt.prefetch(td.board.hash());
 
-        let new_depth = depth - 1;
+        let new_depth = depth + extension - 1;
 
         let mut score = Score::ZERO;
 
@@ -276,6 +288,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     }
 
     if move_count == 0 {
+        if excluded {
+            return alpha;
+        }
+
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
 
@@ -287,7 +303,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         Bound::Exact
     };
 
-    td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
+    if !excluded {
+        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
+    }
 
     best_score
 }
@@ -355,4 +373,23 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     }
 
     best_score
+}
+
+fn singular(td: &mut ThreadData, depth: i32, cut_node: bool, entry: Entry) -> i32 {
+    if !(depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score)) {
+        return 0;
+    }
+
+    let singular_beta = entry.score - depth;
+    let singular_depth = (depth - 1) / 2;
+
+    td.stack[td.ply].excluded = entry.mv;
+    let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+    td.stack[td.ply].excluded = Move::NULL;
+
+    if score < singular_beta {
+        1
+    } else {
+        0
+    }
 }
