@@ -10,6 +10,11 @@ publish = false
 tuning = []
 datagen = []
 
+[profile.dev]
+opt-level = 3
+debug = true
+debug-assertions = true
+
 [profile.release]
 lto = "fat"
 panic = "abort"
