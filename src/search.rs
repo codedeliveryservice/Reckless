@@ -122,7 +122,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let eval = if in_check { Score::NONE } else { td.board.evaluate() };
 
-    if !PV && !in_check && depth <= 8 && eval - 80 * depth >= beta {
+    let improving = !in_check && td.ply >= 2 && eval > td.stack[td.ply - 2].eval;
+
+    td.stack[td.ply].eval = eval;
+
+    if !PV && !in_check && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
         return eval;
     }
 
