@@ -15,34 +15,38 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     td.pv.clear(0);
 
     let now = Instant::now();
-
     let mut score = Score::NONE;
-    let mut alpha = -Score::INFINITE;
-    let mut beta = Score::INFINITE;
-    let mut delta = 24;
 
     for depth in 1..MAX_PLY as i32 {
+        let mut alpha = -Score::INFINITE;
+        let mut beta = Score::INFINITE;
+
+        let mut delta = 24;
+
         if depth >= 4 {
             alpha = (score - delta).max(-Score::INFINITE);
             beta = (score + delta).min(Score::INFINITE);
         }
 
         loop {
-            score = search::<true>(td, alpha, beta, depth, false);
+            let current = search::<true>(td, alpha, beta, depth, false);
 
             if td.stopped {
                 break;
             }
 
-            match score {
+            match current {
                 s if s <= alpha => {
                     beta = (alpha + beta) / 2;
-                    alpha = (score - delta).max(-Score::INFINITE);
+                    alpha = (current - delta).max(-Score::INFINITE);
                 }
                 s if s >= beta => {
-                    beta = (score + delta).min(Score::INFINITE);
+                    beta = (current + delta).min(Score::INFINITE);
                 }
-                _ => break,
+                _ => {
+                    score = current;
+                    break;
+                }
             }
 
             delta += delta / 2;
