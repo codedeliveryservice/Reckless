@@ -133,6 +133,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.stack[td.ply].eval = eval;
 
+    if !PV && eval < alpha - 300 - 250 * depth * depth {
+        return qsearch(td, alpha, beta);
+    }
+
     if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
         return eval;
     }
