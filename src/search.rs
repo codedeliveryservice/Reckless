@@ -255,7 +255,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
             if score > alpha && new_depth > reduced_depth {
-                score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                new_depth += (score > best_score + 64) as i32;
+                new_depth -= (score < best_score + new_depth) as i32;
+
+                if new_depth > reduced_depth {
+                    score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                }
             }
         } else if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
