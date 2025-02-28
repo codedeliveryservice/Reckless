@@ -219,6 +219,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if singular_score < singular_beta {
                     new_depth += 1;
+                } else if singular_beta >= beta {
+                    return singular_beta;
                 }
             }
         }
