@@ -164,11 +164,17 @@ pub struct StackEntry {
     pub mv: Move,
     pub eval: i32,
     pub excluded: Move,
+    pub multiple_extensions: i32,
 }
 
 impl Default for StackEntry {
     fn default() -> Self {
-        Self { mv: Move::NULL, eval: Score::NONE, excluded: Move::NULL }
+        Self {
+            mv: Move::NULL,
+            eval: Score::NONE,
+            excluded: Move::NULL,
+            multiple_extensions: 0,
+        }
     }
 }
 
