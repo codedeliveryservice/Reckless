@@ -134,6 +134,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let improving = !in_check && td.ply >= 2 && eval > td.stack[td.ply - 2].eval;
 
     td.stack[td.ply].eval = eval;
+    td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
     if !PV && eval < alpha - 300 - 250 * depth * depth {
@@ -338,6 +339,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     } else {
         Bound::Exact
     };
+
+    if bound == Bound::Upper {
+        tt_pv |= td.ply >= 1 && td.stack[td.ply - 1].tt_pv;
+    }
 
     if !excluded {
         td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);

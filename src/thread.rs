@@ -164,6 +164,7 @@ pub struct StackEntry {
     pub mv: Move,
     pub eval: i32,
     pub excluded: Move,
+    pub tt_pv: bool,
     pub multiple_extensions: i32,
 }
 
@@ -173,6 +174,7 @@ impl Default for StackEntry {
             mv: Move::NULL,
             eval: Score::NONE,
             excluded: Move::NULL,
+            tt_pv: false,
             multiple_extensions: 0,
         }
     }
