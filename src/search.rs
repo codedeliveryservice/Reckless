@@ -207,7 +207,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
         }
 
-        let mut new_depth = depth - 1;
+        let mut extension = 0;
 
         if !is_root && !excluded && mv == tt_move {
             let entry = entry.unwrap();
@@ -217,25 +217,25 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
-                let singular_score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+                let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
                 td.stack[td.ply].excluded = Move::NULL;
 
                 if td.stopped {
                     return Score::ZERO;
                 }
 
-                if singular_score < singular_beta {
-                    new_depth += 1;
+                if score < singular_beta {
+                    extension = 1;
+                    extension += (!PV && score <= singular_beta - 24) as i32;
 
-                    if !PV && singular_score <= singular_beta - 24 && td.stack[td.ply].multiple_extensions <= 10 {
-                        new_depth += 1;
-                        td.stack[td.ply].multiple_extensions += 1;
-                    }
+                    td.stack[td.ply].multiple_extensions += (extension > 1) as i32;
                 } else if singular_beta >= beta {
                     return singular_beta;
                 }
             }
         }
+
+        let mut new_depth = depth + extension - 1;
 
         td.stack[td.ply].mv = mv;
         td.ply += 1;

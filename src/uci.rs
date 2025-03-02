@@ -28,7 +28,7 @@ pub fn message_loop() {
             ["setoption", tokens @ ..] => set_option(&mut threads, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
 
-            ["quit"] => std::process::exit(0),
+            ["quit"] => break,
 
             // Non-UCI commands
             ["eval"] => evaluate(&threads.main_thread().board),
