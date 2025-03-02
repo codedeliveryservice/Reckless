@@ -81,7 +81,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     td.pv.clear(td.ply);
 
     if depth <= 0 && !in_check {
-        return qsearch(td, alpha, beta);
+        return qsearch::<PV>(td, alpha, beta);
     }
 
     td.nodes += 1;
@@ -137,7 +137,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
     if !PV && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch(td, alpha, beta);
+        return qsearch::<false>(td, alpha, beta);
     }
 
     if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
@@ -346,7 +346,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     best_score
 }
 
-fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     let in_check = td.board.in_check();
 
     td.nodes += 1;
@@ -360,6 +360,20 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
         return if in_check { Score::DRAW } else { td.board.evaluate() };
     }
 
+    let entry = td.tt.read(td.board.hash(), td.ply);
+    let mut tt_pv = PV;
+
+    if let Some(entry) = entry {
+        tt_pv |= entry.pv;
+        if match entry.bound {
+            Bound::Upper => entry.score <= alpha,
+            Bound::Lower => entry.score >= beta,
+            _ => true,
+        } {
+            return entry.score;
+        }
+    }
+
     let mut best_score = td.board.evaluate();
 
     if best_score >= beta {
@@ -370,6 +384,7 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
         alpha = best_score;
     }
 
+    let mut best_move = Move::NULL;
     let mut move_picker = MovePicker::new_noisy(td);
 
     while let Some((mv, mv_score)) = move_picker.next() {
@@ -386,7 +401,7 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
 
         td.board.make_move::<true, false>(mv);
 
-        let score = -qsearch(td, -beta, -alpha);
+        let score = -qsearch::<PV>(td, -beta, -alpha);
 
         td.board.undo_move::<true>(mv);
         td.ply -= 1;
@@ -399,6 +414,8 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
             best_score = score;
 
             if score > alpha {
+                best_move = mv;
+
                 if score >= beta {
                     break;
                 }
@@ -407,6 +424,10 @@ fn qsearch(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
             }
         }
     }
+
+    let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
+
+    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
 
     best_score
 }
