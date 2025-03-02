@@ -137,6 +137,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
+    td.stack[td.ply + 2].cutoff_count = 0;
+
     if !PV && eval < alpha - 300 - 250 * depth * depth {
         return qsearch::<false>(td, alpha, beta);
     }
@@ -265,6 +267,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 reduction += 1;
             }
 
+            if td.stack[td.ply].cutoff_count > 3 {
+                reduction += 1;
+            }
+
             let reduced_depth = (new_depth - reduction).max(1).min(new_depth);
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
@@ -308,6 +314,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     } else {
                         td.quiet_history.update(&td.board, best_move, &quiet_moves, depth);
                     }
+
+                    td.stack[td.ply].cutoff_count += 1;
+
                     break;
                 }
 
