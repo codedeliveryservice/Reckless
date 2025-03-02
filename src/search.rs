@@ -134,6 +134,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let improving = !in_check && td.ply >= 2 && eval > td.stack[td.ply - 2].eval;
 
     td.stack[td.ply].eval = eval;
+    td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
     if !PV && eval < alpha - 300 - 250 * depth * depth {
         return qsearch(td, alpha, beta);
@@ -225,6 +226,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if singular_score < singular_beta {
                     new_depth += 1;
+
+                    if !PV && singular_score <= singular_beta - 24 && td.stack[td.ply].multiple_extensions <= 10 {
+                        new_depth += 1;
+                        td.stack[td.ply].multiple_extensions += 1;
+                    }
                 } else if singular_beta >= beta {
                     return singular_beta;
                 }
