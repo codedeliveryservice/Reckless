@@ -150,12 +150,12 @@ impl Default for PrincipalVariationTable {
 }
 
 pub struct Stack {
-    data: [StackEntry; MAX_PLY],
+    data: [StackEntry; MAX_PLY + 8],
 }
 
 impl Default for Stack {
     fn default() -> Self {
-        Self { data: [Default::default(); MAX_PLY] }
+        Self { data: [Default::default(); MAX_PLY + 8] }
     }
 }
 
@@ -166,6 +166,7 @@ pub struct StackEntry {
     pub excluded: Move,
     pub tt_pv: bool,
     pub multiple_extensions: i32,
+    pub cutoff_count: i32,
 }
 
 impl Default for StackEntry {
@@ -176,6 +177,7 @@ impl Default for StackEntry {
             excluded: Move::NULL,
             tt_pv: false,
             multiple_extensions: 0,
+            cutoff_count: 0,
         }
     }
 }
