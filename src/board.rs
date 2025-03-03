@@ -26,6 +26,7 @@ const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 #[derive(Copy, Clone, Default)]
 struct InternalState {
     key: u64,
+    pawn_key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -65,6 +66,10 @@ impl Board {
     /// Returns the Zobrist hash key for the current position.
     pub const fn hash(&self) -> u64 {
         self.state.key
+    }
+
+    pub const fn pawn_key(&self) -> u64 {
+        self.state.pawn_key
     }
 
     pub const fn pinners(&self) -> Bitboard {
@@ -153,6 +158,9 @@ impl Board {
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
         self.state.key ^= ZOBRIST.pieces[piece][square];
+        if piece.piece_type() == PieceType::Pawn {
+            self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+        }
     }
 
     /// Calculates the score of the current position from the perspective of the side to move.
@@ -320,8 +328,13 @@ impl Board {
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
+
             for square in self.of(piece.piece_type(), piece.piece_color()) {
                 self.state.key ^= ZOBRIST.pieces[piece][square];
+
+                if piece.piece_type() == PieceType::Pawn {
+                    self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+                }
             }
         }
 
