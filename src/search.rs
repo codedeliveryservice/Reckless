@@ -371,6 +371,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && (best_move == Move::NULL || !best_move.is_noisy())
     {
         td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - raw);
+        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - raw);
+        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - raw);
     }
 
     best_score
@@ -466,4 +468,6 @@ fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.get(stm, td.board.pawn_key())
+        + td.minor_corrhist.get(stm, td.board.minor_key())
+        + td.major_corrhist.get(stm, td.board.major_key())
 }

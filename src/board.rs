@@ -27,6 +27,8 @@ const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 struct InternalState {
     key: u64,
     pawn_key: u64,
+    minor_key: u64,
+    major_key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -70,6 +72,14 @@ impl Board {
 
     pub const fn pawn_key(&self) -> u64 {
         self.state.pawn_key
+    }
+
+    pub const fn minor_key(&self) -> u64 {
+        self.state.minor_key
+    }
+
+    pub const fn major_key(&self) -> u64 {
+        self.state.major_key
     }
 
     pub const fn pinners(&self) -> Bitboard {
@@ -158,8 +168,17 @@ impl Board {
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
         self.state.key ^= ZOBRIST.pieces[piece][square];
+
         if piece.piece_type() == PieceType::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+        }
+
+        if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
+            self.state.minor_key ^= ZOBRIST.pieces[piece][square];
+        }
+
+        if [PieceType::Rook, PieceType::Queen, PieceType::King].contains(&piece.piece_type()) {
+            self.state.major_key ^= ZOBRIST.pieces[piece][square];
         }
     }
 
@@ -334,6 +353,14 @@ impl Board {
 
                 if piece.piece_type() == PieceType::Pawn {
                     self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+                }
+
+                if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
+                    self.state.minor_key ^= ZOBRIST.pieces[piece][square];
+                }
+
+                if [PieceType::Rook, PieceType::Queen, PieceType::King].contains(&piece.piece_type()) {
+                    self.state.major_key ^= ZOBRIST.pieces[piece][square];
                 }
             }
         }
