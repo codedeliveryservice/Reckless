@@ -123,22 +123,33 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let raw;
-    let eval;
+    let static_eval;
+    let mut eval;
 
     if in_check {
+        static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        raw = td.stack[td.ply].eval;
-        eval = raw;
+        static_eval = td.stack[td.ply].eval;
+        eval = static_eval;
     } else {
-        raw = td.board.evaluate();
-        eval = raw + correction_value(td);
+        static_eval = td.board.evaluate() + correction_value(td);
+        eval = static_eval;
+
+        if let Some(entry) = entry {
+            if match entry.bound {
+                Bound::Upper => entry.score < eval,
+                Bound::Lower => entry.score > eval,
+                _ => true,
+            } {
+                eval = entry.score;
+            }
+        }
     }
 
-    let improving = !in_check && td.ply >= 2 && eval > td.stack[td.ply - 2].eval;
+    let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].eval;
 
-    td.stack[td.ply].eval = eval;
+    td.stack[td.ply].eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
