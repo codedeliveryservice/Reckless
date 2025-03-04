@@ -169,6 +169,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && !excluded
         && depth >= 3
         && eval >= beta
+        && static_eval >= beta - 20 * depth + 180
         && td.stack[td.ply - 1].mv != Move::NULL
         && td.board.has_non_pawns()
     {
