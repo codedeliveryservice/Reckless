@@ -376,13 +376,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     if !excluded
         && !in_check
         && !is_decisive(best_score)
-        && !(bound == Bound::Upper && best_score >= eval)
-        && !(bound == Bound::Lower && best_score <= eval)
+        && !(bound == Bound::Upper && best_score >= static_eval)
+        && !(bound == Bound::Lower && best_score <= static_eval)
         && (best_move == Move::NULL || !best_move.is_noisy())
     {
-        td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - eval);
-        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - eval);
-        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - eval);
+        td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - static_eval);
+        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - static_eval);
+        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - static_eval);
     }
 
     best_score
