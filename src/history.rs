@@ -1,9 +1,9 @@
 use crate::{
     board::Board,
-    types::{ArrayVec, Color, Move},
+    types::{ArrayVec, Color, Move, Piece},
 };
 
-fn bonus(depth: i32) -> i32 {
+pub fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
@@ -110,5 +110,40 @@ impl CorrectionHistory {
 impl Default for CorrectionHistory {
     fn default() -> Self {
         Self { entries: Box::new([[0; Self::SIZE]; 2]) }
+    }
+}
+
+pub struct ContinuationHistory {
+    // [previous_piece][previous_to][current_piece][current_to]
+    entries: Box<[[[[i32; 64]; 12]; 64]; 12]>,
+}
+
+impl ContinuationHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    pub fn get(&self, board: &Board, prev_piece: Piece, prev_mv: Move, mv: Move) -> i32 {
+        self.entries[prev_piece][prev_mv.to()][board.piece_on(mv.from())][mv.to()]
+    }
+
+    pub fn update(&mut self, board: &Board, prev_mv: Move, prev_piece: Piece, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[prev_piece][prev_mv.to()][board.piece_on(mv.from())][mv.to()];
+        *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
+    }
+}
+
+impl Default for ContinuationHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
+fn zeroed_box<T>() -> Box<T> {
+    unsafe {
+        let layout = std::alloc::Layout::new::<T>();
+        let ptr = std::alloc::alloc_zeroed(layout);
+        if ptr.is_null() {
+            std::alloc::handle_alloc_error(layout);
+        }
+        Box::<T>::from_raw(ptr.cast())
     }
 }
