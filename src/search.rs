@@ -127,7 +127,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let eval;
 
     if in_check {
-        raw = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
         raw = td.stack[td.ply].eval;
@@ -370,9 +369,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && !(bound == Bound::Lower && best_score <= eval)
         && (best_move == Move::NULL || !best_move.is_noisy())
     {
-        td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - raw);
-        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - raw);
-        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - raw);
+        td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - eval);
+        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - eval);
+        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - eval);
     }
 
     best_score
@@ -406,7 +405,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    let mut best_score = td.board.evaluate();
+    let mut best_score = td.board.evaluate() + correction_value(td);
 
     if best_score >= beta {
         return best_score;
