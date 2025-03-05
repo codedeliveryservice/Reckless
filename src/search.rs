@@ -328,35 +328,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
-                    let bonus = bonus(depth);
-
-                    if best_move.is_noisy() {
-                        td.noisy_history.update(&td.board, best_move, bonus);
-
-                        for &mv in noisy_moves.iter() {
-                            td.noisy_history.update(&td.board, mv, -bonus);
-                        }
-                    } else {
-                        td.quiet_history.update(&td.board, best_move, bonus);
-
-                        for &mv in quiet_moves.iter() {
-                            td.quiet_history.update(&td.board, mv, -bonus);
-                        }
-
-                        if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
-                            let prev_mv = td.stack[td.ply - 1].mv;
-                            let prev_piece = td.stack[td.ply - 1].piece;
-
-                            td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
-
-                            for &mv in quiet_moves.iter() {
-                                td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -bonus);
-                            }
-                        }
-                    }
-
                     td.stack[td.ply].cutoff_count += 1;
-
                     break;
                 }
 
@@ -388,6 +360,35 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     } else {
         Bound::Exact
     };
+
+    if bound == Bound::Lower {
+        let bonus = bonus(depth);
+
+        if best_move.is_noisy() {
+            td.noisy_history.update(&td.board, best_move, bonus);
+
+            for &mv in noisy_moves.iter() {
+                td.noisy_history.update(&td.board, mv, -bonus);
+            }
+        } else {
+            td.quiet_history.update(&td.board, best_move, bonus);
+
+            for &mv in quiet_moves.iter() {
+                td.quiet_history.update(&td.board, mv, -bonus);
+            }
+
+            if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+                let prev_mv = td.stack[td.ply - 1].mv;
+                let prev_piece = td.stack[td.ply - 1].piece;
+
+                td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
+
+                for &mv in quiet_moves.iter() {
+                    td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -bonus);
+                }
+            }
+        }
+    }
 
     if bound == Bound::Upper {
         tt_pv |= td.ply >= 1 && td.stack[td.ply - 1].tt_pv;
