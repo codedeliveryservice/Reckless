@@ -198,6 +198,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
+    let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
@@ -321,6 +322,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             best_score = score;
 
             if score > alpha {
+                bound = Bound::Exact;
+                alpha = score;
                 best_move = mv;
 
                 if PV {
@@ -328,11 +331,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
+                    bound = Bound::Lower;
                     td.stack[td.ply].cutoff_count += 1;
                     break;
                 }
-
-                alpha = score;
             }
         }
 
@@ -352,14 +354,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
-
-    let bound = if best_score >= beta {
-        Bound::Lower
-    } else if best_move == Move::NULL {
-        Bound::Upper
-    } else {
-        Bound::Exact
-    };
 
     if bound == Bound::Lower {
         let bonus = bonus(depth);
@@ -483,12 +477,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
             if score > alpha {
                 best_move = mv;
+                alpha = score;
 
                 if score >= beta {
                     break;
                 }
-
-                alpha = score;
             }
         }
     }
