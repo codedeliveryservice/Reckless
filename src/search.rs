@@ -1,11 +1,12 @@
 use std::time::Instant;
 
 use crate::{
+    history::bonus,
     movepick::MovePicker,
     parameters::lmp_threshold,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Score, MAX_PLY},
+    types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Piece, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -173,6 +174,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     {
         let r = 3 + depth / 3 + ((eval - beta) / 256).min(3);
 
+        td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
         td.ply += 1;
 
@@ -256,6 +258,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let mut new_depth = depth + extension - 1;
 
+        td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
@@ -329,6 +332,18 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                         td.noisy_history.update(&td.board, best_move, &noisy_moves, depth);
                     } else {
                         td.quiet_history.update(&td.board, best_move, &quiet_moves, depth);
+
+                        if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+                            let prev_mv = td.stack[td.ply - 1].mv;
+                            let prev_piece = td.stack[td.ply - 1].piece;
+                            let bonus = bonus(depth);
+
+                            td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
+
+                            for &mv in quiet_moves.iter() {
+                                td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -bonus);
+                            }
+                        }
                     }
 
                     td.stack[td.ply].cutoff_count += 1;
@@ -438,6 +453,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             continue;
         }
 
+        td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 

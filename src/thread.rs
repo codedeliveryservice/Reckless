@@ -6,10 +6,10 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{is_loss, is_win, Move, Score, MAX_PLY},
+    types::{is_loss, is_win, Move, Piece, Score, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -56,6 +56,7 @@ pub struct ThreadData<'a> {
     pub pv: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
+    pub continuation_history: ContinuationHistory,
     pub pawn_corrhist: CorrectionHistory,
     pub minor_corrhist: CorrectionHistory,
     pub major_corrhist: CorrectionHistory,
@@ -77,6 +78,7 @@ impl<'a> ThreadData<'a> {
             pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
+            continuation_history: ContinuationHistory::default(),
             pawn_corrhist: CorrectionHistory::default(),
             minor_corrhist: CorrectionHistory::default(),
             major_corrhist: CorrectionHistory::default(),
@@ -168,6 +170,7 @@ impl Default for Stack {
 #[derive(Copy, Clone)]
 pub struct StackEntry {
     pub mv: Move,
+    pub piece: Piece,
     pub eval: i32,
     pub excluded: Move,
     pub tt_pv: bool,
@@ -179,6 +182,7 @@ impl Default for StackEntry {
     fn default() -> Self {
         Self {
             mv: Move::NULL,
+            piece: Piece::None,
             eval: Score::NONE,
             excluded: Move::NULL,
             tt_pv: false,
