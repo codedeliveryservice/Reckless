@@ -91,7 +91,7 @@ impl Default for CorrectionHistory {
 
 pub struct ContinuationHistory {
     // [previous_piece][previous_to][current_piece][current_to]
-    entries: Box<[[[[i32; 64]; 12]; 64]; 12]>,
+    entries: Box<[[[[i32; 64]; 12]; 64]; 13]>,
 }
 
 impl ContinuationHistory {
