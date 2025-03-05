@@ -26,6 +26,6 @@ pub fn init() {
     }
 }
 
-pub const fn between(a: Square, b: Square) -> Bitboard {
+pub fn between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN[a as usize][b as usize] }
 }
