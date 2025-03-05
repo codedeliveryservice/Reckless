@@ -1,7 +1,6 @@
 use std::time::Instant;
 
 use crate::{
-    history::bonus,
     movepick::MovePicker,
     parameters::lmp_threshold,
     thread::ThreadData,
@@ -329,15 +328,24 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 }
 
                 if score >= beta {
+                    let bonus = bonus(depth);
+
                     if best_move.is_noisy() {
-                        td.noisy_history.update(&td.board, best_move, &noisy_moves, depth);
+                        td.noisy_history.update(&td.board, best_move, bonus);
+
+                        for &mv in noisy_moves.iter() {
+                            td.noisy_history.update(&td.board, mv, -bonus);
+                        }
                     } else {
-                        td.quiet_history.update(&td.board, best_move, &quiet_moves, depth);
+                        td.quiet_history.update(&td.board, best_move, bonus);
+
+                        for &mv in quiet_moves.iter() {
+                            td.quiet_history.update(&td.board, mv, -bonus);
+                        }
 
                         if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
                             let prev_mv = td.stack[td.ply - 1].mv;
                             let prev_piece = td.stack[td.ply - 1].piece;
-                            let bonus = bonus(depth);
 
                             td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
 
@@ -497,4 +505,8 @@ fn correction_value(td: &ThreadData) -> i32 {
     td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
+}
+
+fn bonus(depth: i32) -> i32 {
+    (128 * depth - 64).min(1280)
 }
