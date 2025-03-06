@@ -13,6 +13,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     td.completed_depth = 0;
     td.stopped = false;
     td.pv.clear(0);
+    td.node_table.clear();
 
     let now = Instant::now();
     let mut score = Score::NONE;
@@ -67,7 +68,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 
         td.completed_depth = depth;
 
-        if td.time_manager.soft_limit(depth, td.nodes) {
+        if td.time_manager.soft_limit(td) {
             break;
         }
     }
@@ -257,6 +258,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
         }
 
+        let initial_nodes = td.nodes;
         let mut new_depth = depth + extension - 1;
 
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
@@ -316,6 +318,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         if td.stopped {
             return Score::ZERO;
+        }
+
+        if is_root {
+            td.node_table.add(mv, td.nodes - initial_nodes);
         }
 
         if score > best_score {
