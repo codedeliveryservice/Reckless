@@ -61,10 +61,12 @@ impl TimeManager {
             Limits::Nodes(maximum) => td.nodes >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => {
-                let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
-                let effort = 2.15 - 1.5 * fraction;
+                let mut limit = self.soft_bound.as_secs_f32();
 
-                let limit = self.soft_bound.as_secs_f32() * effort;
+                if td.completed_depth >= 7 {
+                    let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
+                    limit *= 2.15 - 1.5 * fraction;
+                }
 
                 self.start_time.elapsed() >= Duration::from_secs_f32(limit)
             }
