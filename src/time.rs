@@ -66,9 +66,7 @@ impl TimeManager {
                 if td.completed_depth >= 7 {
                     let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
                     limit *= 2.15 - 1.5 * fraction;
-                }
 
-                if td.completed_depth >= 2 {
                     limit *= 1.25 - 0.05 * pv_stability as f32;
                 }
 
