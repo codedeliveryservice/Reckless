@@ -60,6 +60,7 @@ pub struct ThreadData<'a> {
     pub pawn_corrhist: CorrectionHistory,
     pub minor_corrhist: CorrectionHistory,
     pub major_corrhist: CorrectionHistory,
+    pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub stopped: bool,
     pub nodes: u64,
@@ -82,6 +83,7 @@ impl<'a> ThreadData<'a> {
             pawn_corrhist: CorrectionHistory::default(),
             minor_corrhist: CorrectionHistory::default(),
             major_corrhist: CorrectionHistory::default(),
+            node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             stopped: false,
             nodes: 0,
@@ -229,5 +231,29 @@ impl Default for LmrTable {
         }
 
         Self { table }
+    }
+}
+
+pub struct NodeTable {
+    table: [[u64; 64]; 64],
+}
+
+impl NodeTable {
+    pub fn add(&mut self, mv: Move, nodes: u64) {
+        self.table[mv.from()][mv.to()] += nodes;
+    }
+
+    pub fn get(&self, mv: Move) -> u64 {
+        self.table[mv.from()][mv.to()]
+    }
+
+    pub fn clear(&mut self) {
+        *self = Self::default();
+    }
+}
+
+impl Default for NodeTable {
+    fn default() -> Self {
+        Self { table: [[0; 64]; 64] }
     }
 }

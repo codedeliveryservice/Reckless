@@ -54,12 +54,20 @@ impl TimeManager {
         }
     }
 
-    pub fn soft_limit(&self, depth: i32, nodes: u64) -> bool {
+    pub fn soft_limit(&self, td: &ThreadData) -> bool {
         match self.limits {
             Limits::Infinite => false,
-            Limits::Depth(maximum) => depth >= maximum,
-            Limits::Nodes(maximum) => nodes >= maximum,
-            _ => self.start_time.elapsed() >= self.soft_bound,
+            Limits::Depth(maximum) => td.completed_depth >= maximum,
+            Limits::Nodes(maximum) => td.nodes >= maximum,
+            Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
+            _ => {
+                let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
+                let effort = 2.3 - 1.5 * fraction;
+
+                let limit = self.soft_bound.as_secs_f32() * effort;
+
+                self.start_time.elapsed() >= Duration::from_secs_f32(limit)
+            }
         }
     }
 
