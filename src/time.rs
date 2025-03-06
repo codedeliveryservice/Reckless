@@ -62,7 +62,7 @@ impl TimeManager {
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => {
                 let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
-                let effort = 2.3 - 1.5 * fraction;
+                let effort = 2.15 - 1.5 * fraction;
 
                 let limit = self.soft_bound.as_secs_f32() * effort;
 
