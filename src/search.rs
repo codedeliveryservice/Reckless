@@ -18,6 +18,9 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let now = Instant::now();
     let mut score = Score::NONE;
 
+    let mut pv_stability = 0;
+    let mut last_move = Move::NULL;
+
     for depth in 1..MAX_PLY as i32 {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
@@ -68,7 +71,14 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 
         td.completed_depth = depth;
 
-        if td.time_manager.soft_limit(td) {
+        if last_move == td.pv.best_move() {
+            pv_stability = (pv_stability + 1).min(8);
+        } else {
+            pv_stability = 0;
+            last_move = td.pv.best_move();
+        }
+
+        if td.time_manager.soft_limit(td, pv_stability) {
             break;
         }
     }
