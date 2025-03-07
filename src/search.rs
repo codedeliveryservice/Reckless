@@ -112,7 +112,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let depth = depth.max(1);
+    let depth = depth.clamp(1, MAX_PLY as i32 - 1);
 
     let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
     let mut tt_move = Move::NULL;
