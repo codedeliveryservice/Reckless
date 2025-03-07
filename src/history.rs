@@ -3,9 +3,12 @@ use crate::{
     types::{Color, Move, Piece},
 };
 
+type FromToHistory<T> = [[T; 64]; 64];
+type PieceToHistory<T> = [[T; 64]; 12];
+
 pub struct QuietHistory {
     // [side_to_move][from_threated][to_threated][from][to]
-    entries: Box<[[[[[i32; 64]; 64]; 2]; 2]; 2]>,
+    entries: Box<[[[FromToHistory<i32>; 2]; 2]; 2]>,
 }
 
 impl QuietHistory {
@@ -35,7 +38,7 @@ impl Default for QuietHistory {
 
 pub struct NoisyHistory {
     // [piece][to][captured_piece_type]
-    entries: Box<[[[i32; 7]; 64]; 12]>,
+    entries: Box<PieceToHistory<[i32; 7]>>,
 }
 
 impl NoisyHistory {
@@ -91,7 +94,7 @@ impl Default for CorrectionHistory {
 
 pub struct ContinuationHistory {
     // [previous_piece][previous_to][current_piece][current_to]
-    entries: Box<[[[[i32; 64]; 12]; 64]; 13]>,
+    entries: Box<[[PieceToHistory<i32>; 64]; 13]>,
 }
 
 impl ContinuationHistory {

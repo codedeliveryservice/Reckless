@@ -398,12 +398,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !excluded
-        && !in_check
-        && !is_decisive(best_score)
-        && !(bound == Bound::Upper && best_score >= static_eval)
-        && !(bound == Bound::Lower && best_score <= static_eval)
-        && (best_move == Move::NULL || !best_move.is_noisy())
+    if !(excluded
+        || in_check
+        || best_move.is_noisy()
+        || is_decisive(best_score)
+        || (bound == Bound::Upper && best_score >= static_eval)
+        || (bound == Bound::Lower && best_score <= static_eval))
     {
         td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - static_eval);
         td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - static_eval);

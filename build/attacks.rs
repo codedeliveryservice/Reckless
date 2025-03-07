@@ -3,6 +3,8 @@
 //! In the case of a 1st/8th rank wrapping, the bit is pruned after the shift,
 //! so no mask is required.
 
+#![allow(clippy::precedence)]
+
 const A_FILE: u64 = 0x101010101010101;
 const B_FILE: u64 = A_FILE << 1;
 const H_FILE: u64 = A_FILE << 7;

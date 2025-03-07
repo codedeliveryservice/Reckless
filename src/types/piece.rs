@@ -23,7 +23,7 @@ impl Piece {
     pub const NUM: usize = 12;
 
     pub const fn new(color: Color, piece_type: PieceType) -> Self {
-        unsafe { std::mem::transmute((piece_type as u8) << 1 | color as u8) }
+        unsafe { std::mem::transmute(((piece_type as u8) << 1) | color as u8) }
     }
 
     pub const fn from_index(index: usize) -> Self {

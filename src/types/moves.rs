@@ -37,7 +37,7 @@ impl Move {
     pub const NULL: Self = Self(0);
 
     pub const fn new(from: Square, to: Square, kind: MoveKind) -> Self {
-        Self(from as u16 | (to as u16) << 6 | (kind as u16) << 12)
+        Self(from as u16 | ((to as u16) << 6) | ((kind as u16) << 12))
     }
 
     pub const fn from(self) -> Square {

@@ -25,7 +25,7 @@ pub struct Flags {
 
 impl Flags {
     pub fn new(bound: Bound, pv: bool) -> Self {
-        Self { data: bound as u8 | (pv as u8) << 2 }
+        Self { data: bound as u8 | ((pv as u8) << 2) }
     }
 
     pub fn bound(&self) -> Bound {
@@ -133,6 +133,7 @@ impl TranspositionTable {
         Some(hit)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) {
