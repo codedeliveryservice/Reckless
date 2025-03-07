@@ -141,18 +141,24 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let entry = self.entry(hash);
-        let stored = entry.load();
+        let block = self.entry(hash);
 
-        let mv = if stored.key == key && mv == Move::NULL { stored.mv } else { mv };
+        let mut entry = block.load();
 
-        entry.write(InternalEntry {
-            key,
-            depth: depth as u8,
-            score: score as i16,
-            flags: Flags::new(bound, pv),
-            mv,
-        });
+        if !(entry.key != key || depth + 3 + 2 * pv as i32 > entry.depth as i32 || bound == Bound::Exact) {
+            return;
+        }
+
+        if !(entry.key == key && mv == Move::NULL) {
+            entry.mv = mv;
+        }
+
+        entry.key = key;
+        entry.depth = depth as u8;
+        entry.score = score as i16;
+        entry.flags = Flags::new(bound, pv);
+
+        block.write(entry);
     }
 
     pub fn prefetch(&self, hash: u64) {
