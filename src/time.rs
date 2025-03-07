@@ -54,7 +54,7 @@ impl TimeManager {
         }
     }
 
-    pub fn soft_limit(&self, td: &ThreadData, pv_stability: usize) -> bool {
+    pub fn soft_limit(&self, td: &ThreadData, pv_stability: usize, eval_stability: usize) -> bool {
         match self.limits {
             Limits::Infinite => false,
             Limits::Depth(maximum) => td.completed_depth >= maximum,
@@ -68,6 +68,8 @@ impl TimeManager {
                     limit *= 2.15 - 1.5 * fraction;
 
                     limit *= 1.25 - 0.05 * pv_stability as f32;
+
+                    limit *= 1.2 - 0.04 * eval_stability as f32;
                 }
 
                 self.start_time.elapsed() >= Duration::from_secs_f32(limit)
