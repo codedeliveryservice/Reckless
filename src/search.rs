@@ -36,6 +36,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         }
 
         loop {
+            debug_assert!(-Score::INFINITE <= alpha && beta <= Score::INFINITE);
             let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
@@ -85,6 +86,9 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 }
 
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32, cut_node: bool) -> i32 {
+    debug_assert!(td.ply <= MAX_PLY);
+    debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded != Move::NULL;
@@ -420,10 +424,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - static_eval);
     }
 
+    debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
+
     best_score
 }
 
 fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+    debug_assert!(td.ply <= MAX_PLY);
+    debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+
     let in_check = td.board.in_check();
 
     td.nodes += 1;
@@ -505,6 +514,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
     td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
+
+    debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
     best_score
 }
