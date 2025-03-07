@@ -16,8 +16,11 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     td.node_table.clear();
 
     let now = Instant::now();
-    let mut score = Score::NONE;
 
+    let mut score = Score::NONE;
+    let mut average = Score::NONE;
+
+    let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut last_move = Move::NULL;
 
@@ -55,6 +58,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
                 }
                 _ => {
                     score = current;
+                    average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
             }
@@ -79,7 +83,13 @@ pub fn start(td: &mut ThreadData, silent: bool) {
             last_move = td.pv.best_move();
         }
 
-        if td.time_manager.soft_limit(td, pv_stability) {
+        if (score - eval_stability as i32).abs() < 12 {
+            eval_stability = (eval_stability + 1).min(8);
+        } else {
+            eval_stability = 0;
+        }
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
             break;
         }
     }
