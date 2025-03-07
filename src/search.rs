@@ -36,7 +36,6 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         }
 
         loop {
-            debug_assert!(-Score::INFINITE <= alpha && beta <= Score::INFINITE);
             let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
