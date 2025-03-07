@@ -62,9 +62,13 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
         } else {
             scores[i] = td.quiet_history.get(&td.board, mv);
 
-            if td.ply >= 1 {
-                let prev_piece = td.stack[td.ply - 1].piece;
-                let prev_mv = td.stack[td.ply - 1].mv;
+            for index in [1, 2] {
+                if td.ply < index {
+                    continue;
+                }
+
+                let prev_piece = td.stack[td.ply - index].piece;
+                let prev_mv = td.stack[td.ply - index].mv;
 
                 scores[i] += td.continuation_history.get(&td.board, prev_piece, prev_mv, mv);
             }
