@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     movepick::MovePicker,
-    parameters::lmp_threshold,
+    parameters::*,
     thread::ThreadData,
     transposition::Bound,
     types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Piece, Score, MAX_PLY},
@@ -22,11 +22,11 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 12;
+        let mut delta = asp_delta();
         let mut reduction = 0;
 
         if depth >= 4 {
-            delta += score * score / 32768;
+            delta += score * score / asp_div();
 
             alpha = (score - delta).max(-Score::INFINITE);
             beta = (score + delta).min(Score::INFINITE);

@@ -46,7 +46,7 @@ fn uci() {
     println!("option name Threads type spin default 1 min 1 max 256");
     println!("option name Clear Hash type button");
 
-    #[cfg(feature = "tuning")]
+    #[cfg(feature = "spsa")]
     crate::parameters::print_options();
 
     println!("uciok");
@@ -138,7 +138,7 @@ fn set_option(threads: &mut ThreadPool, tt: &TranspositionTable, tokens: &[&str]
             threads.set_count(v.parse().unwrap());
             println!("info string set Threads to {v}");
         }
-        #[cfg(feature = "tuning")]
+        #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
             println!("info string set {name} to {v}");

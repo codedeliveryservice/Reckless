@@ -7,7 +7,7 @@ build = "build/build.rs"
 publish = false
 
 [features]
-tuning = []
+spsa = []
 datagen = []
 
 [profile.dev]
