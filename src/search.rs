@@ -400,9 +400,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 td.quiet_history.update(&td.board, mv, -bonus);
             }
 
-            if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
-                let prev_mv = td.stack[td.ply - 1].mv;
-                let prev_piece = td.stack[td.ply - 1].piece;
+            for index in [1, 2] {
+                if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
+                    continue;
+                }
+
+                let prev_mv = td.stack[td.ply - index].mv;
+                let prev_piece = td.stack[td.ply - index].piece;
 
                 td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
 
