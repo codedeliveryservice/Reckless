@@ -125,7 +125,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let depth = depth.clamp(1, MAX_PLY as i32 - 1);
+    let mut depth = depth.clamp(1, MAX_PLY as i32 - 1);
 
     let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
     let mut tt_move = Move::NULL;
@@ -218,6 +218,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             s if s >= beta => return s,
             _ => (),
         }
+    }
+
+    if depth >= 3 + 3 * cut_node as i32 && tt_move == Move::NULL && (PV || cut_node) {
+        depth -= 1;
     }
 
     let mut best_score = -Score::INFINITE;
