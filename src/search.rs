@@ -430,8 +430,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !(excluded
-        || in_check
+    if !(in_check
         || best_move.is_noisy()
         || is_decisive(best_score)
         || (bound == Bound::Upper && best_score >= static_eval)
