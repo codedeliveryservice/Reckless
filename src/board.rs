@@ -344,6 +344,9 @@ impl Board {
 
     pub fn update_hash_keys(&mut self) {
         self.state.key = 0;
+        self.state.pawn_key = 0;
+        self.state.minor_key = 0;
+        self.state.major_key = 0;
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
