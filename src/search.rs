@@ -104,6 +104,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.pv.clear(td.ply);
 
+    if td.stopped {
+        return Score::ZERO;
+    }
+
     if depth <= 0 && !in_check {
         return qsearch::<PV>(td, alpha, beta);
     }
