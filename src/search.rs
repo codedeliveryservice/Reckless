@@ -18,11 +18,10 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let now = Instant::now();
 
     let mut score = Score::NONE;
-    let mut average = Score::NONE;
+    let mut last_move = Move::NULL;
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
-    let mut last_move = Move::NULL;
 
     for depth in 1..MAX_PLY as i32 {
         let mut alpha = -Score::INFINITE;
@@ -57,7 +56,6 @@ pub fn start(td: &mut ThreadData, silent: bool) {
                 }
                 _ => {
                     score = current;
-                    average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
             }
