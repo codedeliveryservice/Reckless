@@ -69,7 +69,7 @@ impl CorrectionHistory {
     const GRAIN: i32 = 256;
     const LIMIT: i32 = Self::GRAIN * 64;
 
-    const SIZE: usize = 65536;
+    const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
