@@ -29,6 +29,7 @@ struct InternalState {
     pawn_key: u64,
     minor_key: u64,
     major_key: u64,
+    non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -80,6 +81,10 @@ impl Board {
 
     pub const fn major_key(&self) -> u64 {
         self.state.major_key
+    }
+
+    pub const fn non_pawn_key(&self, color: Color) -> u64 {
+        self.state.non_pawn_keys[color as usize]
     }
 
     pub const fn pinners(&self) -> Bitboard {
@@ -171,6 +176,8 @@ impl Board {
 
         if piece.piece_type() == PieceType::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+        } else {
+            self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
         }
 
         if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
@@ -347,6 +354,7 @@ impl Board {
         self.state.pawn_key = 0;
         self.state.minor_key = 0;
         self.state.major_key = 0;
+        self.state.non_pawn_keys = [0; Color::NUM];
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
@@ -356,6 +364,8 @@ impl Board {
 
                 if piece.piece_type() == PieceType::Pawn {
                     self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+                } else {
+                    self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
                 }
 
                 if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {

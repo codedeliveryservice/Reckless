@@ -5,7 +5,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mated_in, ArrayVec, Move, Piece, Score, MAX_PLY},
+    types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -441,6 +441,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - static_eval);
         td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - static_eval);
         td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - static_eval);
+
+        td.non_pawn_corrhist[Color::White].update(
+            td.board.side_to_move(),
+            td.board.non_pawn_key(Color::White),
+            depth,
+            best_score - static_eval,
+        );
+
+        td.non_pawn_corrhist[Color::Black].update(
+            td.board.side_to_move(),
+            td.board.non_pawn_key(Color::Black),
+            depth,
+            best_score - static_eval,
+        );
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -545,6 +559,8 @@ fn correction_value(td: &ThreadData) -> i32 {
     td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
+        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
 }
 
 fn bonus(depth: i32) -> i32 {
