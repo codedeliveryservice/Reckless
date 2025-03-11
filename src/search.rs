@@ -496,7 +496,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let mut best_move = Move::NULL;
-    let mut move_picker = MovePicker::new_noisy(td);
+    let mut move_picker = MovePicker::new_noisy(td, in_check);
 
     while let Some((mv, mv_score)) = move_picker.next() {
         if mv_score < -(1 << 18) {

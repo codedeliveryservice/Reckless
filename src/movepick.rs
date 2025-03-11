@@ -17,8 +17,8 @@ impl MovePicker {
         Self { moves, scores }
     }
 
-    pub fn new_noisy(td: &ThreadData) -> Self {
-        let moves = td.board.generate_capture_moves();
+    pub fn new_noisy(td: &ThreadData, include_quiets: bool) -> Self {
+        let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
         let scores = score_moves(td, &moves, Move::NULL);
 
         Self { moves, scores }
