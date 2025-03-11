@@ -485,17 +485,21 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    let mut best_score = td.board.evaluate() + correction_value(td);
+    let eval = td.board.evaluate() + correction_value(td);
 
-    if best_score >= beta {
-        return best_score;
+    if !in_check {
+        if eval >= beta {
+            return eval;
+        }
+
+        if eval > alpha {
+            alpha = eval;
+        }
     }
 
-    if best_score > alpha {
-        alpha = best_score;
-    }
-
+    let mut best_score = if in_check { -Score::INFINITE } else { eval };
     let mut best_move = Move::NULL;
+    
     let mut move_picker = MovePicker::new_noisy(td, in_check);
 
     while let Some((mv, mv_score)) = move_picker.next() {
