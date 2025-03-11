@@ -459,6 +459,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             depth,
             best_score - static_eval,
         );
+
+        if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+            td.last_move_corrhist.update(
+                td.board.side_to_move(),
+                td.stack[td.ply - 1].mv.encoded() as u64,
+                depth,
+                best_score - static_eval,
+            );
+        }
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -565,6 +574,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
 fn bonus(depth: i32) -> i32 {
