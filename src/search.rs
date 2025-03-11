@@ -442,32 +442,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        td.pawn_corrhist.update(td.board.side_to_move(), td.board.pawn_key(), depth, best_score - static_eval);
-        td.minor_corrhist.update(td.board.side_to_move(), td.board.minor_key(), depth, best_score - static_eval);
-        td.major_corrhist.update(td.board.side_to_move(), td.board.major_key(), depth, best_score - static_eval);
-
-        td.non_pawn_corrhist[Color::White].update(
-            td.board.side_to_move(),
-            td.board.non_pawn_key(Color::White),
-            depth,
-            best_score - static_eval,
-        );
-
-        td.non_pawn_corrhist[Color::Black].update(
-            td.board.side_to_move(),
-            td.board.non_pawn_key(Color::Black),
-            depth,
-            best_score - static_eval,
-        );
-
-        if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
-            td.last_move_corrhist.update(
-                td.board.side_to_move(),
-                td.stack[td.ply - 1].mv.encoded() as u64,
-                depth,
-                best_score - static_eval,
-            );
-        }
+        update_correction_histories(td, depth, best_score - static_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -579,4 +554,19 @@ fn correction_value(td: &ThreadData) -> i32 {
 
 fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
+}
+
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+    let stm = td.board.side_to_move();
+
+    td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
+    td.minor_corrhist.update(stm, td.board.minor_key(), depth, diff);
+    td.major_corrhist.update(stm, td.board.major_key(), depth, diff);
+
+    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
+    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
+
+    if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+    }
 }
