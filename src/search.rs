@@ -183,7 +183,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.stack[td.ply + 2].cutoff_count = 0;
 
-    if !PV && eval < alpha - 300 - 250 * depth * depth {
+    if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
         return qsearch::<false>(td, alpha, beta);
     }
 
