@@ -106,7 +106,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return Score::ZERO;
     }
 
-    if depth <= 0 && !in_check {
+    if depth <= 0 {
         return qsearch::<PV>(td, alpha, beta);
     }
 
@@ -127,7 +127,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let mut depth = depth.clamp(1, MAX_PLY as i32 - 1);
+    let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
     let mut tt_move = Move::NULL;
