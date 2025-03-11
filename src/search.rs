@@ -149,6 +149,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    let correction_value = correction_value(td);
+
     let static_eval;
     let mut eval;
 
@@ -159,7 +161,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         static_eval = td.stack[td.ply].eval;
         eval = static_eval;
     } else {
-        static_eval = td.board.evaluate() + correction_value(td);
+        static_eval = td.board.evaluate() + correction_value;
         eval = static_eval;
 
         if let Some(entry) = entry {
@@ -301,29 +303,31 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let mut score = Score::ZERO;
 
         if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
-            let mut reduction = td.lmr.reduction(depth, move_count) / 1024;
+            let mut reduction = td.lmr.reduction(depth, move_count);
+
+            reduction -= 4 * correction_value.abs();
 
             if td.board.in_check() {
-                reduction -= 1;
+                reduction -= 1024;
             }
 
             if tt_pv {
-                reduction -= 1;
+                reduction -= 1024;
             }
 
             if cut_node {
-                reduction += 1;
+                reduction += 1024;
             }
 
             if !improving {
-                reduction += 1;
+                reduction += 1024;
             }
 
             if td.stack[td.ply].cutoff_count > 3 {
-                reduction += 1;
+                reduction += 1024;
             }
 
-            let reduced_depth = (new_depth - reduction).max(1).min(new_depth);
+            let reduced_depth = (new_depth - reduction / 1024).max(1).min(new_depth);
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
