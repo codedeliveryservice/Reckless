@@ -12,14 +12,14 @@ pub struct MovePicker {
 impl MovePicker {
     pub fn new(td: &ThreadData, tt_move: Move) -> Self {
         let moves = td.board.generate_all_moves();
-        let scores = score_moves(td, &moves, tt_move);
+        let scores = score_moves(td, &moves, tt_move, -110);
 
         Self { moves, scores }
     }
 
-    pub fn new_noisy(td: &ThreadData, include_quiets: bool) -> Self {
+    pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
         let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
-        let scores = score_moves(td, &moves, Move::NULL);
+        let scores = score_moves(td, &moves, Move::NULL, threshold);
 
         Self { moves, scores }
     }
@@ -42,7 +42,7 @@ impl MovePicker {
     }
 }
 
-fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move) -> [i32; MAX_MOVES] {
+fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move, threshold: i32) -> [i32; MAX_MOVES] {
     let mut scores = [0; MAX_MOVES];
 
     for (i, &mv) in moves.iter().enumerate() {
@@ -54,7 +54,7 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
         if mv.is_noisy() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
-            scores[i] = if td.board.see(mv, -110) { 1 << 20 } else { -(1 << 20) };
+            scores[i] = if td.board.see(mv, threshold) { 1 << 20 } else { -(1 << 20) };
 
             scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
 
