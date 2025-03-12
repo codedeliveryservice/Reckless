@@ -239,7 +239,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 break;
             }
 
-            if mv == tt_move || !td.board.is_legal(mv) {
+            if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
 
