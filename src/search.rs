@@ -106,7 +106,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return Score::ZERO;
     }
 
-    if depth <= 0 && !in_check {
+    if depth <= 0 {
         return qsearch::<PV>(td, alpha, beta);
     }
 
@@ -127,7 +127,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let mut depth = depth.clamp(1, MAX_PLY as i32 - 1);
+    let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
     let mut tt_move = Move::NULL;
@@ -485,26 +485,34 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    let mut best_score = td.board.evaluate() + correction_value(td);
+    let mut best_score = -Score::INFINITE;
 
-    if best_score >= beta {
-        return best_score;
-    }
+    if !in_check {
+        best_score = td.board.evaluate() + correction_value(td);
 
-    if best_score > alpha {
-        alpha = best_score;
+        if best_score >= beta {
+            return best_score;
+        }
+
+        if best_score > alpha {
+            alpha = best_score;
+        }
     }
 
     let mut best_move = Move::NULL;
-    let mut move_picker = MovePicker::new_noisy(td);
+
+    let mut move_count = 0;
+    let mut move_picker = MovePicker::new_noisy(td, in_check);
 
     while let Some((mv, mv_score)) = move_picker.next() {
-        if mv_score < -(1 << 18) {
-            break;
-        }
-
         if !td.board.is_legal(mv) {
             continue;
+        }
+
+        move_count += 1;
+
+        if !is_loss(best_score) && mv_score < -(1 << 18) {
+            break;
         }
 
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
@@ -534,6 +542,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 }
             }
         }
+    }
+
+    if in_check && move_count == 0 {
+        return mated_in(td.ply);
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
