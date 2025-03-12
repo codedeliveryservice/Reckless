@@ -224,6 +224,52 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    let probcut_beta = beta + 256 - 64 * improving as i32;
+
+    if !PV
+        && depth >= 5
+        && !is_decisive(beta)
+        && !is_decisive(probcut_beta)
+        && !entry.is_some_and(|entry| entry.depth >= depth - 3 && entry.score < probcut_beta)
+    {
+        let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
+
+        while let Some((mv, mv_score)) = move_picker.next() {
+            if mv_score < -(1 << 18) {
+                break;
+            }
+
+            if mv == tt_move || !td.board.is_legal(mv) {
+                continue;
+            }
+
+            td.stack[td.ply].piece = td.board.piece_on(mv.from());
+            td.stack[td.ply].mv = mv;
+            td.ply += 1;
+
+            td.board.make_move::<true, false>(mv);
+            td.tt.prefetch(td.board.hash());
+
+            let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
+
+            if score >= probcut_beta {
+                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, depth - 4, !cut_node);
+            }
+
+            td.board.undo_move::<true>(mv);
+            td.ply -= 1;
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if score >= probcut_beta {
+                td.tt.write(td.board.hash(), depth - 3, score, Bound::Lower, mv, td.ply, tt_pv);
+                return score;
+            }
+        }
+    }
+
     if depth >= 3 + 3 * cut_node as i32 && tt_move == Move::NULL && (PV || cut_node) {
         depth -= 1;
     }
@@ -502,7 +548,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_noisy(td, in_check);
+    let mut move_picker = MovePicker::new_noisy(td, in_check, -110);
 
     while let Some((mv, mv_score)) = move_picker.next() {
         if !td.board.is_legal(mv) {
