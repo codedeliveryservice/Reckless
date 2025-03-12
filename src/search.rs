@@ -312,7 +312,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
 
             if tt_pv {
-                reduction -= 1024;
+                reduction -= 768;
+            }
+
+            if PV {
+                reduction -= 768;
             }
 
             if cut_node {
