@@ -200,7 +200,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && td.stack[td.ply - 1].mv != Move::NULL
         && td.board.has_non_pawns()
     {
-        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_capture() as i32;
+        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;

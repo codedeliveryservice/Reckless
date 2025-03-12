@@ -46,7 +46,7 @@ impl Board {
 
         self.state.captured = None;
 
-        if mv.is_capture() || pt == PieceType::Pawn {
+        if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
         } else {
             self.state.halfmove_clock += 1;
