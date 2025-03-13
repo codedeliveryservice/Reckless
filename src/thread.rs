@@ -6,7 +6,7 @@ use std::{
 use crate::{
     board::Board,
     history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
-    stack::StackEntry,
+    stack::{Stack, StackEntry},
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
     types::{is_loss, is_win, Move, Score, MAX_PLY},
@@ -68,7 +68,6 @@ pub struct ThreadData<'a> {
     pub nodes: u64,
     pub root_depth: i32,
     pub completed_depth: i32,
-    pub ply: usize,
 }
 
 impl<'a> ThreadData<'a> {
@@ -94,7 +93,6 @@ impl<'a> ThreadData<'a> {
             nodes: 0,
             root_depth: 0,
             completed_depth: 0,
-            ply: 0,
         }
     }
 
@@ -106,13 +104,13 @@ impl<'a> ThreadData<'a> {
         self.stop.load(Ordering::Relaxed)
     }
 
-    pub fn conthist(&self, index: usize, mv: Move) -> i32 {
-        if self.ply < index || self.stack[self.ply - index].mv == Move::NULL {
+    pub fn conthist(&self, ss: &Stack, index: usize, mv: Move) -> i32 {
+        if ss.ply < index || ss[-(index as isize)].mv == Move::NULL {
             return 0;
         }
 
-        let prev_piece = self.stack[self.ply - index].piece;
-        let prev_mv = self.stack[self.ply - index].mv;
+        let prev_piece = ss[-(index as isize)].piece;
+        let prev_mv = ss[-(index as isize)].mv;
         self.continuation_history.get(&self.board, prev_piece, prev_mv, mv)
     }
 

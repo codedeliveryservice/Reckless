@@ -1,5 +1,6 @@
 use crate::{
     parameters::PIECE_VALUES,
+    stack::Stack,
     thread::ThreadData,
     types::{ArrayVec, Move, MAX_MOVES},
 };
@@ -10,16 +11,16 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub fn new(td: &ThreadData, tt_move: Move) -> Self {
+    pub fn new(td: &ThreadData, ss: &Stack, tt_move: Move) -> Self {
         let moves = td.board.generate_all_moves();
-        let scores = score_moves(td, &moves, tt_move, -110);
+        let scores = score_moves(td, ss, &moves, tt_move, -110);
 
         Self { moves, scores }
     }
 
-    pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
+    pub fn new_noisy(td: &ThreadData, ss: &Stack, include_quiets: bool, threshold: i32) -> Self {
         let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
-        let scores = score_moves(td, &moves, Move::NULL, threshold);
+        let scores = score_moves(td, ss, &moves, Move::NULL, threshold);
 
         Self { moves, scores }
     }
@@ -42,7 +43,13 @@ impl MovePicker {
     }
 }
 
-fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move, threshold: i32) -> [i32; MAX_MOVES] {
+fn score_moves(
+    td: &ThreadData,
+    ss: &Stack,
+    moves: &ArrayVec<Move, MAX_MOVES>,
+    tt_move: Move,
+    threshold: i32,
+) -> [i32; MAX_MOVES] {
     let mut scores = [0; MAX_MOVES];
 
     for (i, &mv) in moves.iter().enumerate() {
@@ -62,8 +69,8 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
         } else {
             scores[i] = td.quiet_history.get(&td.board, mv);
 
-            scores[i] += td.conthist(1, mv);
-            scores[i] += td.conthist(2, mv);
+            scores[i] += td.conthist(ss, 1, mv);
+            scores[i] += td.conthist(ss, 2, mv);
         }
     }
 

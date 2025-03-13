@@ -41,7 +41,11 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         }
 
         loop {
-            let ss = Stack::new(&td.stack);
+            let mut ss = Stack::new(&td.stack);
+            for i in 0..MAX_PLY + 8 {
+                ss[i as isize].ply = i;
+            }
+
             let current = search::<true>(td, ss, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
@@ -104,14 +108,14 @@ fn search<const PV: bool>(
     depth: i32,
     cut_node: bool,
 ) -> i32 {
-    debug_assert!(td.ply <= MAX_PLY);
+    debug_assert!(ss.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    let is_root = td.ply == 0;
+    let is_root = ss.ply == 0;
     let in_check = td.board.in_check();
     let excluded = ss.excluded != Move::NULL;
 
-    td.pv.clear(td.ply);
+    td.pv.clear(ss.ply);
 
     if td.stopped {
         return Score::ZERO;
@@ -133,14 +137,14 @@ fn search<const PV: bool>(
             return Score::DRAW;
         }
 
-        if td.ply >= MAX_PLY - 1 {
+        if ss.ply >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { td.board.evaluate() };
         }
     }
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
-    let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
+    let entry = if excluded { None } else { td.tt.read(td.board.hash(), ss.ply) };
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
@@ -186,7 +190,7 @@ fn search<const PV: bool>(
         }
     }
 
-    let improving = !in_check && td.ply >= 2 && static_eval > ss[-2].eval;
+    let improving = !in_check && ss.ply >= 2 && static_eval > ss[-2].eval;
 
     ss.eval = static_eval;
     ss.tt_pv = tt_pv;
@@ -213,14 +217,12 @@ fn search<const PV: bool>(
 
         ss.piece = Piece::None;
         ss.mv = Move::NULL;
-        td.ply += 1;
 
         td.board.make_null_move();
 
         let score = -search::<false>(td, ss.next(), -beta, -beta + 1, depth - r, false);
 
         td.board.undo_null_move();
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -236,7 +238,7 @@ fn search<const PV: bool>(
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
-        let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new_noisy(td, &ss, false, probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
 
@@ -251,7 +253,6 @@ fn search<const PV: bool>(
 
             ss.piece = td.board.piece_on(mv.from());
             ss.mv = mv;
-            td.ply += 1;
 
             td.board.make_move::<true, false>(mv);
             td.tt.prefetch(td.board.hash());
@@ -263,14 +264,13 @@ fn search<const PV: bool>(
             }
 
             td.board.undo_move::<true>(mv);
-            td.ply -= 1;
 
             if td.stopped {
                 return Score::ZERO;
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, ss.ply, tt_pv);
 
                 return score - (probcut_beta - beta);
             }
@@ -289,7 +289,7 @@ fn search<const PV: bool>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td, tt_move);
+    let mut move_picker = MovePicker::new(td, &ss, tt_move);
     let mut skip_quiets = false;
 
     while let Some((mv, _)) = move_picker.next() {
@@ -316,7 +316,7 @@ fn search<const PV: bool>(
 
         let mut extension = 0;
 
-        if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
+        if !is_root && !excluded && ss.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
             if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
@@ -344,11 +344,10 @@ fn search<const PV: bool>(
         let initial_nodes = td.nodes;
         let mut new_depth = depth + extension - 1;
 
-        let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
+        let history = td.quiet_history.get(&td.board, mv) + td.conthist(&ss, 1, mv) + td.conthist(&ss, 2, mv);
 
         ss.piece = td.board.piece_on(mv.from());
         ss.mv = mv;
-        td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
         td.tt.prefetch(td.board.hash());
@@ -407,7 +406,6 @@ fn search<const PV: bool>(
         }
 
         td.board.undo_move::<true>(mv);
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -426,7 +424,7 @@ fn search<const PV: bool>(
                 best_move = mv;
 
                 if PV {
-                    td.pv.update(td.ply, mv);
+                    td.pv.update(ss.ply, mv);
                 }
 
                 if score >= beta {
@@ -451,7 +449,7 @@ fn search<const PV: bool>(
             return alpha;
         }
 
-        return if in_check { mated_in(td.ply) } else { Score::DRAW };
+        return if in_check { mated_in(ss.ply) } else { Score::DRAW };
     }
 
     if bound == Bound::Lower {
@@ -471,7 +469,7 @@ fn search<const PV: bool>(
             }
 
             for index in [-1, -2_isize] {
-                if td.ply < (-index) as usize || ss[index].mv == Move::NULL {
+                if ss.ply < (-index) as usize || ss[index].mv == Move::NULL {
                     continue;
                 }
 
@@ -488,11 +486,11 @@ fn search<const PV: bool>(
     }
 
     if bound == Bound::Upper {
-        tt_pv |= td.ply >= 1 && ss[-1].tt_pv;
+        tt_pv |= ss.ply >= 1 && ss[-1].tt_pv;
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, ss.ply, tt_pv);
     }
 
     if !(in_check
@@ -510,7 +508,7 @@ fn search<const PV: bool>(
 }
 
 fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, beta: i32) -> i32 {
-    debug_assert!(td.ply <= MAX_PLY);
+    debug_assert!(ss.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
@@ -522,11 +520,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
         return Score::ZERO;
     }
 
-    if td.ply >= MAX_PLY - 1 {
+    if ss.ply >= MAX_PLY - 1 {
         return if in_check { Score::DRAW } else { td.board.evaluate() };
     }
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = td.tt.read(td.board.hash(), ss.ply);
     let mut tt_pv = PV;
 
     if let Some(entry) = entry {
@@ -557,7 +555,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_noisy(td, in_check, -110);
+    let mut move_picker = MovePicker::new_noisy(td, &ss, in_check, -110);
 
     while let Some((mv, mv_score)) = move_picker.next() {
         if !td.board.is_legal(mv) {
@@ -572,14 +570,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
 
         ss.piece = td.board.piece_on(mv.from());
         ss.mv = mv;
-        td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
 
         let score = -qsearch::<PV>(td, ss.next(), -beta, -alpha);
 
         td.board.undo_move::<true>(mv);
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -600,12 +596,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
     }
 
     if in_check && move_count == 0 {
-        return mated_in(td.ply);
+        return mated_in(ss.ply);
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, ss.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
@@ -620,7 +616,7 @@ fn correction_value(td: &ThreadData, ss: &Stack) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + if td.ply >= 1 { td.last_move_corrhist.get(stm, ss[-1].mv.encoded() as u64) } else { 0 }
+        + if ss.ply >= 1 { td.last_move_corrhist.get(stm, ss[-1].mv.encoded() as u64) } else { 0 }
 }
 
 fn bonus(depth: i32) -> i32 {
@@ -637,7 +633,7 @@ fn update_correction_histories(td: &mut ThreadData, ss: &Stack, depth: i32, diff
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
-    if td.ply >= 1 && ss[-1].mv != Move::NULL {
+    if ss.ply >= 1 && ss[-1].mv != Move::NULL {
         td.last_move_corrhist.update(td.board.side_to_move(), ss[-1].mv.encoded() as u64, depth, diff);
     }
 }

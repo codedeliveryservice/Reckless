@@ -4,6 +4,7 @@ use crate::types::{Move, Piece, Score};
 
 #[derive(Copy, Clone)]
 pub struct StackEntry {
+    pub ply: usize,
     pub mv: Move,
     pub piece: Piece,
     pub eval: i32,
@@ -15,6 +16,7 @@ pub struct StackEntry {
 impl Default for StackEntry {
     fn default() -> Self {
         Self {
+            ply: 0,
             mv: Move::NULL,
             piece: Piece::None,
             eval: Score::NONE,
