@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 
 use crate::types::{Move, Piece, Score};
 
@@ -56,5 +56,19 @@ impl Index<isize> for Stack<'_> {
 impl IndexMut<isize> for Stack<'_> {
     fn index_mut(&mut self, index: isize) -> &mut Self::Output {
         unsafe { &mut *self.data.as_mut_ptr().offset(index) }
+    }
+}
+
+impl Deref for Stack<'_> {
+    type Target = StackEntry;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data[0]
+    }
+}
+
+impl DerefMut for Stack<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data[0]
     }
 }

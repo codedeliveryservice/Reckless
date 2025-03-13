@@ -97,7 +97,12 @@ pub fn start(td: &mut ThreadData, silent: bool) {
 }
 
 fn search<const PV: bool>(
-    td: &mut ThreadData, mut ss: Stack, mut alpha: i32, beta: i32, depth: i32, cut_node: bool,
+    td: &mut ThreadData,
+    mut ss: Stack,
+    mut alpha: i32,
+    beta: i32,
+    depth: i32,
+    cut_node: bool,
 ) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
@@ -183,8 +188,9 @@ fn search<const PV: bool>(
 
     let improving = !in_check && td.ply >= 2 && static_eval > ss[-2].eval;
 
-    ss[0].eval = static_eval;
-    ss[0].tt_pv = tt_pv;
+    ss.eval = static_eval;
+    ss.tt_pv = tt_pv;
+
     ss[2].cutoff_count = 0;
 
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
@@ -205,8 +211,8 @@ fn search<const PV: bool>(
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
 
-        ss[0].piece = Piece::None;
-        ss[0].mv = Move::NULL;
+        ss.piece = Piece::None;
+        ss.mv = Move::NULL;
         td.ply += 1;
 
         td.board.make_null_move();
@@ -239,12 +245,12 @@ fn search<const PV: bool>(
                 break;
             }
 
-            if mv == ss[0].excluded || !td.board.is_legal(mv) {
+            if mv == ss.excluded || !td.board.is_legal(mv) {
                 continue;
             }
 
-            ss[0].piece = td.board.piece_on(mv.from());
-            ss[0].mv = mv;
+            ss.piece = td.board.piece_on(mv.from());
+            ss.mv = mv;
             td.ply += 1;
 
             td.board.make_move::<true, false>(mv);
@@ -289,7 +295,7 @@ fn search<const PV: bool>(
     while let Some((mv, _)) = move_picker.next() {
         let is_quiet = !mv.is_noisy();
 
-        if (is_quiet && skip_quiets) || mv == ss[0].excluded || !td.board.is_legal(mv) {
+        if (is_quiet && skip_quiets) || mv == ss.excluded || !td.board.is_legal(mv) {
             continue;
         }
 
@@ -317,9 +323,9 @@ fn search<const PV: bool>(
                 let singular_beta = entry.score - depth;
                 let singular_depth = (depth - 1) / 2;
 
-                ss[0].excluded = entry.mv;
+                ss.excluded = entry.mv;
                 let score = search::<false>(td, ss.clone(), singular_beta - 1, singular_beta, singular_depth, cut_node);
-                ss[0].excluded = Move::NULL;
+                ss.excluded = Move::NULL;
 
                 if td.stopped {
                     return Score::ZERO;
@@ -340,8 +346,8 @@ fn search<const PV: bool>(
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
-        ss[0].piece = td.board.piece_on(mv.from());
-        ss[0].mv = mv;
+        ss.piece = td.board.piece_on(mv.from());
+        ss.mv = mv;
         td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
@@ -425,7 +431,7 @@ fn search<const PV: bool>(
 
                 if score >= beta {
                     bound = Bound::Lower;
-                    ss[0].cutoff_count += 1;
+                    ss.cutoff_count += 1;
                     break;
                 }
             }
