@@ -337,6 +337,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let initial_nodes = td.nodes;
         let mut new_depth = depth + extension - 1;
 
+        let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
+
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
@@ -350,6 +352,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             let mut reduction = td.lmr.reduction(depth, move_count);
 
             reduction -= 4 * correction_value.abs();
+
+            reduction -= (history - 512) / 16;
 
             if td.board.in_check() {
                 reduction -= 1024;
