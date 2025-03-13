@@ -160,7 +160,7 @@ fn search<const PV: bool>(
         }
     }
 
-    let correction_value = correction_value(td);
+    let correction_value = correction_value(td, &ss);
 
     let static_eval;
     let mut eval;
@@ -470,13 +470,13 @@ fn search<const PV: bool>(
                 td.quiet_history.update(&td.board, mv, -bonus);
             }
 
-            for index in [1, 2] {
-                if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
+            for index in [-1, -2_isize] {
+                if td.ply < (-index) as usize || ss[index].mv == Move::NULL {
                     continue;
                 }
 
-                let prev_mv = td.stack[td.ply - index].mv;
-                let prev_piece = td.stack[td.ply - index].piece;
+                let prev_mv = ss[index].mv;
+                let prev_piece = ss[index].piece;
 
                 td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
 
@@ -501,7 +501,7 @@ fn search<const PV: bool>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, &ss, depth, best_score - static_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -543,7 +543,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
     let mut best_score = -Score::INFINITE;
 
     if !in_check {
-        best_score = td.board.evaluate() + correction_value(td);
+        best_score = td.board.evaluate() + correction_value(td, &ss);
 
         if best_score >= beta {
             return best_score;
@@ -612,7 +612,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, b
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction_value(td: &ThreadData, ss: &Stack) -> i32 {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -620,14 +620,14 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
+        + if td.ply >= 1 { td.last_move_corrhist.get(stm, ss[-1].mv.encoded() as u64) } else { 0 }
 }
 
 fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+fn update_correction_histories(td: &mut ThreadData, ss: &Stack, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
@@ -637,7 +637,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
-    if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
-        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+    if td.ply >= 1 && ss[-1].mv != Move::NULL {
+        td.last_move_corrhist.update(td.board.side_to_move(), ss[-1].mv.encoded() as u64, depth, diff);
     }
 }
