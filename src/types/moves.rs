@@ -57,15 +57,10 @@ impl Move {
     }
 
     pub fn is_noisy(self) -> bool {
-        (self.is_capture() && !self.is_promotion()) || self.promotion_piece() == Some(PieceType::Queen)
-    }
-
-    pub const fn is_capture(self) -> bool {
-        (self.0 >> 14) & 1 != 0
-    }
-
-    pub const fn is_quiet(self) -> bool {
-        !self.is_capture()
+        matches!(
+            self.kind(),
+            MoveKind::Capture | MoveKind::EnPassant | MoveKind::PromotionCaptureQ | MoveKind::PromotionQ
+        )
     }
 
     pub const fn is_promotion(self) -> bool {
