@@ -60,7 +60,7 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
 
             scores[i] += td.noisy_history.get(&td.board, mv);
         } else {
-            scores[i] = td.quiet_history.get(&td.board, mv);
+            scores[i] = td.quiet_history.get(&td.board, td.board.side_to_move(), mv);
 
             for index in [1, 2] {
                 if td.ply < index {

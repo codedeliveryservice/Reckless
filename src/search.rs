@@ -351,6 +351,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             reduction -= 4 * correction_value.abs();
 
+            reduction -= td.quiet_history.get(&td.board, !td.board.side_to_move(), mv) / 2;
+
             if td.board.in_check() {
                 reduction -= 1024;
             }
