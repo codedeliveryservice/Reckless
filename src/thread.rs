@@ -104,6 +104,16 @@ impl<'a> ThreadData<'a> {
         self.stop.load(Ordering::Relaxed)
     }
 
+    pub fn conthist(&self, index: usize, mv: Move) -> i32 {
+        if self.ply < index || self.stack[self.ply - index].mv == Move::NULL {
+            return 0;
+        }
+
+        let prev_piece = self.stack[self.ply - index].piece;
+        let prev_mv = self.stack[self.ply - index].mv;
+        self.continuation_history.get(&self.board, prev_piece, prev_mv, mv)
+    }
+
     pub fn print_uci_info(&self, depth: i32, score: i32, now: Instant) {
         let nps = self.nodes as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();

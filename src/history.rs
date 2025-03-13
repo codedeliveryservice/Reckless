@@ -14,11 +14,11 @@ pub struct QuietHistory {
 impl QuietHistory {
     const MAX_HISTORY: i32 = 8192;
 
-    pub fn get(&self, board: &Board, stm: Color, mv: Move) -> i32 {
+    pub fn get(&self, board: &Board, mv: Move) -> i32 {
         let from_threated = board.is_threatened(mv.from()) as usize;
         let to_threated = board.is_threatened(mv.to()) as usize;
 
-        self.entries[stm][from_threated][to_threated][mv.from()][mv.to()]
+        self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()]
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
