@@ -66,6 +66,7 @@ pub struct ThreadData<'a> {
     pub lmr: LmrTable,
     pub stopped: bool,
     pub nodes: u64,
+    pub root_depth: i32,
     pub completed_depth: i32,
     pub ply: usize,
 }
@@ -91,6 +92,7 @@ impl<'a> ThreadData<'a> {
             lmr: LmrTable::default(),
             stopped: false,
             nodes: 0,
+            root_depth: 0,
             completed_depth: 0,
             ply: 0,
         }
@@ -190,7 +192,6 @@ pub struct StackEntry {
     pub eval: i32,
     pub excluded: Move,
     pub tt_pv: bool,
-    pub multiple_extensions: i32,
     pub cutoff_count: i32,
 }
 
@@ -202,7 +203,6 @@ impl Default for StackEntry {
             eval: Score::NONE,
             excluded: Move::NULL,
             tt_pv: false,
-            multiple_extensions: 0,
             cutoff_count: 0,
         }
     }

@@ -24,6 +24,8 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let mut pv_stability = 0;
 
     for depth in 1..MAX_PLY as i32 {
+        td.root_depth = depth;
+
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
@@ -179,7 +181,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.stack[td.ply].eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
-    td.stack[td.ply].multiple_extensions = if is_root { 0 } else { td.stack[td.ply - 1].multiple_extensions };
 
     td.stack[td.ply + 2].cutoff_count = 0;
 
@@ -307,7 +308,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let mut extension = 0;
 
-        if !is_root && !excluded && mv == tt_move {
+        if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
             if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
@@ -326,8 +327,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     extension = 1;
                     extension += (!PV && score < singular_beta - 24) as i32;
                     extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
-
-                    td.stack[td.ply].multiple_extensions += (extension > 1) as i32;
                 } else if score >= beta {
                     return score;
                 }
