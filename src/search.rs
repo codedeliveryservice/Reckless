@@ -191,7 +191,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return eval;
     }
 
-    if !PV
+    if cut_node
         && !in_check
         && !excluded
         && depth >= 3
@@ -208,7 +208,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r, !cut_node);
+        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
 
         td.board.undo_null_move();
         td.ply -= 1;
