@@ -226,13 +226,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
-    if !PV
-        && depth >= 5
-        && !is_decisive(beta)
-        && !is_decisive(probcut_beta)
-        && !entry.is_some_and(|entry| entry.depth >= depth - 3 && entry.score < probcut_beta)
-    {
+    if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
         let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
+
+        let probcut_depth = 0.max(depth - 4);
 
         while let Some((mv, mv_score)) = move_picker.next() {
             if mv_score < -(1 << 18) {
@@ -252,8 +249,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
-            if score >= probcut_beta {
-                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, depth - 4, !cut_node);
+            if score >= probcut_beta && probcut_depth > 0 {
+                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
             }
 
             td.board.undo_move::<true>(mv);
@@ -264,8 +261,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), depth - 3, score, Bound::Lower, mv, td.ply, tt_pv);
-                return score;
+                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
+
+                return score - (probcut_beta - beta);
             }
         }
     }
