@@ -41,8 +41,9 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         }
 
         loop {
-            let mut ss = Stack::new(&td.stack);
-            for i in 0..MAX_PLY + 8 {
+            let mut ss = Stack::new(&td.stack[4..]);
+
+            for i in 0..=MAX_PLY {
                 ss[i as isize].ply = i;
             }
 
@@ -190,7 +191,7 @@ fn search<const PV: bool>(
         }
     }
 
-    let improving = !in_check && ss.ply >= 2 && static_eval > ss[-2].eval;
+    let improving = !in_check && static_eval > ss[-2].eval;
 
     ss.eval = static_eval;
     ss.tt_pv = tt_pv;
@@ -469,7 +470,7 @@ fn search<const PV: bool>(
             }
 
             for index in [-1, -2_isize] {
-                if ss.ply < (-index) as usize || ss[index].mv == Move::NULL {
+                if ss[index].mv == Move::NULL {
                     continue;
                 }
 
@@ -486,7 +487,7 @@ fn search<const PV: bool>(
     }
 
     if bound == Bound::Upper {
-        tt_pv |= ss.ply >= 1 && ss[-1].tt_pv;
+        tt_pv |= ss[-1].tt_pv;
     }
 
     if !excluded {
@@ -616,7 +617,7 @@ fn correction_value(td: &ThreadData, ss: &Stack) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + if ss.ply >= 1 { td.last_move_corrhist.get(stm, ss[-1].mv.encoded() as u64) } else { 0 }
+        + td.last_move_corrhist.get(stm, ss[-1].mv.encoded() as u64)
 }
 
 fn bonus(depth: i32) -> i32 {
@@ -633,7 +634,7 @@ fn update_correction_histories(td: &mut ThreadData, ss: &Stack, depth: i32, diff
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
-    if ss.ply >= 1 && ss[-1].mv != Move::NULL {
+    if ss[-1].mv != Move::NULL {
         td.last_move_corrhist.update(td.board.side_to_move(), ss[-1].mv.encoded() as u64, depth, diff);
     }
 }
