@@ -109,7 +109,7 @@ fn search<const PV: bool>(
 
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
-    let excluded = td.stack[td.ply].excluded != Move::NULL;
+    let excluded = ss.excluded != Move::NULL;
 
     td.pv.clear(td.ply);
 
@@ -118,7 +118,7 @@ fn search<const PV: bool>(
     }
 
     if depth <= 0 {
-        return qsearch::<PV>(td, alpha, beta);
+        return qsearch::<PV>(td, ss.clone(), alpha, beta);
     }
 
     td.nodes += 1;
@@ -169,7 +169,7 @@ fn search<const PV: bool>(
         static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        static_eval = td.stack[td.ply].eval;
+        static_eval = ss.eval;
         eval = static_eval;
     } else {
         static_eval = td.board.evaluate() + correction_value;
@@ -194,7 +194,7 @@ fn search<const PV: bool>(
     ss[2].cutoff_count = 0;
 
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch::<false>(td, alpha, beta);
+        return qsearch::<false>(td, ss.clone(), alpha, beta);
     }
 
     if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
@@ -256,7 +256,7 @@ fn search<const PV: bool>(
             td.board.make_move::<true, false>(mv);
             td.tt.prefetch(td.board.hash());
 
-            let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
+            let mut score = -qsearch::<false>(td, ss.next(), -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
                 score = -search::<false>(td, ss.next(), -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
@@ -509,7 +509,7 @@ fn search<const PV: bool>(
     best_score
 }
 
-fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<const PV: bool>(td: &mut ThreadData, mut ss: Stack, mut alpha: i32, beta: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
@@ -570,13 +570,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             break;
         }
 
-        td.stack[td.ply].piece = td.board.piece_on(mv.from());
-        td.stack[td.ply].mv = mv;
+        ss.piece = td.board.piece_on(mv.from());
+        ss.mv = mv;
         td.ply += 1;
 
         td.board.make_move::<true, false>(mv);
 
-        let score = -qsearch::<PV>(td, -beta, -alpha);
+        let score = -qsearch::<PV>(td, ss.next(), -beta, -alpha);
 
         td.board.undo_move::<true>(mv);
         td.ply -= 1;
