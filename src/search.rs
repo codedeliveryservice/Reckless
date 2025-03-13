@@ -328,8 +328,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
 
                     td.stack[td.ply].multiple_extensions += (extension > 1) as i32;
-                } else if singular_beta >= beta {
-                    return singular_beta;
+                } else if score >= beta {
+                    return score;
                 }
             }
         }
