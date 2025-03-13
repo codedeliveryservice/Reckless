@@ -263,6 +263,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             if score >= probcut_beta {
                 td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
 
+                if is_decisive(score) {
+                    return score;
+                }
+
                 return score - (probcut_beta - beta);
             }
         }
