@@ -7,6 +7,7 @@ mod movepick;
 mod nnue;
 mod parameters;
 mod search;
+mod stack;
 mod thread;
 mod time;
 mod tools;
