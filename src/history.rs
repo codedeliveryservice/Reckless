@@ -73,12 +73,12 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK] / 96
+        self.entries[stm][key as usize & Self::MASK] / ch_v7()
     }
 
     pub fn update(&mut self, stm: Color, key: u64, depth: i32, diff: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        let bonus = (diff * depth).clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
+        let bonus = (diff * depth).clamp(-ch_v8(), ch_v8());
 
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }

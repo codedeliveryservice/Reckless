@@ -49,6 +49,7 @@ define! {
     i32 rfp_v1: 8;
     i32 rfp_v2: 80;
     i32 rfp_v3: 80;
+    i32 rfp_v4: 60;
 
     i32 nmp_v1: 20;
     i32 nmp_v2: 128;
@@ -75,9 +76,8 @@ define! {
     i32 ch_v5: 1024;
     i32 ch_v6: 1024;
 
-    i32 ch_v7: 8;
-    i32 ch_v8: 8;
-    i32 ch_v9: 96;
+    i32 ch_v7: 96;
+    i32 ch_v8: 4096;
 
     i32 noisy_v1: 128;
     i32 noisy_v2: 64;
