@@ -31,8 +31,8 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                soft = (0.035 * (main as f64 + 0.75 * inc as f64)) as u64;
-                hard = (0.135 * (main as f64 + 0.75 * inc as f64)) as u64;
+                soft = (0.036 * (main as f64 + 0.75 * inc as f64)) as u64;
+                hard = (0.138 * (main as f64 + 0.75 * inc as f64)) as u64;
             }
             Limits::Cyclic(main, inc, moves) => {
                 let base = (main as f64 / moves as f64) + 0.75 * inc as f64;
@@ -65,11 +65,11 @@ impl TimeManager {
 
                 if td.completed_depth >= 7 {
                     let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
-                    limit *= 2.15 - 1.5 * fraction;
+                    limit *= 2.199 - 1.495 * fraction;
 
-                    limit *= 1.25 - 0.05 * pv_stability as f32;
+                    limit *= 1.267 - 0.049 * pv_stability as f32;
 
-                    limit *= 1.2 - 0.04 * eval_stability as f32;
+                    limit *= 1.191 - 0.039 * eval_stability as f32;
                 }
 
                 self.start_time.elapsed() >= Duration::from_secs_f32(limit)
