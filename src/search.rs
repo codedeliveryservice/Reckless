@@ -189,6 +189,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     }
 
     if !PV
+        && (!tt_pv || cut_node)
         && !in_check
         && !excluded
         && depth <= 8
