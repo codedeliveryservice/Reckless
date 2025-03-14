@@ -337,7 +337,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
 
         let initial_nodes = td.nodes;
-        let mut new_depth = depth + extension - 1;
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
@@ -348,7 +347,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.board.make_move::<true, false>(mv);
         td.tt.prefetch(td.board.hash());
 
+        let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
+
+        if depth >= 8 && static_eval.abs() >= 128 && td.board.in_check() {
+            new_depth += 1;
+        }
 
         if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
             let mut reduction = td.lmr.reduction(depth, move_count);
