@@ -178,7 +178,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].eval;
+    let improvement = if !in_check && td.ply >= 2 && td.stack[td.ply - 2].eval != Score::NONE {
+        static_eval - td.stack[td.ply - 2].eval
+    } else {
+        0
+    };
+
+    let improving = improvement > 0;
 
     td.stack[td.ply].eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
@@ -380,6 +386,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             reduction -= (history - 512) / 16;
 
+            reduction -= 4096 * improvement / (improvement.abs() + 512);
+
             if td.board.in_check() {
                 reduction -= 1024;
             }
@@ -393,10 +401,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
 
             if cut_node {
-                reduction += 1024;
-            }
-
-            if !improving {
                 reduction += 1024;
             }
 
