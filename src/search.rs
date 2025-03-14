@@ -188,8 +188,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return qsearch::<false>(td, alpha, beta);
     }
 
-    if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
-        return eval;
+    if !PV && !in_check && !excluded && depth <= 8 {
+        let mut margin = 80 * depth;
+
+        if improving {
+            margin -= 80;
+        }
+
+        if td.ply >= 1 {
+            margin += td.stack[td.ply - 1].history / 384;
+        }
+
+        if eval - margin >= beta {
+            return eval;
+        }
     }
 
     if cut_node
@@ -240,6 +252,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 continue;
             }
 
+            td.stack[td.ply].history = 0;
             td.stack[td.ply].piece = td.board.piece_on(mv.from());
             td.stack[td.ply].mv = mv;
             td.ply += 1;
@@ -341,6 +354,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
+        td.stack[td.ply].history = if is_quiet { history } else { 0 };
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
@@ -565,6 +579,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             break;
         }
 
+        td.stack[td.ply].history = 0;
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
