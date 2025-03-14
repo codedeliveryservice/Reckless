@@ -64,6 +64,7 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
 
             scores[i] += td.conthist(1, mv);
             scores[i] += td.conthist(2, mv);
+            scores[i] += td.conthist(4, mv);
         }
     }
 

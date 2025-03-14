@@ -339,7 +339,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let initial_nodes = td.nodes;
         let mut new_depth = depth + extension - 1;
 
-        let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
+        let history =
+            td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv) + td.conthist(4, mv);
 
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
@@ -465,7 +466,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 td.quiet_history.update(&td.board, mv, -bonus);
             }
 
-            for index in [1, 2] {
+            for index in [1, 2, 4] {
                 if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
                     continue;
                 }
