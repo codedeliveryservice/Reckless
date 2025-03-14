@@ -190,6 +190,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     if !tt_pv
         && !in_check
+        && depth <= 10
         && eval >= beta + 80 * depth - (80 * improving as i32)
         && (tt_move == Move::NULL || tt_move.is_noisy())
     {
