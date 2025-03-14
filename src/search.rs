@@ -188,7 +188,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return qsearch::<false>(td, alpha, beta);
     }
 
-    if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
+    if !tt_pv
+        && !in_check
+        && eval >= beta + 80 * depth - (80 * improving as i32)
+        && (tt_move == Move::NULL || tt_move.is_noisy())
+    {
         return eval;
     }
 
