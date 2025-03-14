@@ -27,50 +27,45 @@ impl Default for StackEntry {
     }
 }
 
-pub struct Stack<'a> {
-    data: &'a mut [StackEntry],
+#[derive(Copy, Clone)]
+pub struct Stack {
+    data: *mut StackEntry,
 }
 
-impl Stack<'_> {
+impl Stack {
     pub fn new(data: &[StackEntry]) -> Self {
-        Self {
-            data: unsafe { std::slice::from_raw_parts_mut(data.as_ptr() as *mut _, 4) },
-        }
+        Self { data: data.as_ptr() as *mut _ }
     }
 
-    pub fn clone(&self) -> Stack<'_> {
-        Stack::new(&self.data[..])
-    }
-
-    pub fn next(&self) -> Stack<'_> {
-        Stack::new(&self.data[1..])
+    pub fn next(&self) -> Stack {
+        Stack { data: unsafe { self.data.offset(1) } }
     }
 }
 
-impl Index<isize> for Stack<'_> {
+impl Index<isize> for Stack {
     type Output = StackEntry;
 
     fn index(&self, index: isize) -> &Self::Output {
-        unsafe { &*self.data.as_ptr().offset(index) }
+        unsafe { &*self.data.offset(index) }
     }
 }
 
-impl IndexMut<isize> for Stack<'_> {
+impl IndexMut<isize> for Stack {
     fn index_mut(&mut self, index: isize) -> &mut Self::Output {
-        unsafe { &mut *self.data.as_mut_ptr().offset(index) }
+        unsafe { &mut *self.data.offset(index) }
     }
 }
 
-impl Deref for Stack<'_> {
+impl Deref for Stack {
     type Target = StackEntry;
 
     fn deref(&self) -> &Self::Target {
-        &self.data[0]
+        unsafe { &*self.data }
     }
 }
 
-impl DerefMut for Stack<'_> {
+impl DerefMut for Stack {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data[0]
+        unsafe { &mut *self.data }
     }
 }

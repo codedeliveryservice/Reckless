@@ -123,7 +123,7 @@ fn search<const PV: bool>(
     }
 
     if depth <= 0 {
-        return qsearch::<PV>(td, ss.clone(), alpha, beta);
+        return qsearch::<PV>(td, ss, alpha, beta);
     }
 
     td.nodes += 1;
@@ -199,7 +199,7 @@ fn search<const PV: bool>(
     ss[2].cutoff_count = 0;
 
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch::<false>(td, ss.clone(), alpha, beta);
+        return qsearch::<false>(td, ss, alpha, beta);
     }
 
     if !PV && !in_check && !excluded && depth <= 8 && eval >= beta + 80 * depth - (80 * improving as i32) {
@@ -325,7 +325,7 @@ fn search<const PV: bool>(
                 let singular_depth = (depth - 1) / 2;
 
                 ss.excluded = entry.mv;
-                let score = search::<false>(td, ss.clone(), singular_beta - 1, singular_beta, singular_depth, cut_node);
+                let score = search::<false>(td, ss, singular_beta - 1, singular_beta, singular_depth, cut_node);
                 ss.excluded = Move::NULL;
 
                 if td.stopped {
