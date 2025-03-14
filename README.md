@@ -2,8 +2,6 @@
 
 [![Build and Test](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 
-Reckless is a [UCI][uci] chess engine written in Rust as a personal project.
-
 Guided by the insights from the chess programming community, it fearlessly
 combines established concepts with its reckless nature, as the name suggests.
 
@@ -48,12 +46,12 @@ For detailed information on the specific features needed for each level, refer t
 
 ### Building from source
 
-1. Make sure you have `Rust 1.73.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
+1. Make sure you have `Rust 1.79.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
 2. Download the latest NNUE model either from the [Reckless Networks][reckless-networks] repository or by running the following command:
 
 ```bash
-# Fetch the latest NNUE model
+# Fetch the latest NNUE model from the Reckless Networks repository
 make fetch
 ```
 
@@ -69,9 +67,9 @@ make EVALFILE=path/to/model.nnue
 
 [reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
 
-#### Troubleshooting
-
-If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between the model and the engine's architecture. In this case, update the source code and fetch the latest model.
+> [!WARNING] 
+> If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between
+> the model and the engine's architecture. In this case, update the source code and fetch the latest model.
 
 ### Usage
 
@@ -118,51 +116,32 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 
 ### Selectivity
 
-#### Pruning
-
 -   Reverse Futility Pruning
 -   Null Move Pruning
--   Razoring
 -   Futility Pruning
+-   Razoring Pruning
 -   Late Move Pruning
--   Delta Pruning
 -   Static Exchange Evaluation Pruning
--   Mate Distance Pruning
-
-#### Reductions
-
+-   ProbCut Pruning
 -   Fractional Late Move Reductions
 -   Internal Iterative Reductions
-
-#### Extensions
-
--   Check Extensions
-
-### Move ordering
-
--   Hash Move
--   Killer Move Heuristic
--   SEE with MVV-LVA as a tiebreaker for captures
--   History Heuristic for quiet moves
-    -   Butterfly History
-    -   Counter Move History
-    -   Follow-Up History
+-   Singular Extensions
 
 ### Evaluation
 
 -   [NNUE](https://www.chessprogramming.org/NNUE)
--   Architecture: `(768 -> 384)x2 -> 1x4`
+-   Architecture: `(768 -> 512)x2 -> 1`
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
--   Quantization: `i16` (`256`, `64`)
+-   Quantization: `i16` (`384`, `64`)
 -   Trained on original data generated entirely through self-play
 -   Handwritten SIMD for AVX2 instructions
 
 ### Time management
 
 -   Soft and hard bounds
--   Best move stability
+-   Distribution of nodes
 -   Evaluation stability
--   Distribution of root nodes
+-   Best move stability
 
 ## Acknowledgements
 
