@@ -147,6 +147,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 _ => true,
             }
         {
+            if entry.score >= beta && tt_move != Move::NULL && !tt_move.is_noisy() {
+                td.quiet_history.update(&td.board, tt_move, bonus(depth));
+            }
+
             return entry.score;
         }
     }
