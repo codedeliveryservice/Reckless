@@ -75,9 +75,37 @@ define! {
     i32 ch_v5: 1024;
     i32 ch_v6: 1024;
 
-    i32 bonus_v1: 128;
-    i32 bonus_v2: 64;
-    i32 bonus_v3: 1280;
+    i32 noisy_v1: 128;
+    i32 noisy_v2: 64;
+    i32 noisy_v3: 1280;
+
+    i32 noisy_v4: 128;
+    i32 noisy_v5: 64;
+    i32 noisy_v6: 1280;
+
+    i32 quiet_v1: 128;
+    i32 quiet_v2: 64;
+    i32 quiet_v3: 1280;
+
+    i32 quiet_v4: 128;
+    i32 quiet_v5: 64;
+    i32 quiet_v6: 1280;
+
+    i32 cnht_v1: 128;
+    i32 cnht_v2: 64;
+    i32 cnht_v3: 1280;
+
+    i32 cnht_v4: 128;
+    i32 cnht_v5: 64;
+    i32 cnht_v6: 1280;
+
+    i32 cnht_v7: 128;
+    i32 cnht_v8: 64;
+    i32 cnht_v9: 1280;
+
+    i32 cnht_v10: 128;
+    i32 cnht_v11: 64;
+    i32 cnht_v12: 1280;
 
     i32 lmr_v1: 4096;
     i32 lmr_v2: 512;

@@ -456,33 +456,50 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     }
 
     if bound == Bound::Lower {
-        let bonus = bonus(depth);
-
         if best_move.is_noisy() {
+            let bonus = (noisy_v1() * depth - noisy_v2()).min(noisy_v3());
+            let malus = (noisy_v4() * depth - noisy_v5()).min(noisy_v6());
+
             td.noisy_history.update(&td.board, best_move, bonus);
 
             for &mv in noisy_moves.iter() {
-                td.noisy_history.update(&td.board, mv, -bonus);
+                td.noisy_history.update(&td.board, mv, -malus);
             }
         } else {
+            let bonus = (quiet_v1() * depth - quiet_v2()).min(quiet_v3());
+            let malus = (quiet_v4() * depth - quiet_v5()).min(quiet_v6());
+
             td.quiet_history.update(&td.board, best_move, bonus);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(&td.board, mv, -bonus);
+                td.quiet_history.update(&td.board, mv, -malus);
             }
 
-            for index in [1, 2] {
-                if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
-                    continue;
-                }
+            if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+                let bonus = (cnht_v1() * depth - cnht_v2()).min(cnht_v3());
+                let malus = (cnht_v4() * depth - cnht_v5()).min(cnht_v6());
 
-                let prev_mv = td.stack[td.ply - index].mv;
-                let prev_piece = td.stack[td.ply - index].piece;
+                let prev_mv = td.stack[td.ply - 1].mv;
+                let prev_piece = td.stack[td.ply - 1].piece;
 
                 td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
 
                 for &mv in quiet_moves.iter() {
-                    td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -bonus);
+                    td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -malus);
+                }
+            }
+
+            if td.ply >= 2 && td.stack[td.ply - 2].mv != Move::NULL {
+                let bonus = (cnht_v7() * depth - cnht_v8()).min(cnht_v9());
+                let malus = (cnht_v10() * depth - cnht_v11()).min(cnht_v12());
+
+                let prev_mv = td.stack[td.ply - 2].mv;
+                let prev_piece = td.stack[td.ply - 2].piece;
+
+                td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
+
+                for &mv in quiet_moves.iter() {
+                    td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -malus);
                 }
             }
         }
@@ -636,10 +653,6 @@ fn correction_value(td: &ThreadData) -> i32 {
             * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 };
 
     correction / 1024
-}
-
-fn bonus(depth: i32) -> i32 {
-    (bonus_v1() * depth - bonus_v2()).min(bonus_v3())
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
