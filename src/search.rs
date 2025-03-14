@@ -302,7 +302,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         move_count += 1;
 
         if !is_root && !is_loss(best_score) {
-            let lmr_depth = (depth - td.lmr.reduction(depth, move_count) / 1024).max(0);
+            let lmr_depth = (depth - td.lmr.reduction(true, depth, move_count) / 1024).max(0);
 
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
@@ -355,35 +355,37 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let mut score = Score::ZERO;
 
-        if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
-            let mut reduction = td.lmr.reduction(depth, move_count);
+        if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
+            let mut reduction = td.lmr.reduction(is_quiet, depth, move_count);
 
             reduction -= 4 * correction_value.abs();
-
-            reduction -= (history - 512) / 16;
-
-            if td.board.in_check() {
-                reduction -= 1024;
-            }
 
             if tt_pv {
                 reduction -= 768;
             }
 
-            if PV {
-                reduction -= 768;
-            }
+            if is_quiet {
+                if td.board.in_check() {
+                    reduction -= 1024;
+                }
 
-            if cut_node {
-                reduction += 1024;
-            }
+                if PV {
+                    reduction -= 768;
+                }
 
-            if !improving {
-                reduction += 1024;
-            }
+                if cut_node {
+                    reduction += 1024;
+                }
 
-            if td.stack[td.ply].cutoff_count > 3 {
-                reduction += 1024;
+                if !improving {
+                    reduction += 1024;
+                }
+
+                if td.stack[td.ply].cutoff_count > 3 {
+                    reduction += 1024;
+                }
+
+                reduction -= (history - 512) / 16;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).max(1).min(new_depth);
