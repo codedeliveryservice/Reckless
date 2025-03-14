@@ -303,6 +303,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
+            let conthist1 = td.conthist(1, mv);
+            let conthist2 = td.conthist(2, mv);
+
+            if is_quiet && lmr_depth <= 3 && conthist1 + conthist2 < -1024 * depth + 512 {
+                continue;
+            }
+
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth };
             if !td.board.see(mv, threshold) {
                 continue;
