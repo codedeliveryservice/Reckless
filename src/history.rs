@@ -1,5 +1,6 @@
 use crate::{
     board::Board,
+    parameters::*,
     types::{Color, Move, Piece},
 };
 

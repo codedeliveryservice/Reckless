@@ -75,6 +75,10 @@ define! {
     i32 ch_v5: 1024;
     i32 ch_v6: 1024;
 
+    i32 ch_v7: 8;
+    i32 ch_v8: 8;
+    i32 ch_v9: 96;
+
     i32 noisy_v1: 128;
     i32 noisy_v2: 64;
     i32 noisy_v3: 1280;
