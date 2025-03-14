@@ -357,6 +357,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             reduction -= (history - 512) / 16;
 
+            reduction += td.stack[td.ply].cutoff_count.min(8) * 192;
+
             if td.board.in_check() {
                 reduction -= 1024;
             }
@@ -374,10 +376,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             }
 
             if !improving {
-                reduction += 1024;
-            }
-
-            if td.stack[td.ply].cutoff_count > 3 {
                 reduction += 1024;
             }
 
