@@ -140,6 +140,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         tt_pv |= entry.pv;
 
         if !PV
+            && !excluded
             && entry.depth >= depth
             && match entry.bound {
                 Bound::Upper => entry.score <= alpha,
@@ -162,6 +163,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     } else if excluded {
         static_eval = td.stack[td.ply].eval;
         eval = static_eval;
+        td.board.evaluate();
     } else {
         static_eval = td.board.evaluate() + correction_value;
         eval = static_eval;
