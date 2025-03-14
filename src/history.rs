@@ -66,23 +66,20 @@ pub struct CorrectionHistory {
 }
 
 impl CorrectionHistory {
-    const GRAIN: i32 = 256;
-    const LIMIT: i32 = Self::GRAIN * 64;
+    const MAX_HISTORY: i32 = 16384;
 
     const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK] / Self::GRAIN
+        self.entries[stm][key as usize & Self::MASK] / 96
     }
 
     pub fn update(&mut self, stm: Color, key: u64, depth: i32, diff: i32) {
-        let weight = (8 * depth + 8).min(96);
-
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        let weighted_average = (*entry * (1024 - weight) + diff * weight * Self::GRAIN) / 1024;
+        let bonus = (diff * depth).clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
 
-        *entry = (weighted_average).clamp(-Self::LIMIT, Self::LIMIT);
+        *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
 
