@@ -536,17 +536,21 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let mut best_score = -Score::INFINITE;
+    let mut futility_score = Score::NONE;
 
     if !in_check {
-        best_score = td.board.evaluate() + correction_value(td);
+        let eval = td.board.evaluate() + correction_value(td);
 
-        if best_score >= beta {
-            return best_score;
+        if eval >= beta {
+            return eval;
         }
 
-        if best_score > alpha {
-            alpha = best_score;
+        if eval > alpha {
+            alpha = eval;
         }
+
+        best_score = eval;
+        futility_score = eval + 128;
     }
 
     let mut best_move = Move::NULL;
@@ -561,8 +565,15 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv_score < -(1 << 18) {
-            break;
+        if !is_loss(best_score) {
+            if mv_score < -(1 << 18) {
+                break;
+            }
+
+            if !in_check && futility_score <= alpha && mv.is_noisy() && !td.board.see(mv, 1) {
+                best_score = best_score.max(futility_score);
+                continue;
+            }
         }
 
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
