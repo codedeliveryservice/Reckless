@@ -62,7 +62,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
                 }
             }
 
-            delta += delta / 2;
+            delta += asp_step() * delta / 32;
         }
 
         if !silent {
@@ -184,7 +184,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.stack[td.ply + 2].cutoff_count = 0;
 
-    if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
+    if !PV && !in_check && eval < alpha - razor_v1() - razor_v2() * depth * depth {
         return qsearch::<false>(td, alpha, beta);
     }
 
@@ -202,10 +202,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && !excluded
         && depth >= 3
         && eval >= beta
-        && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+        && static_eval >= beta - nmp_v1() * depth + nmp_v2() * tt_pv as i32 + nmp_v3()
         && td.board.has_non_pawns()
     {
-        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
+        let r = 4 + depth / 3 + ((eval - beta) / nmp_v4()).min(3) + tt_move.is_noisy() as i32;
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
@@ -229,7 +229,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
-    let probcut_beta = beta + 256 - 64 * improving as i32;
+    let probcut_beta = beta + probcut_v1() - probcut_v2() * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
         let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
@@ -306,9 +306,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
+            skip_quiets |=
+                !in_check && is_quiet && lmr_depth < fp_v1() && static_eval + fp_v2() * lmr_depth + fp_v3() <= alpha;
 
-            let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth };
+            let threshold = if is_quiet { -see_v1() * lmr_depth * lmr_depth } else { -see_v2() * depth };
             if !td.board.see(mv, threshold) {
                 continue;
             }
@@ -333,8 +334,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (!PV && score < singular_beta - 24) as i32;
-                    extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
+                    extension += (!PV && score < singular_beta - se_v1()) as i32;
+                    extension += (!PV && is_quiet && score < singular_beta - se_v2()) as i32;
                 } else if score >= beta {
                     return score;
                 }
@@ -358,32 +359,32 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
             let mut reduction = td.lmr.reduction(depth, move_count);
 
-            reduction -= 4 * correction_value.abs();
+            reduction -= lmr_v1() * correction_value.abs() / 1024;
 
-            reduction -= (history - 512) / 16;
+            reduction -= (history - lmr_v2()) * 1024 / lmr_v3();
 
             if td.board.in_check() {
-                reduction -= 1024;
+                reduction -= lmr_v4();
             }
 
             if tt_pv {
-                reduction -= 768;
+                reduction -= lmr_v5();
             }
 
             if PV {
-                reduction -= 768;
+                reduction -= lmr_v6();
             }
 
             if cut_node {
-                reduction += 1024;
+                reduction += lmr_v7();
             }
 
             if !improving {
-                reduction += 1024;
+                reduction += lmr_v8();
             }
 
             if td.stack[td.ply].cutoff_count > 3 {
-                reduction += 1024;
+                reduction += lmr_v9();
             }
 
             let reduced_depth = (new_depth - reduction / 1024).max(1).min(new_depth);
@@ -391,7 +392,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 64) as i32;
+                new_depth += (score > best_score + dod_v1()) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
@@ -626,16 +627,19 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + td.minor_corrhist.get(stm, td.board.minor_key())
-        + td.major_corrhist.get(stm, td.board.major_key())
-        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
+    let correction = ch_v1() * td.pawn_corrhist.get(stm, td.board.pawn_key())
+        + ch_v2() * td.minor_corrhist.get(stm, td.board.minor_key())
+        + ch_v3() * td.major_corrhist.get(stm, td.board.major_key())
+        + ch_v4() * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + ch_v5() * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + ch_v6()
+            * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 };
+
+    correction / 1024
 }
 
 fn bonus(depth: i32) -> i32 {
-    (128 * depth - 64).min(1280)
+    (bonus_v1() * depth - bonus_v2()).min(bonus_v3())
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
