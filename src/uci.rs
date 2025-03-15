@@ -35,6 +35,9 @@ pub fn message_loop() {
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
 
+            ["bench"] => eprintln!("Usage: bench <depth>"),
+            ["perft"] => eprintln!("Usage: perft <depth>"),
+
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
         };
     }
