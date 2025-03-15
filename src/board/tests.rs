@@ -16,17 +16,17 @@ macro_rules! assert_perft {
 
 fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
-    for &mv in board.generate_all_moves().iter() {
-        board.make_move::<false, false>(mv);
+    for &entry in board.generate_all_moves().iter() {
+        board.make_move::<false, false>(entry.mv);
 
         let attackers = board.attackers_to(board.their(PieceType::King).lsb(), board.occupancies());
         if !(attackers & board.us()).is_empty() {
-            board.undo_move::<false>(mv);
+            board.undo_move::<false>(entry.mv);
             continue;
         }
 
         nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
-        board.undo_move::<false>(mv);
+        board.undo_move::<false>(entry.mv);
     }
     nodes
 }

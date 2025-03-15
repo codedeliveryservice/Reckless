@@ -1,6 +1,6 @@
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{ArrayVec, Bitboard, CastlingKind, Color, Move, MoveKind, PieceType, Rank, Square, MAX_MOVES},
+    types::{Bitboard, CastlingKind, Color, Move, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
 macro_rules! push {
@@ -11,22 +11,22 @@ macro_rules! push {
 
 impl super::Board {
     /// Generates all possible pseudo legal moves for the current position.
-    pub fn generate_all_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
+    pub fn generate_all_moves(&self) -> MoveList {
         self.generate_moves::<false>()
     }
 
     /// Generates only pseudo legal capture moves for the current position.
-    pub fn generate_capture_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
+    pub fn generate_capture_moves(&self) -> MoveList {
         self.generate_moves::<true>()
     }
 
     /// Generates pseudo legal moves for the current position.
     ///
     /// If `CAPTURE` is `true`, only capture moves are generated.
-    fn generate_moves<const CAPTURE: bool>(&self) -> ArrayVec<Move, MAX_MOVES> {
+    fn generate_moves<const CAPTURE: bool>(&self) -> MoveList {
         let occupancies = self.occupancies();
 
-        let mut list = ArrayVec::new();
+        let mut list = MoveList::new();
 
         self.collect_pawn_moves::<CAPTURE>(&mut list);
 
@@ -44,7 +44,7 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut ArrayVec<Move, MAX_MOVES>, piece: PieceType, gen: T)
+    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut MoveList, piece: PieceType, gen: T)
     where
         T: Fn(Square) -> Bitboard,
     {
@@ -63,7 +63,7 @@ impl super::Board {
         }
     }
 
-    fn collect_castling(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
+    fn collect_castling(&self, list: &mut MoveList) {
         use crate::types::{BlackKingSide, BlackQueenSide, WhiteKingSide, WhiteQueenSide};
 
         match self.side_to_move {
@@ -82,7 +82,7 @@ impl super::Board {
     ///
     /// This method does not check if the king is in check after the castling,
     /// as this will be checked by the `make_move` method.
-    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
+    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
         if (KIND::PATH_MASK & self.occupancies()).is_empty() && self.state.castling.is_allowed::<KIND>() {
             for square in KIND::CHECK_SQUARES {
                 if self.is_threatened(square) {
@@ -95,7 +95,7 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
+    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut MoveList) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
@@ -111,7 +111,7 @@ impl super::Board {
     }
 
     /// Adds single, double and promotion pawn pushes to the move list.
-    fn collect_pawn_pushes(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_pushes(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
@@ -142,7 +142,7 @@ impl super::Board {
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
-    fn collect_pawn_captures(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
         let promotions = pawns & seventh_rank;
         for from in promotions {
             let captures = self.them() & pawn_attacks(from, self.side_to_move);
@@ -163,7 +163,7 @@ impl super::Board {
         }
     }
 
-    fn collect_en_passant_moves(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard) {
+    fn collect_en_passant_moves(&self, list: &mut MoveList, pawns: Bitboard) {
         if self.state.en_passant != Square::None {
             let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move);
             for pawn in pawns {

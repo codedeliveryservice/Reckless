@@ -23,6 +23,10 @@ impl<T, const N: usize> ArrayVec<T, N> {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
     }
 
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut T, self.len) }
+    }
+
     pub fn push(&mut self, value: T) {
         debug_assert!(self.len < N);
 
