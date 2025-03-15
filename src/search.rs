@@ -548,7 +548,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let eval = td.board.evaluate() + correction_value(td);
 
         if eval >= beta {
-            return eval;
+            if is_decisive(eval) {
+                return eval;
+            }
+
+            return (eval + beta) / 2;
         }
 
         if eval > alpha {
