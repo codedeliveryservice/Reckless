@@ -4,7 +4,7 @@ use crate::{
     types::{Move, MoveEntry, MoveList},
 };
 
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
     Scoring,
@@ -42,12 +42,17 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
+    pub fn stage(&self) -> Stage {
+        self.stage
+    }
+
+    pub fn next(&mut self, td: &ThreadData) -> Option<Move> {
         if self.moves.is_empty() {
+            self.stage = Stage::BadNoisy;
+
             if self.bad_noises.is_empty() {
                 return None;
             }
-            self.stage = Stage::BadNoisy;
         }
 
         if self.stage == Stage::HashMove {
@@ -55,7 +60,7 @@ impl MovePicker {
 
             for i in 0..self.moves.len() {
                 if self.moves[i].mv == self.tt_move {
-                    return Some((self.moves.remove(i), 1 << 21));
+                    return Some(self.moves.remove(i));
                 }
             }
         }
@@ -73,7 +78,7 @@ impl MovePicker {
                 self.moves.remove(index);
 
                 if td.board.see(mv, self.threshold) {
-                    return Some((mv, 1 << 20));
+                    return Some(mv);
                 }
 
                 self.bad_noises.push(mv);
@@ -86,16 +91,13 @@ impl MovePicker {
 
         if self.stage == Stage::Quiets {
             let index = self.select_next();
-            let entry = self.moves[index];
-
-            self.moves.remove(index);
-            return Some((entry.mv, entry.score));
+            return Some(self.moves.remove(index));
         }
 
         if self.bad_noises.is_empty() {
             None
         } else {
-            Some((self.bad_noises.remove(0), -(1 << 20)))
+            Some(self.bad_noises.remove(0))
         }
     }
 
