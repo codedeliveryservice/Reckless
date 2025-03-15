@@ -185,10 +185,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     td.stack[td.ply + 2].cutoff_count = 0;
 
+    // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
         return qsearch::<false>(td, alpha, beta);
     }
 
+    // Reverse Futility Pruning (RFP)
     if !PV
         && !in_check
         && !excluded
@@ -198,6 +200,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         return (eval + beta) / 2;
     }
 
+    // Null Move Pruning (NMP)
     if cut_node
         && !in_check
         && !excluded
@@ -230,6 +233,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    // ProbCut
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
@@ -278,6 +282,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
     }
 
+    // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move == Move::NULL && (PV || cut_node) {
         depth -= 1;
     }
@@ -305,16 +310,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         if !is_root && !is_loss(best_score) {
             let lmr_depth = (depth - td.lmr.reduction(depth, move_count) / 1024).max(0);
 
+            // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
+            // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
+            // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth };
             if !td.board.see(mv, threshold) {
                 continue;
             }
         }
 
+        // Singular Extensions (SE)
         let mut extension = 0;
 
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
@@ -336,7 +345,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     extension = 1;
                     extension += (!PV && score < singular_beta - 24) as i32;
                     extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
-                } else if score >= beta {
+                }
+                // Multi-Cut Pruning
+                else if score >= beta {
                     return score;
                 }
             }
@@ -356,10 +367,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
 
+        // Check Extensions
         if depth >= 8 && static_eval.abs() >= 128 && td.board.in_check() {
             new_depth += 1;
         }
 
+        // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
             let mut reduction = td.lmr.reduction(depth, move_count);
 
@@ -403,7 +416,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
                 }
             }
-        } else if !PV || move_count > 1 {
+        }
+        // Principal Variation Search (PVS)
+        else if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
         }
 
