@@ -85,7 +85,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
 
         let mut td = ThreadData::new(&tt, &stop);
         td.board = Board::new(position).unwrap();
-        td.time_manager = TimeManager::new(Limits::Depth(depth));
+        td.time_manager = TimeManager::new(Limits::Depth(depth), 0);
 
         search::start(&mut td, true);
 

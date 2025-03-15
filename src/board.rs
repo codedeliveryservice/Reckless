@@ -48,6 +48,7 @@ pub struct Board {
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
+    game_ply: usize,
     nnue: Network,
 }
 
@@ -64,6 +65,10 @@ impl Board {
 
     pub const fn side_to_move(&self) -> Color {
         self.side_to_move
+    }
+
+    pub const fn game_ply(&self) -> usize {
+        self.game_ply
     }
 
     /// Returns the Zobrist hash key for the current position.
@@ -145,6 +150,10 @@ impl Board {
     /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
     pub fn has_non_pawns(&self) -> bool {
         self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
+    }
+
+    pub fn increment_game_ply(&mut self) {
+        self.game_ply += 1;
     }
 
     /// Places a piece of the specified type and color on the square.
@@ -400,6 +409,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::default(),
             nnue: Network::default(),
+            game_ply: 0,
         }
     }
 }

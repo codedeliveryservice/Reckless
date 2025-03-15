@@ -77,7 +77,7 @@ impl<'a> ThreadData<'a> {
             tt,
             stop,
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite),
+            time_manager: TimeManager::new(Limits::Infinite, 0),
             stack: Stack::default(),
             pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),

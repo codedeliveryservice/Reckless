@@ -21,7 +21,7 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    pub fn new(limits: Limits) -> Self {
+    pub fn new(limits: Limits, ply: usize) -> Self {
         let soft;
         let hard;
 
@@ -31,7 +31,9 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                soft = (0.035 * (main as f64 + 0.75 * inc as f64)) as u64;
+                let soft_scale = 0.025 + 0.05 * (1.0 - (-0.017 * ply as f64).exp());
+
+                soft = (soft_scale * main as f64 + 0.75 * inc as f64) as u64;
                 hard = (0.135 * (main as f64 + 0.75 * inc as f64)) as u64;
             }
             Limits::Cyclic(main, inc, moves) => {
