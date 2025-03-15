@@ -7,6 +7,7 @@ use crate::{
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
+    Scoring,
     GoodNoisy,
     Quiets,
     BadNoisy,
@@ -23,30 +24,24 @@ pub struct MovePicker {
 
 impl MovePicker {
     pub fn new(td: &ThreadData, tt_move: Move) -> Self {
-        let moves = td.board.generate_all_moves();
-        let scores = score_moves(td, &moves);
-
         Self {
+            moves: td.board.generate_all_moves(),
+            scores: [0; MAX_MOVES],
             bad_noisy: ArrayVec::new(),
-            moves,
-            scores,
             threshold: -110,
             tt_move,
-            stage: if tt_move != Move::NULL { Stage::HashMove } else { Stage::GoodNoisy },
+            stage: if tt_move != Move::NULL { Stage::HashMove } else { Stage::Scoring },
         }
     }
 
     pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
-        let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
-        let scores = score_moves(td, &moves);
-
         Self {
+            moves: if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() },
+            scores: [0; MAX_MOVES],
             bad_noisy: ArrayVec::new(),
-            moves,
-            scores,
             threshold,
             tt_move: Move::NULL,
-            stage: Stage::GoodNoisy,
+            stage: Stage::Scoring,
         }
     }
 
@@ -58,7 +53,7 @@ impl MovePicker {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GoodNoisy;
 
-            for (index, &mv) in self.moves.as_slice().iter().enumerate() {
+            for (index, &mv) in self.moves.iter().enumerate() {
                 if mv == self.tt_move {
                     self.moves.swap_remove(index);
                     self.scores.swap(index, self.moves.len());
@@ -66,6 +61,11 @@ impl MovePicker {
                     return Some(mv);
                 }
             }
+        }
+
+        if self.stage == Stage::Scoring {
+            self.stage = Stage::GoodNoisy;
+            self.score_moves(td);
         }
 
         if self.stage == Stage::GoodNoisy {
@@ -112,27 +112,15 @@ impl MovePicker {
 
         None
     }
-}
 
-fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>) -> [i32; MAX_MOVES] {
-    let mut scores = [0; MAX_MOVES];
-
-    for (i, &mv) in moves.iter().enumerate() {
-        if mv.is_noisy() {
-            let captured = td.board.piece_on(mv.to()).piece_type();
-
-            scores[i] = 1 << 20;
-
-            scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
-
-            scores[i] += td.noisy_history.get(&td.board, mv);
-        } else {
-            scores[i] = td.quiet_history.get(&td.board, mv);
-
-            scores[i] += td.conthist(1, mv);
-            scores[i] += td.conthist(2, mv);
+    fn score_moves(&mut self, td: &ThreadData) {
+        for (i, &mv) in self.moves.iter().enumerate() {
+            self.scores[i] = if mv.is_noisy() {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                (1 << 20) + PIECE_VALUES[captured as usize % 6] * 32 + td.noisy_history.get(&td.board, mv)
+            } else {
+                td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv)
+            }
         }
     }
-
-    scores
 }
