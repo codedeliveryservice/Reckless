@@ -18,6 +18,7 @@ pub struct StackEntry {
     pub piece: Piece,
     pub eval: i32,
     pub excluded: Move,
+    pub killer: Move,
     pub tt_pv: bool,
     pub cutoff_count: i32,
 }
@@ -29,6 +30,7 @@ impl Default for StackEntry {
             piece: Piece::None,
             eval: Score::NONE,
             excluded: Move::NULL,
+            killer: Move::NULL,
             tt_pv: false,
             cutoff_count: 0,
         }

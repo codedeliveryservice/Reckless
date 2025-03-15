@@ -183,8 +183,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].eval;
 
     td.stack[td.ply].eval = static_eval;
-    td.stack[td.ply].tt_pv = tt_pv;
-
+    td.stack[td.ply].tt_pv = tt_pv;    
+    
+    td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Razoring
@@ -299,7 +300,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td, tt_move);
+    let mut move_picker = MovePicker::new(td, td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
     while let Some((mv, _)) = move_picker.next() {
@@ -490,6 +491,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
         } else {
+            td.stack[td.ply].killer = best_move;
+
             td.quiet_history.update(&td.board, best_move, bonus);
 
             for &mv in quiet_moves.iter() {
