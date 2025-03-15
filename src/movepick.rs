@@ -4,29 +4,49 @@ use crate::{
     types::{ArrayVec, Move, MAX_MOVES},
 };
 
+#[derive(PartialEq)]
+pub enum Stage {
+    HashMove,
+    Others,
+}
+
 pub struct MovePicker {
     moves: ArrayVec<Move, MAX_MOVES>,
     scores: [i32; MAX_MOVES],
+    tt_move: Move,
+    stage: Stage,
 }
 
 impl MovePicker {
     pub fn new(td: &ThreadData, tt_move: Move) -> Self {
         let moves = td.board.generate_all_moves();
-        let scores = score_moves(td, &moves, tt_move, -110);
+        let scores = score_moves(td, &moves, -110);
 
-        Self { moves, scores }
+        Self { moves, scores, tt_move, stage: Stage::HashMove }
     }
 
     pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
         let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
-        let scores = score_moves(td, &moves, Move::NULL, threshold);
+        let scores = score_moves(td, &moves, threshold);
 
-        Self { moves, scores }
+        Self { moves, scores, tt_move: Move::NULL, stage: Stage::Others }
     }
 
     pub fn next(&mut self) -> Option<(Move, i32)> {
         if self.moves.len() == 0 {
             return None;
+        }
+
+        if self.stage == Stage::HashMove {
+            self.stage = Stage::Others;
+
+            for i in 0..self.moves.len() {
+                if self.moves[i] == self.tt_move {
+                    let score = self.scores[i];
+                    self.scores.swap(i, self.moves.len() - 1);
+                    return Some((self.moves.swap_remove(i), score));
+                }
+            }
         }
 
         let mut index = 0;
@@ -42,15 +62,10 @@ impl MovePicker {
     }
 }
 
-fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move, threshold: i32) -> [i32; MAX_MOVES] {
+fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, threshold: i32) -> [i32; MAX_MOVES] {
     let mut scores = [0; MAX_MOVES];
 
     for (i, &mv) in moves.iter().enumerate() {
-        if mv == tt_move {
-            scores[i] = 1 << 21;
-            continue;
-        }
-
         if mv.is_noisy() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
