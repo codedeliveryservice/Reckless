@@ -51,7 +51,7 @@ impl MovePicker {
 
     pub fn next(&mut self, td: &ThreadData) -> Option<Move> {
         if self.stage == Stage::HashMove {
-            self.stage = Stage::GoodNoisy;
+            self.stage = Stage::Scoring;
 
             for (index, &mv) in self.moves.iter().enumerate() {
                 if mv == self.tt_move {
