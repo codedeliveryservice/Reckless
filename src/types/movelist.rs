@@ -30,11 +30,11 @@ impl MoveList {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &MoveEntry> {
-        self.data.as_slice().iter()
+        self.data.iter()
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut MoveEntry> {
-        self.data.as_mut_slice().iter_mut()
+        self.data.iter_mut()
     }
 }
 

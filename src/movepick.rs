@@ -1,7 +1,7 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{Move, MoveEntry, MoveList},
+    types::{Move, MoveList},
 };
 
 pub struct MovePicker {
@@ -41,23 +41,23 @@ impl MovePicker {
     }
 }
 
+#[rustfmt::skip]
 fn score_moves(moves: &mut MoveList, td: &ThreadData, tt_move: Move, threshold: i32) {
-    for MoveEntry { mv, score } in moves.iter_mut() {
-        if *mv == tt_move {
-            *score = 1 << 21;
-            continue;
-        }
+    for entry in moves.iter_mut() {
+        let mv = entry.mv;
 
-        if mv.is_noisy() {
+        if mv == tt_move {
+            entry.score = 1 << 21;
+        } else if mv.is_noisy() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
-            *score = if td.board.see(*mv, threshold) { 1 << 20 } else { -(1 << 20) };
-            *score += PIECE_VALUES[captured as usize % 6] * 32;
-            *score += td.noisy_history.get(&td.board, *mv);
+            entry.score = if td.board.see(mv, threshold) { 1 << 20 } else { -(1 << 20) }
+                + PIECE_VALUES[captured as usize % 6] * 32
+                + td.noisy_history.get(&td.board, mv);
         } else {
-            *score = td.quiet_history.get(&td.board, *mv);
-            *score += td.conthist(1, *mv);
-            *score += td.conthist(2, *mv);
+            entry.score = td.quiet_history.get(&td.board, mv)
+                + td.conthist(1, mv)
+                + td.conthist(2, mv);
         }
     }
 }
