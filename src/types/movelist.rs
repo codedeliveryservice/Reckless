@@ -21,6 +21,10 @@ impl MoveList {
         self.data.len()
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.data.len() == 0
+    }
+
     pub fn push(&mut self, item: Move) {
         self.data.push(MoveEntry { mv: item, score: 0 });
     }

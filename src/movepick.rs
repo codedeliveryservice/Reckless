@@ -8,11 +8,14 @@ use crate::{
 pub enum Stage {
     HashMove,
     Scoring,
-    Others,
+    GoodNoisy,
+    Quiets,
+    BadNoisy,
 }
 
 pub struct MovePicker {
     moves: MoveList,
+    bad_noises: MoveList,
     tt_move: Move,
     threshold: i32,
     stage: Stage,
@@ -22,6 +25,7 @@ impl MovePicker {
     pub fn new(td: &ThreadData, tt_move: Move) -> Self {
         Self {
             moves: td.board.generate_all_moves(),
+            bad_noises: MoveList::new(),
             tt_move,
             threshold: -110,
             stage: Stage::HashMove,
@@ -31,6 +35,7 @@ impl MovePicker {
     pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
         Self {
             moves: if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() },
+            bad_noises: MoveList::new(),
             tt_move: Move::NULL,
             threshold,
             stage: Stage::Scoring,
@@ -38,8 +43,11 @@ impl MovePicker {
     }
 
     pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
-        if self.moves.len() == 0 {
-            return None;
+        if self.moves.is_empty() {
+            if self.bad_noises.is_empty() {
+                return None;
+            }
+            self.stage = Stage::BadNoisy;
         }
 
         if self.stage == Stage::HashMove {
@@ -53,19 +61,42 @@ impl MovePicker {
         }
 
         if self.stage == Stage::Scoring {
-            self.stage = Stage::Others;
+            self.stage = Stage::GoodNoisy;
             self.score_moves(td);
         }
 
-        let mut index = 0;
-        for i in 1..self.moves.len() {
-            if self.moves[i].score > self.moves[index].score {
-                index = i;
+        if self.stage == Stage::GoodNoisy {
+            let index = self.select_next();
+            let mv = self.moves[index].mv;
+
+            if mv.is_noisy() {
+                self.moves.remove(index);
+
+                if td.board.see(mv, self.threshold) {
+                    return Some((mv, 1 << 20));
+                }
+
+                self.bad_noises.push(mv);
+                return self.next(td);
             }
+
+            self.stage = Stage::Quiets;
+            return self.next(td);
         }
 
-        let score = self.moves[index].score;
-        Some((self.moves.remove(index), score))
+        if self.stage == Stage::Quiets {
+            let index = self.select_next();
+            let entry = self.moves[index];
+
+            self.moves.remove(index);
+            return Some((entry.mv, entry.score));
+        }
+
+        if self.bad_noises.is_empty() {
+            None
+        } else {
+            Some((self.bad_noises.remove(0), -(1 << 20)))
+        }
     }
 
     fn score_moves(&mut self, td: &ThreadData) {
@@ -73,7 +104,7 @@ impl MovePicker {
             if mv.is_noisy() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
 
-                *score = if td.board.see(*mv, self.threshold) { 1 << 20 } else { -(1 << 20) };
+                *score = 1 << 20;
 
                 *score += PIECE_VALUES[captured as usize % 6] * 32;
 
@@ -85,5 +116,15 @@ impl MovePicker {
                 *score += td.conthist(2, *mv);
             }
         }
+    }
+
+    fn select_next(&mut self) -> usize {
+        let mut index = 0;
+        for i in 1..self.moves.len() {
+            if self.moves[i].score > self.moves[index].score {
+                index = i;
+            }
+        }
+        index
     }
 }
