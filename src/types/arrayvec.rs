@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::{mem::MaybeUninit, ops::Index};
 
 pub struct ArrayVec<T, const N: usize> {
     data: [MaybeUninit<T>; N],
@@ -39,5 +39,13 @@ impl<T, const N: usize> ArrayVec<T, N> {
 
             value
         }
+    }
+}
+
+impl<const N: usize, T> Index<usize> for ArrayVec<T, N> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        unsafe { &*self.data[index].as_ptr() }
     }
 }
