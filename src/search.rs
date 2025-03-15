@@ -387,7 +387,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 reduction += 1024;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024).max(1).min(new_depth);
+            let reduced_depth =
+                (new_depth - reduction / 1024).max(1).min(new_depth + (PV && best_move == Move::NULL) as i32);
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
