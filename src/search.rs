@@ -131,7 +131,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
-    let entry = if excluded { None } else { td.tt.read(td.board.hash(), td.ply) };
+    let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
@@ -140,6 +140,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         tt_pv |= entry.pv;
 
         if !PV
+            && !excluded
             && entry.depth >= depth
             && match entry.bound {
                 Bound::Upper => entry.score <= alpha,
