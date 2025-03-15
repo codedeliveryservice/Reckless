@@ -432,7 +432,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if score >= beta {
                     bound = Bound::Lower;
-                    td.stack[td.ply].cutoff_count += 1;
+                    if extension < 2 || PV {
+                        td.stack[td.ply].cutoff_count += 1;
+                    }
                     break;
                 }
             }
