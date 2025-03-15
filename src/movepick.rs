@@ -109,7 +109,6 @@ impl MovePicker {
                 *score = 1 << 20;
 
                 *score += PIECE_VALUES[captured as usize % 6] * 32;
-
                 *score += td.noisy_history.get(&td.board, *mv);
             } else {
                 *score = td.quiet_history.get(&td.board, *mv);
