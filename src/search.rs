@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    movepick::MovePicker,
+    movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
@@ -241,8 +241,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some((mv, mv_score)) = move_picker.next(td) {
-            if mv_score < -(1 << 18) {
+        while let Some(mv) = move_picker.next(td) {
+            if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
@@ -298,7 +298,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut move_picker = MovePicker::new(td, tt_move);
     let mut skip_quiets = false;
 
-    while let Some((mv, _)) = move_picker.next(td) {
+    while let Some(mv) = move_picker.next(td) {
         let is_quiet = !mv.is_noisy();
 
         if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
@@ -583,7 +583,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_noisy(td, in_check, -110);
 
-    while let Some((mv, mv_score)) = move_picker.next(td) {
+    while let Some(mv) = move_picker.next(td) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -591,7 +591,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) {
-            if mv_score < -(1 << 18) {
+            if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 

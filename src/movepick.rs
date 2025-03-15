@@ -4,8 +4,8 @@ use crate::{
     types::{ArrayVec, Move, MAX_MOVES},
 };
 
-#[derive(PartialEq)]
-enum Stage {
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
+pub enum Stage {
     HashMove,
     GoodNoisy,
     Quiets,
@@ -50,7 +50,11 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
+    pub fn stage(&self) -> Stage {
+        self.stage
+    }
+
+    pub fn next(&mut self, td: &ThreadData) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GoodNoisy;
 
@@ -59,7 +63,7 @@ impl MovePicker {
                     self.moves.swap_remove(index);
                     self.scores.swap(index, self.moves.len());
 
-                    return Some((mv, 1 << 21));
+                    return Some(mv);
                 }
             }
         }
@@ -75,30 +79,22 @@ impl MovePicker {
                         }
                     };
 
-                let mv = self.moves[index];
-                let score = self.scores[index];
-
-                self.moves.swap_remove(index);
-                self.scores.swap(index, self.moves.len());
+                self.scores.swap(index, self.moves.len() - 1);
+                let mv = self.moves.swap_remove(index);
 
                 if !td.board.see(mv, self.threshold) {
                     self.bad_noisy.push(mv);
                     continue;
                 }
 
-                return Some((mv, score));
+                return Some(mv);
             }
         }
 
         if self.stage == Stage::Quiets {
             if let Some(index) = (0..self.moves.len()).max_by_key(|&i| self.scores[i]) {
-                let mv = self.moves[index];
-                let score = self.scores[index];
-
-                self.moves.swap_remove(index);
-                self.scores.swap(index, self.moves.len());
-
-                return Some((mv, score));
+                self.scores.swap(index, self.moves.len() - 1);
+                return Some(self.moves.swap_remove(index));
             }
 
             self.stage = Stage::BadNoisy;
@@ -111,7 +107,7 @@ impl MovePicker {
             self.bad_noisy.swap_remove(index);
             self.scores.swap(index, self.bad_noisy.len());
 
-            return Some((mv, -(1 << 20)));
+            return Some(mv);
         }
 
         None
