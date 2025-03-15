@@ -13,9 +13,10 @@ pub enum Stage {
 }
 
 pub struct MovePicker {
-    bad_noisy: ArrayVec<Move, MAX_MOVES>,
     moves: ArrayVec<Move, MAX_MOVES>,
     scores: [i32; MAX_MOVES],
+    bad_noisy: ArrayVec<Move, MAX_MOVES>,
+    bad_noisy_index: usize,
     threshold: i32,
     tt_move: Move,
     stage: Stage,
@@ -27,9 +28,10 @@ impl MovePicker {
         let scores = score_moves(td, &moves);
 
         Self {
-            bad_noisy: ArrayVec::new(),
             moves,
             scores,
+            bad_noisy: ArrayVec::new(),
+            bad_noisy_index: 0,
             threshold: -110,
             tt_move,
             stage: if tt_move != Move::NULL { Stage::HashMove } else { Stage::GoodNoisy },
@@ -41,9 +43,10 @@ impl MovePicker {
         let scores = score_moves(td, &moves);
 
         Self {
-            bad_noisy: ArrayVec::new(),
             moves,
             scores,
+            bad_noisy: ArrayVec::new(),
+            bad_noisy_index: 0,
             threshold,
             tt_move: Move::NULL,
             stage: Stage::GoodNoisy,
@@ -58,7 +61,7 @@ impl MovePicker {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GoodNoisy;
 
-            for (index, &mv) in self.moves.as_slice().iter().enumerate() {
+            for (index, &mv) in self.moves.iter().enumerate() {
                 if mv == self.tt_move {
                     self.moves.swap_remove(index);
                     self.scores.swap(index, self.moves.len());
@@ -70,14 +73,13 @@ impl MovePicker {
 
         if self.stage == Stage::GoodNoisy {
             loop {
-                let index =
-                    match (0..self.moves.len()).filter(|&i| self.moves[i].is_noisy()).max_by_key(|&i| self.scores[i]) {
-                        Some(index) => index,
-                        None => {
-                            self.stage = Stage::Quiets;
-                            break;
-                        }
-                    };
+                let index = match self.find_best() {
+                    Some(index) if self.moves[index].is_noisy() => index,
+                    _ => {
+                        self.stage = Stage::Quiets;
+                        break;
+                    }
+                };
 
                 self.scores.swap(index, self.moves.len() - 1);
                 let mv = self.moves.swap_remove(index);
@@ -92,7 +94,7 @@ impl MovePicker {
         }
 
         if self.stage == Stage::Quiets {
-            if let Some(index) = (0..self.moves.len()).max_by_key(|&i| self.scores[i]) {
+            if let Some(index) = self.find_best() {
                 self.scores.swap(index, self.moves.len() - 1);
                 return Some(self.moves.swap_remove(index));
             }
@@ -101,16 +103,26 @@ impl MovePicker {
         }
 
         // Stage::BadNoisy
-        if let Some(index) = (0..self.bad_noisy.len()).max_by_key(|&i| self.scores[i]) {
-            let mv = self.bad_noisy[index];
+        if self.bad_noisy_index < self.bad_noisy.len() {
+            self.bad_noisy_index += 1;
+            Some(self.bad_noisy[self.bad_noisy_index - 1])
+        } else {
+            None
+        }
+    }
 
-            self.bad_noisy.swap_remove(index);
-            self.scores.swap(index, self.bad_noisy.len());
-
-            return Some(mv);
+    fn find_best(&self) -> Option<usize> {
+        if self.moves.len() == 0 {
+            return None;
         }
 
-        None
+        let mut index = 0;
+        for i in 1..self.moves.len() {
+            if self.scores[i] > self.scores[index] {
+                index = i;
+            }
+        }
+        Some(index)
     }
 }
 
