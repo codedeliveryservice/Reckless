@@ -61,9 +61,9 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 }
 
 fn go(threads: &mut ThreadPool, tokens: &[&str]) {
-    let stm = threads.main_thread().board.side_to_move();
-    let limits = parse_limits(stm, tokens);
-    threads.main_thread().time_manager = TimeManager::new(limits);
+    let board = &threads.main_thread().board;
+    let limits = parse_limits(board.side_to_move(), tokens);
+    threads.main_thread().time_manager = TimeManager::new(limits, board.game_ply());
     threads.main_thread().set_stop(false);
 
     std::thread::scope(|scope| {
@@ -124,6 +124,7 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
     if let Some(&mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
         board.make_move::<true, true>(mv);
+        board.increment_game_ply();
     }
 }
 
