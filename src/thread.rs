@@ -4,7 +4,13 @@ use std::{
 };
 
 use crate::{
-    board::Board, history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory}, nnue::Network, stack::Stack, time::{Limits, TimeManager}, transposition::TranspositionTable, types::{is_loss, is_win, Move, Score, MAX_PLY}
+    board::Board,
+    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    nnue::Network,
+    stack::Stack,
+    time::{Limits, TimeManager},
+    transposition::TranspositionTable,
+    types::{is_loss, is_win, Move, Score, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {

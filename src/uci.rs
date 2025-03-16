@@ -35,7 +35,7 @@ pub fn message_loop() {
             ["quit"] => break,
 
             // Non-UCI commands
-            ["eval"] => eval(&threads.main_thread()),
+            ["eval"] => eval(threads.main_thread()),
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
 
