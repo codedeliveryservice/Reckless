@@ -49,7 +49,7 @@ impl Network {
     }
 
     pub fn push(&mut self, mv: Move, board: &Board) {
-        assert!(mv != Move::NULL);
+        debug_assert!(mv != Move::NULL);
 
         self.index += 1;
         self.stack[self.index].accurate = false;
@@ -63,6 +63,8 @@ impl Network {
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
+        debug_assert!(self.stack[0].accurate);
+
         if !self.stack[self.index].accurate {
             let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
 
