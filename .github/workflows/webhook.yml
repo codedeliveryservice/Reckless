@@ -1,0 +1,25 @@
+name: Discord Webhook
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Discord notification
+        uses: Sniddl/discord-commits@v1.6
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          message: "New commit on the `main` branch"
+          embed: '{
+            "title": "{{ commit.title }}",
+            "description": "{{ commit.description }}",
+            "url": "{{ commit.url }}",
+            "author": {
+              "name": "{{ commit.author.name }} ({{ commit.author.username }})",
+              "icon_url": "https://github.com/{{ commit.author.username }}.png"}
+            }'
