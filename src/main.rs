@@ -2,7 +2,6 @@ mod board;
 mod evaluate;
 mod history;
 mod lookup;
-mod masks;
 mod misc;
 mod movepick;
 mod nnue;
@@ -17,7 +16,7 @@ mod types;
 mod uci;
 
 fn main() {
-    masks::init();
+    lookup::init();
 
     #[cfg(feature = "datagen")]
     datagen(std::env::args());

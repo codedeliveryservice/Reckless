@@ -1,7 +1,6 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
-    masks::between,
+    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
 
