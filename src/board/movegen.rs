@@ -16,27 +16,25 @@ impl super::Board {
     }
 
     /// Generates only pseudo legal capture moves for the current position.
-    pub fn generate_capture_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
+    pub fn generate_noisy_moves(&self) -> ArrayVec<Move, MAX_MOVES> {
         self.generate_moves::<true>()
     }
 
     /// Generates pseudo legal moves for the current position.
-    ///
-    /// If `CAPTURE` is `true`, only capture moves are generated.
-    fn generate_moves<const CAPTURE: bool>(&self) -> ArrayVec<Move, MAX_MOVES> {
+    fn generate_moves<const NOISY: bool>(&self) -> ArrayVec<Move, MAX_MOVES> {
         let occupancies = self.occupancies();
 
         let mut list = ArrayVec::new();
 
-        self.collect_pawn_moves::<CAPTURE>(&mut list);
+        self.collect_pawn_moves::<NOISY>(&mut list);
 
-        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Knight, knight_attacks);
-        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, PieceType::Queen, |square| queen_attacks(square, occupancies));
-        self.collect_for::<CAPTURE, _>(&mut list, PieceType::King, king_attacks);
+        self.collect_for::<NOISY, _>(&mut list, PieceType::Knight, knight_attacks);
+        self.collect_for::<NOISY, _>(&mut list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<NOISY, _>(&mut list, PieceType::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<NOISY, _>(&mut list, PieceType::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<NOISY, _>(&mut list, PieceType::King, king_attacks);
 
-        if !CAPTURE {
+        if !NOISY {
             self.collect_castling(&mut list);
         }
 
@@ -44,7 +42,7 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const CAPTURE: bool, T>(&self, list: &mut ArrayVec<Move, MAX_MOVES>, piece: PieceType, gen: T)
+    fn collect_for<const NOISY: bool, T>(&self, list: &mut ArrayVec<Move, MAX_MOVES>, piece: PieceType, gen: T)
     where
         T: Fn(Square) -> Bitboard,
     {
@@ -55,7 +53,7 @@ impl super::Board {
                 push!(list, from, to, MoveKind::Capture);
             }
 
-            if !CAPTURE {
+            if !NOISY {
                 for to in targets & !self.them() {
                     push!(list, from, to, MoveKind::Normal);
                 }
@@ -95,23 +93,23 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves<const CAPTURE: bool>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
+    fn collect_pawn_moves<const NOISY: bool>(&self, list: &mut ArrayVec<Move, MAX_MOVES>) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        if !CAPTURE {
-            self.collect_pawn_pushes(list, pawns, seventh_rank);
-        }
+        self.collect_pawn_pushes::<NOISY>(list, pawns, seventh_rank);
+        self.collect_pawn_captures::<NOISY>(list, pawns, seventh_rank);
 
-        self.collect_pawn_captures(list, pawns, seventh_rank);
         self.collect_en_passant_moves(list, pawns);
     }
 
     /// Adds single, double and promotion pawn pushes to the move list.
-    fn collect_pawn_pushes(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_pushes<const NOISY: bool>(
+        &self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard,
+    ) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
@@ -119,38 +117,48 @@ impl super::Board {
 
         let empty = !self.occupancies();
 
-        let non_promotions = pawns & !seventh_rank;
-        let single_pushes = non_promotions.shift(up) & empty;
-        let double_pushes = (single_pushes & third_rank).shift(up) & empty;
+        if !NOISY {
+            let non_promotions = pawns & !seventh_rank;
+            let single_pushes = non_promotions.shift(up) & empty;
+            let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
-        for to in single_pushes {
-            push!(list, to.shift(-up), to, MoveKind::Normal);
-        }
+            for to in single_pushes {
+                push!(list, to.shift(-up), to, MoveKind::Normal);
+            }
 
-        for to in double_pushes {
-            push!(list, to.shift(-up * 2), to, MoveKind::DoublePush);
+            for to in double_pushes {
+                push!(list, to.shift(-up * 2), to, MoveKind::DoublePush);
+            }
         }
 
         let promotions = (pawns & seventh_rank).shift(up) & empty;
         for to in promotions {
             let from = to.shift(-up);
             push!(list, from, to, MoveKind::PromotionQ);
-            push!(list, from, to, MoveKind::PromotionR);
-            push!(list, from, to, MoveKind::PromotionB);
-            push!(list, from, to, MoveKind::PromotionN);
+
+            if !NOISY {
+                push!(list, from, to, MoveKind::PromotionR);
+                push!(list, from, to, MoveKind::PromotionB);
+                push!(list, from, to, MoveKind::PromotionN);
+            }
         }
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
-    fn collect_pawn_captures(&self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures<const NOISY: bool>(
+        &self, list: &mut ArrayVec<Move, MAX_MOVES>, pawns: Bitboard, seventh_rank: Bitboard,
+    ) {
         let promotions = pawns & seventh_rank;
         for from in promotions {
             let captures = self.them() & pawn_attacks(from, self.side_to_move);
             for to in captures {
                 push!(list, from, to, MoveKind::PromotionCaptureQ);
-                push!(list, from, to, MoveKind::PromotionCaptureR);
-                push!(list, from, to, MoveKind::PromotionCaptureB);
-                push!(list, from, to, MoveKind::PromotionCaptureN);
+
+                if !NOISY {
+                    push!(list, from, to, MoveKind::PromotionCaptureR);
+                    push!(list, from, to, MoveKind::PromotionCaptureB);
+                    push!(list, from, to, MoveKind::PromotionCaptureN);
+                }
             }
         }
 
