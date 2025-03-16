@@ -3,22 +3,30 @@ use std::{
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
+    process::Command,
 };
 
 mod attacks;
 mod magics;
 mod maps;
 
+const BASE_URL: &str = "https://github.com/codedeliveryservice/RecklessNetworks/raw/main";
+const NETWORK_NAME: &str = "v8-89857cf5.nnue";
+
 fn main() {
     generate_model_env();
     generate_attack_maps();
 
+    if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
+        download_network();
+    }
+
     println!("cargo:rerun-if-env-changed=EVALFILE");
-    println!("cargo:rerun-if-changed=networks/model.nnue");
+    println!("cargo:rerun-if-changed=networks/{NETWORK_NAME}");
 }
 
 fn generate_model_env() {
-    let mut path = env::var("EVALFILE").map(PathBuf::from).unwrap_or_else(|_| Path::new("networks").join("model.nnue"));
+    let mut path = env::var("EVALFILE").map(PathBuf::from).unwrap_or_else(|_| Path::new("networks").join(NETWORK_NAME));
 
     if path.is_relative() {
         path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
@@ -54,4 +62,19 @@ fn write(mut buf: BufWriter<File>) -> Result<(), std::io::Error> {
     write_map!("BISHOP_MAGICS", "MagicEntry", magics::BISHOP_MAGICS);
 
     writeln!(buf, "struct MagicEntry {{ pub mask: u64, pub magic: u64, pub shift: u32, pub offset: u32 }}")
+}
+
+fn download_network() {
+    let response = Command::new("curl")
+        .arg("-sL")
+        .arg(format!("{BASE_URL}/{NETWORK_NAME}"))
+        .output()
+        .expect("Failed to execute `curl`");
+
+    if response.status.success() {
+        std::fs::create_dir_all("networks").unwrap();
+        std::fs::write(format!("networks/{NETWORK_NAME}"), response.stdout).unwrap();
+    } else {
+        panic!("Failed to download the network");
+    }
 }
