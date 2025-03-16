@@ -208,7 +208,7 @@ impl Board {
                 + PIECE_VALUES[PieceType::Rook] * self.pieces(PieceType::Rook).len() as i32
                 + PIECE_VALUES[PieceType::Queen] * self.pieces(PieceType::Queen).len() as i32;
 
-            eval = eval * (24576 + material) / 32768;
+            eval = eval * (22400 + material) / 32768;
         }
 
         eval.clamp(-16384, 16384)
