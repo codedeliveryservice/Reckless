@@ -24,13 +24,13 @@ jobs:
         run: make fetch
 
       - name: Build
-        run: cargo build --verbose --release
+        run: cargo build --verbose
 
       - name: Run tests
-        run: cargo test --verbose --release
+        run: cargo test --verbose
 
       - name: Run bench
-        run: cargo run --verbose --release -- bench
+        run: cargo run --verbose -- bench
 
       - name: Run rustfmt
         run: cargo fmt -- --check
