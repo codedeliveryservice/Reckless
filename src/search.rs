@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -227,9 +227,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !PV
         && !in_check
         && !excluded
-        && depth <= 8
+        && depth <= 9
         && eval >= beta
         && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+        && !is_loss(beta)
+        && !is_win(eval)
     {
         return (eval + beta) / 2;
     }
