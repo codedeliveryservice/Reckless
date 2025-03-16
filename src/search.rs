@@ -240,7 +240,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
-        let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval, Move::NULL);
 
         let probcut_depth = 0.max(depth - 4);
 
@@ -556,9 +556,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
+    let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
     if let Some(entry) = entry {
+        tt_move = entry.mv;
         tt_pv |= entry.pv;
         if match entry.bound {
             Bound::Upper => entry.score <= alpha,
@@ -590,7 +592,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_noisy(td, in_check, -110);
+    let mut move_picker = MovePicker::new_noisy(td, in_check, -110, tt_move);
 
     while let Some((mv, mv_score)) = move_picker.next() {
         if !td.board.is_legal(mv) {
