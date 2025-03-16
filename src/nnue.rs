@@ -49,13 +49,7 @@ impl Network {
         debug_assert!(self.stack[0].accurate);
 
         if !self.stack[self.index].accurate {
-            let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
-
-            for i in index..self.index {
-                if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
-                    current.update(&prev[i]);
-                }
-            }
+            self.apply_updates();
         }
 
         let accumulators = &self.stack[self.index];
@@ -67,6 +61,16 @@ impl Network {
 
         let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
+    }
+
+    pub fn apply_updates(&mut self) {
+        let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
+
+        for i in index..self.index {
+            if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
+                current.update(&prev[i]);
+            }
+        }
     }
 }
 

@@ -165,7 +165,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     } else if excluded {
         static_eval = td.stack[td.ply].eval;
         eval = static_eval;
-        evaluate(td);
+        td.nnue.apply_updates();
     } else {
         static_eval = evaluate(td) + correction_value;
         eval = static_eval;
