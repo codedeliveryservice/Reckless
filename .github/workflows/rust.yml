@@ -20,9 +20,6 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Fetch NNUE model
-        run: make fetch
-
       - name: Build
         run: cargo build --verbose
 
