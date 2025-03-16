@@ -185,7 +185,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     td.stack[td.ply].eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
-    td.stack[td.ply + 1].killer = Move::NULL;
+    td.stack[td.ply + 2].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Razoring

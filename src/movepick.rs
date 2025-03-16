@@ -53,24 +53,17 @@ fn score_moves(
             continue;
         }
 
-        if !mv.is_noisy() && mv == killer {
-            scores[i] = 1 << 18;
-            continue;
-        }
-
         if mv.is_noisy() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
             scores[i] = if td.board.see(mv, threshold) { 1 << 20 } else { -(1 << 20) };
-
             scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
-
             scores[i] += td.noisy_history.get(&td.board, mv);
         } else {
             scores[i] = td.quiet_history.get(&td.board, mv);
-
             scores[i] += td.conthist(1, mv);
             scores[i] += td.conthist(2, mv);
+            scores[i] += (1 << 18) * (mv == killer) as i32;
         }
     }
 
