@@ -79,6 +79,10 @@ impl Move {
         matches!(self.kind(), MoveKind::Castling)
     }
 
+    pub fn is_double_push(&self) -> bool {
+        matches!(self.kind(), MoveKind::DoublePush)
+    }
+
     pub const fn promotion_piece(self) -> Option<PieceType> {
         match self.kind() {
             MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(PieceType::Knight),

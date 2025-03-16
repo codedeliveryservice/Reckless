@@ -1,7 +1,10 @@
 use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
-    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
-    types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
+    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    types::{
+        Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType, Square,
+        WhiteKingSide, WhiteQueenSide,
+    },
 };
 
 #[cfg(test)]
@@ -273,6 +276,90 @@ impl Board {
         }
 
         (self.checkers() | between(king, self.checkers().lsb())).contains(to)
+    }
+
+    pub fn is_pseudo_legal(&self, mv: Move) -> bool {
+        if mv == Move::NULL {
+            return false;
+        }
+
+        let from = mv.from();
+        let to = mv.to();
+        let piece = self.piece_on(from).piece_type();
+
+        if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
+            return false;
+        }
+
+        if (!mv.is_capture() || mv.is_en_passant()) && self.occupancies().contains(to) {
+            return false;
+        }
+
+        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
+            return false;
+        }
+
+        if (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) && piece != PieceType::Pawn {
+            return false;
+        }
+
+        if mv.is_castling() && piece != PieceType::King {
+            return false;
+        }
+
+        if piece == PieceType::Pawn {
+            let offset = match self.side_to_move {
+                Color::White => 8,
+                Color::Black => -8,
+            };
+
+            if to != from.shift(offset)
+                && to != from.shift(2 * offset)
+                && !pawn_attacks(from, self.side_to_move).contains(to)
+            {
+                return false;
+            }
+
+            if mv.is_en_passant() {
+                return to == self.state.en_passant;
+            }
+
+            if mv.is_capture() {
+                return self.them().contains(to);
+            }
+
+            return !self.occupancies().contains(to)
+                && (!mv.is_double_push() || !self.occupancies().contains((from + to) / 2));
+        }
+
+        if mv.is_castling() {
+            macro_rules! check_castling {
+                ($kind:tt) => {
+                    ($kind::PATH_MASK & self.occupancies()).is_empty()
+                        && self.state.castling.is_allowed::<$kind>()
+                        && $kind::CHECK_SQUARES.iter().all(|&square| !self.is_threatened(square))
+                };
+            }
+
+            return match mv {
+                WhiteKingSide::CASTLING_MOVE => check_castling!(WhiteKingSide),
+                WhiteQueenSide::CASTLING_MOVE => check_castling!(WhiteQueenSide),
+                BlackKingSide::CASTLING_MOVE => check_castling!(BlackKingSide),
+                BlackQueenSide::CASTLING_MOVE => check_castling!(BlackQueenSide),
+                _ => unreachable!(),
+            };
+        }
+
+        let attacks = match piece {
+            PieceType::Knight => knight_attacks(from),
+            PieceType::Bishop => bishop_attacks(from, self.occupancies()),
+            PieceType::Rook => rook_attacks(from, self.occupancies()),
+            PieceType::Queen => queen_attacks(from, self.occupancies()),
+            PieceType::King => king_attacks(from),
+            _ => unreachable!(),
+        };
+
+        attacks.contains(to)
     }
 
     pub fn update_threats(&mut self) {
