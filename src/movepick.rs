@@ -135,10 +135,7 @@ impl MovePicker {
 
             if mv.is_noisy() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
-
-                entry.score = if td.board.see(mv, self.threshold) { 1 << 20 } else { -(1 << 20) }
-                    + PIECE_VALUES[captured as usize % 6] * 32
-                    + td.noisy_history.get(&td.board, mv);
+                entry.score = (1 << 20) + PIECE_VALUES[captured as usize % 6] * 32 + td.noisy_history.get(&td.board, mv);
             } else {
                 entry.score = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
             }
