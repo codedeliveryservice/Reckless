@@ -1,6 +1,6 @@
 name: Reckless CI
 
-on: [push, pull_request, workflow_dispatch]
+on: [push, workflow_dispatch]
 
 env:
   CARGO_TERM_COLOR: always
