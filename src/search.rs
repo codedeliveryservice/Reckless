@@ -236,7 +236,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     // ProbCut
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
-    if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
+    if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) && !in_check {
         let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
@@ -297,6 +297,18 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td, tt_move);
     let mut skip_quiets = false;
+
+    if let Some(entry) = entry {
+        let probcut_beta = beta + 415;
+        if (matches!(entry.bound, Bound::Lower | Bound::Exact)
+            && entry.depth >= depth - 4
+            && entry.score >= probcut_beta
+            && !is_decisive(beta)
+            && !is_decisive(entry.score))
+        {
+            return probcut_beta;
+        }
+    }
 
     while let Some((mv, _)) = move_picker.next() {
         let is_quiet = !mv.is_noisy();
