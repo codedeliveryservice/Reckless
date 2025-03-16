@@ -20,6 +20,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let now = Instant::now();
 
     let mut score = Score::NONE;
+    let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
     let mut eval_stability = 0;
@@ -34,11 +35,12 @@ pub fn start(td: &mut ThreadData, silent: bool) {
         let mut delta = asp_delta();
         let mut reduction = 0;
 
+        // Aspiration Windows
         if depth >= 4 {
-            delta += score * score / asp_div();
+            delta += average * average / asp_div();
 
-            alpha = (score - delta).max(-Score::INFINITE);
-            beta = (score + delta).min(Score::INFINITE);
+            alpha = (average - delta).max(-Score::INFINITE);
+            beta = (average + delta).min(Score::INFINITE);
         }
 
         loop {
@@ -60,6 +62,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
                 }
                 _ => {
                     score = current;
+                    average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
             }
