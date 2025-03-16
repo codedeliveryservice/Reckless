@@ -24,6 +24,10 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     let mut pv_stability = 0;
 
     for depth in 1..MAX_PLY as i32 {
+        if depth % 2 == 0 && depth <= 16 {
+            continue;
+        }
+
         td.root_depth = depth;
 
         let mut alpha = -Score::INFINITE;
