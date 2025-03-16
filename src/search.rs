@@ -209,7 +209,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
         && td.board.has_non_pawns()
     {
-        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
+        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_capture() as i32;
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
@@ -237,7 +237,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
-        let mut move_picker = MovePicker::new_noisy(td, false, probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new_qsearch(td, false, probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
 
@@ -292,14 +292,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
-    let mut noisy_moves = ArrayVec::<Move, 32>::new();
+    let mut capture_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td, tt_move);
     let mut skip_quiets = false;
 
     while let Some((mv, _)) = move_picker.next() {
-        let is_quiet = !mv.is_noisy();
+        let is_quiet = !mv.is_capture();
 
         if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -458,8 +458,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
 
         if mv != best_move && move_count < 32 {
-            if mv.is_noisy() {
-                noisy_moves.push(mv);
+            if mv.is_capture() {
+                capture_moves.push(mv);
             } else {
                 quiet_moves.push(mv);
             }
@@ -477,11 +477,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     if bound == Bound::Lower {
         let bonus = bonus(depth);
 
-        if best_move.is_noisy() {
-            td.noisy_history.update(&td.board, best_move, bonus);
+        if best_move.is_capture() {
+            td.capture_history.update(&td.board, best_move, bonus);
 
-            for &mv in noisy_moves.iter() {
-                td.noisy_history.update(&td.board, mv, -bonus);
+            for &mv in capture_moves.iter() {
+                td.capture_history.update(&td.board, mv, -bonus);
             }
         } else {
             td.quiet_history.update(&td.board, best_move, bonus);
@@ -516,7 +516,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
     }
 
     if !(in_check
-        || best_move.is_noisy()
+        || best_move.is_capture()
         || is_decisive(best_score)
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
@@ -581,7 +581,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_noisy(td, in_check, -110);
+    let mut move_picker = MovePicker::new_qsearch(td, in_check, -110);
 
     while let Some((mv, mv_score)) = move_picker.next() {
         if !td.board.is_legal(mv) {

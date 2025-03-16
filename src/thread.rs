@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationHistory, CorrectionHistory, CaptureHistory, QuietHistory},
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
@@ -54,7 +54,7 @@ pub struct ThreadData<'a> {
     pub time_manager: TimeManager,
     pub stack: Stack,
     pub pv: PrincipalVariationTable,
-    pub noisy_history: NoisyHistory,
+    pub capture_history: CaptureHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
     pub pawn_corrhist: CorrectionHistory,
@@ -80,7 +80,7 @@ impl<'a> ThreadData<'a> {
             time_manager: TimeManager::new(Limits::Infinite, 0),
             stack: Stack::default(),
             pv: PrincipalVariationTable::default(),
-            noisy_history: NoisyHistory::default(),
+            capture_history: CaptureHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
             pawn_corrhist: CorrectionHistory::default(),

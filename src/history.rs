@@ -36,12 +36,12 @@ impl Default for QuietHistory {
     }
 }
 
-pub struct NoisyHistory {
+pub struct CaptureHistory {
     // [piece][to][captured_piece_type]
     entries: Box<PieceToHistory<[i32; 7]>>,
 }
 
-impl NoisyHistory {
+impl CaptureHistory {
     const MAX_HISTORY: i32 = 12288;
 
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
@@ -54,7 +54,7 @@ impl NoisyHistory {
     }
 }
 
-impl Default for NoisyHistory {
+impl Default for CaptureHistory {
     fn default() -> Self {
         Self { entries: zeroed_box() }
     }

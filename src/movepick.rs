@@ -17,7 +17,7 @@ impl MovePicker {
         Self { moves, scores }
     }
 
-    pub fn new_noisy(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
+    pub fn new_qsearch(td: &ThreadData, include_quiets: bool, threshold: i32) -> Self {
         let moves = if include_quiets { td.board.generate_all_moves() } else { td.board.generate_capture_moves() };
         let scores = score_moves(td, &moves, Move::NULL, threshold);
 
@@ -51,14 +51,14 @@ fn score_moves(td: &ThreadData, moves: &ArrayVec<Move, MAX_MOVES>, tt_move: Move
             continue;
         }
 
-        if mv.is_noisy() {
+        if mv.is_capture() {
             let captured = td.board.piece_on(mv.to()).piece_type();
 
             scores[i] = if td.board.see(mv, threshold) { 1 << 20 } else { -(1 << 20) };
 
             scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
 
-            scores[i] += td.noisy_history.get(&td.board, mv);
+            scores[i] += td.capture_history.get(&td.board, mv);
         } else {
             scores[i] = td.quiet_history.get(&td.board, mv);
 
