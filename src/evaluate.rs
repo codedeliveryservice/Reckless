@@ -4,7 +4,7 @@ const MAX_PHASE: i32 = 62;
 const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 
 /// Calculates the score of the current position from the perspective of the side to move.
-pub fn evaluate(td: &ThreadData) -> i32 {
+pub fn evaluate(td: &mut ThreadData) -> i32 {
     let mut eval = td.nnue.evaluate(&td.board);
 
     #[cfg(not(feature = "datagen"))]

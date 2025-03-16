@@ -156,7 +156,7 @@ fn set_option(threads: &mut ThreadPool, tt: &TranspositionTable, tokens: &[&str]
     }
 }
 
-fn eval(td: &ThreadData) {
+fn eval(td: &mut ThreadData) {
     let eval = match td.board.side_to_move() {
         Color::White => evaluate(td),
         Color::Black => -evaluate(td),
