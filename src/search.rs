@@ -429,6 +429,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
 
         if PV && (move_count == 1 || score > alpha) {
+            if mv == tt_move && td.ply < td.root_depth as usize * 2 {
+                new_depth = new_depth.max(1)
+            }
+
             score = -search::<true>(td, -beta, -alpha, new_depth, false);
         }
 
