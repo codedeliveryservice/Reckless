@@ -27,6 +27,25 @@ pub struct Network {
 }
 
 impl Network {
+    pub fn refresh(&mut self, board: &Board) {
+        let accumulators = &mut self.stack[self.index];
+
+        for i in 0..HIDDEN_SIZE {
+            accumulators[0][i] = PARAMETERS.input_bias[i];
+            accumulators[1][i] = PARAMETERS.input_bias[i];
+        }
+
+        for square in board.occupancies() {
+            let piece = board.piece_on(square);
+            let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
+
+            for i in 0..HIDDEN_SIZE {
+                accumulators[0][i] += ft!(white, i);
+                accumulators[1][i] += ft!(black, i);
+            }
+        }
+    }
+
     pub fn push(&mut self, mv: Move, board: &Board) {
         self.stack[self.index + 1] = self.stack[self.index];
         self.index += 1;
@@ -93,25 +112,6 @@ impl Network {
         for i in 0..HIDDEN_SIZE {
             accumulators[0][i] += ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
             accumulators[1][i] += ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
-        }
-    }
-
-    pub fn refresh(&mut self, board: &Board) {
-        let accumulators = &mut self.stack[self.index];
-
-        for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] = PARAMETERS.input_bias[i];
-            accumulators[1][i] = PARAMETERS.input_bias[i];
-        }
-
-        for square in board.occupancies() {
-            let piece = board.piece_on(square);
-            let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
-
-            for i in 0..HIDDEN_SIZE {
-                accumulators[0][i] += ft!(white, i);
-                accumulators[1][i] += ft!(black, i);
-            }
         }
     }
 }
