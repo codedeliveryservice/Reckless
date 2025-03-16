@@ -616,6 +616,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         td.nnue.push(mv, &td.board);
         td.board.make_move(mv);
+        td.tt.prefetch(td.board.hash());
 
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
