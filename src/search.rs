@@ -5,7 +5,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
 };
 
 pub fn start(td: &mut ThreadData, silent: bool) {
@@ -196,6 +196,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && !excluded
         && depth <= 8
         && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+        && !is_loss(beta)
+        && !is_win(eval)
     {
         return (eval + beta) / 2;
     }
