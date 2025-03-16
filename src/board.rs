@@ -206,6 +206,8 @@ impl Board {
         {
             // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
             eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
+
+            eval = eval * (200 - self.state.halfmove_clock as i32) / 200;
         }
 
         eval.clamp(-16384, 16384)
