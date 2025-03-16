@@ -291,6 +291,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         depth -= 1;
     }
 
+    if let Some(entry) = entry {
+        let probcut_beta = beta + 402;
+        if (matches!(entry.bound, Bound::Lower | Bound::Exact)
+            && entry.depth >= depth - 4
+            && entry.score >= probcut_beta
+            && !is_decisive(beta)
+            && !is_decisive(entry.score)
+            && !is_decisive(probcut_beta))
+        {
+            return probcut_beta;
+        }
+    }
+
     let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
