@@ -6,6 +6,7 @@ use std::{
 use crate::{
     board::Board,
     history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    nnue::Network,
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
@@ -53,6 +54,7 @@ pub struct ThreadData<'a> {
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Stack,
+    pub nnue: Network,
     pub pv: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
@@ -79,6 +81,7 @@ impl<'a> ThreadData<'a> {
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0),
             stack: Stack::default(),
+            nnue: Network::default(),
             pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),

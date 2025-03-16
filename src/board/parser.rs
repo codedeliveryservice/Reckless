@@ -40,8 +40,7 @@ impl FromStr for Board {
                 let piece = symbol.try_into().map_err(|()| ParseFenError::InvalidPieceType)?;
                 let square = Square::from_rank_file(rank as u8, file);
 
-                board.add_piece::<false>(piece, square);
-                board.nnue.accumulate(piece, square);
+                board.add_piece(piece, square);
                 file += 1;
             }
         }

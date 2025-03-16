@@ -1,4 +1,5 @@
 mod board;
+mod evaluate;
 mod history;
 mod lookup;
 mod masks;

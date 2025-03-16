@@ -2,8 +2,9 @@ use std::sync::atomic::AtomicBool;
 
 use crate::{
     board::Board,
+    evaluate::evaluate,
     search,
-    thread::ThreadPool,
+    thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
@@ -15,6 +16,9 @@ pub fn message_loop() {
     let tt = TranspositionTable::default();
 
     let mut threads = ThreadPool::new(&tt, &stop);
+    for thread in threads.iter_mut() {
+        thread.nnue.refresh(&thread.board);
+    }
 
     loop {
         let command = read_stdin();
@@ -31,7 +35,7 @@ pub fn message_loop() {
             ["quit"] => break,
 
             // Non-UCI commands
-            ["eval"] => evaluate(&threads.main_thread().board),
+            ["eval"] => eval(threads.main_thread()),
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
 
@@ -117,13 +121,14 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
 
     for thread in threads.iter_mut() {
         thread.board = board.clone();
+        thread.nnue.refresh(&thread.board);
     }
 }
 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
     if let Some(&mv) = moves.iter().find(|mv| mv.to_string() == uci_move) {
-        board.make_move::<true, true>(mv);
+        board.make_move(mv);
         board.increment_game_ply();
     }
 }
@@ -151,10 +156,10 @@ fn set_option(threads: &mut ThreadPool, tt: &TranspositionTable, tokens: &[&str]
     }
 }
 
-fn evaluate(board: &Board) {
-    let eval = match board.side_to_move() {
-        Color::White => board.evaluate(),
-        Color::Black => -board.evaluate(),
+fn eval(td: &ThreadData) {
+    let eval = match td.board.side_to_move() {
+        Color::White => evaluate(td),
+        Color::Black => -evaluate(td),
     };
     println!("{eval}");
 }

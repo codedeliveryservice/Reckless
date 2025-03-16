@@ -25,13 +25,13 @@ pub fn perft(depth: usize, board: &mut Board) {
             continue;
         }
 
-        board.make_move::<false, false>(mv);
+        board.make_move(mv);
 
         let count = perft_internal(depth - 1, board);
         nodes += count;
         index += 1;
 
-        board.undo_move::<false>(mv);
+        board.undo_move(mv);
 
         let seconds = now.elapsed().as_secs_f64();
         let knps = count as f64 / seconds / 1000.0;
@@ -62,9 +62,9 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
         if depth == 1 {
             nodes += 1;
         } else {
-            board.make_move::<false, false>(mv);
+            board.make_move(mv);
             nodes += perft_internal(depth - 1, board);
-            board.undo_move::<false>(mv);
+            board.undo_move(mv);
         }
     }
 
