@@ -3,6 +3,7 @@ use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     masks::between,
     nnue::Network,
+    parameters::PIECE_VALUES,
     types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
 
@@ -14,9 +15,6 @@ mod movegen;
 mod parser;
 mod see;
 mod zobrist;
-
-const MAX_PHASE: i32 = 62;
-const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
@@ -204,19 +202,16 @@ impl Board {
 
         #[cfg(not(feature = "datagen"))]
         {
-            // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
-            eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
+            let material = PIECE_VALUES[PieceType::Pawn] * self.pieces(PieceType::Pawn).len() as i32
+                + PIECE_VALUES[PieceType::Knight] * self.pieces(PieceType::Knight).len() as i32
+                + PIECE_VALUES[PieceType::Bishop] * self.pieces(PieceType::Bishop).len() as i32
+                + PIECE_VALUES[PieceType::Rook] * self.pieces(PieceType::Rook).len() as i32
+                + PIECE_VALUES[PieceType::Queen] * self.pieces(PieceType::Queen).len() as i32;
+
+            eval = eval * (24576 + material) / 32768;
         }
 
         eval.clamp(-16384, 16384)
-    }
-
-    pub fn game_phase(&self) -> i32 {
-        [PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
-            .iter()
-            .map(|&piece| self.pieces(piece).len() as i32 * PHASE_WEIGHTS[piece])
-            .sum::<i32>()
-            .min(MAX_PHASE)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
