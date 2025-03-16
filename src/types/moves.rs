@@ -63,6 +63,10 @@ impl Move {
         )
     }
 
+    pub const fn is_capture(self) -> bool {
+        (self.0 >> 14) & 1 != 0
+    }
+
     pub const fn is_promotion(self) -> bool {
         (self.0 >> 15) != 0
     }

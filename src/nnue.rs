@@ -1,4 +1,7 @@
-use crate::types::{Color, Piece, PieceType, Square, MAX_PLY};
+use crate::{
+    board::Board,
+    types::{Color, Move, PieceType, Square, MAX_PLY},
+};
 
 mod simd;
 
@@ -21,28 +24,47 @@ macro_rules! ft {
 pub struct Network {
     index: usize,
     stack: Box<[[[i16; HIDDEN_SIZE]; 2]; MAX_PLY]>,
-    adds: Vec<FtIndex>,
-    subs: Vec<FtIndex>,
 }
 
 impl Network {
-    /// Pushes the current state of accumulators onto the stack.
-    pub fn push(&mut self) {
+    pub fn push(&mut self, mv: Move, board: &Board) {
         self.stack[self.index + 1] = self.stack[self.index];
         self.index += 1;
+
+        let piece = board.piece_on(mv.from());
+        let stm = board.side_to_move();
+
+        let add1 = index(stm, mv.promotion_piece().unwrap_or(piece.piece_type()), mv.to());
+        let sub1 = index(stm, piece.piece_type(), mv.from());
+
+        if mv.is_castling() {
+            let (rook_from, root_to) = Board::get_castling_rook(mv.to());
+
+            let add2 = index(stm, PieceType::Rook, root_to);
+            let sub2 = index(stm, PieceType::Rook, rook_from);
+
+            self.add2_sub2(add1, add2, sub1, sub2);
+        } else if mv.is_capture() {
+            let square = if mv.is_en_passant() { mv.to() ^ 8 } else { mv.to() };
+            let piece = board.piece_on(square).piece_type();
+
+            let sub2 = index(!stm, piece, square);
+
+            self.add1_sub2(add1, sub1, sub2);
+        } else {
+            self.add1_sub1(add1, sub1);
+        }
     }
 
-    /// Pops the topmost state from the stack and restores the accumulators.
     pub fn pop(&mut self) {
         self.index -= 1;
     }
 
-    /// Computes the output score for the given color.
-    pub fn evaluate(&self, side_to_move: Color) -> i32 {
+    pub fn evaluate(&self, board: &Board) -> i32 {
         let accumulators = &self.stack[self.index];
 
-        let stm = accumulators[side_to_move];
-        let nstm = accumulators[!side_to_move];
+        let stm = accumulators[board.side_to_move()];
+        let nstm = accumulators[!board.side_to_move()];
 
         let weights = &PARAMETERS.output_weights;
 
@@ -50,32 +72,19 @@ impl Network {
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
-    pub fn commit(&mut self) {
-        match (&self.adds[..], &self.subs[..]) {
-            (&[add], &[sub]) => self.add1_sub1(add, sub),
-            (&[add], &[sub1, sub2]) => self.add1_sub2(add, sub1, sub2),
-            (&[add1, add2], &[sub1, sub2]) => self.add2_sub2(add1, add2, sub1, sub2),
-            (&[add1, add2], &[sub1, sub2, _]) => self.add2_sub2(add1, add2, sub1, sub2),
-            _ => panic!(),
-        }
-
-        self.adds.clear();
-        self.subs.clear();
-    }
-
-    fn add1_sub1(&mut self, add: FtIndex, sub: FtIndex) {
+    fn add1_sub1(&mut self, add1: FtIndex, sub1: FtIndex) {
         let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += ft!(add.0, i) - ft!(sub.0, i);
-            accumulators[1][i] += ft!(add.1, i) - ft!(sub.1, i);
+            accumulators[0][i] += ft!(add1.0, i) - ft!(sub1.0, i);
+            accumulators[1][i] += ft!(add1.1, i) - ft!(sub1.1, i);
         }
     }
 
-    fn add1_sub2(&mut self, add: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+    fn add1_sub2(&mut self, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
         let accumulators = &mut self.stack[self.index];
         for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += ft!(add.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            accumulators[1][i] += ft!(add.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+            accumulators[0][i] += ft!(add1.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            accumulators[1][i] += ft!(add1.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
         }
     }
 
@@ -87,21 +96,23 @@ impl Network {
         }
     }
 
-    pub fn accumulate(&mut self, piece: Piece, square: Square) {
-        let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
+    pub fn refresh(&mut self, board: &Board) {
         let accumulators = &mut self.stack[self.index];
+
         for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += PARAMETERS.input_weights[white][i];
-            accumulators[1][i] += PARAMETERS.input_weights[black][i];
+            accumulators[0][i] = PARAMETERS.input_bias[i];
+            accumulators[1][i] = PARAMETERS.input_bias[i];
         }
-    }
 
-    pub fn activate(&mut self, piece: Piece, square: Square) {
-        self.adds.push(index(piece.piece_color(), piece.piece_type(), square));
-    }
+        for square in board.occupancies() {
+            let piece = board.piece_on(square);
+            let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
 
-    pub fn deactivate(&mut self, piece: Piece, square: Square) {
-        self.subs.push(index(piece.piece_color(), piece.piece_type(), square));
+            for i in 0..HIDDEN_SIZE {
+                accumulators[0][i] += ft!(white, i);
+                accumulators[1][i] += ft!(black, i);
+            }
+        }
     }
 }
 
@@ -117,8 +128,6 @@ impl Default for Network {
         Self {
             index: 0,
             stack: Box::new([[PARAMETERS.input_bias.data; 2]; MAX_PLY]),
-            adds: Vec::default(),
-            subs: Vec::default(),
         }
     }
 }

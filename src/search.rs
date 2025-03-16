@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use crate::{
+    evaluate::evaluate,
     movepick::MovePicker,
     parameters::*,
     thread::ThreadData,
@@ -14,6 +15,7 @@ pub fn start(td: &mut ThreadData, silent: bool) {
     td.stopped = false;
     td.pv.clear(0);
     td.node_table.clear();
+    td.nnue.refresh(&td.board);
 
     let now = Instant::now();
 
@@ -125,7 +127,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         }
 
         if td.ply >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { td.board.evaluate() };
+            return if in_check { Score::DRAW } else { evaluate(td) };
         }
     }
 
@@ -164,7 +166,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         static_eval = td.stack[td.ply].eval;
         eval = static_eval;
     } else {
-        static_eval = td.board.evaluate() + correction_value;
+        static_eval = evaluate(td) + correction_value;
         eval = static_eval;
 
         if let Some(entry) = entry {
@@ -254,7 +256,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             td.stack[td.ply].mv = mv;
             td.ply += 1;
 
-            td.board.make_move::<true, false>(mv);
+            td.nnue.push(mv, &td.board);
+            td.board.make_move(mv);
             td.tt.prefetch(td.board.hash());
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
@@ -263,7 +266,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                 score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
             }
 
-            td.board.undo_move::<true>(mv);
+            td.board.undo_move(mv);
+            td.nnue.pop();
             td.ply -= 1;
 
             if td.stopped {
@@ -361,7 +365,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
-        td.board.make_move::<true, false>(mv);
+        td.nnue.push(mv, &td.board);
+        td.board.make_move(mv);
         td.tt.prefetch(td.board.hash());
 
         let mut new_depth = depth + extension - 1;
@@ -426,7 +431,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             score = -search::<true>(td, -beta, -alpha, new_depth, false);
         }
 
-        td.board.undo_move::<true>(mv);
+        td.board.undo_move(mv);
+        td.nnue.pop();
         td.ply -= 1;
 
         if td.stopped {
@@ -543,7 +549,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if td.ply >= MAX_PLY - 1 {
-        return if in_check { Score::DRAW } else { td.board.evaluate() };
+        return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
@@ -564,7 +570,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
 
     if !in_check {
-        let eval = td.board.evaluate() + correction_value(td);
+        let eval = evaluate(td) + correction_value(td);
 
         if eval >= beta {
             return eval;
@@ -605,11 +611,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
-        td.board.make_move::<true, false>(mv);
+        td.nnue.push(mv, &td.board);
+        td.board.make_move(mv);
 
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
-        td.board.undo_move::<true>(mv);
+        td.board.undo_move(mv);
+        td.nnue.pop();
         td.ply -= 1;
 
         if td.stopped {

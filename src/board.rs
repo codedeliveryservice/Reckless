@@ -2,7 +2,6 @@ use self::{parser::ParseFenError, zobrist::ZOBRIST};
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     masks::between,
-    nnue::Network,
     types::{Bitboard, Castling, Color, Move, Piece, PieceType, Square},
 };
 
@@ -14,9 +13,6 @@ mod movegen;
 mod parser;
 mod see;
 mod zobrist;
-
-const MAX_PHASE: i32 = 62;
-const PHASE_WEIGHTS: [i32; PieceType::NUM - 1] = [0, 3, 3, 5, 9];
 
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
@@ -49,7 +45,6 @@ pub struct Board {
     state: InternalState,
     state_stack: Vec<InternalState>,
     game_ply: usize,
-    nnue: Network,
 }
 
 impl Board {
@@ -157,27 +152,19 @@ impl Board {
     }
 
     /// Places a piece of the specified type and color on the square.
-    pub fn add_piece<const NNUE: bool>(&mut self, piece: Piece, square: Square) {
+    pub fn add_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
         self.update_hash(piece, square);
-
-        if NNUE {
-            self.nnue.activate(piece, square);
-        }
     }
 
     /// Removes a piece of the specified type and color from the square.
-    pub fn remove_piece<const NNUE: bool>(&mut self, piece: Piece, square: Square) {
+    pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
         self.update_hash(piece, square);
-
-        if NNUE {
-            self.nnue.deactivate(piece, square);
-        }
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
@@ -196,27 +183,6 @@ impl Board {
         if [PieceType::Rook, PieceType::Queen, PieceType::King].contains(&piece.piece_type()) {
             self.state.major_key ^= ZOBRIST.pieces[piece][square];
         }
-    }
-
-    /// Calculates the score of the current position from the perspective of the side to move.
-    pub fn evaluate(&self) -> i32 {
-        let mut eval = self.nnue.evaluate(self.side_to_move);
-
-        #[cfg(not(feature = "datagen"))]
-        {
-            // Linearly damp the evaluation from 100% to 80% as the game approaches the endgame
-            eval -= eval * (MAX_PHASE - self.game_phase()) / (5 * MAX_PHASE);
-        }
-
-        eval.clamp(-16384, 16384)
-    }
-
-    pub fn game_phase(&self) -> i32 {
-        [PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
-            .iter()
-            .map(|&piece| self.pieces(piece).len() as i32 * PHASE_WEIGHTS[piece])
-            .sum::<i32>()
-            .min(MAX_PHASE)
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
@@ -397,6 +363,16 @@ impl Board {
 
         self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
+
+    pub const fn get_castling_rook(king_to: Square) -> (Square, Square) {
+        match king_to {
+            Square::G1 => (Square::H1, Square::F1),
+            Square::C1 => (Square::A1, Square::D1),
+            Square::G8 => (Square::H8, Square::F8),
+            Square::C8 => (Square::A8, Square::D8),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Default for Board {
@@ -408,7 +384,6 @@ impl Default for Board {
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::default(),
-            nnue: Network::default(),
             game_ply: 0,
         }
     }
