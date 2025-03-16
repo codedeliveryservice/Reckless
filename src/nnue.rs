@@ -102,26 +102,13 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    input_weights: AlignedBlock<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
-    input_bias: AlignedBlock<[i16; HIDDEN_SIZE]>,
-    output_weights: AlignedBlock<[[i16; HIDDEN_SIZE]; 2]>,
-    output_bias: AlignedBlock<i16>,
+    input_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
+    input_bias: Aligned<[i16; HIDDEN_SIZE]>,
+    output_weights: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
+    output_bias: Aligned<i16>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
-
-#[repr(align(64))]
-struct AlignedBlock<T> {
-    data: T,
-}
-
-impl<T> std::ops::Deref for AlignedBlock<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
 
 #[derive(Clone, Copy)]
 struct Delta {
@@ -132,7 +119,7 @@ struct Delta {
 
 #[derive(Clone, Copy)]
 struct Accumulator {
-    values: [[i16; HIDDEN_SIZE]; 2],
+    values: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
     delta: Delta,
     accurate: bool,
 }
@@ -140,7 +127,7 @@ struct Accumulator {
 impl Accumulator {
     pub fn new() -> Self {
         Self {
-            values: [PARAMETERS.input_bias.data; 2],
+            values: Aligned { data: [PARAMETERS.input_bias.data; 2] },
             delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
             accurate: false,
         }
@@ -197,5 +184,25 @@ impl Accumulator {
             self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
             self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
         }
+    }
+}
+
+#[repr(align(64))]
+#[derive(Copy, Clone)]
+struct Aligned<T> {
+    data: T,
+}
+
+impl<T> std::ops::Deref for Aligned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<T> std::ops::DerefMut for Aligned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
     }
 }
