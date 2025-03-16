@@ -195,7 +195,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         && !in_check
         && !excluded
         && depth <= 8
-        && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+        && eval
+            >= beta + 80 * depth
+                - (80 * improving as i32)
+                - (60 * cut_node as i32)
+                - (60 * (!cut_node && td.stack[td.ply + 1].cutoff_count > 3) as i32)
     {
         return (eval + beta) / 2;
     }
