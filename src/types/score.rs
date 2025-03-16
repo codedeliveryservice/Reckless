@@ -19,14 +19,17 @@ pub fn mated_in(ply: usize) -> i32 {
     -Score::MATE + ply as i32
 }
 
+#[inline(always)]
 pub fn is_win(score: i32) -> bool {
     score >= Score::MATE_IN_MAX
 }
 
+#[inline(always)]
 pub fn is_loss(score: i32) -> bool {
     score <= Score::MATED_IN_MAX
 }
 
+#[inline(always)]
 pub fn is_decisive(score: i32) -> bool {
     is_win(score) || is_loss(score)
 }
