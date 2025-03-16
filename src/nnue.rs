@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Color, Move, PieceType, Square, MAX_PLY},
+    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 mod simd;
@@ -23,12 +23,12 @@ macro_rules! ft {
 #[derive(Clone)]
 pub struct Network {
     index: usize,
-    stack: Box<[[[i16; HIDDEN_SIZE]; 2]; MAX_PLY]>,
+    stack: Box<[Accumulator; MAX_PLY]>,
 }
 
 impl Network {
     pub fn refresh(&mut self, board: &Board) {
-        let accumulators = &mut self.stack[self.index];
+        let accumulators = &mut self.stack[self.index].values;
 
         for i in 0..HIDDEN_SIZE {
             accumulators[0][i] = PARAMETERS.input_bias[i];
@@ -44,75 +44,46 @@ impl Network {
                 accumulators[1][i] += ft!(black, i);
             }
         }
+
+        self.stack[self.index].accurate = true;
     }
 
     pub fn push(&mut self, mv: Move, board: &Board) {
-        self.stack[self.index + 1] = self.stack[self.index];
+        debug_assert!(mv != Move::NULL);
+
         self.index += 1;
-
-        let piece = board.piece_on(mv.from());
-        let stm = board.side_to_move();
-
-        let add1 = index(stm, mv.promotion_piece().unwrap_or(piece.piece_type()), mv.to());
-        let sub1 = index(stm, piece.piece_type(), mv.from());
-
-        if mv.is_castling() {
-            let (rook_from, root_to) = Board::get_castling_rook(mv.to());
-
-            let add2 = index(stm, PieceType::Rook, root_to);
-            let sub2 = index(stm, PieceType::Rook, rook_from);
-
-            self.add2_sub2(add1, add2, sub1, sub2);
-        } else if mv.is_capture() {
-            let square = if mv.is_en_passant() { mv.to() ^ 8 } else { mv.to() };
-            let piece = board.piece_on(square).piece_type();
-
-            let sub2 = index(!stm, piece, square);
-
-            self.add1_sub2(add1, sub1, sub2);
-        } else {
-            self.add1_sub1(add1, sub1);
-        }
+        self.stack[self.index].accurate = false;
+        self.stack[self.index].delta.mv = mv;
+        self.stack[self.index].delta.piece = board.piece_on(mv.from());
+        self.stack[self.index].delta.captured = board.piece_on(mv.to());
     }
 
     pub fn pop(&mut self) {
         self.index -= 1;
     }
 
-    pub fn evaluate(&self, board: &Board) -> i32 {
+    pub fn evaluate(&mut self, board: &Board) -> i32 {
+        debug_assert!(self.stack[0].accurate);
+
+        if !self.stack[self.index].accurate {
+            let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
+
+            for i in index..self.index {
+                if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
+                    current.update(&prev[i]);
+                }
+            }
+        }
+
         let accumulators = &self.stack[self.index];
 
-        let stm = accumulators[board.side_to_move()];
-        let nstm = accumulators[!board.side_to_move()];
+        let stm = accumulators.values[board.side_to_move()];
+        let nstm = accumulators.values[!board.side_to_move()];
 
         let weights = &PARAMETERS.output_weights;
 
         let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
-    }
-
-    fn add1_sub1(&mut self, add1: FtIndex, sub1: FtIndex) {
-        let accumulators = &mut self.stack[self.index];
-        for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += ft!(add1.0, i) - ft!(sub1.0, i);
-            accumulators[1][i] += ft!(add1.1, i) - ft!(sub1.1, i);
-        }
-    }
-
-    fn add1_sub2(&mut self, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
-        let accumulators = &mut self.stack[self.index];
-        for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += ft!(add1.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            accumulators[1][i] += ft!(add1.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
-        }
-    }
-
-    fn add2_sub2(&mut self, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
-        let accumulators = &mut self.stack[self.index];
-        for i in 0..HIDDEN_SIZE {
-            accumulators[0][i] += ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            accumulators[1][i] += ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
-        }
     }
 }
 
@@ -125,10 +96,7 @@ fn index(color: Color, piece: PieceType, square: Square) -> FtIndex {
 
 impl Default for Network {
     fn default() -> Self {
-        Self {
-            index: 0,
-            stack: Box::new([[PARAMETERS.input_bias.data; 2]; MAX_PLY]),
-        }
+        Self { index: 0, stack: Box::new([Accumulator::new(); MAX_PLY]) }
     }
 }
 
@@ -152,5 +120,82 @@ impl<T> std::ops::Deref for AlignedBlock<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.data
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Delta {
+    mv: Move,
+    piece: Piece,
+    captured: Piece,
+}
+
+#[derive(Clone, Copy)]
+struct Accumulator {
+    values: [[i16; HIDDEN_SIZE]; 2],
+    delta: Delta,
+    accurate: bool,
+}
+
+impl Accumulator {
+    pub fn new() -> Self {
+        Self {
+            values: [PARAMETERS.input_bias.data; 2],
+            delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
+            accurate: false,
+        }
+    }
+
+    pub fn update(&mut self, prev: &Accumulator) {
+        let Delta { mv, piece, captured } = self.delta;
+
+        let add1 = index(piece.piece_color(), mv.promotion_piece().unwrap_or(piece.piece_type()), mv.to());
+        let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from());
+
+        if mv.is_castling() {
+            let (rook_from, root_to) = Board::get_castling_rook(mv.to());
+
+            let add2 = index(piece.piece_color(), PieceType::Rook, root_to);
+            let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from);
+
+            self.add2_sub2(prev, add1, add2, sub1, sub2);
+        } else if mv.is_capture() {
+            let mut square = mv.to();
+            let mut captured = captured.piece_type();
+
+            if mv.is_en_passant() {
+                square = square ^ 8;
+                captured = PieceType::Pawn;
+            }
+
+            let sub2 = index(!piece.piece_color(), captured, square);
+
+            self.add1_sub2(prev, add1, sub1, sub2);
+        } else {
+            self.add1_sub1(prev, add1, sub1);
+        }
+
+        self.accurate = true;
+    }
+
+    fn add1_sub1(&mut self, prev: &Accumulator, add1: FtIndex, sub1: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i);
+            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i);
+        }
+    }
+
+    fn add1_sub2(&mut self, prev: &Accumulator, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        }
+    }
+
+    fn add2_sub2(&mut self, prev: &Accumulator, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+        for i in 0..HIDDEN_SIZE {
+            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
+            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        }
     }
 }
