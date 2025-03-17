@@ -686,8 +686,8 @@ fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + td.minor_corrhist.get(stm, td.board.minor_key())
-        + td.major_corrhist.get(stm, td.board.major_key())
+        + td.minor_corrhist.get(stm, td.board.minor_key()) / 2
+        + td.major_corrhist.get(stm, td.board.major_key()) / 2
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
