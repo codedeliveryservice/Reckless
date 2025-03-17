@@ -169,6 +169,7 @@ impl MovePicker {
 
             entry.score = (1 << 18) * (mv == self.killer) as i32
                 + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.pawn_history.get(&td.board, mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);
         }
