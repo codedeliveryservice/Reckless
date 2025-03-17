@@ -303,6 +303,10 @@ impl Board {
             return false;
         }
 
+        if self.piece_on(to).piece_type() == PieceType::King {
+            return false;
+        }
+
         if (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) && piece != PieceType::Pawn {
             return false;
         }
