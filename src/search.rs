@@ -586,6 +586,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
+                td.pawn_history.update(&td.board, mv, -bonus);
             }
 
             for &mv in noisy_moves.iter() {
