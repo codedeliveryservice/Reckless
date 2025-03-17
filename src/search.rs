@@ -505,12 +505,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     if bound == Bound::Lower {
         let bonus = bonus(depth);
+        let malus = -malus(depth);
 
         if best_move.is_noisy() {
             td.noisy_history.update(&td.board, best_move, bonus);
 
             for &mv in noisy_moves.iter() {
-                td.noisy_history.update(&td.board, mv, -bonus);
+                td.noisy_history.update(&td.board, mv, malus);
             }
         } else {
             td.stack[td.ply].killer = best_move;
@@ -518,7 +519,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
             td.quiet_history.update(&td.board, best_move, bonus);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(&td.board, mv, -bonus);
+                td.quiet_history.update(&td.board, mv, malus);
             }
 
             for index in [1, 2] {
@@ -538,7 +539,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     let cont_piece = td.board.piece_on(mv.from());
                     let cont_sq = mv.to();
 
-                    td.continuation_history.update(piece, sq, cont_piece, cont_sq, -bonus);
+                    td.continuation_history.update(piece, sq, cont_piece, cont_sq, malus);
                 }
             }
         }
@@ -695,6 +696,10 @@ fn correction_value(td: &ThreadData) -> i32 {
 
 fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
+}
+
+fn malus(depth: i32) -> i32 {
+    (150 * depth - 25).min(1140)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
