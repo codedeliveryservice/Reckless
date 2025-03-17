@@ -50,10 +50,7 @@ impl Network {
 
         if !self.stack[self.index].accurate {
             if self.can_update() {
-                let wking = board.king_square(Color::White);
-                let bking = board.king_square(Color::Black);
-
-                self.update_accumulators(wking, bking);
+                self.update_accumulators(board);
             } else {
                 self.refresh(board);
             }
@@ -70,7 +67,9 @@ impl Network {
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
-    fn update_accumulators(&mut self, wking: Square, bking: Square) {
+    fn update_accumulators(&mut self, board: &Board) {
+        let wking = board.king_square(Color::White);
+        let bking = board.king_square(Color::Black);
         let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
 
         for i in index..self.index {
