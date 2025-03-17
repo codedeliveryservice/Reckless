@@ -219,11 +219,11 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
-    pub fn in_check(&self) -> bool {
+    pub const fn in_check(&self) -> bool {
         !self.state.checkers.is_empty()
     }
 
-    pub fn is_threatened(&self, square: Square) -> bool {
+    pub const fn is_threatened(&self, square: Square) -> bool {
         self.state.threats.contains(square)
     }
 
@@ -334,21 +334,7 @@ impl Board {
             let piece = Piece::from_index(piece);
 
             for square in self.of(piece.piece_type(), piece.piece_color()) {
-                self.state.key ^= ZOBRIST.pieces[piece][square];
-
-                if piece.piece_type() == PieceType::Pawn {
-                    self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
-                } else {
-                    self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
-                }
-
-                if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
-                    self.state.minor_key ^= ZOBRIST.pieces[piece][square];
-                }
-
-                if [PieceType::Rook, PieceType::Queen, PieceType::King].contains(&piece.piece_type()) {
-                    self.state.major_key ^= ZOBRIST.pieces[piece][square];
-                }
+                self.update_hash(piece, square);
             }
         }
 

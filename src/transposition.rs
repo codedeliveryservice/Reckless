@@ -24,15 +24,15 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub fn new(bound: Bound, pv: bool) -> Self {
+    pub const fn new(bound: Bound, pv: bool) -> Self {
         Self { data: bound as u8 | ((pv as u8) << 2) }
     }
 
-    pub fn bound(&self) -> Bound {
+    pub const fn bound(&self) -> Bound {
         unsafe { std::mem::transmute(self.data & 0b11) }
     }
 
-    pub fn pv(&self) -> bool {
+    pub const fn pv(&self) -> bool {
         (self.data & 0b100) != 0
     }
 }
@@ -161,7 +161,7 @@ impl TranspositionTable {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
             let index = self.index(hash);
-            let ptr = (*self.vector.get()).as_ptr().add(index) as *const i8;
+            let ptr = (*self.vector.get()).as_ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
 

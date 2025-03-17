@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use super::Color;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Piece {
     WhitePawn,
     BlackPawn,
@@ -62,7 +62,7 @@ impl<T> IndexMut<Piece> for [T] {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PieceType {
     Pawn,
     Knight,

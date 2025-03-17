@@ -135,10 +135,10 @@ impl Accumulator {
         self.accurate = true;
     }
 
-    pub fn update(&mut self, prev: &Accumulator) {
+    pub fn update(&mut self, prev: &Self) {
         let Delta { mv, piece, captured } = self.delta;
 
-        let add1 = index(piece.piece_color(), mv.promotion_piece().unwrap_or(piece.piece_type()), mv.to());
+        let add1 = index(piece.piece_color(), mv.promotion_piece().unwrap_or_else(|| piece.piece_type()), mv.to());
         let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from());
 
         if mv.is_castling() {
@@ -149,15 +149,11 @@ impl Accumulator {
 
             self.add2_sub2(prev, add1, add2, sub1, sub2);
         } else if mv.is_capture() {
-            let mut square = mv.to();
-            let mut captured = captured.piece_type();
-
-            if mv.is_en_passant() {
-                square = square ^ 8;
-                captured = PieceType::Pawn;
-            }
-
-            let sub2 = index(!piece.piece_color(), captured, square);
+            let sub2 = if mv.is_en_passant() {
+                index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8)
+            } else {
+                index(!piece.piece_color(), captured.piece_type(), mv.to())
+            };
 
             self.add1_sub2(prev, add1, sub1, sub2);
         } else {
@@ -167,21 +163,21 @@ impl Accumulator {
         self.accurate = true;
     }
 
-    fn add1_sub1(&mut self, prev: &Accumulator, add1: FtIndex, sub1: FtIndex) {
+    fn add1_sub1(&mut self, prev: &Self, add1: FtIndex, sub1: FtIndex) {
         for i in 0..HIDDEN_SIZE {
             self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i);
             self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i);
         }
     }
 
-    fn add1_sub2(&mut self, prev: &Accumulator, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+    fn add1_sub2(&mut self, prev: &Self, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
         for i in 0..HIDDEN_SIZE {
             self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
             self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
         }
     }
 
-    fn add2_sub2(&mut self, prev: &Accumulator, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
+    fn add2_sub2(&mut self, prev: &Self, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
         for i in 0..HIDDEN_SIZE {
             self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
             self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);

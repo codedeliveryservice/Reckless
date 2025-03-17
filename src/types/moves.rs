@@ -56,7 +56,7 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
-    pub fn is_noisy(self) -> bool {
+    pub const fn is_noisy(self) -> bool {
         matches!(
             self.kind(),
             MoveKind::Capture | MoveKind::EnPassant | MoveKind::PromotionCaptureQ | MoveKind::PromotionQ
