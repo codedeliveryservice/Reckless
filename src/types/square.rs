@@ -1,4 +1,4 @@
-use std::ops::{BitXor, Index, IndexMut};
+use std::ops::{Add, BitXor, Div, Index, IndexMut};
 
 use super::Bitboard;
 
@@ -60,6 +60,22 @@ impl TryFrom<&str> for Square {
             }
             _ => Err(()),
         }
+    }
+}
+
+impl Add<Square> for Square {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self as u8 + rhs as u8)
+    }
+}
+
+impl Div<i8> for Square {
+    type Output = Self;
+
+    fn div(self, rhs: i8) -> Self::Output {
+        Self::new((self as i8 / rhs) as u8)
     }
 }
 
