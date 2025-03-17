@@ -8,7 +8,7 @@ pub struct Stack {
 
 impl Default for Stack {
     fn default() -> Self {
-        Self { data: [Default::default(); MAX_PLY + 8] }
+        Self { data: [StackEntry::default(); MAX_PLY + 8] }
     }
 }
 

@@ -23,7 +23,7 @@ impl FromStr for Board {
     ///
     /// [fen]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
     fn from_str(fen: &str) -> Result<Self, Self::Err> {
-        let mut board = Board::default();
+        let mut board = Self::default();
         let mut parts = fen.split_whitespace();
 
         let rows = parts.next().ok_or(ParseFenError::MissingPlacementData)?.split('/');

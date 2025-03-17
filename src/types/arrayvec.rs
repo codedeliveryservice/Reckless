@@ -19,8 +19,8 @@ impl<T, const N: usize> ArrayVec<T, N> {
         self.as_slice().iter()
     }
 
-    pub fn as_slice(&self) -> &[T] {
-        unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const T, self.len) }
+    pub const fn as_slice(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }
     }
 
     pub fn push(&mut self, value: T) {
