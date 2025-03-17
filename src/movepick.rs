@@ -1,7 +1,7 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{ArrayVec, Move, MAX_MOVES},
+    types::{Move, MoveList},
 };
 
 enum Kind {
@@ -17,8 +17,7 @@ pub enum Stage {
 }
 
 pub struct MovePicker {
-    moves: ArrayVec<Move, MAX_MOVES>,
-    scores: [i32; MAX_MOVES],
+    list: MoveList,
     tt_move: Move,
     killer: Move,
     threshold: i32,
@@ -29,8 +28,7 @@ pub struct MovePicker {
 impl MovePicker {
     pub fn new(killer: Move, tt_move: Move) -> Self {
         Self {
-            moves: ArrayVec::new(),
-            scores: [0; MAX_MOVES],
+            list: MoveList::new(),
             tt_move,
             killer,
             threshold: -110,
@@ -41,8 +39,7 @@ impl MovePicker {
 
     pub fn new_noisy(include_quiets: bool, threshold: i32) -> Self {
         Self {
-            moves: ArrayVec::new(),
-            scores: [0; MAX_MOVES],
+            list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
             threshold,
@@ -64,36 +61,36 @@ impl MovePicker {
             self.stage = Stage::EverythingElse;
 
             match self.kind {
-                Kind::Normal => td.board.append_all_moves(&mut self.moves),
-                Kind::Noisy => td.board.append_noisy_moves(&mut self.moves),
+                Kind::Normal => td.board.append_all_moves(&mut self.list),
+                Kind::Noisy => td.board.append_noisy_moves(&mut self.list),
             };
 
-            if let Some(index) = self.moves.iter().position(|&mv| mv == self.tt_move) {
-                self.moves.swap_remove(index);
+            if let Some(index) = self.list.iter().position(|entry| entry.mv == self.tt_move) {
+                self.list.remove(index);
             }
 
             self.score_moves(td);
         }
 
         // Stage::EverythingElse
-        if self.moves.len() == 0 {
+        if self.list.is_empty() {
             return None;
         }
 
         let mut index = 0;
-        for i in 1..self.moves.len() {
-            if self.scores[i] > self.scores[index] {
+        for i in 1..self.list.len() {
+            if self.list[i].score > self.list[index].score {
                 index = i;
             }
         }
 
-        let score = self.scores[index];
-        self.scores.swap(index, self.moves.len() - 1);
-        Some((self.moves.swap_remove(index), score))
+        let entry = self.list.remove(index);
+        Some((entry.mv, entry.score))
     }
 
     fn score_moves(&mut self, td: &ThreadData) {
-        for (i, &mv) in self.moves.iter().enumerate() {
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
             let mut score;
 
             if mv.is_noisy() {
@@ -109,7 +106,7 @@ impl MovePicker {
                 score += td.conthist(2, mv);
             }
 
-            self.scores[i] = score;
+            entry.score = score;
         }
     }
 }

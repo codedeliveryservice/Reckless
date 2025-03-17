@@ -16,7 +16,8 @@ macro_rules! assert_perft {
 
 fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
-    for &mv in board.generate_all_moves().iter() {
+    for entry in board.generate_all_moves().iter() {
+        let mv = entry.mv;
         board.make_move(mv);
 
         let attackers = board.attackers_to(board.their(PieceType::King).lsb(), board.occupancies());
