@@ -202,7 +202,7 @@ impl Board {
     /// This method does not count the number of encounters.
     pub fn draw_by_repetition(&self) -> bool {
         let mut count = 0;
-        for state in self.state_stack.iter().rev().take(self.state.halfmove_clock as usize + 1).skip(1).step_by(2) {
+        for state in self.state_stack.iter().rev().take(self.state.halfmove_clock as usize + 1).skip(3).step_by(2) {
             count += (self.state.key == state.key) as usize;
             if count >= 2 {
                 return true;
