@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicBool;
 use crate::{
     board::Board,
     evaluate::evaluate,
-    search,
+    search::{self, Report},
     thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
@@ -15,6 +15,7 @@ pub fn message_loop() {
     let stop = AtomicBool::new(false);
     let tt = TranspositionTable::default();
 
+    let mut report = Report::Full;
     let mut threads = ThreadPool::new(&tt, &stop);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
@@ -27,9 +28,9 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut threads, tokens),
+            ["go", tokens @ ..] => go(&mut threads, report, tokens),
             ["position", tokens @ ..] => position(&mut threads, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &tt, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
 
             ["quit"] => break,
@@ -64,7 +65,7 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(threads: &mut ThreadPool, tokens: &[&str]) {
+fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
     threads.main_thread().time_manager = TimeManager::new(limits, board.game_ply());
@@ -75,7 +76,7 @@ fn go(threads: &mut ThreadPool, tokens: &[&str]) {
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
-                search::start(td, id != 0);
+                search::start(td, report);
                 td.set_stop(true);
 
                 if id == 0 {
@@ -133,8 +134,13 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(threads: &mut ThreadPool, tt: &TranspositionTable, tokens: &[&str]) {
+fn set_option(threads: &mut ThreadPool, report: &mut Report, tt: &TranspositionTable, tokens: &[&str]) {
     match tokens {
+        ["name", "Minimal", "value", v] => match *v {
+            "true" => *report = Report::Minimal,
+            "false" => *report = Report::Full,
+            _ => eprintln!("Invalid value: '{v}'"),
+        },
         ["name", "Clear", "Hash"] => {
             tt.clear(threads.len());
             println!("info string Hash cleared");

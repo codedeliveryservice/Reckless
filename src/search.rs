@@ -9,13 +9,20 @@ use crate::{
     types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
 };
 
+#[derive(Copy, Clone, PartialEq)]
+pub enum Report {
+    None,
+    Minimal,
+    Full,
+}
+
 #[allow(unused)]
 pub struct SearchResult {
     pub best_move: Move,
     pub score: i32,
 }
 
-pub fn start(td: &mut ThreadData, silent: bool) -> SearchResult {
+pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.nodes = 0;
     td.completed_depth = 0;
     td.stopped = false;
@@ -76,10 +83,6 @@ pub fn start(td: &mut ThreadData, silent: bool) -> SearchResult {
             delta += delta / 2;
         }
 
-        if !silent {
-            td.print_uci_info(depth, score, now);
-        }
-
         if td.stopped {
             break;
         }
@@ -102,6 +105,14 @@ pub fn start(td: &mut ThreadData, silent: bool) -> SearchResult {
         if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
             break;
         }
+
+        if report == Report::Full {
+            td.print_uci_info(depth, score, now);
+        }
+    }
+
+    if report != Report::None {
+        td.print_uci_info(td.completed_depth, score, now);
     }
 
     SearchResult { best_move: td.pv.best_move(), score }

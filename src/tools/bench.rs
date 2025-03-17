@@ -11,7 +11,7 @@ use std::{sync::atomic::AtomicBool, time::Instant};
 
 use crate::{
     board::Board,
-    search,
+    search::{self, Report},
     thread::ThreadData,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
@@ -87,7 +87,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         td.board = Board::new(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0);
 
-        search::start(&mut td, true);
+        search::start(&mut td, Report::None);
 
         nodes += td.nodes;
         index += 1;
