@@ -137,6 +137,10 @@ impl Board {
         self.pieces(piece_type) & self.them()
     }
 
+    pub fn king_square(&self, color: Color) -> Square {
+        self.of(PieceType::King, color).lsb()
+    }
+
     /// Finds a piece on the specified square, if found; otherwise, `Piece::None`.
     pub fn piece_on(&self, square: Square) -> Piece {
         self.mailbox[square]
