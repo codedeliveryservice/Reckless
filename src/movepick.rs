@@ -62,9 +62,7 @@ fn score_moves(
             let captured = td.board.piece_on(mv.to()).piece_type();
 
             scores[i] = if td.board.see(mv, threshold) { 1 << 20 } else { -(1 << 20) };
-
-            scores[i] += PIECE_VALUES[captured as usize % 6] * 32;
-
+            scores[i] += PIECE_VALUES[captured as usize % 6] * 24;
             scores[i] += td.noisy_history.get(&td.board, mv);
         } else {
             scores[i] = td.quiet_history.get(&td.board, mv);
