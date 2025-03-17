@@ -9,7 +9,13 @@ use crate::{
     types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
 };
 
-pub fn start(td: &mut ThreadData, silent: bool) {
+#[allow(unused)]
+pub struct SearchResult {
+    pub best_move: Move,
+    pub score: i32,
+}
+
+pub fn start(td: &mut ThreadData, silent: bool) -> SearchResult {
     td.nodes = 0;
     td.completed_depth = 0;
     td.stopped = false;
@@ -97,6 +103,8 @@ pub fn start(td: &mut ThreadData, silent: bool) {
             break;
         }
     }
+
+    SearchResult { best_move: td.pv.best_move(), score }
 }
 
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32, cut_node: bool) -> i32 {
