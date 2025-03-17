@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, MAX_PLY},
+    types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -620,6 +620,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_noisy(in_check, -110);
 
+    let previous_square = match td.stack[td.ply - 1].mv {
+        Move::NULL => Square::None,
+        _ => td.stack[td.ply - 1].mv.to(),
+    };
+
     while let Some((mv, mv_score)) = move_picker.next(td) {
         if !td.board.is_legal(mv) {
             continue;
@@ -627,7 +632,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         move_count += 1;
 
-        if !is_loss(best_score) {
+        if !is_loss(best_score) && mv.to() != previous_square {
             if mv_score < -(1 << 18) {
                 break;
             }
