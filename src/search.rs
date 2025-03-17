@@ -560,11 +560,15 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
-        if match entry.bound {
-            Bound::Upper => entry.score <= alpha,
-            Bound::Lower => entry.score >= beta,
-            _ => true,
-        } {
+
+        if !PV
+            && !in_check
+            && match entry.bound {
+                Bound::Upper => entry.score <= alpha,
+                Bound::Lower => entry.score >= beta,
+                _ => true,
+            }
+        {
             return entry.score;
         }
     }
