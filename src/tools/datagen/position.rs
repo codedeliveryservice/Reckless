@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Color, Piece},
+    types::{Color, PieceType},
 };
 
 const POSITION_SIZE: usize = std::mem::size_of::<Position>();
@@ -45,7 +45,7 @@ impl Position {
         let mut packed = Vec::new();
         for color in [Color::White, Color::Black] {
             for piece in 0..6 {
-                for square in board.of(Piece::new(piece), color) {
+                for square in board.of(PieceType::new(piece), color) {
                     packed.push(Occupancy {
                         piece: piece as u8,
                         color: color as u8 ^ reverse as u8,

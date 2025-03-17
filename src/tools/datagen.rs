@@ -7,10 +7,13 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::search::SearchResult;
+use crate::thread::ThreadData;
+use crate::time::TimeManager;
+use crate::transposition::TranspositionTable;
 use crate::{
     board::Board,
-    search::{self, Options, SearchResult},
-    tables::{CorrectionHistory, History, TranspositionTable},
+    search,
     time::Limits,
     tools::datagen::random::Random,
     types::{Color, Move},
@@ -18,9 +21,6 @@ use crate::{
 
 mod position;
 mod random;
-
-const VALIDATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: VALIDATION_LIMITS };
-const GENERATION_OPTIONS: Options = Options { silent: true, threads: 1, limits: GENERATION_LIMITS };
 
 const REPORT_INTERVAL: Duration = Duration::from_secs(60);
 const BUFFER_SIZE: usize = 128 * 1024;
@@ -38,8 +38,8 @@ const DRAW_PLY_NUMBER: usize = 80;
 const WRITE_MIN_PLY: usize = 16;
 const WRITE_MAX_PLY: usize = 400;
 
-const VALIDATION_LIMITS: Limits = Limits::FixedDepth(10);
-const GENERATION_LIMITS: Limits = Limits::FixedNodes(7500);
+const VALIDATION_LIMITS: Limits = Limits::Depth(10);
+const GENERATION_LIMITS: Limits = Limits::Nodes(7500);
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -110,13 +110,17 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
 
     while !STOP_FLAG.load(Ordering::Relaxed) {
         let mut board = generate_random_opening(&mut random, book);
-        let score = validation_score(&mut board);
 
+        let tt = TranspositionTable::default();
+        let mut td = ThreadData::new(&tt, &STOP_FLAG);
+        td.board = board.clone();
+
+        let score = validation_score(&mut td);
         if score.abs() >= VALIDATION_THRESHOLD {
             continue;
         }
 
-        let (entries, wdl) = play_game(board.clone());
+        let (entries, wdl) = play_game(&mut td);
         let mut count = 0;
 
         for (index, entry) in entries.iter().enumerate() {
@@ -132,7 +136,7 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
                 count += 1;
             }
 
-            assert!(board.make_move::<false, true>(entry.best_move));
+            board.make_move(entry.best_move);
         }
 
         COUNT.fetch_add(count, Ordering::Relaxed);
@@ -141,22 +145,21 @@ fn generate_data(mut buf: BufWriter<File>, book: &[String]) {
 }
 
 /// Plays a game and returns the search results and the WDL result.
-fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
-    let tt = TranspositionTable::default();
-    let mut history = History::default();
-    let mut corrhist = CorrectionHistory::default();
+fn play_game(td: &mut ThreadData) -> (Vec<SearchResult>, f32) {
+    td.time_manager = TimeManager::new(GENERATION_LIMITS, 0);
+
     let mut entries = Vec::new();
     let mut draw_counter = 0;
 
     loop {
-        let entry = search::start(GENERATION_OPTIONS, &mut board, &mut history, &mut corrhist, &tt);
-        let SearchResult { best_move, score, .. } = entry;
+        let entry = search::start(td, true);
+        let SearchResult { best_move, score } = entry;
 
         draw_counter = if score.abs() <= DRAW_SCORE { draw_counter + 1 } else { 0 };
 
         // Resignation
         if score.abs() >= GENERATION_THRESHOLD {
-            return (entries, winner(&board, score));
+            return (entries, winner(&td.board, score));
         }
 
         // Draw adjudication
@@ -165,16 +168,15 @@ fn play_game(mut board: Board) -> (Vec<SearchResult>, f32) {
         }
 
         entries.push(entry);
-        assert!(board.make_move::<true, true>(best_move));
+        td.board.make_move(best_move);
 
         // Draw by repetition, 50-move rule or insufficient material
-        if board.is_draw() || board.draw_by_insufficient_material() {
+        if td.board.is_draw() || td.board.draw_by_insufficient_material() {
             return (entries, 0.5);
         }
 
         // Stalemate
-        if generate_legal_moves(&mut board).is_empty() {
-            assert!(!board.in_check(), "Stalemate in check");
+        if generate_legal_moves(&mut td.board).is_empty() {
             return (entries, 0.5);
         }
     }
@@ -201,7 +203,7 @@ fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
         }
 
         let index = random.next() % moves.len();
-        assert!(board.make_move::<true, true>(moves[index]));
+        board.make_move(moves[index]);
     }
 
     if generate_legal_moves(&mut board).is_empty() {
@@ -211,24 +213,11 @@ fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
 }
 
 /// Returns the score of the position after performing a validation search.
-fn validation_score(board: &mut Board) -> i32 {
-    let tt = TranspositionTable::default();
-    let mut history = History::default();
-    let mut corrhist = CorrectionHistory::default();
-    search::start(VALIDATION_OPTIONS, board, &mut history, &mut corrhist, &tt).score
+fn validation_score(td: &mut ThreadData) -> i32 {
+    td.time_manager = TimeManager::new(VALIDATION_LIMITS, 0);
+    search::start(td, true).score
 }
 
-/// Generates all legal moves for the given board.
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
-    let mut legals = Vec::new();
-    for &mv in board.generate_all_moves().iter() {
-        if !board.make_move::<false, true>(mv) {
-            board.undo_move::<false>();
-            continue;
-        }
-
-        legals.push(mv);
-        board.undo_move::<false>();
-    }
-    legals
+    board.generate_all_moves().iter().copied().filter(|&mv| board.is_legal(mv)).collect()
 }
