@@ -201,13 +201,14 @@ impl Board {
     ///
     /// This method does not count the number of encounters.
     pub fn draw_by_repetition(&self) -> bool {
-        self.state_stack
-            .iter()
-            .rev()
-            .skip(1)
-            .step_by(2)
-            .take(self.state.halfmove_clock as usize + 1)
-            .any(|state| state.key == self.state.key)
+        let mut count = 0;
+        for state in self.state_stack.iter().rev().take(self.state.halfmove_clock as usize + 1).step_by(2) {
+            count += (self.state.key == state.key) as usize;
+            if count >= 2 {
+                return true;
+            }
+        }
+        false
     }
 
     /// Returns `true` if the current position is a known draw by insufficient material:
