@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -118,7 +118,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     SearchResult { best_move: td.pv.best_move(), score }
 }
 
-fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32, cut_node: bool) -> i32 {
+fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
@@ -150,6 +150,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
         if td.ply >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { evaluate(td) };
+        }
+
+        // Mate Distance Pruning (MDP)
+        alpha = alpha.max(mated_in(td.ply));
+        beta = beta.min(mate_in(td.ply + 1));
+
+        if alpha >= beta {
+            return alpha;
         }
     }
 
