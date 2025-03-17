@@ -49,12 +49,13 @@ impl Network {
         debug_assert!(self.stack[0].accurate);
 
         if !self.stack[self.index].accurate {
-            let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
+            if self.can_update() {
+                let wking = board.king_square(Color::White);
+                let bking = board.king_square(Color::Black);
 
-            for i in index..self.index {
-                if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
-                    current.update(&prev[i]);
-                }
+                self.update_accumulators(wking, bking);
+            } else {
+                self.refresh(board);
             }
         }
 
@@ -68,12 +69,43 @@ impl Network {
         let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
         (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
+
+    fn update_accumulators(&mut self, wking: Square, bking: Square) {
+        let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
+
+        for i in index..self.index {
+            if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
+                current.update(&prev[i], wking, bking);
+            }
+        }
+    }
+
+    fn can_update(&self) -> bool {
+        for i in (0..=self.index).rev() {
+            let delta = self.stack[i].delta;
+
+            if delta.piece.piece_type() == PieceType::King
+                && ((delta.mv.from()).file() >= 4) != ((delta.mv.to()).file() >= 4)
+            {
+                return false;
+            }
+
+            if self.stack[i].accurate {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
-fn index(color: Color, piece: PieceType, square: Square) -> FtIndex {
+fn index(color: Color, piece: PieceType, square: Square, wking: Square, bking: Square) -> FtIndex {
+    let wsquare = if wking.file() >= 4 { square ^ 7 } else { square };
+    let bsquare = if bking.file() >= 4 { square ^ 7 } else { square };
+
     (
-        384 * color as usize + 64 * piece as usize + square as usize,
-        384 * !color as usize + 64 * piece as usize + (square ^ 56) as usize,
+        384 * color as usize + 64 * piece as usize + wsquare as usize,
+        384 * !color as usize + 64 * piece as usize + (bsquare ^ 56) as usize,
     )
 }
 
@@ -117,6 +149,9 @@ impl Accumulator {
     }
 
     pub fn refresh(&mut self, board: &Board) {
+        let wking = board.king_square(Color::White);
+        let bking = board.king_square(Color::Black);
+
         for i in 0..HIDDEN_SIZE {
             self.values[0][i] = PARAMETERS.input_bias[i];
             self.values[1][i] = PARAMETERS.input_bias[i];
@@ -124,7 +159,7 @@ impl Accumulator {
 
         for square in board.occupancies() {
             let piece = board.piece_on(square);
-            let (white, black) = index(piece.piece_color(), piece.piece_type(), square);
+            let (white, black) = index(piece.piece_color(), piece.piece_type(), square, wking, bking);
 
             for i in 0..HIDDEN_SIZE {
                 self.values[0][i] += ft!(white, i);
@@ -135,24 +170,26 @@ impl Accumulator {
         self.accurate = true;
     }
 
-    pub fn update(&mut self, prev: &Self) {
+    pub fn update(&mut self, prev: &Self, wking: Square, bking: Square) {
         let Delta { mv, piece, captured } = self.delta;
 
-        let add1 = index(piece.piece_color(), mv.promotion_piece().unwrap_or_else(|| piece.piece_type()), mv.to());
-        let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from());
+        let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
+
+        let add1 = index(piece.piece_color(), resulting_piece, mv.to(), wking, bking);
+        let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from(), wking, bking);
 
         if mv.is_castling() {
             let (rook_from, root_to) = Board::get_castling_rook(mv.to());
 
-            let add2 = index(piece.piece_color(), PieceType::Rook, root_to);
-            let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from);
+            let add2 = index(piece.piece_color(), PieceType::Rook, root_to, wking, bking);
+            let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, wking, bking);
 
             self.add2_sub2(prev, add1, add2, sub1, sub2);
         } else if mv.is_capture() {
             let sub2 = if mv.is_en_passant() {
-                index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8)
+                index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, wking, bking)
             } else {
-                index(!piece.piece_color(), captured.piece_type(), mv.to())
+                index(!piece.piece_color(), captured.piece_type(), mv.to(), wking, bking)
             };
 
             self.add1_sub2(prev, add1, sub1, sub2);
