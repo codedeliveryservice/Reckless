@@ -383,6 +383,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
         let initial_nodes = td.nodes;
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
+        let moved_piece = td.board.piece_on(mv.from());
 
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
@@ -442,6 +443,23 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
                 if new_depth > reduced_depth {
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                }
+
+                let bonus = match score {
+                    s if s >= beta => bonus(depth),
+                    s if s <= alpha => -bonus(depth),
+                    _ => 0,
+                };
+
+                if is_quiet && bonus != 0 {
+                    for index in [2, 3] {
+                        if td.ply >= index && td.stack[td.ply - index].mv != Move::NULL {
+                            let piece = td.stack[td.ply - index].piece;
+                            let sq = td.stack[td.ply - index].mv.to();
+
+                            td.continuation_history.update(piece, sq, moved_piece, mv.to(), bonus);
+                        }
+                    }
                 }
             }
         }
