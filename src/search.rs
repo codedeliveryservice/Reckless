@@ -515,13 +515,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
                     continue;
                 }
 
-                let prev_mv = td.stack[td.ply - index].mv;
-                let prev_piece = td.stack[td.ply - index].piece;
+                let piece = td.stack[td.ply - index].piece;
+                let sq = td.stack[td.ply - index].mv.to();
 
-                td.continuation_history.update(&td.board, prev_mv, prev_piece, best_move, bonus);
+                let cont_piece = td.board.piece_on(best_move.from());
+                let cont_sq = best_move.to();
+
+                td.continuation_history.update(piece, sq, cont_piece, cont_sq, bonus);
 
                 for &mv in quiet_moves.iter() {
-                    td.continuation_history.update(&td.board, prev_mv, prev_piece, mv, -bonus);
+                    let cont_piece = td.board.piece_on(mv.from());
+                    let cont_sq = mv.to();
+
+                    td.continuation_history.update(piece, sq, cont_piece, cont_sq, -bonus);
                 }
             }
         }
