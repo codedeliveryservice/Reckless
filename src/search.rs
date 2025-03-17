@@ -583,6 +583,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
+    if td.board.is_draw() {
+        return Score::DRAW;
+    }
+
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_pv = PV;
 
