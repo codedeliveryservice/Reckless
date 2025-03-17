@@ -546,6 +546,37 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth:
 
     if bound == Bound::Upper {
         tt_pv |= td.ply >= 1 && td.stack[td.ply - 1].tt_pv;
+
+        if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL && td.stack[td.ply - 1].mv.is_quiet() {
+            let pcm_move = td.stack[td.ply - 1].mv;
+
+            for index in [2, 3] {
+                if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
+                    continue;
+                }
+
+                let piece = td.stack[td.ply - index].piece;
+                let sq = td.stack[td.ply - index].mv.to();
+
+                let cont_piece = td.board.piece_on(pcm_move.to());
+                let cont_sq = pcm_move.to();
+
+                let mut scale = 0;
+                if depth > 5 {
+                    scale += 120
+                }
+
+                if PV || cut_node {
+                    scale += 40;
+                }
+
+                if !in_check && best_score <= static_eval - 100 {
+                    scale += 141;
+                }
+
+                td.continuation_history.update(piece, sq, cont_piece, cont_sq, bonus(depth) * scale / 100);
+            }
+        }
     }
 
     if !excluded {
