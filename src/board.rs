@@ -307,6 +307,10 @@ impl Board {
             return false;
         }
 
+        if self.checkers().multiple() {
+            return !mv.is_capture() && piece == PieceType::King && king_attacks(from).contains(to);
+        }
+
         if piece == PieceType::Pawn {
             let offset = match self.side_to_move {
                 Color::White => 8,
