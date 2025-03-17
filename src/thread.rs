@@ -114,9 +114,13 @@ impl<'a> ThreadData<'a> {
             return 0;
         }
 
-        let prev_piece = self.stack[self.ply - index].piece;
-        let prev_mv = self.stack[self.ply - index].mv;
-        self.continuation_history.get(&self.board, prev_piece, prev_mv, mv)
+        let piece = self.stack[self.ply - index].piece;
+        let sq = self.stack[self.ply - index].mv.to();
+
+        let cont_piece = self.board.piece_on(mv.from());
+        let cont_sq = mv.to();
+
+        self.continuation_history.get(piece, sq, cont_piece, cont_sq)
     }
 
     pub fn print_uci_info(&self, depth: i32, score: i32, now: Instant) {

@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Color, Move, Piece},
+    types::{Color, Move, Piece, Square},
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -90,19 +90,19 @@ impl Default for CorrectionHistory {
 }
 
 pub struct ContinuationHistory {
-    // [previous_piece][previous_to][current_piece][current_to]
+    // [piece][to][continuation_piece][continuation_to]
     entries: Box<[[PieceToHistory<i32>; 64]; 13]>,
 }
 
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
-    pub fn get(&self, board: &Board, prev_piece: Piece, prev_mv: Move, mv: Move) -> i32 {
-        self.entries[prev_piece][prev_mv.to()][board.piece_on(mv.from())][mv.to()]
+    pub fn get(&self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square) -> i32 {
+        self.entries[piece][sq][cont_piece][cont_sq]
     }
 
-    pub fn update(&mut self, board: &Board, prev_mv: Move, prev_piece: Piece, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[prev_piece][prev_mv.to()][board.piece_on(mv.from())][mv.to()];
+    pub fn update(&mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, bonus: i32) {
+        let entry = &mut self.entries[piece][sq][cont_piece][cont_sq];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
