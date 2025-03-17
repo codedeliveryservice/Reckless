@@ -1,15 +1,7 @@
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{ArrayVec, Bitboard, CastlingKind, Color, Move, MoveKind, PieceType, Rank, Square, MAX_MOVES},
+    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, PieceType, Rank, Square},
 };
-
-macro_rules! push {
-    ($list:ident, $from:expr, $to:expr, $kind:expr) => {
-        $list.push(Move::new($from, $to, $kind));
-    };
-}
-
-type MoveList = ArrayVec<Move, MAX_MOVES>;
 
 impl super::Board {
     /// Generates all possible pseudo legal moves for the current position.
@@ -54,12 +46,12 @@ impl super::Board {
             let targets = gen(from) & !self.us();
 
             for to in targets & self.them() {
-                push!(list, from, to, MoveKind::Capture);
+                list.push(from, to, MoveKind::Capture);
             }
 
             if !NOISY {
                 for to in targets & !self.them() {
-                    push!(list, from, to, MoveKind::Normal);
+                    list.push(from, to, MoveKind::Normal);
                 }
             }
         }
@@ -92,7 +84,7 @@ impl super::Board {
                 }
             }
 
-            list.push(KIND::CASTLING_MOVE);
+            list.push_move(KIND::CASTLING_MOVE);
         }
     }
 
@@ -125,23 +117,23 @@ impl super::Board {
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
             for to in single_pushes {
-                push!(list, to.shift(-up), to, MoveKind::Normal);
+                list.push(to.shift(-up), to, MoveKind::Normal);
             }
 
             for to in double_pushes {
-                push!(list, to.shift(-up * 2), to, MoveKind::DoublePush);
+                list.push(to.shift(-up * 2), to, MoveKind::DoublePush);
             }
         }
 
         let promotions = (pawns & seventh_rank).shift(up) & empty;
         for to in promotions {
             let from = to.shift(-up);
-            push!(list, from, to, MoveKind::PromotionQ);
+            list.push(from, to, MoveKind::PromotionQ);
 
             if !NOISY {
-                push!(list, from, to, MoveKind::PromotionR);
-                push!(list, from, to, MoveKind::PromotionB);
-                push!(list, from, to, MoveKind::PromotionN);
+                list.push(from, to, MoveKind::PromotionR);
+                list.push(from, to, MoveKind::PromotionB);
+                list.push(from, to, MoveKind::PromotionN);
             }
         }
     }
@@ -152,12 +144,12 @@ impl super::Board {
         for from in promotions {
             let captures = self.them() & pawn_attacks(from, self.side_to_move);
             for to in captures {
-                push!(list, from, to, MoveKind::PromotionCaptureQ);
+                list.push(from, to, MoveKind::PromotionCaptureQ);
 
                 if !NOISY {
-                    push!(list, from, to, MoveKind::PromotionCaptureR);
-                    push!(list, from, to, MoveKind::PromotionCaptureB);
-                    push!(list, from, to, MoveKind::PromotionCaptureN);
+                    list.push(from, to, MoveKind::PromotionCaptureR);
+                    list.push(from, to, MoveKind::PromotionCaptureB);
+                    list.push(from, to, MoveKind::PromotionCaptureN);
                 }
             }
         }
@@ -166,7 +158,7 @@ impl super::Board {
         for from in non_promotions {
             let targets = self.them() & pawn_attacks(from, self.side_to_move);
             for to in targets {
-                push!(list, from, to, MoveKind::Capture);
+                list.push(from, to, MoveKind::Capture);
             }
         }
     }
@@ -175,7 +167,7 @@ impl super::Board {
         if self.state.en_passant != Square::None {
             let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move);
             for pawn in pawns {
-                push!(list, pawn, self.state.en_passant, MoveKind::EnPassant);
+                list.push(pawn, self.state.en_passant, MoveKind::EnPassant);
             }
         }
     }
