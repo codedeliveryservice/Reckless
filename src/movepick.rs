@@ -102,6 +102,7 @@ impl MovePicker {
             } else {
                 score = (1 << 18) * (mv == self.killer) as i32;
                 score += td.quiet_history.get(&td.board, mv);
+                score += td.pawn_history.get(&td.board, mv);
                 score += td.conthist(1, mv);
                 score += td.conthist(2, mv);
             }

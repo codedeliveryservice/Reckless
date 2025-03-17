@@ -523,9 +523,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         } else {
             td.stack[td.ply].killer = best_move;
 
+            td.pawn_history.update(&td.board, best_move, bonus);
             td.quiet_history.update(&td.board, best_move, bonus);
 
             for &mv in quiet_moves.iter() {
+                td.pawn_history.update(&td.board, mv, -bonus);
                 td.quiet_history.update(&td.board, mv, -bonus);
             }
 

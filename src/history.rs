@@ -60,6 +60,33 @@ impl Default for NoisyHistory {
     }
 }
 
+pub struct PawnHistory {
+    // [side_to_move][pawn_key][from][to]
+    entries: Box<[[FromToHistory<i32>; Self::SIZE]; 2]>,
+}
+
+impl PawnHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    const SIZE: usize = 32768;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, board: &Board, mv: Move) -> i32 {
+        self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK][mv.from()][mv.to()]
+    }
+
+    pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK][mv.from()][mv.to()];
+        *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
+    }
+}
+
+impl Default for PawnHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i32; Self::SIZE]; 2]>,
