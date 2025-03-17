@@ -63,9 +63,9 @@ impl MovePicker {
         if self.stage == Stage::Initialization {
             self.stage = Stage::EverythingElse;
 
-            self.moves = match self.kind {
-                Kind::Normal => td.board.generate_all_moves(),
-                Kind::Noisy => td.board.generate_noisy_moves(),
+            match self.kind {
+                Kind::Normal => td.board.append_all_moves(&mut self.moves),
+                Kind::Noisy => td.board.append_noisy_moves(&mut self.moves),
             };
 
             if let Some(index) = self.moves.iter().position(|&mv| mv == self.tt_move) {
