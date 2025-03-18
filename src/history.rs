@@ -21,11 +21,11 @@ impl QuietHistory {
         self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()]
     }
 
-    pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
+    pub fn update(&mut self, board: &Board, stm: Color, mv: Move, bonus: i32) {
         let from_threated = board.is_threatened(mv.from()) as usize;
         let to_threated = board.is_threatened(mv.to()) as usize;
 
-        let entry = &mut self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()];
+        let entry = &mut self.entries[stm][from_threated][to_threated][mv.from()][mv.to()];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
