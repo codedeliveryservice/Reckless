@@ -14,7 +14,7 @@ impl super::Board {
         }
 
         // In the best case, we win a piece, but still end up with a negative balance
-        let mut balance = self.move_value(mv) - threshold;
+        let mut balance = self.captured_piece_value(mv) - threshold;
         if balance < 0 {
             return false;
         }
@@ -73,7 +73,7 @@ impl super::Board {
         stm != self.side_to_move()
     }
 
-    fn move_value(&self, mv: Move) -> i32 {
+    pub fn captured_piece_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
             return PIECE_VALUES[PieceType::Pawn];
         }
