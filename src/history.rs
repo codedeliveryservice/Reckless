@@ -85,7 +85,9 @@ impl PawnHistory {
 
 impl Default for PawnHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        let mut entries = zeroed_box();
+        fill_box(&mut entries, -1024);
+        Self { entries }
     }
 }
 
@@ -150,5 +152,13 @@ fn zeroed_box<T>() -> Box<T> {
             std::alloc::handle_alloc_error(layout);
         }
         Box::<T>::from_raw(ptr.cast())
+    }
+}
+
+fn fill_box<T>(boxed: &mut Box<T>, value: i32) {
+    let len = std::mem::size_of::<T>() / std::mem::size_of::<i32>();
+    let slice = unsafe { std::slice::from_raw_parts_mut(boxed.as_mut() as *mut T as *mut i32, len) };
+    for i in 0..len {
+        slice[i] = value;
     }
 }
