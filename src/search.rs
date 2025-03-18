@@ -682,8 +682,14 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    if in_check && move_count == 0 {
-        return mated_in(td.ply);
+    if move_count == 0 {
+        if in_check {
+            return mated_in(td.ply);
+        } else
+        // assume stalemate without generating any quiet
+        {
+            return 0;
+        }
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
