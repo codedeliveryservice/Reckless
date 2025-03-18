@@ -19,6 +19,10 @@ pub const fn mated_in(ply: usize) -> i32 {
     -Score::MATE + ply as i32
 }
 
+pub const fn mate_in(ply: usize) -> i32 {
+    Score::MATE - ply as i32
+}
+
 pub const fn is_win(score: i32) -> bool {
     score >= Score::MATE_IN_MAX
 }
