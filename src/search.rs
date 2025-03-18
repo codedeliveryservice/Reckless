@@ -641,11 +641,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) {
-            if mv_score < -(1 << 18) {
-                break;
-            }
-
             if mv.to() != previous_square && !is_loss(futility_score) && !mv.is_promotion() {
+                if mv_score < -(1 << 18) {
+                    break;
+                }
+
                 if move_count > 2 {
                     continue;
                 }
