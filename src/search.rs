@@ -640,14 +640,20 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != previous_square {
+        if !is_loss(best_score) {
             if mv_score < -(1 << 18) {
                 break;
             }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                best_score = best_score.max(futility_score);
-                continue;
+            if mv.to() != previous_square && !is_loss(futility_score) && !mv.is_promotion() {
+                if move_count > 2 {
+                    continue;
+                }
+
+                if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+                    best_score = best_score.max(futility_score);
+                    continue;
+                }
             }
         }
 
