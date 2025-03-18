@@ -686,6 +686,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return mated_in(td.ply);
     }
 
+    if !is_decisive(best_score) && best_score > beta {
+        best_score = (best_score + beta) / 2;
+    }
+
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
     td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
