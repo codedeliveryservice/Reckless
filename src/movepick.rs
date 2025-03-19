@@ -37,13 +37,13 @@ impl MovePicker {
         }
     }
 
-    pub fn new_noisy(include_quiets: bool, threshold: i32) -> Self {
+    pub fn new_noisy(include_quiets: bool, tt_move: Move, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
-            tt_move: Move::NULL,
+            tt_move,
             killer: Move::NULL,
             threshold,
-            stage: Stage::Initialization,
+            stage: if tt_move != Move::NULL { Stage::HashMove } else { Stage::Initialization },
             kind: if include_quiets { Kind::Normal } else { Kind::Noisy },
         }
     }
