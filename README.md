@@ -47,22 +47,14 @@ For detailed information on the specific features needed for each level, refer t
 ### Building from source
 
 1. Make sure you have `Rust 1.79.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
-
-2. Download the latest NNUE model either from the [Reckless Networks][reckless-networks] repository or by running the following command:
-
-```bash
-# Fetch the latest NNUE model from the Reckless Networks repository
-make fetch
-```
-
-3. To build the engine, a compatible model must be present in `./networks/model.nnue`. If the model is located elsewhere, specify the path manually:
+2. Build the engine using one of the following methods:
 
 ```bash
-# Build the engine
+# Cargo build (output: ./target/release/reckless)
+cargo rustc --release -- -C target-cpu=native
+
+# Make build (output: ./reckless)
 make
-
-# Optionally, specify a custom path for the model file
-make EVALFILE=path/to/model.nnue
 ```
 
 [reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
