@@ -319,7 +319,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move == Move::NULL && (PV || cut_node) {
-        depth -= 1;
+        depth -= 1 + PV as i32;
     }
 
     let mut best_score = -Score::INFINITE;
