@@ -229,7 +229,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && depth <= 8
         && eval >= beta
-        && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+        && eval >= beta + 65 * depth - (80 * improving as i32) - (60 * cut_node as i32) - correction_value.abs() / 2
     {
         return (eval + beta) / 2;
     }
