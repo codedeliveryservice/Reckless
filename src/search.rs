@@ -239,7 +239,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && depth >= 3
         && eval >= beta
-        && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+        && static_eval >= beta + 230 - 20 * depth + (128 * tt_pv as i32) - (64 * improving as i32)
         && td.board.has_non_pawns()
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
