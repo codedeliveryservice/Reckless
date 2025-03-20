@@ -432,6 +432,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1024;
             }
 
+            if tt_move.is_noisy() {
+                reduction += 1024;
+            }
+
             if !improving {
                 reduction += 1024;
             }
