@@ -210,12 +210,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if td.ply >= 1
-        && static_eval != Score::NONE
-        && td.stack[td.ply - 1].eval != Score::NONE
-        && td.stack[td.ply - 1].mv.is_quiet()
-    {
-        let bonus = (-8 * (td.stack[td.ply - 1].eval + static_eval)).clamp(-512, 512);
+    if !in_check && td.ply >= 1 && td.stack[td.ply - 1].eval != Score::NONE && td.stack[td.ply - 1].mv.is_quiet() {
+        let bonus = (-4 * (td.stack[td.ply - 1].eval + static_eval)).clamp(-256, 256);
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
