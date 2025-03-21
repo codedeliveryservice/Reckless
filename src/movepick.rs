@@ -101,8 +101,8 @@ impl MovePicker {
                 score += td.noisy_history.get(&td.board, mv);
             } else {
                 score = (1 << 18) * (mv == self.killer) as i32;
-                score += td.quiet_history.get(&td.board, mv);
-                score += td.conthist(1, mv);
+                score += 2 * td.quiet_history.get(&td.board, mv);
+                score += 4 * td.conthist(1, mv) / 3;
                 score += td.conthist(2, mv);
             }
 
