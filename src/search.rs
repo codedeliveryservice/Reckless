@@ -459,7 +459,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                             let piece = td.stack[td.ply - index].piece;
                             let sq = td.stack[td.ply - index].mv.to();
 
-                            td.continuation_history.update(piece, sq, moved_piece, mv.to(), bonus(depth));
+                            td.continuation_history.update(piece, sq, moved_piece, mv.to(), 2 * bonus(depth));
                         }
                     }
                 }
