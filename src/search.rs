@@ -711,7 +711,7 @@ fn correction_value(td: &ThreadData) -> i32 {
 }
 
 fn bonus(depth: i32) -> i32 {
-    (128 * depth - 64).min(1280)
+    (222 * depth - 222).min(2600)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
