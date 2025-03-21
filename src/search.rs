@@ -453,13 +453,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
                 }
 
-                if score >= beta && move_count > depth {
+                if score <= alpha && move_count < 3 {
                     for index in [2, 3] {
                         if td.ply >= index && td.stack[td.ply - index].mv != Move::NULL {
                             let piece = td.stack[td.ply - index].piece;
                             let sq = td.stack[td.ply - index].mv.to();
 
-                            td.continuation_history.update(piece, sq, moved_piece, mv.to(), bonus(depth));
+                            td.continuation_history.update(piece, sq, moved_piece, mv.to(), -bonus(depth));
                         }
                     }
                 }
