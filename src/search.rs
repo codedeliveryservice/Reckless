@@ -193,7 +193,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        static_eval = td.stack[td.ply].eval;
+        static_eval = td.stack[td.ply].static_eval;
         eval = static_eval;
     } else {
         static_eval = evaluate(td) + correction_value;
@@ -210,9 +210,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].eval;
+    let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
 
-    td.stack[td.ply].eval = static_eval;
+    td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
     td.stack[td.ply + 1].killer = Move::NULL;
