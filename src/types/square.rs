@@ -41,6 +41,10 @@ impl Square {
         self as u8 & 7
     }
 
+    pub const fn rank(self) -> u8 {
+        self as u8 >> 3
+    }
+
     /// Shifts the square by the given offset.
     pub const fn shift(self, offset: i8) -> Self {
         Self::new((self as i8 + offset) as u8)

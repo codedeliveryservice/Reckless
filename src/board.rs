@@ -325,25 +325,28 @@ impl Board {
         }
 
         if piece == PieceType::Pawn {
-            let offset = if self.side_to_move == Color::White { 8 } else { -8 };
-
             if mv.is_en_passant() {
                 return to == self.state.en_passant && pawn_attacks(from, self.side_to_move).contains(to);
+            }
+
+            let offset = if self.side_to_move == Color::White { 8 } else { -8 };
+            let promotion_rank = if self.side_to_move == Color::White { 7 } else { 0 };
+
+            if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
+                return false;
             }
 
             if mv.is_capture() {
                 return pawn_attacks(from, self.side_to_move).contains(to) && self.them().contains(to);
             }
 
-            if self.occupancies().contains(to) {
-                return false;
-            }
-
             if mv.is_double_push() {
-                return from.shift(2 * offset) == to && !self.occupancies().contains(from.shift(offset));
+                return from.shift(2 * offset) == to
+                    && !self.occupancies().contains(from.shift(offset))
+                    && !self.occupancies().contains(to);
             }
 
-            return from.shift(offset) == to;
+            return from.shift(offset) == to && !self.occupancies().contains(to);
         }
 
         let attacks = match piece {
