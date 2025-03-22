@@ -412,7 +412,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
+        if depth >= 2 + 2 * (cut_node || PV) as i32 && move_count > 1 + is_root as i32 && is_quiet {
             reduction -= 4 * correction_value.abs();
 
             reduction -= (history - 512) / 16;
