@@ -52,7 +52,11 @@ impl MovePicker {
         if self.stage == Stage::HashMove {
             self.stage = Stage::Initialization;
 
-            if td.board.is_pseudo_legal(self.tt_move) {
+            // TODO: Remove this assert after testing
+            let is_pseudo_legal = td.board.is_pseudo_legal(self.tt_move);
+            assert_eq!(is_pseudo_legal, td.board.generate_all_moves().iter().any(|entry| entry.mv == self.tt_move));
+
+            if is_pseudo_legal {
                 return Some((self.tt_move, 1 << 21));
             }
         }
