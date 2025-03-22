@@ -530,6 +530,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.quiet_history.update(&td.board, mv, -bonus);
             }
 
+            for &mv in noisy_moves.iter() {
+                td.noisy_history.update(&td.board, mv, -bonus);
+            }
+
             for index in [1, 2] {
                 if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
                     continue;
