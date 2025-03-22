@@ -65,6 +65,9 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
+
+            td.optimism[td.board.side_to_move()] = 128 * average / (average.abs() + 192);
+            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
 
         loop {
