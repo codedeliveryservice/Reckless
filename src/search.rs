@@ -59,6 +59,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             beta = (average + delta).min(Score::INFINITE);
         }
 
+        if depth >= 2 {
+            td.optimism[td.board.side_to_move()] = 128 * average / (average.abs() + 192);
+            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+        }
+
         loop {
             let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
