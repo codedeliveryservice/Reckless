@@ -41,4 +41,81 @@ macro_rules! define {
 define! {
     i32 asp_delta: 12;
     i32 asp_div:   32768;
+
+    i32 razor_v1: 300;
+    i32 razor_v2: 250;
+
+    i32 rfp_v1: 8;
+    i32 rfp_v2: 80;
+    i32 rfp_v3: 80;
+    i32 rfp_v4: 60;
+
+    i32 nmp_v1: 20;
+    i32 nmp_v2: 128;
+    i32 nmp_v3: 180;
+    i32 nmp_v4: 256;
+
+    i32 probcut_v1: 256;
+    i32 probcut_v2: 64;
+
+    i32 fp_v1: 10;
+    i32 fp_v2: 100;
+    i32 fp_v3: 150;
+
+    i32 see_v1: 30;
+    i32 see_v2: 95;
+
+    i32 se_v1: 24;
+    i32 se_v2: 128;
+
+    i32 lmr_v1: 512;
+    i32 lmr_v2: 16384;
+    i32 lmr_v3: 1024;
+    i32 lmr_v4: 768;
+    i32 lmr_v5: 768;
+    i32 lmr_v6: 1024;
+    i32 lmr_v7: 1024;
+    i32 lmr_v8: 1024;
+    
+    i32 dod_v1: 64;
+    i32 qs_v1: 128;
+
+    i32 corr_v1: 128;
+    i32 corr_v2: 128;
+    i32 corr_v3: 128;
+    i32 corr_v4: 128;
+    i32 corr_v5: 128;
+    i32 corr_v6: 128;
+
+    i32 quiet_bonus_v1: 128;
+    i32 quiet_bonus_v2: 64;
+    i32 quiet_bonus_v3: 1280;
+
+    i32 quiet_malus_v1: 128;
+    i32 quiet_malus_v2: 64;
+    i32 quiet_malus_v3: 1280;
+
+    i32 noisy_bonus_v1: 128;
+    i32 noisy_bonus_v2: 64;
+    i32 noisy_bonus_v3: 1280;
+
+    i32 noisy_malus_v1: 128;
+    i32 noisy_malus_v2: 64;
+    i32 noisy_malus_v3: 1280;
+
+    i32 cont1_bonus_v1: 128;
+    i32 cont1_bonus_v2: 64;
+    i32 cont1_bonus_v3: 1280;
+
+    i32 cont1_malus_v1: 128;
+    i32 cont1_malus_v2: 64;
+    i32 cont1_malus_v3: 1280;
+
+    i32 cont2_bonus_v1: 128;
+    i32 cont2_bonus_v2: 64;
+    i32 cont2_bonus_v3: 1280;
+
+    i32 cont2_malus_v1: 128;
+    i32 cont2_malus_v2: 64;
+    i32 cont2_malus_v3: 1280;
 }
