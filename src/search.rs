@@ -452,6 +452,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if new_depth > reduced_depth {
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
                 }
+            } else if score > alpha && score < best_score + 9 {
+                new_depth -= 1;
             }
         }
         // Principal Variation Search (PVS)
