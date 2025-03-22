@@ -515,6 +515,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if bound == Bound::Lower {
         let bonus = bonus(depth);
 
+        let bonus = match entry {
+            Some(v) => (1 + 2 * (v.score <= alpha && v.bound != Bound::Lower) as i32) * bonus,
+            None => bonus,
+        };
+
         if best_move.is_noisy() {
             td.noisy_history.update(&td.board, best_move, bonus);
 
