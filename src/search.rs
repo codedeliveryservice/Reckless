@@ -112,7 +112,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     }
 
     if report != Report::None {
-        td.print_uci_info(td.completed_depth, score, now);
+        td.print_uci_info(td.root_depth, score, now);
     }
 
     SearchResult { best_move: td.pv.best_move(), score }

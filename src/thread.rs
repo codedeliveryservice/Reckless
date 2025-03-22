@@ -138,9 +138,15 @@ impl<'a> ThreadData<'a> {
             self.nodes,
             self.tt.hashfull(),
         );
+
         for mv in self.pv.line() {
             print!(" {mv}");
         }
+
+        if self.pv.line().is_empty() {
+            print!(" {}", self.pv.best_move());
+        }
+
         println!();
     }
 }
