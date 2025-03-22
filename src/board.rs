@@ -297,11 +297,15 @@ impl Board {
             return false;
         }
 
+        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
+            return false;
+        }
+
         if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
             return false;
         }
 
-        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
+        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
             return false;
         }
 
