@@ -56,6 +56,10 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
+    pub const fn is_normal(self) -> bool {
+        matches!(self.kind(), MoveKind::Normal)
+    }
+
     pub const fn is_noisy(self) -> bool {
         matches!(
             self.kind(),

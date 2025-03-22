@@ -289,55 +289,20 @@ impl Board {
 
         let from = mv.from();
         let to = mv.to();
+
         let piece = self.piece_on(from).piece_type();
+        let captured = self.piece_on(to).piece_type();
 
         if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
             return false;
         }
 
-        if (!mv.is_capture() || mv.is_en_passant()) && self.occupancies().contains(to) {
+        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
             return false;
         }
 
-        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
+        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
             return false;
-        }
-
-        if self.piece_on(to).piece_type() == PieceType::King {
-            return false;
-        }
-
-        if (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) && piece != PieceType::Pawn {
-            return false;
-        }
-
-        if mv.is_castling() && piece != PieceType::King {
-            return false;
-        }
-
-        if piece == PieceType::Pawn {
-            let offset = match self.side_to_move {
-                Color::White => 8,
-                Color::Black => -8,
-            };
-
-            if to != from.shift(offset)
-                && to != from.shift(2 * offset)
-                && !pawn_attacks(from, self.side_to_move).contains(to)
-            {
-                return false;
-            }
-
-            if mv.is_en_passant() {
-                return to == self.state.en_passant;
-            }
-
-            if mv.is_capture() {
-                return self.them().contains(to);
-            }
-
-            return !self.occupancies().contains(to)
-                && (!mv.is_double_push() || !self.occupancies().contains((from + to) / 2));
         }
 
         if mv.is_castling() {
@@ -349,13 +314,36 @@ impl Board {
                 };
             }
 
-            return match mv {
-                WhiteKingSide::CASTLING_MOVE => check_castling!(WhiteKingSide),
-                WhiteQueenSide::CASTLING_MOVE => check_castling!(WhiteQueenSide),
-                BlackKingSide::CASTLING_MOVE => check_castling!(BlackKingSide),
-                BlackQueenSide::CASTLING_MOVE => check_castling!(BlackQueenSide),
-                _ => unreachable!(),
-            };
+            return piece == PieceType::King
+                && match mv {
+                    WhiteKingSide::CASTLING_MOVE => check_castling!(WhiteKingSide),
+                    WhiteQueenSide::CASTLING_MOVE => check_castling!(WhiteQueenSide),
+                    BlackKingSide::CASTLING_MOVE => check_castling!(BlackKingSide),
+                    BlackQueenSide::CASTLING_MOVE => check_castling!(BlackQueenSide),
+                    _ => unreachable!(),
+                };
+        }
+
+        if piece == PieceType::Pawn {
+            let offset = if self.side_to_move == Color::White { 8 } else { -8 };
+
+            if mv.is_en_passant() {
+                return to == self.state.en_passant && pawn_attacks(from, self.side_to_move).contains(to);
+            }
+
+            if mv.is_capture() {
+                return pawn_attacks(from, self.side_to_move).contains(to) && self.them().contains(to);
+            }
+
+            if self.occupancies().contains(to) {
+                return false;
+            }
+
+            if mv.is_double_push() {
+                return from.shift(2 * offset) == to && !self.occupancies().contains(from.shift(offset));
+            }
+
+            return from.shift(offset) == to;
         }
 
         let attacks = match piece {
