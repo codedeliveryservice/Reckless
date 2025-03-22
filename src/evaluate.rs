@@ -8,7 +8,8 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     #[cfg(not(feature = "datagen"))]
     {
-        eval = eval * (22400 + material(&td.board)) / 32768;
+        let material = material(&td.board);
+        eval = (eval * (32768 + material) + td.optimism[td.board.side_to_move()] * (3276 + material)) / 32768;
     }
 
     eval.clamp(-16384, 16384)
