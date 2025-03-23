@@ -417,6 +417,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= (history - 512) / 16;
 
+            reduction += 306 - move_count * 34;
+
             if td.board.in_check() {
                 reduction -= 1024;
             }
