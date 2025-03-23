@@ -1,6 +1,6 @@
 use std::{
     cell::UnsafeCell,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicU16, AtomicU8, Ordering},
 };
 
 use crate::types::{is_decisive, Move};
@@ -8,12 +8,15 @@ use crate::types::{is_decisive, Move};
 pub const DEFAULT_TT_SIZE: usize = 16;
 
 const MEGABYTE: usize = 1024 * 1024;
-const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
+const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<Block>();
+
+const _: () = assert!(INTERNAL_ENTRY_SIZE == 10, "InternalEntry size is not 10 bytes");
 
 #[derive(Copy, Clone)]
 pub struct Entry {
     pub mv: Move,
     pub score: i32,
+    pub eval: i32,
     pub depth: i32,
     pub bound: Bound,
     pub pv: bool,
@@ -46,31 +49,57 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (8 bytes).
+/// Internal representation of a transposition table entry (10 bytes).
 struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
+    eval: i16,    // 2 bytes
     depth: u8,    // 1 byte
     flags: Flags, // 1 byte
 }
 
 #[derive(Default)]
-struct Block(AtomicU64);
+struct Block {
+    key: AtomicU16,
+    mv: AtomicU16,
+    score: AtomicU16,
+    eval: AtomicU16,
+    depth: AtomicU8,
+    flags: AtomicU8,
+}
 
 impl Block {
     fn load(&self) -> InternalEntry {
-        unsafe { std::mem::transmute(self.0.load(Ordering::Relaxed)) }
+        InternalEntry {
+            key: self.key.load(Ordering::Relaxed),
+            mv: Move(self.mv.load(Ordering::Relaxed)),
+            score: self.score.load(Ordering::Relaxed) as i16,
+            eval: self.eval.load(Ordering::Relaxed) as i16,
+            depth: self.depth.load(Ordering::Relaxed),
+            flags: Flags { data: self.flags.load(Ordering::Relaxed) },
+        }
     }
 
     fn write(&self, entry: InternalEntry) {
-        self.0.store(unsafe { std::mem::transmute::<InternalEntry, u64>(entry) }, Ordering::Relaxed);
+        self.key.store(entry.key, Ordering::Relaxed);
+        self.mv.store(entry.mv.0, Ordering::Relaxed);
+        self.score.store(entry.score as u16, Ordering::Relaxed);
+        self.depth.store(entry.depth, Ordering::Relaxed);
+        self.flags.store(entry.flags.data, Ordering::Relaxed);
     }
 }
 
 impl Clone for Block {
     fn clone(&self) -> Self {
-        Self(AtomicU64::new(self.0.load(Ordering::Relaxed)))
+        Self {
+            key: AtomicU16::new(self.key.load(Ordering::Relaxed)),
+            mv: AtomicU16::new(self.mv.load(Ordering::Relaxed)),
+            score: AtomicU16::new(self.score.load(Ordering::Relaxed)),
+            eval: AtomicU16::new(self.eval.load(Ordering::Relaxed)),
+            depth: AtomicU8::new(self.depth.load(Ordering::Relaxed)),
+            flags: AtomicU8::new(self.flags.load(Ordering::Relaxed)),
+        }
     }
 }
 
@@ -120,6 +149,7 @@ impl TranspositionTable {
         let mut hit = Entry {
             depth: entry.depth as i32,
             score: entry.score as i32,
+            eval: entry.eval as i32,
             bound: entry.flags.bound(),
             pv: entry.flags.pv(),
             mv: entry.mv,
@@ -134,7 +164,9 @@ impl TranspositionTable {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
+    pub fn write(
+        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
+    ) {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) {
             score += score.signum() * ply as i32;
@@ -150,6 +182,7 @@ impl TranspositionTable {
             key,
             depth: depth as u8,
             score: score as i16,
+            eval: eval as i16,
             flags: Flags::new(bound, pv),
             mv,
         });

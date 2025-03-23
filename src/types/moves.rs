@@ -7,7 +7,7 @@ use super::{PieceType, Square};
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
 #[derive(Copy, Clone, Eq, PartialEq)]
-pub struct Move(u16);
+pub struct Move(pub u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
 /// 
