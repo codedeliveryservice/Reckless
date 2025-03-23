@@ -1,6 +1,6 @@
 use std::{
     cell::UnsafeCell,
-    sync::atomic::{AtomicU16, AtomicU8, Ordering},
+    sync::atomic::{AtomicI16, AtomicU16, AtomicU8, Ordering},
 };
 
 use crate::types::{is_decisive, Move};
@@ -63,8 +63,8 @@ struct InternalEntry {
 struct Block {
     key: AtomicU16,
     mv: AtomicU16,
-    score: AtomicU16,
-    eval: AtomicU16,
+    score: AtomicI16,
+    eval: AtomicI16,
     depth: AtomicU8,
     flags: AtomicU8,
 }
@@ -84,7 +84,8 @@ impl Block {
     fn write(&self, entry: InternalEntry) {
         self.key.store(entry.key, Ordering::Relaxed);
         self.mv.store(entry.mv.0, Ordering::Relaxed);
-        self.score.store(entry.score as u16, Ordering::Relaxed);
+        self.eval.store(entry.eval, Ordering::Relaxed);
+        self.score.store(entry.score, Ordering::Relaxed);
         self.depth.store(entry.depth, Ordering::Relaxed);
         self.flags.store(entry.flags.data, Ordering::Relaxed);
     }
@@ -95,8 +96,8 @@ impl Clone for Block {
         Self {
             key: AtomicU16::new(self.key.load(Ordering::Relaxed)),
             mv: AtomicU16::new(self.mv.load(Ordering::Relaxed)),
-            score: AtomicU16::new(self.score.load(Ordering::Relaxed)),
-            eval: AtomicU16::new(self.eval.load(Ordering::Relaxed)),
+            score: AtomicI16::new(self.score.load(Ordering::Relaxed)),
+            eval: AtomicI16::new(self.eval.load(Ordering::Relaxed)),
             depth: AtomicU8::new(self.depth.load(Ordering::Relaxed)),
             flags: AtomicU8::new(self.flags.load(Ordering::Relaxed)),
         }
