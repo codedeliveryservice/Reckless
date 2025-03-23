@@ -579,7 +579,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     best_score
 }
 
-fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
@@ -592,8 +592,20 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return Score::ZERO;
     }
 
+    if td.board.is_draw() {
+        return Score::DRAW;
+    }
+
     if td.ply >= MAX_PLY - 1 {
         return if in_check { Score::DRAW } else { evaluate(td) };
+    }
+
+    // Mate Distance Pruning (MDP)
+    alpha = alpha.max(mated_in(td.ply));
+    beta = beta.min(mate_in(td.ply + 1));
+
+    if alpha >= beta {
+        return alpha;
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
