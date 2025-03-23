@@ -80,7 +80,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                 }
             }
 
-            delta += delta / 2;
+            delta += delta / 4 + 4;
         }
 
         if td.stopped {
