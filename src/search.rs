@@ -309,6 +309,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if score >= probcut_beta {
                 td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
 
+                if mv.is_noisy() {
+                    td.noisy_history.update(&td.board, mv, bonus(depth - 2));
+                }
+
                 if is_decisive(score) {
                     return score;
                 }
