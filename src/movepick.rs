@@ -48,7 +48,7 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
+    pub fn next(&mut self, td: &ThreadData, ply: usize) -> Option<(Move, i32)> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::Initialization;
 
@@ -69,7 +69,7 @@ impl MovePicker {
                 self.list.remove(index);
             }
 
-            self.score_moves(td);
+            self.score_moves(td, ply);
         }
 
         // Stage::EverythingElse
@@ -88,7 +88,7 @@ impl MovePicker {
         Some((entry.mv, entry.score))
     }
 
-    fn score_moves(&mut self, td: &ThreadData) {
+    fn score_moves(&mut self, td: &ThreadData, ply: usize) {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let mut score;
@@ -102,8 +102,8 @@ impl MovePicker {
             } else {
                 score = (1 << 18) * (mv == self.killer) as i32;
                 score += td.quiet_history.get(&td.board, mv);
-                score += td.conthist(1, mv);
-                score += td.conthist(2, mv);
+                score += td.conthist(ply, 1, mv);
+                score += td.conthist(ply, 2, mv);
             }
 
             entry.score = score;

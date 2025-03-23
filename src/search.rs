@@ -57,7 +57,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         loop {
-            let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
+            let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
             if td.stopped {
                 break;
@@ -118,22 +118,24 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     SearchResult { best_move: td.pv.best_move(), score }
 }
 
-fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
-    debug_assert!(td.ply <= MAX_PLY);
+fn search<const PV: bool>(
+    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: usize,
+) -> i32 {
+    debug_assert!(ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    let is_root = td.ply == 0;
+    let is_root = ply == 0;
     let in_check = td.board.in_check();
-    let excluded = td.stack[td.ply].excluded.is_valid();
+    let excluded = td.stack[ply].excluded.is_valid();
 
-    td.pv.clear(td.ply);
+    td.pv.clear(ply);
 
     if td.stopped {
         return Score::ZERO;
     }
 
     if depth <= 0 {
-        return qsearch::<PV>(td, alpha, beta);
+        return qsearch::<PV>(td, alpha, beta, ply);
     }
 
     td.nodes += 1;
@@ -148,13 +150,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::DRAW;
         }
 
-        if td.ply >= MAX_PLY - 1 {
+        if ply >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { evaluate(td) };
         }
 
         // Mate Distance Pruning (MDP)
-        alpha = alpha.max(mated_in(td.ply));
-        beta = beta.min(mate_in(td.ply + 1));
+        alpha = alpha.max(mated_in(ply));
+        beta = beta.min(mate_in(ply + 1));
 
         if alpha >= beta {
             return alpha;
@@ -163,7 +165,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = td.tt.read(td.board.hash(), ply);
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
@@ -184,7 +186,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction_value(td);
+    let correction_value = correction_value(td, ply);
 
     let static_eval;
     let mut eval;
@@ -193,7 +195,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        static_eval = td.stack[td.ply].static_eval;
+        static_eval = td.stack[ply].static_eval;
         eval = static_eval;
     } else {
         static_eval = evaluate(td) + correction_value;
@@ -210,17 +212,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
+    let improving = !in_check && ply >= 2 && static_eval > td.stack[ply - 2].static_eval;
 
-    td.stack[td.ply].static_eval = static_eval;
-    td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[ply].static_eval = static_eval;
+    td.stack[ply].tt_pv = tt_pv;
 
-    td.stack[td.ply + 1].killer = Move::NULL;
-    td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[ply + 1].killer = Move::NULL;
+    td.stack[ply + 2].cutoff_count = 0;
 
     // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch::<false>(td, alpha, beta);
+        return qsearch::<false>(td, alpha, beta, ply);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -245,16 +247,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
 
-        td.stack[td.ply].piece = Piece::None;
-        td.stack[td.ply].mv = Move::NULL;
-        td.ply += 1;
+        td.stack[ply].piece = Piece::None;
+        td.stack[ply].mv = Move::NULL;
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false, ply + 1);
 
         td.board.undo_null_move();
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -275,39 +275,37 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some((mv, mv_score)) = move_picker.next(td) {
+        while let Some((mv, mv_score)) = move_picker.next(td, ply) {
             if mv_score < -(1 << 18) {
                 break;
             }
 
-            if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
+            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
 
-            td.stack[td.ply].piece = td.board.piece_on(mv.from());
-            td.stack[td.ply].mv = mv;
-            td.ply += 1;
+            td.stack[ply].piece = td.board.piece_on(mv.from());
+            td.stack[ply].mv = mv;
 
             td.nnue.push(mv, &td.board);
             td.board.make_move(mv);
             td.tt.prefetch(td.board.hash());
 
-            let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
+            let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
+                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node, ply + 1);
             }
 
             td.board.undo_move(mv);
             td.nnue.pop();
-            td.ply -= 1;
 
             if td.stopped {
                 return Score::ZERO;
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, ply, tt_pv);
 
                 if is_decisive(score) {
                     return score;
@@ -331,13 +329,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
+    let mut move_picker = MovePicker::new(td.stack[ply].killer, tt_move);
     let mut skip_quiets = false;
 
-    while let Some((mv, _)) = move_picker.next(td) {
+    while let Some((mv, _)) = move_picker.next(td, ply) {
         let is_quiet = mv.is_quiet();
 
-        if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
+        if (is_quiet && skip_quiets) || mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
 
@@ -364,16 +362,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
+        if !is_root && !excluded && ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
             if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
                 let singular_beta = entry.score - depth;
                 let singular_depth = (depth - 1) / 2;
 
-                td.stack[td.ply].excluded = entry.mv;
-                let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
-                td.stack[td.ply].excluded = Move::NULL;
+                td.stack[ply].excluded = entry.mv;
+                let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+                td.stack[ply].excluded = Move::NULL;
 
                 if td.stopped {
                     return Score::ZERO;
@@ -393,11 +391,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.nodes;
 
-        let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
+        let history = td.quiet_history.get(&td.board, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv);
 
-        td.stack[td.ply].piece = td.board.piece_on(mv.from());
-        td.stack[td.ply].mv = mv;
-        td.ply += 1;
+        td.stack[ply].piece = td.board.piece_on(mv.from());
+        td.stack[ply].mv = mv;
 
         td.nnue.push(mv, &td.board);
         td.board.make_move(mv);
@@ -437,35 +434,34 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1024;
             }
 
-            if td.stack[td.ply].cutoff_count > 3 {
+            if td.stack[ply + 1].cutoff_count > 3 {
                 reduction += 1024;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).max(1).min(new_depth);
 
-            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
+            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 64) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
-                    score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
                 }
             }
         }
         // Principal Variation Search (PVS)
         else if !PV || move_count > 1 {
-            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
         }
 
         if PV && (move_count == 1 || score > alpha) {
-            score = -search::<true>(td, -beta, -alpha, new_depth, false);
+            score = -search::<true>(td, -beta, -alpha, new_depth, false, ply + 1);
         }
 
         td.board.undo_move(mv);
         td.nnue.pop();
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -484,12 +480,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 best_move = mv;
 
                 if PV {
-                    td.pv.update(td.ply, mv);
+                    td.pv.update(ply, mv);
                 }
 
                 if score >= beta {
                     bound = Bound::Lower;
-                    td.stack[td.ply].cutoff_count += 1;
+                    td.stack[ply].cutoff_count += 1;
                     break;
                 }
             }
@@ -509,7 +505,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return alpha;
         }
 
-        return if in_check { mated_in(td.ply) } else { Score::DRAW };
+        return if in_check { mated_in(ply) } else { Score::DRAW };
     }
 
     if bound == Bound::Lower {
@@ -522,7 +518,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
         } else {
-            td.stack[td.ply].killer = best_move;
+            td.stack[ply].killer = best_move;
 
             td.quiet_history.update(&td.board, best_move, bonus);
 
@@ -535,12 +531,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for index in [1, 2] {
-                if td.ply < index || td.stack[td.ply - index].mv.is_null() {
+                if ply < index || td.stack[ply - index].mv.is_null() {
                     continue;
                 }
 
-                let piece = td.stack[td.ply - index].piece;
-                let sq = td.stack[td.ply - index].mv.to();
+                let piece = td.stack[ply - index].piece;
+                let sq = td.stack[ply - index].mv.to();
 
                 let cont_piece = td.board.piece_on(best_move.from());
                 let cont_sq = best_move.to();
@@ -558,11 +554,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if bound == Bound::Upper {
-        tt_pv |= td.ply >= 1 && td.stack[td.ply - 1].tt_pv;
+        tt_pv |= ply >= 1 && td.stack[ply - 1].tt_pv;
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, ply, tt_pv);
     }
 
     if !(in_check
@@ -571,7 +567,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, ply, depth, best_score - static_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -579,8 +575,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     best_score
 }
 
-fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
-    debug_assert!(td.ply <= MAX_PLY);
+fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: usize) -> i32 {
+    debug_assert!(ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
@@ -592,11 +588,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return Score::ZERO;
     }
 
-    if td.ply >= MAX_PLY - 1 {
+    if ply >= MAX_PLY - 1 {
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = td.tt.read(td.board.hash(), ply);
     let mut tt_pv = PV;
 
     if let Some(entry) = entry {
@@ -614,7 +610,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
 
     if !in_check {
-        let eval = evaluate(td) + correction_value(td);
+        let eval = evaluate(td) + correction_value(td, ply);
 
         if eval >= beta {
             return eval;
@@ -633,12 +629,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_noisy(in_check, -110);
 
-    let previous_square = match td.stack[td.ply - 1].mv {
+    let previous_square = match td.stack[ply - 1].mv {
         Move::NULL => Square::None,
-        _ => td.stack[td.ply - 1].mv.to(),
+        _ => td.stack[ply - 1].mv.to(),
     };
 
-    while let Some((mv, mv_score)) = move_picker.next(td) {
+    while let Some((mv, mv_score)) = move_picker.next(td, ply) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -660,18 +656,16 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        td.stack[td.ply].piece = td.board.piece_on(mv.from());
-        td.stack[td.ply].mv = mv;
-        td.ply += 1;
+        td.stack[ply].piece = td.board.piece_on(mv.from());
+        td.stack[ply].mv = mv;
 
         td.nnue.push(mv, &td.board);
         td.board.make_move(mv);
 
-        let score = -qsearch::<PV>(td, -beta, -alpha);
+        let score = -qsearch::<PV>(td, -beta, -alpha, ply + 1);
 
         td.board.undo_move(mv);
         td.nnue.pop();
-        td.ply -= 1;
 
         if td.stopped {
             return Score::ZERO;
@@ -692,19 +686,19 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if in_check && move_count == 0 {
-        return mated_in(td.ply);
+        return mated_in(ply);
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction_value(td: &ThreadData, ply: usize) -> i32 {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -712,14 +706,14 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
+        + if ply >= 1 { td.last_move_corrhist.get(stm, td.stack[ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
 fn bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+fn update_correction_histories(td: &mut ThreadData, ply: usize, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
@@ -729,7 +723,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
-    if td.ply >= 1 && td.stack[td.ply - 1].mv.is_valid() {
-        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+    if ply >= 1 && td.stack[ply - 1].mv.is_valid() {
+        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[ply - 1].mv.encoded() as u64, depth, diff);
     }
 }

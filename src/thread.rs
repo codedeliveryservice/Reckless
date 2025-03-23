@@ -70,7 +70,6 @@ pub struct ThreadData<'a> {
     pub nodes: u64,
     pub root_depth: i32,
     pub completed_depth: i32,
-    pub ply: usize,
 }
 
 impl<'a> ThreadData<'a> {
@@ -97,7 +96,6 @@ impl<'a> ThreadData<'a> {
             nodes: 0,
             root_depth: 0,
             completed_depth: 0,
-            ply: 0,
         }
     }
 
@@ -109,13 +107,13 @@ impl<'a> ThreadData<'a> {
         self.stop.load(Ordering::Relaxed)
     }
 
-    pub fn conthist(&self, index: usize, mv: Move) -> i32 {
-        if self.ply < index || self.stack[self.ply - index].mv.is_null() {
+    pub fn conthist(&self, ply: usize, index: usize, mv: Move) -> i32 {
+        if ply < index || self.stack[ply - index].mv.is_null() {
             return 0;
         }
 
-        let piece = self.stack[self.ply - index].piece;
-        let sq = self.stack[self.ply - index].mv.to();
+        let piece = self.stack[ply - index].piece;
+        let sq = self.stack[ply - index].mv.to();
 
         let cont_piece = self.board.piece_on(mv.from());
         let cont_sq = mv.to();
