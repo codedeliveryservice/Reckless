@@ -612,9 +612,15 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let mut best_score = -Score::INFINITE;
     let mut futility_score = Score::NONE;
+    let mut raw_eval = Score::NONE;
 
     if !in_check {
-        let eval = evaluate(td) + correction_value(td);
+        raw_eval = match entry {
+            Some(entry) if entry.eval != Score::NONE => entry.eval,
+            _ => evaluate(td),
+        };
+
+        let eval = raw_eval + correction_value(td);
 
         if eval >= beta {
             return eval;
@@ -697,7 +703,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, Score::NONE, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
