@@ -32,7 +32,7 @@ impl MovePicker {
             tt_move,
             killer,
             threshold: -110,
-            stage: if tt_move != Move::NULL { Stage::HashMove } else { Stage::Initialization },
+            stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::Initialization },
             kind: Kind::Normal,
         }
     }

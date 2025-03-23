@@ -56,8 +56,16 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
-    pub const fn is_normal(self) -> bool {
-        matches!(self.kind(), MoveKind::Normal)
+    pub const fn is_valid(self) -> bool {
+        self.0 != 0
+    }
+
+    pub const fn is_null(self) -> bool {
+        self.0 == 0
+    }
+
+    pub const fn is_quiet(self) -> bool {
+        !self.is_noisy()
     }
 
     pub const fn is_noisy(self) -> bool {
@@ -73,6 +81,10 @@ impl Move {
 
     pub const fn is_promotion(self) -> bool {
         (self.0 >> 15) != 0
+    }
+
+    pub const fn is_normal(self) -> bool {
+        matches!(self.kind(), MoveKind::Normal)
     }
 
     pub const fn is_en_passant(self) -> bool {

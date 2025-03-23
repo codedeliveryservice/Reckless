@@ -144,7 +144,7 @@ impl TranspositionTable {
         let entry = self.entry(hash);
         let stored = entry.load();
 
-        let mv = if stored.key == key && mv == Move::NULL { stored.mv } else { mv };
+        let mv = if stored.key == key && mv.is_null() { stored.mv } else { mv };
 
         entry.write(InternalEntry {
             key,

@@ -110,7 +110,7 @@ impl<'a> ThreadData<'a> {
     }
 
     pub fn conthist(&self, index: usize, mv: Move) -> i32 {
-        if self.ply < index || self.stack[self.ply - index].mv == Move::NULL {
+        if self.ply < index || self.stack[self.ply - index].mv.is_null() {
             return 0;
         }
 

@@ -283,7 +283,7 @@ impl Board {
     }
 
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
-        if mv == Move::NULL {
+        if mv.is_null() {
             return false;
         }
 

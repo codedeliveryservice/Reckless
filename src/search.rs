@@ -124,7 +124,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
-    let excluded = td.stack[td.ply].excluded != Move::NULL;
+    let excluded = td.stack[td.ply].excluded.is_valid();
 
     td.pv.clear(td.ply);
 
@@ -319,7 +319,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move == Move::NULL && (PV || cut_node) {
+    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
         depth -= 1;
     }
 
@@ -335,7 +335,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut skip_quiets = false;
 
     while let Some((mv, _)) = move_picker.next(td) {
-        let is_quiet = !mv.is_noisy();
+        let is_quiet = mv.is_quiet();
 
         if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -531,7 +531,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for index in [1, 2] {
-                if td.ply < index || td.stack[td.ply - index].mv == Move::NULL {
+                if td.ply < index || td.stack[td.ply - index].mv.is_null() {
                     continue;
                 }
 
@@ -646,7 +646,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if !mv.is_noisy() {
+            if mv.is_quiet() {
                 continue;
             }
 
@@ -725,7 +725,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
-    if td.ply >= 1 && td.stack[td.ply - 1].mv != Move::NULL {
+    if td.ply >= 1 && td.stack[td.ply - 1].mv.is_valid() {
         td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
     }
 }
