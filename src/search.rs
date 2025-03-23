@@ -534,7 +534,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
 
-            for index in [1, 2] {
+            for index in [1, 2, 3, 4] {
                 if td.ply < index || td.stack[td.ply - index].mv.is_null() {
                     continue;
                 }

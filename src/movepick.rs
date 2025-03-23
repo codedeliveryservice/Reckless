@@ -104,6 +104,7 @@ impl MovePicker {
                 score += td.quiet_history.get(&td.board, mv);
                 score += td.conthist(1, mv);
                 score += td.conthist(2, mv);
+                score += td.conthist(4, mv);
             }
 
             entry.score = score;
