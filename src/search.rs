@@ -536,7 +536,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             for index in [1, 2] {
                 if td.ply < index || td.stack[td.ply - index].mv.is_null() {
-                    continue;
+                    break;
                 }
 
                 let piece = td.stack[td.ply - index].piece;
