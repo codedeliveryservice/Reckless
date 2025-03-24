@@ -319,7 +319,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
+    if (PV || cut_node)
+        && depth >= 3 + 3 * cut_node as i32
+        && (tt_move.is_null() || entry.is_some_and(|v| v.depth < depth - 4))
+    {
         depth -= 1;
     }
 
