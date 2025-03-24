@@ -231,7 +231,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
     {
-        return (eval + beta) / 2;
+        return ((eval + beta) / 2).clamp(-16384, 16384);
     }
 
     // Null Move Pruning (NMP)
