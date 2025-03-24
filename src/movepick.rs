@@ -51,10 +51,7 @@ impl MovePicker {
     pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::Initialization;
-
-            if td.board.is_pseudo_legal(self.tt_move) {
-                return Some((self.tt_move, 1 << 21));
-            }
+            return Some((self.tt_move, 1 << 21));
         }
 
         if self.stage == Stage::Initialization {

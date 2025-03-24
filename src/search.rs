@@ -318,6 +318,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if tt_move.is_valid() && !td.board.is_pseudo_legal(tt_move) {
+        tt_move = Move::NULL;
+    }
+
     // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
         depth -= 1;
