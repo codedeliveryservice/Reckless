@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    misc::dbg_stats,
     movepick::MovePicker,
     parameters::*,
     thread::ThreadData,
@@ -242,9 +243,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
         && td.board.has_non_pawns()
+        && td.stack[td.ply - 1].history < 6144
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
 
+        td.stack[td.ply].history = 0;
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
         td.ply += 1;
@@ -284,6 +287,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            td.stack[td.ply].history = 0;
             td.stack[td.ply].piece = td.board.piece_on(mv.from());
             td.stack[td.ply].mv = mv;
             td.ply += 1;
@@ -395,6 +399,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
+        td.stack[td.ply].history = history;
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
@@ -660,6 +665,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
+        td.stack[td.ply].history = 0;
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
