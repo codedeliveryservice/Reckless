@@ -224,14 +224,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Reverse Futility Pruning (RFP)
-    if !PV
-        && !in_check
-        && !excluded
-        && depth <= 8
-        && eval >= beta
-        && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
-    {
-        return ((eval + beta) / 2).clamp(-16384, 16384);
+    if !PV && !in_check && !excluded && depth <= 8 && eval >= beta {
+        let mut margin = 80 * depth - (80 * improving as i32) - (60 * cut_node as i32);
+
+        if td.ply >= 1 {
+            margin -= td.stack[td.ply - 1].history / 300;
+        }
+
+        if eval >= beta + margin {
+            return ((eval + beta) / 2).clamp(-16384, 16384);
+        }
     }
 
     // Null Move Pruning (NMP)
@@ -245,6 +247,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + tt_move.is_noisy() as i32;
 
+        td.stack[td.ply].history = 0;
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
         td.ply += 1;
@@ -284,6 +287,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            td.stack[td.ply].history = 0;
             td.stack[td.ply].piece = td.board.piece_on(mv.from());
             td.stack[td.ply].mv = mv;
             td.ply += 1;
@@ -395,6 +399,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
+        td.stack[td.ply].history = history;
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
@@ -660,6 +665,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
+        td.stack[td.ply].history = 0;
         td.stack[td.ply].piece = td.board.piece_on(mv.from());
         td.stack[td.ply].mv = mv;
         td.ply += 1;
