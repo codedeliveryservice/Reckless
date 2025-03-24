@@ -228,7 +228,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut margin = 80 * depth - (80 * improving as i32) - (60 * cut_node as i32);
 
         if td.ply >= 1 {
-            margin -= td.stack[td.ply - 1].history / 300;
+            margin += td.stack[td.ply - 1].history / 300;
         }
 
         if eval >= beta + margin {
