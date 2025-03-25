@@ -388,10 +388,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     extension = 1;
                     extension += (!PV && score < singular_beta - 24) as i32;
                     extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
-                }
-                // Multi-Cut Pruning
-                else if score >= beta {
+                } else if score >= beta {
                     return score;
+                } else if entry.score >= beta {
+                    extension -= 2;
+                } else if cut_node {
+                    extension = -2;
                 }
             }
         }
