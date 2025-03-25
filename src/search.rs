@@ -531,7 +531,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         } else {
             td.stack[td.ply].killer = best_move;
 
-            td.quiet_history.update(&td.board, best_move, bonus);
+            if !quiet_moves.is_empty() || depth > 3 {
+                td.quiet_history.update(&td.board, best_move, bonus);
+                update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
+            }
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(&td.board, mv, -bonus);
@@ -540,8 +543,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             for &mv in noisy_moves.iter() {
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
-
-            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
 
             for &mv in quiet_moves.iter() {
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
