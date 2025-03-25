@@ -40,6 +40,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut pv_stability = 0;
 
     for depth in 1..MAX_PLY as i32 {
+        td.sel_depth = 0;
         td.root_depth = depth;
 
         let mut alpha = -Score::INFINITE;
@@ -137,6 +138,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     td.nodes += 1;
+
+    if PV {
+        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+    }
 
     if td.time_manager.check_time(td) {
         td.stopped = true;

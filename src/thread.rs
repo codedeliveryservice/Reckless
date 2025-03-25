@@ -69,6 +69,7 @@ pub struct ThreadData<'a> {
     pub stopped: bool,
     pub nodes: u64,
     pub root_depth: i32,
+    pub sel_depth: i32,
     pub completed_depth: i32,
     pub ply: usize,
 }
@@ -96,6 +97,7 @@ impl<'a> ThreadData<'a> {
             stopped: false,
             nodes: 0,
             root_depth: 0,
+            sel_depth: 0,
             completed_depth: 0,
             ply: 0,
         }
@@ -134,7 +136,8 @@ impl<'a> ThreadData<'a> {
         };
 
         print!(
-            "info depth {depth} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
+            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
+            self.sel_depth,
             self.nodes,
             self.tt.hashfull(),
         );
