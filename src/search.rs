@@ -429,7 +429,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if tt_pv {
-                reduction -= 768;
+                reduction -= 768 + 1024 * entry.is_some_and(|e| e.depth >= depth) as i32;
             }
 
             if PV {
