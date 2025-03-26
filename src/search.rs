@@ -541,25 +541,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
 
-            for index in [1, 2] {
-                if td.ply < index || td.stack[td.ply - index].mv.is_null() {
-                    continue;
-                }
+            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
 
-                let piece = td.stack[td.ply - index].piece;
-                let sq = td.stack[td.ply - index].mv.to();
-
-                let cont_piece = td.board.moved_piece(best_move);
-                let cont_sq = best_move.to();
-
-                td.continuation_history.update(piece, sq, cont_piece, cont_sq, bonus);
-
-                for &mv in quiet_moves.iter() {
-                    let cont_piece = td.board.moved_piece(mv);
-                    let cont_sq = mv.to();
-
-                    td.continuation_history.update(piece, sq, cont_piece, cont_sq, -bonus);
-                }
+            for &mv in quiet_moves.iter() {
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
             }
         }
     }
@@ -738,5 +723,21 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_valid() {
         td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+    }
+}
+
+fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
+    if td.ply >= 1 {
+        let entry = td.stack[td.ply - 1];
+        if entry.mv.is_valid() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+        }
+    }
+
+    if td.ply >= 2 {
+        let entry = td.stack[td.ply - 2];
+        if entry.mv.is_valid() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+        }
     }
 }
