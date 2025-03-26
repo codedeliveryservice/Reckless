@@ -6,13 +6,13 @@ use super::{PieceType, Square};
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.
 /// 
 /// See [From-To Based](https://www.chessprogramming.org/Encoding_Moves#From-To_Based) for more information.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[rustfmt::skip]
 pub enum MoveKind {
     Normal            = 0b0000,
@@ -91,11 +91,11 @@ impl Move {
         matches!(self.kind(), MoveKind::EnPassant)
     }
 
-    pub const fn is_castling(&self) -> bool {
+    pub const fn is_castling(self) -> bool {
         matches!(self.kind(), MoveKind::Castling)
     }
 
-    pub fn is_double_push(&self) -> bool {
+    pub const fn is_double_push(self) -> bool {
         matches!(self.kind(), MoveKind::DoublePush)
     }
 

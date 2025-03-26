@@ -38,7 +38,7 @@ impl Flags {
 }
 
 /// Type of the score returned by the search.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Bound {
     None,
     Exact,

@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use super::Color;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Piece {
     WhitePawn,
     BlackPawn,
@@ -44,7 +44,7 @@ impl TryFrom<char> for Piece {
 
     fn try_from(value: char) -> Result<Self, Self::Error> {
         let index = "PpNnBbRrQqKk".find(value).ok_or(())?;
-        Ok(Piece::from_index(index))
+        Ok(Self::from_index(index))
     }
 }
 
@@ -62,7 +62,7 @@ impl<T> IndexMut<Piece> for [T] {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum PieceType {
     Pawn,
     Knight,

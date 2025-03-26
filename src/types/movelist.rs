@@ -21,11 +21,11 @@ impl MoveList {
     }
 
     pub const fn is_empty(&self) -> bool {
-        self.inner.len() == 0
+        self.inner.is_empty()
     }
 
     pub fn push(&mut self, from: Square, to: Square, kind: MoveKind) {
-        self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 })
+        self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
     }
 
     pub fn push_move(&mut self, mv: Move) {
