@@ -12,12 +12,12 @@ impl super::Board {
     }
 
     pub fn append_all_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<false>(list)
+        self.generate_moves::<false>(list);
     }
 
     /// Generates only pseudo legal capture moves for the current position.
     pub fn append_noisy_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<true>(list)
+        self.generate_moves::<true>(list);
     }
 
     /// Generates pseudo legal moves for the current position.

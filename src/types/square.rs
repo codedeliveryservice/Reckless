@@ -5,7 +5,7 @@ use super::Bitboard;
 /// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
 /// [LERFM]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 #[rustfmt::skip]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,

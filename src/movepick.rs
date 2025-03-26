@@ -9,7 +9,7 @@ enum Kind {
     Noisy,
 }
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
     Initialization,
@@ -26,7 +26,7 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub fn new(killer: Move, tt_move: Move) -> Self {
+    pub const fn new(killer: Move, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
@@ -37,7 +37,7 @@ impl MovePicker {
         }
     }
 
-    pub fn new_noisy(include_quiets: bool, threshold: i32) -> Self {
+    pub const fn new_noisy(include_quiets: bool, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,

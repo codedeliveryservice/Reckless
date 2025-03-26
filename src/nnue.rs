@@ -23,7 +23,7 @@ macro_rules! ft {
 #[derive(Clone)]
 pub struct Network {
     index: usize,
-    stack: Box<[Accumulator; MAX_PLY]>,
+    stack: Box<[Accumulator]>,
 }
 
 impl Network {
@@ -110,7 +110,10 @@ fn index(color: Color, piece: PieceType, square: Square, wking: Square, bking: S
 
 impl Default for Network {
     fn default() -> Self {
-        Self { index: 0, stack: Box::new([Accumulator::new(); MAX_PLY]) }
+        Self {
+            index: 0,
+            stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
+        }
     }
 }
 

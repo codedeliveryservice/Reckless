@@ -9,7 +9,7 @@ use crate::{
     types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Report {
     None,
     Minimal,
@@ -26,8 +26,10 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.nodes = 0;
     td.completed_depth = 0;
     td.stopped = false;
+
     td.pv.clear(0);
     td.node_table.clear();
+
     td.nnue.refresh(&td.board);
 
     let now = Instant::now();
@@ -289,7 +291,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            td.stack[td.ply].piece = td.board.piece_on(mv.from());
+            td.stack[td.ply].piece = td.board.moved_piece(mv);
             td.stack[td.ply].mv = mv;
             td.ply += 1;
 
@@ -400,7 +402,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
-        td.stack[td.ply].piece = td.board.piece_on(mv.from());
+        td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 
@@ -547,13 +549,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 let piece = td.stack[td.ply - index].piece;
                 let sq = td.stack[td.ply - index].mv.to();
 
-                let cont_piece = td.board.piece_on(best_move.from());
+                let cont_piece = td.board.moved_piece(best_move);
                 let cont_sq = best_move.to();
 
                 td.continuation_history.update(piece, sq, cont_piece, cont_sq, bonus);
 
                 for &mv in quiet_moves.iter() {
-                    let cont_piece = td.board.piece_on(mv.from());
+                    let cont_piece = td.board.moved_piece(mv);
                     let cont_sq = mv.to();
 
                     td.continuation_history.update(piece, sq, cont_piece, cont_sq, -bonus);
@@ -665,7 +667,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        td.stack[td.ply].piece = td.board.piece_on(mv.from());
+        td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
         td.ply += 1;
 

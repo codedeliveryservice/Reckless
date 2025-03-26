@@ -15,6 +15,10 @@ impl<T, const N: usize> ArrayVec<T, N> {
         self.len
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     pub fn get(&self, index: usize) -> &T {
         debug_assert!(index < self.len);
 

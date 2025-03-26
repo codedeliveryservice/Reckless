@@ -146,6 +146,10 @@ impl Board {
         self.mailbox[square]
     }
 
+    pub fn moved_piece(&self, mv: Move) -> Piece {
+        self.mailbox[mv.from()]
+    }
+
     /// Returns `true` if the current side to move has non-pawn material.
     ///
     /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
