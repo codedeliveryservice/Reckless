@@ -286,6 +286,55 @@ impl Board {
         (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
+    pub fn gives_check(&self, mv: Move) -> bool {
+        let from = mv.from();
+        let to = mv.to();
+        let delta = from.to_bb() ^ to.to_bb();
+
+        let mut occupancies = self.occupancies() ^ delta;
+
+        if mv.is_capture() {
+            occupancies ^= to.to_bb();
+        }
+
+        if mv.is_en_passant() {
+            occupancies ^= to.to_bb() ^ (to ^ 8).to_bb();
+        }
+
+        let mut pawns = self.our(PieceType::Pawn);
+        let mut knights = self.our(PieceType::Knight);
+        let mut bishops = self.our(PieceType::Bishop);
+        let mut rooks = self.our(PieceType::Rook);
+        let mut queens = self.our(PieceType::Queen);
+
+        match self.piece_on(from).piece_type() {
+            PieceType::Pawn => pawns ^= delta,
+            PieceType::Knight => knights ^= delta,
+            PieceType::Bishop => bishops ^= delta,
+            PieceType::Rook => rooks ^= delta,
+            PieceType::Queen => queens ^= delta,
+            _ => {}
+        }
+
+        let king = self.their(PieceType::King).lsb();
+        let mut checkers = Bitboard::default();
+
+        checkers |= pawn_attacks(king, !self.side_to_move) & pawns;
+        checkers |= knight_attacks(king) & knights;
+        checkers |= bishop_attacks(king, occupancies) & (bishops | queens);
+        checkers |= rook_attacks(king, occupancies) & (rooks | queens);
+
+        checkers |= match mv.promotion_piece() {
+            Some(PieceType::Knight) => knight_attacks(to),
+            Some(PieceType::Bishop) => bishop_attacks(to, occupancies),
+            Some(PieceType::Rook) => rook_attacks(to, occupancies),
+            Some(PieceType::Queen) => queen_attacks(to, occupancies),
+            _ => Bitboard::default(),
+        } & king.to_bb();
+
+        !checkers.is_empty()
+    }
+
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         if mv.is_null() {
             return false;
