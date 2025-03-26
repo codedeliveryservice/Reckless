@@ -77,7 +77,7 @@ fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
-                search::start(td, report);
+                search::start(td, if id == 0 { report } else { Report::None });
                 td.set_stop(true);
 
                 if id == 0 {
