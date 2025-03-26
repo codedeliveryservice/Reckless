@@ -7,25 +7,19 @@ type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 12];
 
 pub struct QuietHistory {
-    // [side_to_move][from_threated][to_threated][from][to]
-    entries: Box<[[[FromToHistory<i32>; 2]; 2]; 2]>,
+    // [side_to_move][from][to]
+    entries: Box<[FromToHistory<i32>; 2]>,
 }
 
 impl QuietHistory {
     const MAX_HISTORY: i32 = 8192;
 
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
-        let from_threated = board.is_threatened(mv.from()) as usize;
-        let to_threated = board.is_threatened(mv.to()) as usize;
-
-        self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()]
+        self.entries[board.side_to_move()][mv.from()][mv.to()]
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let from_threated = board.is_threatened(mv.from()) as usize;
-        let to_threated = board.is_threatened(mv.to()) as usize;
-
-        let entry = &mut self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()];
+        let entry = &mut self.entries[board.side_to_move()][mv.from()][mv.to()];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
