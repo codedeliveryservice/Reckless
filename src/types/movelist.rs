@@ -2,6 +2,7 @@ use std::ops::Index;
 
 use super::{ArrayVec, Move, MoveKind, Square, MAX_MOVES};
 
+#[derive(Copy, Clone)]
 pub struct MoveEntry {
     pub mv: Move,
     pub score: i32,

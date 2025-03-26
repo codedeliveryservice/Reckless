@@ -8,7 +8,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::Color,
+    types::{is_decisive, is_loss, Color},
 };
 
 pub fn message_loop() {
@@ -69,6 +69,7 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
+
     threads.main_thread().time_manager = TimeManager::new(limits, board.game_ply());
     threads.main_thread().set_stop(false);
 
@@ -77,20 +78,37 @@ fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
-                search::start(td, if id == 0 { report } else { Report::None });
+                let result = search::start(td, if id == 0 { report } else { Report::None });
                 td.set_stop(true);
-
-                if id == 0 {
-                    println!("bestmove {}", td.pv.best_move());
-                }
+                result
             });
 
             handlers.push(handler);
         }
 
+        let mut results = Vec::new();
         for handler in handlers {
-            handler.join().unwrap();
+            results.push(handler.join().unwrap());
         }
+
+        let min_score = results.iter().map(|v| v.score).min().unwrap();
+        let mut votes = vec![0; 4096];
+        for result in &results {
+            votes[result.best_move.encoded()] += (result.score - min_score + 10) * result.depth;
+        }
+
+        let mut best_result = results[0];
+        for current in results.iter().skip(1) {
+            if is_decisive(best_result.score) {
+                break;
+            }
+
+            if !is_loss(current.score) && votes[current.best_move.encoded()] > votes[best_result.best_move.encoded()] {
+                best_result = *current;
+            }
+        }
+
+        println!("bestmove {}", best_result.best_move.to_string());
     });
 }
 
