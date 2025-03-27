@@ -98,7 +98,7 @@ impl MovePicker {
             if !skip_quiets {
                 self.stage = Stage::GenerateQuiet;
 
-                if td.board.is_pseudo_legal(self.killer) {
+                if self.killer != self.tt_move && td.board.is_pseudo_legal(self.killer) {
                     return Some(self.killer);
                 }
             } else {
