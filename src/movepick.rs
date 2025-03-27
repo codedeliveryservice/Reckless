@@ -9,6 +9,7 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
+    KillerMove,
     GenerateQuiet,
     Quiet,
     BadNoisy,
@@ -78,7 +79,7 @@ impl MovePicker {
                 }
 
                 let entry = self.list.remove(index);
-                if entry.mv == self.tt_move {
+                if self.is_reserved(entry.mv) {
                     continue;
                 }
 
@@ -90,7 +91,19 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = Stage::GenerateQuiet;
+            self.stage = Stage::KillerMove;
+        }
+
+        if self.stage == Stage::KillerMove {
+            if !skip_quiets {
+                self.stage = Stage::GenerateQuiet;
+
+                if td.board.is_pseudo_legal(self.killer) {
+                    return Some(self.killer);
+                }
+            } else {
+                self.stage = Stage::BadNoisy;
+            }
         }
 
         if self.stage == Stage::GenerateQuiet {
@@ -114,7 +127,7 @@ impl MovePicker {
                     }
 
                     let entry = self.list.remove(index);
-                    if entry.mv == self.tt_move {
+                    if self.is_reserved(entry.mv) {
                         continue;
                     }
 
@@ -130,7 +143,7 @@ impl MovePicker {
             let mv = self.bad_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
 
-            if mv == self.tt_move {
+            if self.is_reserved(mv) {
                 continue;
             }
 
@@ -138,6 +151,10 @@ impl MovePicker {
         }
 
         None
+    }
+
+    fn is_reserved(&self, mv: Move) -> bool {
+        mv == self.tt_move || mv == self.killer
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
@@ -153,10 +170,9 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(&td.board, mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv);
+            entry.score = td.quiet_history.get(&td.board, mv);
+            entry.score += td.conthist(1, mv);
+            entry.score += td.conthist(2, mv);
         }
     }
 }
