@@ -68,7 +68,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             match current {
                 s if s <= alpha => {
-                    beta = (alpha + beta) / 2;
+                    beta = (current + alpha + beta) / 3;
                     alpha = (current - delta).max(-Score::INFINITE);
                     reduction = 0;
                 }
