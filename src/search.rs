@@ -640,7 +640,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
-            if move_picker.stage() == Stage::BadNoisy {
+            if !in_check && move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
