@@ -18,7 +18,7 @@ pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
     killer: Move,
-    threshold: i32,
+    threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
@@ -30,7 +30,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move,
             killer,
-            threshold: -110,
+            threshold: None,
             stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -42,7 +42,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
-            threshold,
+            threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -82,7 +82,8 @@ impl MovePicker {
                     continue;
                 }
 
-                if !td.board.see(entry.mv, self.threshold) {
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 32 + 100);
+                if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
                 }
@@ -144,7 +145,7 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let captured = td.board.piece_on(entry.mv.to()).piece_type();
 
-            entry.score = PIECE_VALUES[captured as usize % 6] * 32;
+            entry.score = PIECE_VALUES[captured as usize % 6] * 16;
             entry.score += td.noisy_history.get(&td.board, entry.mv);
         }
     }
