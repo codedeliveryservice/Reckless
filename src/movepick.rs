@@ -22,10 +22,11 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    in_check: bool,
 }
 
 impl MovePicker {
-    pub const fn new(killer: Move, tt_move: Move) -> Self {
+    pub const fn new(killer: Move, tt_move: Move, in_check: bool) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
@@ -34,10 +35,11 @@ impl MovePicker {
             stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            in_check,
         }
     }
 
-    pub const fn new_noisy(threshold: i32) -> Self {
+    pub const fn new_noisy(threshold: i32, in_check: bool) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
@@ -46,6 +48,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            in_check,
         }
     }
 
@@ -156,7 +159,8 @@ impl MovePicker {
             entry.score = (1 << 18) * (mv == self.killer) as i32
                 + td.quiet_history.get(&td.board, mv)
                 + td.conthist(1, mv)
-                + td.conthist(2, mv);
+                + td.conthist(2, mv) * !self.in_check as i32
+                + td.conthist(4, mv) / 2 * !self.in_check as i32;
         }
     }
 }
