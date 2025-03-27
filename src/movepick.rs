@@ -1,19 +1,17 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{Move, MoveList},
+    types::{ArrayVec, Move, MoveList, MAX_MOVES},
 };
 
-enum Kind {
-    Normal,
-    Noisy,
-}
-
-#[derive(Eq, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
-    Initialization,
-    EverythingElse,
+    GenerateNoisy,
+    GoodNoisy,
+    GenerateQuiet,
+    Quiet,
+    BadNoisy,
 }
 
 pub struct MovePicker {
@@ -22,7 +20,8 @@ pub struct MovePicker {
     killer: Move,
     threshold: i32,
     stage: Stage,
-    kind: Kind,
+    bad_noisy: ArrayVec<Move, MAX_MOVES>,
+    bad_noisy_idx: usize,
 }
 
 impl MovePicker {
@@ -32,81 +31,132 @@ impl MovePicker {
             tt_move,
             killer,
             threshold: -110,
-            stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::Initialization },
-            kind: Kind::Normal,
+            stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::GenerateNoisy },
+            bad_noisy: ArrayVec::new(),
+            bad_noisy_idx: 0,
         }
     }
 
-    pub const fn new_noisy(include_quiets: bool, threshold: i32) -> Self {
+    pub const fn new_noisy(threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
             threshold,
-            stage: Stage::Initialization,
-            kind: if include_quiets { Kind::Normal } else { Kind::Noisy },
+            stage: Stage::GenerateNoisy,
+            bad_noisy: ArrayVec::new(),
+            bad_noisy_idx: 0,
         }
     }
 
-    pub fn next(&mut self, td: &ThreadData) -> Option<(Move, i32)> {
+    pub fn stage(&self) -> Stage {
+        self.stage
+    }
+
+    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
         if self.stage == Stage::HashMove {
-            self.stage = Stage::Initialization;
+            self.stage = Stage::GenerateNoisy;
 
             if td.board.is_pseudo_legal(self.tt_move) {
-                return Some((self.tt_move, 1 << 21));
+                return Some(self.tt_move);
             }
         }
 
-        if self.stage == Stage::Initialization {
-            self.stage = Stage::EverythingElse;
+        if self.stage == Stage::GenerateNoisy {
+            self.stage = Stage::GoodNoisy;
+            td.board.append_noisy_moves(&mut self.list);
+            self.score_noisy(td);
+        }
 
-            match self.kind {
-                Kind::Normal => td.board.append_all_moves(&mut self.list),
-                Kind::Noisy => td.board.append_noisy_moves(&mut self.list),
-            };
+        if self.stage == Stage::GoodNoisy {
+            while !self.list.is_empty() {
+                let mut index = 0;
+                for i in 1..self.list.len() {
+                    if self.list[i].score > self.list[index].score {
+                        index = i;
+                    }
+                }
 
-            if let Some(index) = self.list.iter().position(|entry| entry.mv == self.tt_move) {
-                self.list.remove(index);
+                let entry = self.list.remove(index);
+                if entry.mv == self.tt_move {
+                    continue;
+                }
+
+                if !td.board.see(entry.mv, self.threshold) {
+                    self.bad_noisy.push(entry.mv);
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
-            self.score_moves(td);
+            self.stage = Stage::GenerateQuiet;
         }
 
-        // Stage::EverythingElse
-        if self.list.is_empty() {
-            return None;
-        }
-
-        let mut index = 0;
-        for i in 1..self.list.len() {
-            if self.list[i].score > self.list[index].score {
-                index = i;
+        if self.stage == Stage::GenerateQuiet {
+            if !skip_quiets {
+                self.stage = Stage::Quiet;
+                td.board.append_quiet_moves(&mut self.list);
+                self.score_quiet(td);
+            } else {
+                self.stage = Stage::BadNoisy;
             }
         }
 
-        let entry = self.list.remove(index);
-        Some((entry.mv, entry.score))
+        if self.stage == Stage::Quiet {
+            if !skip_quiets {
+                while !self.list.is_empty() {
+                    let mut index = 0;
+                    for i in 1..self.list.len() {
+                        if self.list[i].score > self.list[index].score {
+                            index = i;
+                        }
+                    }
+
+                    let entry = self.list.remove(index);
+                    if entry.mv == self.tt_move {
+                        continue;
+                    }
+
+                    return Some(entry.mv);
+                }
+            }
+
+            self.stage = Stage::BadNoisy;
+        }
+
+        // Stage::BadNoisy
+        while self.bad_noisy_idx < self.bad_noisy.len() {
+            let mv = self.bad_noisy[self.bad_noisy_idx];
+            self.bad_noisy_idx += 1;
+
+            if mv == self.tt_move {
+                continue;
+            }
+
+            return Some(mv);
+        }
+
+        None
     }
 
-    fn score_moves(&mut self, td: &ThreadData) {
+    fn score_noisy(&mut self, td: &ThreadData) {
+        for entry in self.list.iter_mut() {
+            let captured = td.board.piece_on(entry.mv.to()).piece_type();
+
+            entry.score = PIECE_VALUES[captured as usize % 6] * 32;
+            entry.score += td.noisy_history.get(&td.board, entry.mv);
+        }
+    }
+
+    fn score_quiet(&mut self, td: &ThreadData) {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
-            let mut score;
 
-            if mv.is_noisy() {
-                let captured = td.board.piece_on(mv.to()).piece_type();
-
-                score = if td.board.see(mv, self.threshold) { 1 << 20 } else { -(1 << 20) };
-                score += PIECE_VALUES[captured as usize % 6] * 32;
-                score += td.noisy_history.get(&td.board, mv);
-            } else {
-                score = (1 << 18) * (mv == self.killer) as i32;
-                score += td.quiet_history.get(&td.board, mv);
-                score += td.conthist(1, mv);
-                score += td.conthist(2, mv);
-            }
-
-            entry.score = score;
+            entry.score = (1 << 18) * (mv == self.killer) as i32
+                + td.quiet_history.get(&td.board, mv)
+                + td.conthist(1, mv)
+                + td.conthist(2, mv);
         }
     }
 }
