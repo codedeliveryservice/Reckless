@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
-    movepick::MovePicker,
+    movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
@@ -278,12 +278,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
-        let mut move_picker = MovePicker::new_noisy(false, probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new_noisy(probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some((mv, mv_score)) = move_picker.next(td) {
-            if mv_score < -(1 << 18) {
+        while let Some(mv) = move_picker.next(td, true) {
+            if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
@@ -341,15 +341,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
-    while let Some((mv, _)) = move_picker.next(td) {
-        let is_quiet = mv.is_quiet();
-
-        if (is_quiet && skip_quiets) || mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
+    while let Some(mv) = move_picker.next(td, skip_quiets) {
+        if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
 
         move_count += 1;
 
+        let is_quiet = mv.is_quiet();
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !is_root && !is_loss(best_score) {
@@ -626,14 +625,14 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_noisy(in_check, -110);
+    let mut move_picker = MovePicker::new_noisy(-110);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some((mv, mv_score)) = move_picker.next(td) {
+    while let Some(mv) = move_picker.next(td, !in_check) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -641,7 +640,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
-            if mv_score < -(1 << 18) {
+            if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
