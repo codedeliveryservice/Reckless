@@ -144,7 +144,7 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let captured = td.board.piece_on(entry.mv.to()).piece_type();
 
-            entry.score = PIECE_VALUES[captured as usize % 6] * 32;
+            entry.score = PIECE_VALUES[captured as usize % 6] * 16;
             entry.score += td.noisy_history.get(&td.board, entry.mv);
         }
     }
