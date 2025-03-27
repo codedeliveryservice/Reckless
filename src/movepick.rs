@@ -169,7 +169,9 @@ impl MovePicker {
             entry.score = (1 << 18) * (mv == self.killer) as i32
                 + td.quiet_history.get(&td.board, mv)
                 + td.conthist(1, mv)
-                + td.conthist(2, mv);
+                + td.conthist(2, mv)
+                + td.conthist(4, mv)
+                + td.conthist(6, mv);
         }
     }
 }
