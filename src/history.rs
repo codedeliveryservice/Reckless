@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Color, Move, Piece, Square},
+    types::{Bitboard, Color, Move, Piece, Square},
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -21,11 +21,11 @@ impl QuietHistory {
         self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()]
     }
 
-    pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let from_threated = board.is_threatened(mv.from()) as usize;
-        let to_threated = board.is_threatened(mv.to()) as usize;
+    pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
+        let from_threated = threats.contains(mv.from()) as usize;
+        let to_threated = threats.contains(mv.to()) as usize;
 
-        let entry = &mut self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()];
+        let entry = &mut self.entries[stm][from_threated][to_threated][mv.from()][mv.to()];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
