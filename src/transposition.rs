@@ -1,7 +1,4 @@
-use std::{
-    cell::UnsafeCell,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::cell::UnsafeCell;
 
 use crate::types::{is_decisive, Move};
 
@@ -19,6 +16,7 @@ pub struct Entry {
     pub pv: bool,
 }
 
+#[derive(Clone)]
 pub struct Flags {
     data: u8,
 }
@@ -47,6 +45,7 @@ pub enum Bound {
 }
 
 /// Internal representation of a transposition table entry (8 bytes).
+#[derive(Clone)]
 struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
@@ -55,28 +54,21 @@ struct InternalEntry {
     flags: Flags, // 1 byte
 }
 
-#[derive(Default)]
-struct Block(AtomicU64);
-
-impl Block {
-    fn load(&self) -> InternalEntry {
-        unsafe { std::mem::transmute(self.0.load(Ordering::Relaxed)) }
-    }
-
-    fn write(&self, entry: InternalEntry) {
-        self.0.store(unsafe { std::mem::transmute::<InternalEntry, u64>(entry) }, Ordering::Relaxed);
-    }
-}
-
-impl Clone for Block {
-    fn clone(&self) -> Self {
-        Self(AtomicU64::new(self.0.load(Ordering::Relaxed)))
+impl Default for InternalEntry {
+    fn default() -> Self {
+        Self {
+            key: 0,
+            score: 0,
+            depth: 0,
+            mv: Move::NULL,
+            flags: Flags::new(Bound::None, false),
+        }
     }
 }
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: UnsafeCell<Vec<Block>>,
+    vector: UnsafeCell<Vec<InternalEntry>>,
 }
 
 unsafe impl Sync for TranspositionTable {}
@@ -107,11 +99,11 @@ impl TranspositionTable {
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
-        vector.iter().take(1000).filter(|slot| slot.load().flags.bound() != Bound::None).count()
+        vector.iter().take(1000).filter(|slot| slot.flags.bound() != Bound::None).count()
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
-        let entry = self.entry(hash).load();
+        let entry = self.entry(hash);
 
         if entry.flags.bound() == Bound::None || entry.key != verification_key(hash) {
             return None;
@@ -141,18 +133,16 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let entry = self.entry(hash);
-        let stored = entry.load();
+        let entry = self.entry_mut(hash);
 
-        let mv = if stored.key == key && mv.is_null() { stored.mv } else { mv };
+        if entry.key != key || mv != Move::NULL {
+            entry.mv = mv;
+        }
 
-        entry.write(InternalEntry {
-            key,
-            depth: depth as u8,
-            score: score as i16,
-            flags: Flags::new(bound, pv),
-            mv,
-        });
+        entry.key = key;
+        entry.depth = depth as u8;
+        entry.score = score as i16;
+        entry.flags = Flags::new(bound, pv);
     }
 
     pub fn prefetch(&self, hash: u64) {
@@ -174,11 +164,19 @@ impl TranspositionTable {
         unsafe { (*self.vector.get()).len() }
     }
 
-    fn entry(&self, hash: u64) -> &Block {
+    fn entry(&self, hash: u64) -> &InternalEntry {
         let index = self.index(hash);
         unsafe {
             let vec = &*self.vector.get();
             vec.get_unchecked(index)
+        }
+    }
+
+    fn entry_mut(&self, hash: u64) -> &mut InternalEntry {
+        let index = self.index(hash);
+        unsafe {
+            let vec = &mut *self.vector.get();
+            vec.get_unchecked_mut(index)
         }
     }
 
@@ -210,7 +208,7 @@ const fn verification_key(hash: u64) -> u16 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            vector: UnsafeCell::new(vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE]),
+            vector: UnsafeCell::new(vec![InternalEntry::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE]),
         }
     }
 }
