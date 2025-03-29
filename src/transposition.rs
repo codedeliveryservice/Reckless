@@ -1,6 +1,6 @@
 use std::{
     cell::UnsafeCell,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicU64, AtomicU8, Ordering},
 };
 
 use crate::types::{is_decisive, Move};
@@ -24,8 +24,8 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub const fn new(bound: Bound, pv: bool) -> Self {
-        Self { data: bound as u8 | ((pv as u8) << 2) }
+    pub const fn new(bound: Bound, pv: bool, age: u8) -> Self {
+        Self { data: (bound as u8) | ((pv as u8) << 2) | (age << 3) }
     }
 
     pub const fn bound(&self) -> Bound {
@@ -34,6 +34,10 @@ impl Flags {
 
     pub const fn pv(&self) -> bool {
         (self.data & 0b100) != 0
+    }
+
+    pub const fn age(&self) -> u8 {
+        self.data >> 3
     }
 }
 
@@ -77,11 +81,14 @@ impl Clone for Block {
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
     vector: UnsafeCell<Vec<Block>>,
+    age: AtomicU8,
 }
 
 unsafe impl Sync for TranspositionTable {}
 
 impl TranspositionTable {
+    const MAX_AGE: u8 = 31;
+
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
         unsafe { self.parallel_clear(threads, self.len()) }
@@ -108,6 +115,10 @@ impl TranspositionTable {
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
         vector.iter().take(1000).filter(|slot| slot.load().flags.bound() != Bound::None).count()
+    }
+
+    pub fn increment_age(&self) {
+        self.age.store((self.age() + 1) & Self::MAX_AGE, Ordering::Relaxed);
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
@@ -141,18 +152,28 @@ impl TranspositionTable {
         }
 
         let key = verification_key(hash);
-        let entry = self.entry(hash);
-        let stored = entry.load();
+        let block = self.entry(hash);
 
-        let mv = if stored.key == key && mv.is_null() { stored.mv } else { mv };
+        let mut entry = block.load();
 
-        entry.write(InternalEntry {
-            key,
-            depth: depth as u8,
-            score: score as i16,
-            flags: Flags::new(bound, pv),
-            mv,
-        });
+        if !(entry.key != key
+            || depth + 4 + 2 * pv as i32 > entry.depth as i32
+            || bound == Bound::Exact
+            || entry.flags.age() != self.age())
+        {
+            return;
+        }
+
+        if !(entry.key == key && mv == Move::NULL) {
+            entry.mv = mv;
+        }
+
+        entry.key = key;
+        entry.depth = depth as u8;
+        entry.score = score as i16;
+        entry.flags = Flags::new(bound, pv, self.age());
+
+        block.write(entry);
     }
 
     pub fn prefetch(&self, hash: u64) {
@@ -168,6 +189,10 @@ impl TranspositionTable {
         // No prefetching for non-x86_64 architectures
         #[cfg(not(target_arch = "x86_64"))]
         let _ = hash;
+    }
+
+    fn age(&self) -> u8 {
+        self.age.load(Ordering::Relaxed)
     }
 
     fn len(&self) -> usize {
@@ -211,6 +236,7 @@ impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
             vector: UnsafeCell::new(vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE]),
+            age: AtomicU8::new(0),
         }
     }
 }
