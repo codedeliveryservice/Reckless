@@ -1,7 +1,7 @@
 use self::parser::ParseFenError;
 use crate::{
     lookup::{
-        between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
+        between, bishop_attacks, cuckoo, cuckoo_move, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
     types::{
@@ -241,24 +241,24 @@ impl Board {
     }
 
     pub fn upcoming_repetition(&self) -> bool {
-        let hm = (self.state.halfmove_clock as usize).min(self.state_stack.len());
-        if hm < 3 {
+        let halfmove_clock = (self.state.halfmove_clock as usize).min(self.state_stack.len());
+        if halfmove_clock < 3 {
             return false;
         }
 
-        let s = |v: usize| self.state_stack[self.state_stack.len() - v].key;
-        let s0 = self.state.key;
+        let key_at = |v: usize| self.state_stack[self.state_stack.len() - v].key;
+        let key = self.state.key;
 
-        let mut other = !(s0 ^ s(1));
+        let mut other = !(key ^ key_at(1));
 
-        for d in (3..=hm).step_by(2) {
-            other ^= !(s(d - 1) ^ s(d));
+        for i in (3..=halfmove_clock).step_by(2) {
+            other ^= !(key_at(i - 1) ^ key_at(i));
 
             if other != 0 {
                 continue;
             }
 
-            let diff = s0 ^ s(d);
+            let diff = key ^ key_at(i);
             let mut i = h1(diff);
 
             if cuckoo(i) != diff {
@@ -269,7 +269,9 @@ impl Board {
                 }
             }
 
-            if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
+            let mv = cuckoo_move(i);
+
+            if (between(mv.from(), mv.to()) & self.occupancies()).is_empty() {
                 return true;
             }
         }

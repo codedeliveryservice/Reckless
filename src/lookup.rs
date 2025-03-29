@@ -1,12 +1,11 @@
-use crate::types::{Bitboard, Color, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Bitboard, Color, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 include!(concat!(env!("OUT_DIR"), "/lookup.rs"));
 
 static mut BETWEEN: [[Bitboard; 64]; 64] = [[Bitboard(0); 64]; 64];
 
 static mut CUCKOO: [u64; 0x2000] = [0; 0x2000];
-static mut A: [Square; 0x2000] = [Square::None; 0x2000];
-static mut B: [Square; 0x2000] = [Square::None; 0x2000];
+static mut CUCKOO_MOVES: [Move; 0x2000] = [Move::NULL; 0x2000];
 
 pub fn init() {
     unsafe {
@@ -33,44 +32,41 @@ unsafe fn init_between() {
 }
 
 unsafe fn init_cuckoo() {
-    fn is_reversible_move(piece: Piece, a: Square, b: Square) -> bool {
+    fn is_reversible_move(piece: Piece, mv: Move) -> bool {
         match piece.piece_type() {
-            PieceType::Knight => knight_attacks(a).contains(b),
-            PieceType::Bishop => bishop_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Rook => rook_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Queen => queen_attacks(a, Bitboard(0)).contains(b),
-            PieceType::King => king_attacks(a).contains(b),
+            PieceType::Knight => knight_attacks(mv.from()),
+            PieceType::Bishop => bishop_attacks(mv.from(), Bitboard(0)),
+            PieceType::Rook => rook_attacks(mv.from(), Bitboard(0)),
+            PieceType::Queen => queen_attacks(mv.from(), Bitboard(0)),
+            PieceType::King => king_attacks(mv.from()),
             _ => unreachable!(),
         }
+        .contains(mv.to())
     }
 
     for index in 2..12 {
         let piece = Piece::from_index(index);
 
-        debug_assert!(piece.piece_type() != PieceType::Pawn);
-
         for a in 0..64 {
             for b in (a + 1)..64 {
-                let mut a = Square::new(a);
-                let mut b = Square::new(b);
+                let mut mv = Move::new(Square::new(a), Square::new(b), MoveKind::Normal);
 
-                if !is_reversible_move(piece, a, b) {
+                if !is_reversible_move(piece, mv) {
                     continue;
                 }
 
-                let mut mv = ZOBRIST.pieces[piece][a] ^ ZOBRIST.pieces[piece][b] ^ ZOBRIST.side;
-                let mut i = h1(mv);
+                let mut key = ZOBRIST.pieces[piece][mv.from()] ^ ZOBRIST.pieces[piece][mv.to()] ^ ZOBRIST.side;
+                let mut i = h1(key);
 
                 loop {
-                    std::mem::swap(&mut CUCKOO[i], &mut mv);
-                    std::mem::swap(&mut A[i], &mut a);
-                    std::mem::swap(&mut B[i], &mut b);
+                    std::mem::swap(&mut CUCKOO[i], &mut key);
+                    std::mem::swap(&mut CUCKOO_MOVES[i], &mut mv);
 
-                    if a == Square::None && b == Square::None {
+                    if mv == Move::NULL {
                         break;
                     }
 
-                    i = if i == h1(mv) { h2(mv) } else { h1(mv) };
+                    i = if i == h1(key) { h2(key) } else { h1(key) };
                 }
             }
         }
@@ -85,19 +81,15 @@ pub const fn h2(h: u64) -> usize {
     ((h >> 48) & 0x1fff) as usize
 }
 
-pub fn cuckoo(index: usize) -> u64 {
+pub const fn cuckoo(index: usize) -> u64 {
     unsafe { CUCKOO[index] }
 }
 
-pub fn cuckoo_a(index: usize) -> Square {
-    unsafe { A[index] }
+pub const fn cuckoo_move(index: usize) -> Move {
+    unsafe { CUCKOO_MOVES[index] }
 }
 
-pub fn cuckoo_b(index: usize) -> Square {
-    unsafe { B[index] }
-}
-
-pub fn between(a: Square, b: Square) -> Bitboard {
+pub const fn between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN[a as usize][b as usize] }
 }
 
