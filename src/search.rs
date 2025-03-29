@@ -608,7 +608,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
 
     if !in_check {
-        let eval = evaluate(td) + correction_value(td);
+        let eval = match td.stack[td.ply - 1].mv {
+            Move::NULL if td.ply >= 2 => -td.stack[td.ply - 1].static_eval,
+            _ => evaluate(td) + correction_value(td),
+        };
 
         if eval >= beta {
             return eval;
