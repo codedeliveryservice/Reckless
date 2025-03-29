@@ -1,6 +1,9 @@
 use self::parser::ParseFenError;
 use crate::{
-    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    lookup::{
+        between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
+        queen_attacks, rook_attacks,
+    },
     types::{
         Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType, Square,
         WhiteKingSide, WhiteQueenSide, ZOBRIST,
@@ -235,6 +238,43 @@ impl Board {
 
     pub const fn is_threatened(&self, square: Square) -> bool {
         self.state.threats.contains(square)
+    }
+
+    pub fn upcoming_repetition(&self) -> bool {
+        let hm = (self.state.halfmove_clock as usize).min(self.state_stack.len());
+        if hm < 3 {
+            return false;
+        }
+
+        let s = |v: usize| self.state_stack[self.state_stack.len() - v].key;
+        let s0 = self.state.key;
+
+        let mut other = !(s0 ^ s(1));
+
+        for d in (3..=hm).step_by(2) {
+            other ^= !(s(d - 1) ^ s(d));
+
+            if other != 0 {
+                continue;
+            }
+
+            let diff = s0 ^ s(d);
+            let mut i = h1(diff);
+
+            if cuckoo(i) != diff {
+                i = h2(diff);
+
+                if cuckoo(i) != diff {
+                    continue;
+                }
+            }
+
+            if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
+                return true;
+            }
+        }
+
+        false
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
