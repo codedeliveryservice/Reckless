@@ -135,7 +135,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
-    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition() {
+    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;

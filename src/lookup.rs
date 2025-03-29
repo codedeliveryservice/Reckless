@@ -31,6 +31,7 @@ unsafe fn init_between() {
     }
 }
 
+// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 unsafe fn init_cuckoo() {
     fn is_reversible_move(piece: Piece, mv: Move) -> bool {
         match piece.piece_type() {

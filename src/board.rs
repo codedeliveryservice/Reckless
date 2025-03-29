@@ -240,7 +240,7 @@ impl Board {
         self.state.threats.contains(square)
     }
 
-    pub fn upcoming_repetition(&self) -> bool {
+    pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let halfmove_clock = (self.state.halfmove_clock as usize).min(self.state_stack.len());
         if halfmove_clock < 3 {
             return false;
@@ -272,7 +272,16 @@ impl Board {
             let mv = cuckoo_move(i);
 
             if (between(mv.from(), mv.to()) & self.occupancies()).is_empty() {
-                return true;
+                if ply > i {
+                    return true;
+                }
+
+                let piece = match self.piece_on(mv.from()) {
+                    Piece::None => self.piece_on(mv.to()),
+                    piece => piece,
+                };
+
+                return piece.piece_color() == self.side_to_move();
             }
         }
 
