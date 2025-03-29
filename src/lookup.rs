@@ -51,24 +51,22 @@ unsafe fn init_cuckoo() {
 
         for a in 0..64 {
             for b in (a + 1)..64 {
-                let a = Square::new(a);
-                let b = Square::new(b);
+                let mut a = Square::new(a);
+                let mut b = Square::new(b);
 
                 if !is_reversible_move(piece, a, b) {
                     continue;
                 }
 
-                let mut mv = !(ZOBRIST.pieces[piece][a] ^ ZOBRIST.pieces[piece][b]);
-                let mut aa = a;
-                let mut bb = b;
+                let mut mv = ZOBRIST.pieces[piece][a] ^ ZOBRIST.pieces[piece][b] ^ ZOBRIST.side;
                 let mut i = h1(mv);
 
                 loop {
                     std::mem::swap(&mut CUCKOO[i], &mut mv);
-                    std::mem::swap(&mut A[i], &mut aa);
-                    std::mem::swap(&mut B[i], &mut bb);
+                    std::mem::swap(&mut A[i], &mut a);
+                    std::mem::swap(&mut B[i], &mut b);
 
-                    if mv == 0 {
+                    if a == Square::None && b == Square::None {
                         break;
                     }
 
