@@ -1,9 +1,9 @@
-use self::{parser::ParseFenError, zobrist::ZOBRIST};
+use self::parser::ParseFenError;
 use crate::{
     lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
     types::{
         Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType, Square,
-        WhiteKingSide, WhiteQueenSide,
+        WhiteKingSide, WhiteQueenSide, ZOBRIST,
     },
 };
 
@@ -14,7 +14,6 @@ mod makemove;
 mod movegen;
 mod parser;
 mod see;
-mod zobrist;
 
 /// Contains the same information as a FEN string, used to describe a chess position,
 /// along with extra fields for internal use. It's designed to be used as a stack entry,
