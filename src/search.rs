@@ -135,6 +135,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
+    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition() {
+        alpha = Score::ZERO;
+        if alpha >= beta {
+            return alpha;
+        }
+    }
+
     if depth <= 0 {
         return qsearch::<PV>(td, alpha, beta);
     }
