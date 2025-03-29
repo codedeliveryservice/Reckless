@@ -10,7 +10,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
     {
         let material = material(&td.board);
 
-        eval = (eval * (77000 + material) + td.optimism[td.board.side_to_move()] * (7500 + material)) / 89000;
+        eval = (eval * (75000 + material) + td.optimism[td.board.side_to_move()] * (7500 + material)) / 90000;
     }
 
     eval.clamp(-16384, 16384)
