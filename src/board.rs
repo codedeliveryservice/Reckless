@@ -249,10 +249,10 @@ impl Board {
         let s = |v: usize| self.state_stack[self.state_stack.len() - v].key;
         let s0 = self.state.key;
 
-        let mut other = !(s0 ^ s(1));
+        let mut other = s0 ^ s(1) ^ ZOBRIST.side;
 
         for d in (3..=hm).step_by(2) {
-            other ^= !(s(d - 1) ^ s(d));
+            other ^= s(d - 1) ^ s(d) ^ ZOBRIST.side;
 
             if other != 0 {
                 continue;
