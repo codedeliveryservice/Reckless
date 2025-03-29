@@ -135,15 +135,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
+    if depth <= 0 {
+        return qsearch::<PV>(td, alpha, beta);
+    }
+
     if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition() {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
         }
-    }
-
-    if depth <= 0 {
-        return qsearch::<PV>(td, alpha, beta);
     }
 
     td.nodes += 1;
@@ -583,6 +583,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+
+    if alpha < Score::ZERO && td.board.upcoming_repetition() {
+        alpha = Score::ZERO;
+        if alpha >= beta {
+            return alpha;
+        }
+    }
 
     let in_check = td.board.in_check();
 
