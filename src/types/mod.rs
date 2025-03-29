@@ -7,6 +7,7 @@ pub mod moves;
 pub mod piece;
 pub mod score;
 pub mod square;
+pub mod zobrist;
 
 pub use arrayvec::*;
 pub use bitboard::*;
@@ -17,6 +18,7 @@ pub use moves::*;
 pub use piece::*;
 pub use score::*;
 pub use square::*;
+pub use zobrist::*;
 
 /// The maximum number of plies that can be searched.
 pub const MAX_PLY: usize = 128;
