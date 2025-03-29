@@ -81,6 +81,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let now = Instant::now();
 
         let tt = TranspositionTable::default();
+        tt.resize(1, 32);
         let stop = AtomicBool::new(false);
 
         let mut td = ThreadData::new(&tt, &stop);

@@ -7,6 +7,8 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
 
+const _: () = assert!(INTERNAL_ENTRY_SIZE == 16);
+
 #[derive(Copy, Clone)]
 pub struct Entry {
     pub mv: Move,
@@ -16,7 +18,7 @@ pub struct Entry {
     pub pv: bool,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Flags {
     data: u8,
 }
@@ -44,14 +46,16 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (8 bytes).
+/// Internal representation of a transposition table entry (16 bytes).
 #[derive(Clone)]
-struct InternalEntry {
+#[repr(C, align(8))]
+pub struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
     depth: u8,    // 1 byte
     flags: Flags, // 1 byte
+    eval: i16,    // 2 bytes
 }
 
 impl Default for InternalEntry {
@@ -59,6 +63,7 @@ impl Default for InternalEntry {
         Self {
             key: 0,
             score: 0,
+            eval: 0,
             depth: 0,
             mv: Move::NULL,
             flags: Flags::new(Bound::None, false),
