@@ -618,6 +618,9 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let eval = evaluate(td) + correction_value(td);
 
         if eval >= beta {
+            if entry.is_none() {
+                td.tt.write(td.board.hash(), 0, eval, Bound::Lower, Move::NULL, td.ply, false);
+            }
             return eval;
         }
 
