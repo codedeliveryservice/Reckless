@@ -433,6 +433,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= (history - 512) / 16;
 
+            if !in_check && static_eval >= beta {
+                reduction -= 6 * (static_eval - beta);
+            }
+
             if td.board.in_check() {
                 reduction -= 1024;
             }
