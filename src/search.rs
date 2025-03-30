@@ -699,7 +699,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), in_check as i32, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
