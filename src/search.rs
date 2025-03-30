@@ -428,15 +428,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + is_root as i32 && is_quiet {
-            reduction -= 4 * correction_value.abs();
-
-            reduction -= (history - 512) / 16;
-
-            if td.board.in_check() {
-                reduction -= 1024;
-            }
-
+        if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
             if tt_pv {
                 reduction -= 768;
             }
@@ -445,16 +437,26 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768;
             }
 
-            if cut_node {
-                reduction += 1024;
-            }
+            if is_quiet {
+                reduction -= 4 * correction_value.abs();
 
-            if !improving {
-                reduction += 1024;
-            }
+                reduction -= (history - 512) / 16;
 
-            if td.stack[td.ply].cutoff_count > 3 {
-                reduction += 1024;
+                if td.board.in_check() {
+                    reduction -= 1024;
+                }
+
+                if cut_node {
+                    reduction += 1024;
+                }
+
+                if !improving {
+                    reduction += 1024;
+                }
+
+                if td.stack[td.ply].cutoff_count > 3 {
+                    reduction += 1024;
+                }
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
