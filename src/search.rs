@@ -648,10 +648,6 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
             if mv.is_quiet() {
                 continue;
             }
@@ -660,6 +656,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 best_score = best_score.max(futility_score);
                 continue;
             }
+        }
+
+        if !is_loss(best_score) && !td.board.see(mv, -15) {
+            continue;
         }
 
         td.stack[td.ply].piece = td.board.moved_piece(mv);
