@@ -658,7 +658,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        if !is_loss(best_score) && !td.board.see(mv, -15) {
+        if !is_loss(best_score) && !td.board.see(mv, -100) {
             continue;
         }
 
