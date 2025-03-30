@@ -8,7 +8,10 @@ use crate::types::{is_decisive, Move};
 pub const DEFAULT_TT_SIZE: usize = 16;
 
 const MEGABYTE: usize = 1024 * 1024;
-const INTERNAL_ENTRY_SIZE: usize = std::mem::size_of::<InternalEntry>();
+const CLUSTER_SIZE: usize = std::mem::size_of::<InternalEntry>() * CLUSTERS;
+
+const CLUSTERS: usize = 4;
+const MAX_AGE: u8 = 32;
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -51,6 +54,7 @@ pub enum Bound {
 }
 
 /// Internal representation of a transposition table entry (8 bytes).
+#[repr(C, align(8))]
 struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
@@ -59,36 +63,51 @@ struct InternalEntry {
     flags: Flags, // 1 byte
 }
 
-#[derive(Default)]
-struct Block(AtomicU64);
-
-impl Block {
-    fn load(&self) -> InternalEntry {
-        unsafe { std::mem::transmute(self.0.load(Ordering::Relaxed)) }
+impl InternalEntry {
+    pub fn is_empty(&self) -> bool {
+        self.flags.bound() == Bound::None
     }
 
-    fn write(&self, entry: InternalEntry) {
-        self.0.store(unsafe { std::mem::transmute::<InternalEntry, u64>(entry) }, Ordering::Relaxed);
+    pub fn quality(&self, age: u8) -> i32 {
+        self.depth as i32 - 4 * (age - self.flags.age()) as i32
     }
 }
 
-impl Clone for Block {
+#[derive(Default)]
+#[repr(C, align(32))]
+struct Cluster {
+    inner: [AtomicU64; CLUSTERS],
+}
+
+impl Cluster {
+    fn load(&self, index: usize) -> InternalEntry {
+        let entry = self.inner[index].load(Ordering::Relaxed);
+        unsafe { std::mem::transmute::<u64, InternalEntry>(entry) }
+    }
+
+    fn write(&self, entry: InternalEntry, index: usize) {
+        let entry = unsafe { std::mem::transmute::<InternalEntry, u64>(entry) };
+        self.inner[index].store(entry, Ordering::Relaxed);
+    }
+}
+
+impl Clone for Cluster {
     fn clone(&self) -> Self {
-        Self(AtomicU64::new(self.0.load(Ordering::Relaxed)))
+        Self {
+            inner: [AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0)],
+        }
     }
 }
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: UnsafeCell<Vec<Block>>,
+    vector: UnsafeCell<Vec<Cluster>>,
     age: AtomicU8,
 }
 
 unsafe impl Sync for TranspositionTable {}
 
 impl TranspositionTable {
-    const MAX_AGE: u8 = 31;
-
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
         unsafe { self.parallel_clear(threads, self.len()) }
@@ -96,7 +115,7 @@ impl TranspositionTable {
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&self, threads: usize, megabytes: usize) {
-        let len = megabytes * MEGABYTE / INTERNAL_ENTRY_SIZE;
+        let len = megabytes * MEGABYTE / CLUSTER_SIZE;
 
         let mut vector = Vec::new();
         vector.reserve_exact(len);
@@ -114,34 +133,45 @@ impl TranspositionTable {
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
-        vector.iter().take(1000).filter(|slot| slot.load().flags.bound() != Bound::None).count()
+
+        let mut count = 0;
+        for cluster in vector.iter() {
+            for i in 0..CLUSTERS {
+                count += !cluster.load(i).is_empty() as usize;
+            }
+        }
+        count * 1000 / vector.len() / CLUSTERS
     }
 
     pub fn increment_age(&self) {
-        self.age.store((self.age() + 1) & Self::MAX_AGE, Ordering::Relaxed);
+        self.age.store((self.age() + 1) & (MAX_AGE - 1), Ordering::Relaxed);
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
-        let entry = self.entry(hash).load();
+        let cluster = self.cluster(hash);
 
-        if entry.flags.bound() == Bound::None || entry.key != verification_key(hash) {
-            return None;
+        for index in 0..CLUSTERS {
+            let entry = cluster.load(index);
+            if entry.is_empty() || entry.key != verification_key(hash) {
+                continue;
+            }
+
+            let mut hit = Entry {
+                depth: entry.depth as i32,
+                score: entry.score as i32,
+                bound: entry.flags.bound(),
+                pv: entry.flags.pv(),
+                mv: entry.mv,
+            };
+
+            // Adjust mate distance from "plies from the current position" to "plies from the root"
+            if is_decisive(hit.score) {
+                hit.score -= hit.score.signum() * ply as i32;
+            }
+
+            return Some(hit);
         }
-
-        let mut hit = Entry {
-            depth: entry.depth as i32,
-            score: entry.score as i32,
-            bound: entry.flags.bound(),
-            pv: entry.flags.pv(),
-            mv: entry.mv,
-        };
-
-        // Adjust mate distance from "plies from the current position" to "plies from the root"
-        if is_decisive(hit.score) {
-            hit.score -= hit.score.signum() * ply as i32;
-        }
-
-        Some(hit)
+        None
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -151,10 +181,29 @@ impl TranspositionTable {
             score += score.signum() * ply as i32;
         }
 
+        let age = self.age();
         let key = verification_key(hash);
-        let block = self.entry(hash);
+        let cluster = self.cluster(hash);
 
-        let mut entry = block.load();
+        let mut index = 0;
+        let mut minimum = i32::MAX;
+
+        for i in 0..CLUSTERS {
+            let current = cluster.load(i);
+            let quality = current.quality(age);
+
+            if current.is_empty() || current.key == key {
+                index = i;
+                break;
+            }
+
+            if quality < minimum {
+                index = i;
+                minimum = quality;
+            }
+        }
+
+        let mut entry = cluster.load(index);
 
         if !(entry.key != key
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
@@ -173,7 +222,7 @@ impl TranspositionTable {
         entry.score = score as i16;
         entry.flags = Flags::new(bound, pv, self.age());
 
-        block.write(entry);
+        cluster.write(entry, index);
     }
 
     pub fn prefetch(&self, hash: u64) {
@@ -199,7 +248,7 @@ impl TranspositionTable {
         unsafe { (*self.vector.get()).len() }
     }
 
-    fn entry(&self, hash: u64) -> &Block {
+    fn cluster(&self, hash: u64) -> &Cluster {
         let index = self.index(hash);
         unsafe {
             let vec = &*self.vector.get();
@@ -235,7 +284,7 @@ const fn verification_key(hash: u64) -> u16 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            vector: UnsafeCell::new(vec![Block::default(); DEFAULT_TT_SIZE * MEGABYTE / INTERNAL_ENTRY_SIZE]),
+            vector: UnsafeCell::new(vec![Cluster::default(); DEFAULT_TT_SIZE * MEGABYTE / CLUSTER_SIZE]),
             age: AtomicU8::new(0),
         }
     }
