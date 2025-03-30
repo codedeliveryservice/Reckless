@@ -617,15 +617,18 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if !in_check {
         let eval = evaluate(td) + correction_value(td);
 
-        if eval >= beta {
-            return eval;
-        }
-
-        if eval > alpha {
-            alpha = eval;
-        }
-
         best_score = eval;
+        if best_score >= beta {
+            if !is_decisive(best_score) && !is_loss(beta) {
+                best_score = (best_score + beta) / 2;
+            }
+            return best_score;
+        }
+
+        if best_score > alpha {
+            alpha = best_score;
+        }
+
         futility_score = eval + 128;
     }
 
