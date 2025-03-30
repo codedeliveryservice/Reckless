@@ -92,6 +92,8 @@ fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
             handler.join().unwrap();
         }
     });
+
+    threads.main_thread().tt.increment_age();
 }
 
 fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
