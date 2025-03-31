@@ -90,8 +90,8 @@ impl Default for CorrectionHistory {
 }
 
 pub struct ContinuationHistory {
-    // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[[[PieceToHistory<i32>; 2]; 2]; 64]; 13]>,
+    // [in_check][capture][piece][to][continuation_piece][continuation_to]
+    entries: Box<[[[[PieceToHistory<i32>; 64]; 13]; 2]; 2]>,
 }
 
 impl ContinuationHistory {
@@ -100,14 +100,14 @@ impl ContinuationHistory {
     pub fn get(
         &self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, in_check: bool, noisy: bool,
     ) -> i32 {
-        self.entries[piece][sq][in_check as usize][noisy as usize][cont_piece][cont_sq]
+        self.entries[in_check as usize][noisy as usize][piece][sq][cont_piece][cont_sq]
     }
 
     pub fn update(
         &mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, in_check: bool, noisy: bool,
         bonus: i32,
     ) {
-        let entry = &mut self.entries[piece][sq][in_check as usize][noisy as usize][cont_piece][cont_sq];
+        let entry = &mut self.entries[in_check as usize][noisy as usize][piece][sq][cont_piece][cont_sq];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }
