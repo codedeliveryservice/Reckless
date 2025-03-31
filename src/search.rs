@@ -542,7 +542,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if !quiet_moves.is_empty() || depth > 3 {
                 td.quiet_history.update(&td.board, best_move, bonus);
-                update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
+                update_continuation_histories(td, in_check, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
@@ -554,7 +554,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for &mv in quiet_moves.iter() {
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
+                update_continuation_histories(td, in_check, td.board.moved_piece(mv), mv.to(), -bonus);
             }
         }
     }
@@ -736,18 +736,18 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     }
 }
 
-fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
+fn update_continuation_histories(td: &mut ThreadData, in_check: bool, piece: Piece, sq: Square, bonus: i32) {
     if td.ply >= 1 {
         let entry = td.stack[td.ply - 1];
         if entry.mv.is_valid() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+            td.continuation_history.update(entry.piece, entry.mv.to(), in_check, piece, sq, bonus);
         }
     }
 
     if td.ply >= 2 {
         let entry = td.stack[td.ply - 2];
         if entry.mv.is_valid() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+            td.continuation_history.update(entry.piece, entry.mv.to(), in_check, piece, sq, bonus);
         }
     }
 }
