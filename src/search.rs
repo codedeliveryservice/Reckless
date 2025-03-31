@@ -357,6 +357,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+
+        let history = if is_quiet {
+            td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv)
+        } else {
+            td.noisy_history.get(&td.board, mv)
+        };
+
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !is_root && !is_loss(best_score) {
@@ -369,7 +376,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth };
+            let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth } - history / 32;
             if !td.board.see(mv, threshold) {
                 continue;
             }
@@ -408,8 +415,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         let initial_nodes = td.nodes;
-
-        let history = td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv);
 
         td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
