@@ -19,6 +19,7 @@ pub struct StackEntry {
     pub static_eval: i32,
     pub excluded: Move,
     pub killer: Move,
+    pub in_check: bool,
     pub tt_pv: bool,
     pub cutoff_count: i32,
 }
@@ -31,6 +32,7 @@ impl Default for StackEntry {
             static_eval: Score::NONE,
             excluded: Move::NULL,
             killer: Move::NULL,
+            in_check: false,
             tt_pv: false,
             cutoff_count: 0,
         }
