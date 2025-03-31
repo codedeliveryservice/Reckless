@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -366,7 +366,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
             // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
+            let futility_value = static_eval
+                + if best_move.is_valid() { 48 } else { 146 }
+                + 116 * lmr_depth
+                + 103 * (best_score < static_eval - 128) as i32;
+
+            if !in_check && is_quiet && lmr_depth < 12 && futility_value <= alpha {
+                if best_score <= futility_value && !is_decisive(best_score) && !is_win(futility_value) {
+                    best_score = futility_value;
+                }
+                continue;
+            }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth };
