@@ -248,6 +248,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
 
+    if !PV && !in_check && entry.is_some_and(|entry| entry.depth >= depth - 3 && entry.score >= beta + 256) {
+        return beta;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
