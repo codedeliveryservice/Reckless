@@ -238,12 +238,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Reverse Futility Pruning (RFP)
-    if !PV
+    if !tt_pv
         && !in_check
-        && !excluded
         && depth <= 8
         && eval >= beta
-        && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+        && eval
+            >= beta + 80 * depth
+                - (80 * improving as i32)
+                - (60 * cut_node as i32)
+                - (60 * (td.stack[td.ply + 1].cutoff_count > 3) as i32)
+                - (50 * (tt_move.is_valid() && tt_move.is_noisy()) as i32)
+        && (!tt_move.is_valid() || tt_move.is_noisy())
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
