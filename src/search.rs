@@ -520,6 +520,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if best_score >= beta && !is_decisive(best_score) && !is_loss(beta) {
+        best_score = (best_score + beta) / 2;
+    }
+
     if move_count == 0 {
         if excluded {
             return alpha;
