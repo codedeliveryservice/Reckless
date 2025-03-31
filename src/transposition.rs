@@ -157,7 +157,7 @@ impl TranspositionTable {
         let mut entry = block.load();
 
         if !(entry.key != key
-            || depth + 4 + 2 * pv as i32 > entry.depth as i32
+            || depth + 3 + 2 * pv as i32 > entry.depth as i32
             || bound == Bound::Exact
             || entry.flags.age() != self.age())
         {
