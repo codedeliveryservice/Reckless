@@ -20,6 +20,7 @@ pub struct StackEntry {
     pub excluded: Move,
     pub killer: Move,
     pub tt_pv: bool,
+    pub in_check: bool,
     pub cutoff_count: i32,
 }
 
@@ -32,6 +33,7 @@ impl Default for StackEntry {
             excluded: Move::NULL,
             killer: Move::NULL,
             tt_pv: false,
+            in_check: false,
             cutoff_count: 0,
         }
     }

@@ -127,6 +127,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let is_root = td.ply == 0;
     let in_check = td.board.in_check();
+    td.stack[td.ply].in_check = in_check;
+
     let excluded = td.stack[td.ply].excluded.is_valid();
 
     td.pv.clear(td.ply);
@@ -586,6 +588,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
+    td.stack[td.ply].in_check = in_check;
 
     td.nodes += 1;
 
@@ -664,6 +667,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
+        td.stack[td.ply].in_check = in_check;
         td.ply += 1;
 
         td.nnue.push(mv, &td.board);
@@ -740,14 +744,30 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     if td.ply >= 1 {
         let entry = td.stack[td.ply - 1];
         if entry.mv.is_valid() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+            td.continuation_history.update(
+                entry.piece,
+                entry.mv.to(),
+                piece,
+                sq,
+                entry.in_check,
+                entry.mv.is_noisy(),
+                bonus,
+            );
         }
     }
 
     if td.ply >= 2 {
         let entry = td.stack[td.ply - 2];
         if entry.mv.is_valid() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+            td.continuation_history.update(
+                entry.piece,
+                entry.mv.to(),
+                piece,
+                sq,
+                entry.in_check,
+                entry.mv.is_noisy(),
+                bonus,
+            );
         }
     }
 }
