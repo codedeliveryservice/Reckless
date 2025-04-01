@@ -11,7 +11,9 @@ const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<InternalEntry>() * CLUSTERS;
 
 const CLUSTERS: usize = 4;
-const MAX_AGE: u8 = 32;
+
+const AGE_CYCLE: u8 = 32;
+const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -69,7 +71,8 @@ impl InternalEntry {
     }
 
     pub fn quality(&self, age: u8) -> i32 {
-        self.depth as i32 - 4 * (age - self.flags.age()) as i32
+        let relative_age = (AGE_CYCLE + age - self.flags.age()) & AGE_MASK;
+        self.depth as i32 - 2 * relative_age as i32
     }
 }
 
@@ -144,7 +147,7 @@ impl TranspositionTable {
     }
 
     pub fn increment_age(&self) {
-        self.age.store((self.age() + 1) & (MAX_AGE - 1), Ordering::Relaxed);
+        self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
     pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
@@ -189,13 +192,7 @@ impl TranspositionTable {
         let mut minimum = i32::MAX;
 
         for i in 0..CLUSTERS {
-            let current = cluster.load(i);
-            let quality = current.quality(age);
-
-            if current.is_empty() || current.key == key {
-                index = i;
-                break;
-            }
+            let quality = cluster.load(i).quality(age);
 
             if quality < minimum {
                 index = i;
@@ -208,7 +205,7 @@ impl TranspositionTable {
         if !(entry.key != key
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
             || bound == Bound::Exact
-            || entry.flags.age() != self.age())
+            || entry.flags.age() != age)
         {
             return;
         }
