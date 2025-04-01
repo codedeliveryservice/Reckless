@@ -194,6 +194,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
+            if td.board.moved_piece(tt_move) != Piece::None {
+                update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus(depth));
+            }
+
             return entry.score;
         }
     }
