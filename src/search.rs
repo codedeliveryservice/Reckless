@@ -432,38 +432,40 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             new_depth += 1;
         }
 
-        // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
-            if tt_pv {
-                reduction -= 768;
+        if tt_pv {
+            reduction -= 768;
+        }
+
+        if PV {
+            reduction -= 768;
+        }
+
+        if cut_node {
+            reduction += 1024;
+        }
+
+        if td.stack[td.ply].cutoff_count > 3 {
+            reduction += 1024;
+        } else if mv == tt_move {
+            reduction -= 2048;
+        }
+
+        if is_quiet {
+            reduction -= 4 * correction_value.abs();
+
+            reduction -= (history - 512) / 16;
+
+            if td.board.in_check() {
+                reduction -= 1024;
             }
 
-            if PV {
-                reduction -= 768;
-            }
-
-            if cut_node {
+            if !improving {
                 reduction += 1024;
             }
+        }
 
-            if is_quiet {
-                reduction -= 4 * correction_value.abs();
-
-                reduction -= (history - 512) / 16;
-
-                if td.board.in_check() {
-                    reduction -= 1024;
-                }
-
-                if !improving {
-                    reduction += 1024;
-                }
-
-                if td.stack[td.ply].cutoff_count > 3 {
-                    reduction += 1024;
-                }
-            }
-
+        // Late Move Reductions (LMR)
+        if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
@@ -479,7 +481,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Principal Variation Search (PVS)
         else if !PV || move_count > 1 {
-            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            if !tt_move.is_valid() {
+                reduction += 3072;
+            }
+
+            score = -search::<false>(td, -alpha - 1, -alpha, new_depth - (reduction > 3072) as i32, !cut_node);
         }
 
         if PV && (move_count == 1 || score > alpha) {
