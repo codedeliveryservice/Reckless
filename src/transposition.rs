@@ -192,7 +192,13 @@ impl TranspositionTable {
         let mut minimum = i32::MAX;
 
         for i in 0..CLUSTERS {
-            let quality = cluster.load(i).quality(age);
+            let current = cluster.load(i);
+            let quality = current.quality(age);
+
+            if current.is_empty() || current.key == key {
+                index = i;
+                break;
+            }
 
             if quality < minimum {
                 index = i;
