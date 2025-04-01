@@ -7,15 +7,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::search::SearchResult;
-use crate::thread::ThreadData;
-use crate::time::TimeManager;
-use crate::transposition::TranspositionTable;
 use crate::{
     board::Board,
-    search,
-    time::Limits,
+    search::{self, Report, SearchResult},
+    thread::ThreadData,
+    time::{Limits, TimeManager},
     tools::datagen::random::Random,
+    transposition::TranspositionTable,
     types::{Color, Move},
 };
 
@@ -152,7 +150,7 @@ fn play_game(td: &mut ThreadData) -> (Vec<SearchResult>, f32) {
     let mut draw_counter = 0;
 
     loop {
-        let entry = search::start(td, true);
+        let entry = search::start(td, Report::None);
         let SearchResult { best_move, score } = entry;
 
         draw_counter = if score.abs() <= DRAW_SCORE { draw_counter + 1 } else { 0 };
@@ -215,9 +213,9 @@ fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
 /// Returns the score of the position after performing a validation search.
 fn validation_score(td: &mut ThreadData) -> i32 {
     td.time_manager = TimeManager::new(VALIDATION_LIMITS, 0);
-    search::start(td, true).score
+    search::start(td, Report::None).score
 }
 
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
-    board.generate_all_moves().iter().copied().filter(|&mv| board.is_legal(mv)).collect()
+    board.generate_all_moves().iter().filter(|&v| board.is_legal(v.mv)).map(|v| v.mv).collect()
 }
