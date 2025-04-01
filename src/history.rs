@@ -38,18 +38,24 @@ impl Default for QuietHistory {
 
 pub struct NoisyHistory {
     // [piece][to][captured_piece_type]
-    entries: Box<PieceToHistory<[i16; 7]>>,
+    entries: Box<PieceToHistory<[[i16; 2]; 7]>>,
 }
 
 impl NoisyHistory {
     const MAX_HISTORY: i32 = 12288;
 
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
-        self.entries[board.piece_on(mv.from())][mv.to()][board.piece_on(mv.to()).piece_type()] as i32
+        let captured = board.piece_on(mv.to()).piece_type();
+        let to_threated = board.is_threatened(mv.to()) as usize;
+
+        self.entries[board.piece_on(mv.from())][mv.to()][captured][to_threated] as i32
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[board.piece_on(mv.from())][mv.to()][board.piece_on(mv.to()).piece_type()];
+        let captured = board.piece_on(mv.to()).piece_type();
+        let to_threated = board.is_threatened(mv.to()) as usize;
+
+        let entry = &mut self.entries[board.piece_on(mv.from())][mv.to()][captured][to_threated];
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
     }
 }
