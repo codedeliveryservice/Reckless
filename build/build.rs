@@ -11,7 +11,7 @@ mod magics;
 mod maps;
 
 const BASE_URL: &str = "https://github.com/codedeliveryservice/RecklessNetworks/raw/main";
-const NETWORK_NAME: &str = "v11-dad683ee.nnue";
+const NETWORK_NAME: &str = "v12-25011a2e.nnue";
 
 fn main() {
     generate_model_env();
