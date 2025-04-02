@@ -226,6 +226,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
 
+    if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
+        depth += 1;
+    }
+
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
@@ -466,7 +470,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
 
+            td.stack[td.ply - 1].reduction = reduction;
+
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
+
+            td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 64) as i32;
