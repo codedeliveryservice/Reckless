@@ -230,6 +230,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
+    if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 1024 && static_eval + td.stack[td.ply - 1].static_eval > 192 {
+        depth = (depth - 1).max(1);
+    }
+
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
