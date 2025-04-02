@@ -7,6 +7,7 @@ mod simd;
 
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 512;
+const OUTPUT_BUCKETS: usize = 8;
 
 const EVAL_SCALE: i32 = 400;
 const L0_SCALE: i32 = 384;
@@ -57,14 +58,15 @@ impl Network {
         }
 
         let accumulators = &self.stack[self.index];
+        let bucket = (board.occupancies().len() - 1) / 4;
 
         let stm = accumulators.values[board.side_to_move()];
         let nstm = accumulators.values[!board.side_to_move()];
 
         let weights = &PARAMETERS.output_weights;
 
-        let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
-        (output / L0_SCALE + i32::from(PARAMETERS.output_bias.data)) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
+        let output = simd::forward(&stm, &weights[bucket][0]) + simd::forward(&nstm, &weights[bucket][1]);
+        (output / L0_SCALE + i32::from(PARAMETERS.output_bias[bucket])) * EVAL_SCALE / (L0_SCALE * L1_SCALE)
     }
 
     fn update_accumulators(&mut self, board: &Board) {
@@ -121,8 +123,8 @@ impl Default for Network {
 struct Parameters {
     input_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     input_bias: Aligned<[i16; HIDDEN_SIZE]>,
-    output_weights: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
-    output_bias: Aligned<i16>,
+    output_weights: Aligned<[[[i16; HIDDEN_SIZE]; 2]; OUTPUT_BUCKETS]>,
+    output_bias: Aligned<[i16; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
