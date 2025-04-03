@@ -170,6 +170,10 @@ impl MovePicker {
                 + td.quiet_history.get(&td.board, mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);
+
+            if td.ply < 4 {
+                entry.score += 16 * td.low_ply_history.get(&td.board, mv) / (1 + 2 * td.ply as i32);
+            }
         }
     }
 }
