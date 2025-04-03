@@ -450,10 +450,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1024;
             }
 
+            reduction -= (history - 512) / 16;
+
             if is_quiet {
                 reduction -= 4 * correction_value.abs();
-
-                reduction -= (history - 512) / 16;
 
                 if td.board.in_check() {
                     reduction -= 1024;
