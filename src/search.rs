@@ -406,8 +406,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (!PV && score < singular_beta - 24) as i32;
-                    extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
+                    if PV {
+                        extension += (is_quiet && score < singular_beta - 64 as i32) as i32;
+                    } else {
+                        extension += (score < singular_beta - 24) as i32;
+                        extension += (is_quiet && score < singular_beta - 128 as i32) as i32;
+                    }
                 } else if score >= beta {
                     return score;
                 } else if entry.score >= beta {
