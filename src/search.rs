@@ -146,6 +146,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return qsearch::<PV>(td, alpha, beta);
     }
 
+    td.stack[td.ply + 1].killer = Move::NULL;
+    td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[td.ply].move_count = 0;
+
     td.nodes += 1;
 
     if PV {
@@ -194,6 +198,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
+            if tt_move.is_valid() && entry.score >= beta {
+                td.ply -= 1;
+                if td.stack[td.ply].mv.is_valid() && td.stack[td.ply].move_count == 1 && !td.stack[td.ply].mv.is_noisy()
+                {
+                    update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -bonus(depth));
+                }
+                td.ply += 1;
+            }
+
             return entry.score;
         }
     }
@@ -232,9 +245,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
-
-    td.stack[td.ply + 1].killer = Move::NULL;
-    td.stack[td.ply + 2].cutoff_count = 0;
 
     // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
@@ -350,6 +360,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
+
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
@@ -359,6 +370,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count += 1;
 
         let is_quiet = mv.is_quiet();
 
@@ -611,6 +623,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
+    td.stack[td.ply].move_count = 0;
 
     td.nodes += 1;
 
@@ -671,6 +684,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
             if move_picker.stage() == Stage::BadNoisy {

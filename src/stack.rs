@@ -21,6 +21,7 @@ pub struct StackEntry {
     pub killer: Move,
     pub tt_pv: bool,
     pub cutoff_count: i32,
+    pub move_count: i32,
     pub reduction: i32,
 }
 
@@ -34,6 +35,7 @@ impl Default for StackEntry {
             killer: Move::NULL,
             tt_pv: false,
             cutoff_count: 0,
+            move_count: 0,
             reduction: 0,
         }
     }
