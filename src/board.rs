@@ -24,31 +24,31 @@ mod see;
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
-struct InternalState {
-    key: u64,
-    pawn_key: u64,
-    minor_key: u64,
-    major_key: u64,
-    non_pawn_keys: [u64; Color::NUM],
-    en_passant: Square,
-    castling: Castling,
-    halfmove_clock: u8,
-    captured: Option<Piece>,
-    threats: Bitboard,
-    pinners: Bitboard,
-    checkers: Bitboard,
+pub struct InternalState {
+    pub key: u64,
+    pub pawn_key: u64,
+    pub minor_key: u64,
+    pub major_key: u64,
+    pub non_pawn_keys: [u64; Color::NUM],
+    pub en_passant: Square,
+    pub castling: Castling,
+    pub halfmove_clock: u8,
+    pub captured: Option<Piece>,
+    pub threats: Bitboard,
+    pub pinners: Bitboard,
+    pub checkers: Bitboard,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
 #[derive(Clone)]
 pub struct Board {
-    side_to_move: Color,
-    pieces: [Bitboard; PieceType::NUM],
-    colors: [Bitboard; Color::NUM],
-    mailbox: [Piece; Square::NUM],
-    state: InternalState,
-    state_stack: Vec<InternalState>,
-    fullmove_number: usize,
+    pub side_to_move: Color,
+    pub pieces: [Bitboard; PieceType::NUM],
+    pub colors: [Bitboard; Color::NUM],
+    pub mailbox: [Piece; Square::NUM],
+    pub state: InternalState,
+    pub state_stack: Vec<InternalState>,
+    pub fullmove_number: usize,
 }
 
 impl Board {
