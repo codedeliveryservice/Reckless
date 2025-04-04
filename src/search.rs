@@ -406,7 +406,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (!PV && score < singular_beta - 24) as i32;
+                    extension += (!PV
+                        && score
+                            < singular_beta
+                                - 24
+                                - td.ttmove_history.get(td.board.side_to_move(), td.board.pawn_key()) / 256)
+                        as i32;
                     extension += (!PV && is_quiet && score < singular_beta - 128) as i32;
                 } else if score >= beta {
                     return score;
@@ -581,6 +586,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             for &mv in quiet_moves.iter() {
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
             }
+        }
+
+        if !PV {
+            let bonus = if tt_move == best_move { 800 } else { -600 * move_count };
+            td.ttmove_history.update(td.board.side_to_move(), td.board.pawn_key(), bonus);
         }
     }
 
