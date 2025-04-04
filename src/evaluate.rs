@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::{board::Board, thread::ThreadData, types::PieceType};
 
 const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
