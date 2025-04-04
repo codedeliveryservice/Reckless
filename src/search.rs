@@ -652,7 +652,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let eval = evaluate(td) + correction_value(td);
 
         if eval >= beta {
-            return eval;
+            return if is_decisive(beta) { eval } else { (3 * eval + beta) / 4 };
         }
 
         if eval > alpha {
@@ -728,6 +728,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     if in_check && move_count == 0 {
         return mated_in(td.ply);
+    }
+
+    if best_score >= beta && !is_decisive(best_score) {
+        best_score = (3 * best_score + beta) / 4;
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
