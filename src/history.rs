@@ -115,6 +115,33 @@ impl Default for NoisyHistory {
     }
 }
 
+pub struct TTmoveHistory {
+    // [side_to_move][key]
+    entries: Box<[[i16; Self::SIZE]; 2]>,
+}
+
+impl Default for TTmoveHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
+impl TTmoveHistory {
+    const MAX_HISTORY: i32 = 4096;
+
+    const SIZE: usize = 512;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, stm: Color, key: u64) -> i32 {
+        (self.entries[stm][key as usize & Self::MASK]) as i32
+    }
+
+    pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
+        let entry = &mut self.entries[stm][key as usize & Self::MASK];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+    }
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i16; Self::SIZE]; 2]>,
