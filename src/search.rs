@@ -635,7 +635,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (score < singular_beta - 2 - 277 * NODE::PV as i32) as i32;
+                    extension += (score
+                        < singular_beta - 2 - 277 * NODE::PV as i32 + 921 * td.ttmove_history.get() / 127649)
+                        as i32;
                     extension +=
                         (score < singular_beta - 67 - 315 * NODE::PV as i32 + 16 * correction_value.abs() / 128) as i32;
 
@@ -886,6 +888,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.continuation_history.update(entry.conthist, td.stack[td.ply - 1].piece, pcm_move.to(), bonus);
                 }
             }
+        }
+
+        if !NODE::PV {
+            let bonus = if tt_move == best_move { 800 } else { -865 };
+            td.ttmove_history.update(bonus);
         }
     }
 
