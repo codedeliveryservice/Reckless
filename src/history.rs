@@ -6,27 +6,51 @@ use crate::{
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 12];
 
+struct QuietHistoryEntry {
+    factorizer: i16,
+    buckets: [[i16; 2]; 2],
+}
+
+impl QuietHistoryEntry {
+    const MAX_FACTORIZER: i32 = 2048;
+    const MAX_BUCKET: i32 = 6144;
+
+    pub fn bucket(&self, board: &Board, mv: Move) -> i16 {
+        let from_threated = board.is_threatened(mv.from()) as usize;
+        let to_threated = board.is_threatened(mv.to()) as usize;
+
+        self.buckets[from_threated][to_threated]
+    }
+
+    pub fn update_factorizer(&mut self, bonus: i32) {
+        let entry = &mut self.factorizer;
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+    }
+
+    pub fn update_bucket(&mut self, board: &Board, mv: Move, bonus: i32) {
+        let from_threated = board.is_threatened(mv.from()) as usize;
+        let to_threated = board.is_threatened(mv.to()) as usize;
+
+        let entry = &mut self.buckets[from_threated][to_threated];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+    }
+}
+
 pub struct QuietHistory {
-    // [side_to_move][from_threated][to_threated][from][to]
-    entries: Box<[[[FromToHistory<i16>; 2]; 2]; 2]>,
+    entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
 }
 
 impl QuietHistory {
-    const MAX_HISTORY: i32 = 8192;
-
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
-        let from_threated = board.is_threatened(mv.from()) as usize;
-        let to_threated = board.is_threatened(mv.to()) as usize;
-
-        self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()] as i32
+        let entry = &self.entries[board.side_to_move()][mv.from()][mv.to()];
+        (entry.factorizer + entry.bucket(board, mv)) as i32
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let from_threated = board.is_threatened(mv.from()) as usize;
-        let to_threated = board.is_threatened(mv.to()) as usize;
+        let entry = &mut self.entries[board.side_to_move()][mv.from()][mv.to()];
 
-        let entry = &mut self.entries[board.side_to_move()][from_threated][to_threated][mv.from()][mv.to()];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        entry.update_factorizer(bonus);
+        entry.update_bucket(board, mv, bonus);
     }
 }
 
