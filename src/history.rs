@@ -60,21 +60,52 @@ impl Default for QuietHistory {
     }
 }
 
+struct NoisyHistoryEntry {
+    factorizer: i16,
+    buckets: [[i16; 2]; 7],
+}
+
+impl NoisyHistoryEntry {
+    const MAX_FACTORIZER: i32 = 4096;
+    const MAX_BUCKET: i32 = 8192;
+
+    pub fn bucket(&self, board: &Board, mv: Move) -> i16 {
+        let captured = board.piece_on(mv.to()).piece_type() as usize;
+        let threated = board.is_threatened(mv.to()) as usize;
+
+        self.buckets[captured][threated]
+    }
+
+    pub fn update_factorizer(&mut self, bonus: i32) {
+        let entry = &mut self.factorizer;
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+    }
+
+    pub fn update_bucket(&mut self, board: &Board, mv: Move, bonus: i32) {
+        let captured = board.piece_on(mv.to()).piece_type() as usize;
+        let threated = board.is_threatened(mv.to()) as usize;
+
+        let entry = &mut self.buckets[captured][threated];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+    }
+}
+
 pub struct NoisyHistory {
-    // [piece][to][captured_piece_type]
-    entries: Box<PieceToHistory<[i16; 7]>>,
+    // [piece][to][captured_piece_type][to_threated]
+    entries: Box<PieceToHistory<NoisyHistoryEntry>>,
 }
 
 impl NoisyHistory {
-    const MAX_HISTORY: i32 = 12288;
-
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
-        self.entries[board.piece_on(mv.from())][mv.to()][board.piece_on(mv.to()).piece_type()] as i32
+        let entry = &self.entries[board.moved_piece(mv)][mv.to()];
+        (entry.factorizer + entry.bucket(board, mv)) as i32
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[board.piece_on(mv.from())][mv.to()][board.piece_on(mv.to()).piece_type()];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        let entry = &mut self.entries[board.moved_piece(mv)][mv.to()];
+
+        entry.update_factorizer(bonus);
+        entry.update_bucket(board, mv, bonus);
     }
 }
 
