@@ -92,7 +92,7 @@ impl TimeManager {
 
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
-            Limits::Nodes(maximum) => td.counter.global() >= maximum,
+            Limits::Nodes(_) => td.counter.global() >= 256_000,
             _ => td.counter.local() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
