@@ -493,9 +493,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     _ => 0,
                 };
 
-                td.ply -= 1;
-                update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
-                td.ply += 1;
+                if is_quiet {
+                    td.ply -= 1;
+                    update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
+                    td.ply += 1;
+                }
             }
         }
         // Principal Variation Search (PVS)
