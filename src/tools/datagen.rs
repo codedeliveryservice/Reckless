@@ -28,16 +28,17 @@ const REPORT_INTERVAL: Duration = Duration::from_secs(60);
 const BUFFER_SIZE: usize = 128 * 1024;
 
 const RANDOM_PLIES: usize = 4;
-
 const VALIDATION_THRESHOLD: i32 = 400;
-const GENERATION_THRESHOLD: i32 = 2400;
 
-const DRAW_SCORE: i32 = 20;
+const WIN_SCORE: i32 = 2000;
+const WIN_PLY_COUNT: i32 = 8;
+
+const DRAW_SCORE: i32 = 15;
 const DRAW_PLY_COUNT: i32 = 12;
-const DRAW_PLY_NUMBER: usize = 80;
+const DRAW_PLY_NUMBER: usize = 64;
 
 const VALIDATION_LIMITS: Limits = Limits::Depth(10);
-const GENERATION_LIMITS: Limits = Limits::Nodes(7500);
+const GENERATION_LIMITS: Limits = Limits::Nodes(5000);
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 static COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -59,8 +60,9 @@ pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
     println!("Random plies         | {RANDOM_PLIES}");
     println!("Validation limits    | {VALIDATION_LIMITS:?}");
     println!("Generation limits    | {GENERATION_LIMITS:?}");
-    println!("Validation threshold | {VALIDATION_THRESHOLD}");
-    println!("Draw adjudication    | {DRAW_SCORE} for {DRAW_PLY_COUNT} plies, from ply {DRAW_PLY_NUMBER}");
+    println!("Validation threshold | score={VALIDATION_THRESHOLD}");
+    println!("Win adjudication     | score={WIN_SCORE} plycount={WIN_PLY_COUNT}");
+    println!("Draw adjudication    | score={DRAW_SCORE} plycount={DRAW_PLY_COUNT} plynumber={DRAW_PLY_NUMBER}");
     println!();
     println!("Press [ENTER] to stop the data generation.");
     println!("Generating data...");
@@ -132,15 +134,17 @@ fn play_game(td: &mut ThreadData) -> (Vec<SearchResult>, u8) {
 
     let mut entries = Vec::new();
     let mut draw_counter = 0;
+    let mut win_counter = 0;
 
     loop {
         let entry = search::start(td, Report::None);
         let SearchResult { best_move, score } = entry;
 
         draw_counter = if score.abs() <= DRAW_SCORE { draw_counter + 1 } else { 0 };
+        win_counter = if score.abs() >= WIN_SCORE { win_counter + 1 } else { 0 };
 
         // Resignation
-        if score.abs() >= GENERATION_THRESHOLD {
+        if win_counter >= WIN_PLY_COUNT || score.abs() >= 2 * WIN_SCORE {
             return (entries, winner(&td.board, score));
         }
 
@@ -186,6 +190,7 @@ fn generate_random_opening(random: &mut Random, book: &[String]) -> Board {
 
         let index = random.next() % moves.len();
         board.make_move(moves[index]);
+        board.increment_game_ply();
     }
 
     if generate_legal_moves(&mut board).is_empty() {
