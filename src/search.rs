@@ -485,8 +485,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 let bonus = match score {
-                    s if s >= beta => bonus(depth),
-                    s if s <= alpha => -bonus(depth),
+                    s if s >= beta => stat_bonus(depth),
+                    s if s <= alpha => -stat_bonus(depth),
                     _ => 0,
                 };
 
@@ -554,13 +554,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if bound == Bound::Lower {
-        let bonus = bonus(depth);
+        let bonus = stat_bonus(depth);
+        let malus = stat_bonus(depth) - 32 * move_count;
 
         if best_move.is_noisy() {
             td.noisy_history.update(&td.board, best_move, bonus);
 
             for &mv in noisy_moves.iter() {
-                td.noisy_history.update(&td.board, mv, -bonus);
+                td.noisy_history.update(&td.board, mv, -malus);
             }
         } else {
             td.stack[td.ply].killer = best_move;
@@ -571,15 +572,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(&td.board, mv, -bonus);
+                td.quiet_history.update(&td.board, mv, -malus);
             }
 
             for &mv in noisy_moves.iter() {
-                td.noisy_history.update(&td.board, mv, -bonus);
+                td.noisy_history.update(&td.board, mv, -malus);
             }
 
             for &mv in quiet_moves.iter() {
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus);
             }
         }
     }
@@ -742,7 +743,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
-fn bonus(depth: i32) -> i32 {
+fn stat_bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
