@@ -1,14 +1,27 @@
-use std::time::SystemTime;
+use std::{
+    hash::{DefaultHasher, Hash, Hasher},
+    time::SystemTime,
+};
 
 pub struct Random {
     pub seed: usize,
 }
 
 impl Random {
+    fn splitmix64(mut x: usize) -> usize {
+        x = x.wrapping_add(0x9E3779B97F4A7C15);
+        x = (x ^ (x >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        x = (x ^ (x >> 27)).wrapping_mul(0x94D049BB133111EB);
+        x ^ (x >> 31)
+    }
+
     pub fn new() -> Self {
-        Self {
-            seed: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos() as usize,
-        }
+        let time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos() as usize;
+
+        let mut hasher = DefaultHasher::new();
+        std::thread::current().id().hash(&mut hasher);
+
+        Self { seed: Self::splitmix64(time ^ hasher.finish() as usize) }
     }
 
     pub fn next(&mut self) -> usize {
