@@ -54,6 +54,7 @@ impl FromStr for Board {
         board.state.castling = parts.next().unwrap_or_default().into();
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
+        board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
         board.update_threats();
         board.update_king_threats();
