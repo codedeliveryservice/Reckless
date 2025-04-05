@@ -1,7 +1,11 @@
 pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
 
-pub const fn lmp_threshold(depth: i32, improving: bool) -> i32 {
-    (4 + depth * depth) / (2 - improving as i32)
+pub fn lmp_threshold(depth: i32, improving: bool, cut_node: bool) -> i32 {
+    if improving || cut_node {
+        4 + depth * depth
+    } else {
+        2 + depth * depth / 2
+    }
 }
 
 #[cfg(not(feature = "spsa"))]
