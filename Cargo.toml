@@ -2,7 +2,6 @@
 name = "reckless"
 version = "0.8.0-dev"
 edition = "2021"
-license = "MIT"
 build = "build/build.rs"
 publish = false
 
