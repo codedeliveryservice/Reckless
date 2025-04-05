@@ -49,8 +49,8 @@ impl QuietHistory {
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
         let entry = &mut self.entries[board.side_to_move()][mv.from()][mv.to()];
 
-        entry.update_factorizer(bonus * 16 / 64);
-        entry.update_bucket(board, mv, bonus * 48 / 64);
+        entry.update_factorizer(bonus);
+        entry.update_bucket(board, mv, bonus);
     }
 }
 
