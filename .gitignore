@@ -1,5 +1,6 @@
 /target
 /networks
+/data
 *.exe
 *.pdb
 reckless*
