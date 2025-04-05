@@ -70,7 +70,7 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
-    threads.main_thread().time_manager = TimeManager::new(limits, board.game_ply());
+    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number());
     threads.main_thread().set_stop(false);
 
     std::thread::scope(|scope| {

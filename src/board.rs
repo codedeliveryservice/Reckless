@@ -48,7 +48,7 @@ pub struct Board {
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
-    game_ply: usize,
+    fullmove_number: usize,
 }
 
 impl Board {
@@ -66,8 +66,8 @@ impl Board {
         self.side_to_move
     }
 
-    pub const fn game_ply(&self) -> usize {
-        self.game_ply
+    pub const fn fullmove_number(&self) -> usize {
+        self.fullmove_number
     }
 
     /// Returns the Zobrist hash key for the current position.
@@ -160,7 +160,9 @@ impl Board {
     }
 
     pub fn increment_game_ply(&mut self) {
-        self.game_ply += 1;
+        if self.side_to_move == Color::Black {
+            self.fullmove_number += 1;
+        }
     }
 
     /// Places a piece of the specified type and color on the square.
@@ -502,7 +504,7 @@ impl Default for Board {
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::default(),
-            game_ply: 0,
+            fullmove_number: 0,
         }
     }
 }
