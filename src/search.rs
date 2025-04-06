@@ -16,9 +16,10 @@ pub enum Report {
     Full,
 }
 
-#[allow(unused)]
+#[derive(Copy, Clone)]
 pub struct SearchResult {
     pub best_move: Move,
+    pub depth: i32,
     pub score: i32,
 }
 
@@ -118,7 +119,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.print_uci_info(td.root_depth, score, now);
     }
 
-    SearchResult { best_move: td.pv.best_move(), score }
+    SearchResult {
+        best_move: td.pv.best_move(),
+        depth: td.completed_depth,
+        score,
+    }
 }
 
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {

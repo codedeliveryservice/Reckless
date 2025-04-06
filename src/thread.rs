@@ -28,6 +28,10 @@ impl<'a> ThreadPool<'a> {
         let counter = self.vector[0].counter.global;
 
         self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
+
+        for i in 1..self.vector.len() {
+            self.vector[i].board = self.vector[0].board.clone();
+        }
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
