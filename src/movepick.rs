@@ -172,7 +172,7 @@ impl MovePicker {
                 + td.conthist(2, mv);
 
             if td.ply == 0 {
-                entry.score += 16 * td.root_history.get(mv);
+                entry.score += 8 * td.root_history.get(mv);
             }
         }
     }
