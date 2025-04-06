@@ -3,12 +3,12 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use crate::{
     board::Board,
     evaluate::evaluate,
-    search::{self, Report},
+    search::{self, Report, SearchResult},
     thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::Color,
+    types::{is_decisive, is_loss, is_win, Color},
 };
 
 pub fn message_loop() {
@@ -71,29 +71,57 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
+
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number());
     threads.main_thread().set_stop(false);
 
-    std::thread::scope(|scope| {
+    let results = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
-                search::start(td, if id == 0 { report } else { Report::None });
+                let result = search::start(td, if id == 0 { report } else { Report::None });
                 td.set_stop(true);
-
-                if id == 0 {
-                    println!("bestmove {}", td.pv.best_move());
-                }
+                result
             });
 
             handlers.push(handler);
         }
 
-        for handler in handlers {
-            handler.join().unwrap();
-        }
+        handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>()
     });
+
+    let min_score = results.iter().map(|v| v.score).min().unwrap();
+    let vote_value = |result: &SearchResult| (result.score - min_score + 10) * result.depth;
+
+    let mut votes = vec![0; 4096];
+    for result in &results {
+        votes[result.best_move.encoded()] += vote_value(result);
+    }
+
+    let mut best = results[0];
+    for current in &results[1..] {
+        let is_better_candidate = || -> bool {
+            if is_decisive(best.score) {
+                return current.score > best.score;
+            }
+            if is_win(current.score) {
+                return true;
+            }
+
+            let best_vote = votes[best.best_move.encoded()];
+            let current_vote = votes[current.best_move.encoded()];
+
+            !is_loss(current.score)
+                && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(&best)))
+        };
+
+        if is_better_candidate() {
+            best = *current;
+        }
+    }
+
+    println!("bestmove {}", best.best_move);
 
     threads.main_thread().tt.increment_age();
 }

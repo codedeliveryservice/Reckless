@@ -28,6 +28,10 @@ impl<'a> ThreadPool<'a> {
         let counter = self.vector[0].counter.global;
 
         self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
+
+        for i in 1..self.vector.len() {
+            self.vector[i].board = self.vector[0].board.clone();
+        }
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
@@ -70,6 +74,7 @@ pub struct ThreadData<'a> {
     pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub stopped: bool,
+    pub best_score: i32,
     pub root_depth: i32,
     pub root_delta: i32,
     pub sel_depth: i32,
@@ -101,6 +106,7 @@ impl<'a> ThreadData<'a> {
             node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             stopped: false,
+            best_score: 0,
             root_depth: 0,
             root_delta: 0,
             sel_depth: 0,
