@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    misc::dbg_stats,
     movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
@@ -380,7 +381,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth + 50 } - history / 32;
+            let threshold =
+                if is_quiet { -30 * lmr_depth * lmr_depth - history / 64 } else { -95 * depth - history / 32 + 50 };
+
             if !td.board.see(mv, threshold) {
                 continue;
             }
