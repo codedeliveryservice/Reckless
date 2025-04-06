@@ -170,6 +170,10 @@ impl MovePicker {
                 + td.quiet_history.get(&td.board, mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);
+
+            if td.ply == 0 {
+                entry.score += 16 * td.root_history.get(mv);
+            }
         }
     }
 }

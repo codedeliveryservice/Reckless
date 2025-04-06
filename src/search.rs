@@ -584,6 +584,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             for &mv in quiet_moves.iter() {
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
             }
+
+            if is_root {
+                td.root_history.update(best_move, bonus);
+
+                for &mv in quiet_moves.iter() {
+                    td.root_history.update(mv, -bonus);
+                }
+            }
         }
     }
 
