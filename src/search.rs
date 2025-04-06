@@ -587,8 +587,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper {
-        tt_pv |= td.ply >= 1 && td.stack[td.ply - 1].tt_pv;
+    if bound == Bound::Upper && td.ply >= 1 {
+        td.ply -= 1;
+        tt_pv |= td.stack[td.ply].tt_pv;
+
+        let pcm_move = td.stack[td.ply].mv;
+        if pcm_move != Move::NULL && pcm_move.is_quiet() {
+            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), bonus(depth));
+        }
+        td.ply += 1;
     }
 
     if !excluded {
