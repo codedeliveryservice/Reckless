@@ -469,6 +469,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if td.stack[td.ply].cutoff_count > 3 {
                     reduction += 1024;
                 }
+            } else {                
+                reduction -= (history - 2048) / 10;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
