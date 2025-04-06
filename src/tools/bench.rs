@@ -7,7 +7,10 @@
 //! Note that although it can be used as a benchmarking tool,
 //! it is not comprehensive enough to be definitive.
 
-use std::{sync::atomic::AtomicBool, time::Instant};
+use std::{
+    sync::atomic::{AtomicBool, AtomicU64},
+    time::Instant,
+};
 
 use crate::{
     board::Board,
@@ -82,21 +85,22 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
 
         let tt = TranspositionTable::default();
         let stop = AtomicBool::new(false);
+        let counter = AtomicU64::new(0);
 
-        let mut td = ThreadData::new(&tt, &stop);
+        let mut td = ThreadData::new(&tt, &stop, &counter);
         td.board = Board::new(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0);
 
         search::start(&mut td, Report::None);
 
-        nodes += td.nodes;
+        nodes += td.counter.local();
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let knps = td.nodes as f64 / seconds / 1000.0;
+        let knps = td.counter.local() as f64 / seconds / 1000.0;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", td.nodes);
+            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", td.counter.local());
         }
     }
 

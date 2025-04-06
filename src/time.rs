@@ -62,13 +62,13 @@ impl TimeManager {
         match self.limits {
             Limits::Infinite => false,
             Limits::Depth(maximum) => td.completed_depth >= maximum,
-            Limits::Nodes(maximum) => td.nodes >= maximum,
+            Limits::Nodes(maximum) => td.counter.global() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => {
                 let mut limit = self.soft_bound.as_secs_f32();
 
                 if td.completed_depth >= 7 {
-                    let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.nodes as f32;
+                    let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
                     limit *= 2.15 - 1.5 * fraction;
 
                     limit *= 1.25 - 0.05 * pv_stability as f32;
@@ -86,14 +86,14 @@ impl TimeManager {
             return false;
         }
 
-        if td.nodes & 2047 == 2047 && td.get_stop() {
+        if td.counter.local() & 2047 == 2047 && td.get_stop() {
             return true;
         }
 
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
-            Limits::Nodes(maximum) => td.nodes >= maximum,
-            _ => td.nodes & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
+            Limits::Nodes(maximum) => td.counter.global() >= maximum,
+            _ => td.counter.local() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
 }

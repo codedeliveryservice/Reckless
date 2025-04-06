@@ -1,5 +1,5 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
 
@@ -18,15 +18,16 @@ pub struct ThreadPool<'a> {
 }
 
 impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop)] }
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
+        Self { vector: vec![ThreadData::new(tt, stop, counter)] }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
+        let counter = self.vector[0].counter.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
@@ -43,7 +44,7 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop);
+            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global);
         }
     }
 }
@@ -51,6 +52,7 @@ impl<'a> ThreadPool<'a> {
 pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
+    pub counter: AtomicCounter<'a>,
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Stack,
@@ -67,7 +69,6 @@ pub struct ThreadData<'a> {
     pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub stopped: bool,
-    pub nodes: u64,
     pub root_depth: i32,
     pub sel_depth: i32,
     pub completed_depth: i32,
@@ -75,10 +76,11 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool) -> Self {
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
         Self {
             tt,
             stop,
+            counter: AtomicCounter::new(counter),
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0),
             stack: Stack::default(),
@@ -95,7 +97,6 @@ impl<'a> ThreadData<'a> {
             node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             stopped: false,
-            nodes: 0,
             root_depth: 0,
             sel_depth: 0,
             completed_depth: 0,
@@ -126,7 +127,7 @@ impl<'a> ThreadData<'a> {
     }
 
     pub fn print_uci_info(&self, depth: i32, score: i32, now: Instant) {
-        let nps = self.nodes as f64 / now.elapsed().as_secs_f64();
+        let nps = self.counter.global() as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();
 
         let score = match score {
@@ -138,7 +139,7 @@ impl<'a> ThreadData<'a> {
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
             self.sel_depth,
-            self.nodes,
+            self.counter.global(),
             self.tt.hashfull(),
         );
 
@@ -238,5 +239,46 @@ impl NodeTable {
 impl Default for NodeTable {
     fn default() -> Self {
         Self { table: [[0; 64]; 64] }
+    }
+}
+
+pub struct AtomicCounter<'a> {
+    buffer: u64,
+    local: u64,
+    global: &'a AtomicU64,
+}
+
+impl<'a> AtomicCounter<'a> {
+    pub const fn new(global: &'a AtomicU64) -> Self {
+        Self { buffer: 0, local: 0, global }
+    }
+
+    pub const fn local(&self) -> u64 {
+        self.local + self.buffer
+    }
+
+    pub fn global(&self) -> u64 {
+        self.buffer + self.global.load(Ordering::Relaxed)
+    }
+
+    pub fn increment(&mut self) {
+        const BUFFER_SIZE: u64 = 2048;
+
+        self.buffer += 1;
+        if self.buffer >= BUFFER_SIZE {
+            self.flush();
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.local = 0;
+        self.buffer = 0;
+        self.global.store(0, Ordering::Relaxed);
+    }
+
+    fn flush(&mut self) {
+        self.local += self.buffer;
+        self.global.fetch_add(self.buffer, Ordering::Relaxed);
+        self.buffer = 0;
     }
 }
