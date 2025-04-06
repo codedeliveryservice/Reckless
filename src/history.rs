@@ -62,7 +62,7 @@ impl Default for QuietHistory {
 
 struct NoisyHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 2]; 7],
+    buckets: [[[i16; 2]; 2]; 7],
 }
 
 impl NoisyHistoryEntry {
@@ -71,9 +71,10 @@ impl NoisyHistoryEntry {
 
     pub fn bucket(&self, board: &Board, mv: Move) -> i16 {
         let captured = board.piece_on(mv.to()).piece_type() as usize;
-        let threated = board.is_threatened(mv.to()) as usize;
+        let from_threated = board.is_threatened(mv.from()) as usize;
+        let to_threated = board.is_threatened(mv.to()) as usize;
 
-        self.buckets[captured][threated]
+        self.buckets[captured][from_threated][to_threated]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
@@ -83,9 +84,10 @@ impl NoisyHistoryEntry {
 
     pub fn update_bucket(&mut self, board: &Board, mv: Move, bonus: i32) {
         let captured = board.piece_on(mv.to()).piece_type() as usize;
-        let threated = board.is_threatened(mv.to()) as usize;
+        let from_threated = board.is_threatened(mv.from()) as usize;
+        let to_threated = board.is_threatened(mv.to()) as usize;
 
-        let entry = &mut self.buckets[captured][threated];
+        let entry = &mut self.buckets[captured][from_threated][to_threated];
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
     }
 }
