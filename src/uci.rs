@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 
 use crate::{
     board::Board,
@@ -12,11 +12,12 @@ use crate::{
 };
 
 pub fn message_loop() {
-    let stop = AtomicBool::new(false);
     let tt = TranspositionTable::default();
+    let stop = AtomicBool::new(false);
+    let counter = AtomicU64::new(0);
 
     let mut report = Report::Full;
-    let mut threads = ThreadPool::new(&tt, &stop);
+    let mut threads = ThreadPool::new(&tt, &stop, &counter);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
     }

@@ -23,12 +23,12 @@ pub struct SearchResult {
 }
 
 pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
-    td.nodes = 0;
     td.completed_depth = 0;
     td.stopped = false;
 
     td.pv.clear(0);
     td.node_table.clear();
+    td.counter.clear();
 
     td.nnue.refresh(&td.board);
 
@@ -146,7 +146,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return qsearch::<PV>(td, alpha, beta);
     }
 
-    td.nodes += 1;
+    td.counter.increment();
 
     if PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
@@ -421,7 +421,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        let initial_nodes = td.nodes;
+        let initial_nodes = td.counter.local();
 
         td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
@@ -516,7 +516,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if is_root {
-            td.node_table.add(mv, td.nodes - initial_nodes);
+            td.node_table.add(mv, td.counter.local() - initial_nodes);
         }
 
         if score > best_score {
@@ -615,7 +615,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let in_check = td.board.in_check();
 
-    td.nodes += 1;
+    td.counter.increment();
 
     if td.time_manager.check_time(td) {
         td.stopped = true;
