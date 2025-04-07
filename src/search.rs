@@ -280,6 +280,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
+        td.stack[td.ply].cutoff_count += (score >= static_eval) as i32;
+
         match score {
             s if is_decisive(s) => return beta,
             s if s >= beta => return s,
