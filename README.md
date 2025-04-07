@@ -59,10 +59,6 @@ make
 
 [reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
 
-> [!WARNING] 
-> If you're getting a `cannot transmute between types of different sizes` error, it's due to a mismatch between
-> the model and the engine's architecture. In this case, update the source code and fetch the latest model.
-
 ### Usage
 
 Reckless is not a standalone chess program but a chess engine designed for use with UCI-compatible GUIs,
@@ -115,9 +111,11 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   Late Move Pruning
 -   Static Exchange Evaluation Pruning
 -   ProbCut Pruning
+-   Mate Distance Pruning
 -   Fractional Late Move Reductions
 -   Internal Iterative Reductions
 -   Singular Extensions
+-   Check Extensions
 
 ### Evaluation
 
@@ -126,7 +124,6 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
 -   Quantization: `i16` (`384`, `64`)
 -   Trained on original data generated entirely through self-play
--   Handwritten SIMD for AVX2 instructions
 
 ### Time management
 
