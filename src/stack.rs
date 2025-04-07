@@ -22,6 +22,7 @@ pub struct StackEntry {
     pub tt_pv: bool,
     pub cutoff_count: i32,
     pub reduction: i32,
+    pub history: i32,
 }
 
 impl Default for StackEntry {
@@ -35,6 +36,7 @@ impl Default for StackEntry {
             tt_pv: false,
             cutoff_count: 0,
             reduction: 0,
+            history: 0,
         }
     }
 }

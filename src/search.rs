@@ -230,6 +230,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
+    td.stack[td.ply].history = 0;
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
@@ -249,6 +250,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval
             >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32) + correction_value.abs() / 2 - 20
+                + if td.ply >= 1 { td.stack[td.ply - 1].history / 256 } else { 0 }
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
@@ -424,6 +426,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.counter.local();
 
+        td.stack[td.ply].history = history;
         td.stack[td.ply].piece = td.board.moved_piece(mv);
         td.stack[td.ply].mv = mv;
         td.ply += 1;
