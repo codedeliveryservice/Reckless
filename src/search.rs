@@ -467,6 +467,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     reduction += 1024;
                 }
 
+                if tt_move.is_noisy() {
+                    reduction += 1024;
+                }
+
                 if td.stack[td.ply].cutoff_count > 3 {
                     reduction += 1024;
                 }
