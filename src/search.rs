@@ -371,7 +371,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
-        if !improving {
+        if is_quiet && !improving {
             reduction += 1024;
         }
 
