@@ -242,7 +242,7 @@ impl Board {
         self.state.threats.contains(square)
     }
 
-    pub fn upcoming_repetition(&self) -> bool {
+    pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = (self.state.halfmove_clock as usize).min(self.state_stack.len());
         if hm < 3 {
             return false;
@@ -271,7 +271,7 @@ impl Board {
                 }
             }
 
-            if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
+            if ply > d && (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
                 return true;
             }
         }
