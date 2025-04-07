@@ -460,9 +460,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
-            // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
-
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
                 && lmr_depth < 6
@@ -471,6 +468,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             {
                 break;
             }
+
+            if is_quiet && lmr_depth == 1 && td.conthist(1, mv) + td.conthist(2, mv) < -600 * depth + 468 {
+                continue;
+            }
+
+            // Futility Pruning (FP)
+            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -19 * lmr_depth * lmr_depth } else { -97 * depth + 54 } - 37 * history / 1024;
