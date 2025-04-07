@@ -4,7 +4,7 @@ use crate::{
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
-type PieceToHistory<T> = [[T; 64]; 12];
+type PieceToHistory<T> = [[T; 64]; 13];
 
 struct QuietHistoryEntry {
     factorizer: i16,
