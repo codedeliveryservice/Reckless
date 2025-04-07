@@ -353,6 +353,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
+    let mut tried_extending_quiet = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
@@ -414,6 +415,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     if extension > 1 && depth < 12 {
                         depth += 1;
                     }
+                    tried_extending_quiet = is_quiet;
                 } else if score >= beta {
                     return score;
                 } else if entry.score >= beta {
@@ -474,6 +476,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 if td.stack[td.ply - 1].killer == mv {
+                    reduction -= 1024;
+                }
+
+                if tried_extending_quiet {
                     reduction -= 1024;
                 }
             }
