@@ -99,7 +99,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             last_move = td.pv.best_move();
         }
 
-        if (score - eval_stability as i32).abs() < 12 {
+        if (score - average as i32).abs() < 12 {
             eval_stability = (eval_stability + 1).min(8);
         } else {
             eval_stability = 0;
