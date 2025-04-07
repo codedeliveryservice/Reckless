@@ -99,6 +99,10 @@ impl Board {
         self.state.checkers
     }
 
+    pub const fn threats(&self) -> Bitboard {
+        self.state.threats
+    }
+
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]

@@ -364,7 +364,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(&td.board, mv) + td.conthist(1, mv) + td.conthist(2, mv)
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.conthist(1, mv)
+                + td.conthist(2, mv)
         } else {
             td.noisy_history.get(&td.board, mv)
         };
@@ -574,12 +576,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply].killer = best_move;
 
             if !quiet_moves.is_empty() || depth > 3 {
-                td.quiet_history.update(&td.board, best_move, bonus);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(&td.board, mv, -bonus);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
             }
 
             for &mv in noisy_moves.iter() {
