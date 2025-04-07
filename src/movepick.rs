@@ -9,6 +9,7 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
+    Killer,
     GenerateQuiet,
     Quiet,
     BadNoisy,
@@ -103,7 +104,18 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = Stage::GenerateQuiet;
+            self.stage = Stage::Killer;
+        }
+
+        if self.stage == Stage::Killer {
+            if !skip_quiets {
+                self.stage = Stage::GenerateQuiet;
+                if self.killer != self.tt_move && td.board.is_pseudo_legal(self.killer) {
+                    return Some(self.killer);
+                }
+            } else {
+                self.stage = Stage::BadNoisy;
+            }
         }
 
         if self.stage == Stage::GenerateQuiet {
@@ -127,7 +139,7 @@ impl MovePicker {
                     }
 
                     let entry = self.list.remove(index);
-                    if entry.mv == self.tt_move {
+                    if entry.mv == self.tt_move || entry.mv == self.killer {
                         continue;
                     }
 
@@ -166,10 +178,9 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(&td.board, mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv);
+            entry.score = td.quiet_history.get(&td.board, mv);
+            entry.score += td.conthist(1, mv);
+            entry.score += td.conthist(2, mv);
         }
     }
 }
