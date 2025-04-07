@@ -200,22 +200,28 @@ impl Board {
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self) -> bool {
-        self.draw_by_repetition() || self.draw_by_fifty_move_rule() || self.draw_by_insufficient_material()
+    pub fn is_draw(&self, ply: usize) -> bool {
+        self.draw_by_repetition(ply) || self.draw_by_fifty_move_rule() || self.draw_by_insufficient_material()
     }
 
     /// Returns `true` if the current position has already been present at least once
     /// in the board's history.
     ///
     /// This method does not count the number of encounters.
-    pub fn draw_by_repetition(&self) -> bool {
-        self.state_stack
-            .iter()
-            .rev()
-            .skip(1)
-            .step_by(2)
-            .take(self.state.halfmove_clock as usize + 1)
-            .any(|state| state.key == self.state.key)
+    pub fn draw_by_repetition(&self, ply: usize) -> bool {
+        let hm = self.state_stack.len().min(self.state.halfmove_clock as usize);
+        let mut repetitions = 0;
+
+        for i in (4..=hm).step_by(2) {
+            if self.state.key == self.state_stack[self.state_stack.len() - i].key {
+                repetitions += 1;
+
+                if ply >= i || repetitions >= 2 {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     /// Returns `true` if the current position is a known draw by insufficient material:
