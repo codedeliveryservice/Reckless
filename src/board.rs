@@ -37,6 +37,7 @@ struct InternalState {
     threats: Bitboard,
     pinners: Bitboard,
     checkers: Bitboard,
+    plies_from_null: usize,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -243,7 +244,7 @@ impl Board {
     }
 
     pub fn upcoming_repetition(&self) -> bool {
-        let hm = (self.state.halfmove_clock as usize).min(self.state_stack.len());
+        let hm = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
         if hm < 3 {
             return false;
         }

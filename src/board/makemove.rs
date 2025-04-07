@@ -8,6 +8,7 @@ impl Board {
 
         self.state.key ^= ZOBRIST.side;
         self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.plies_from_null = 0;
 
         self.update_threats();
         self.update_king_threats();
@@ -41,6 +42,7 @@ impl Board {
         }
 
         self.state.captured = None;
+        self.state.plies_from_null += 1;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
