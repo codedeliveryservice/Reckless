@@ -193,24 +193,25 @@ impl Default for PrincipalVariationTable {
 }
 
 pub struct LmrTable {
-    table: [[i32; 64]; 64],
+    table: [[[i32; 64]; 64]; 2],
 }
 
 impl LmrTable {
-    pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth.min(63) as usize][move_count.min(63) as usize]
+    pub fn reduction(&self, is_quiet: bool, depth: i32, move_count: i32) -> i32 {
+        self.table[is_quiet as usize][depth.min(63) as usize][move_count.min(63) as usize]
     }
 }
 
 impl Default for LmrTable {
-    #[allow(clippy::needless_range_loop)]
     fn default() -> Self {
-        let mut table = [[0; 64]; 64];
+        let mut table = [[[0; 64]; 64]; 2];
 
         for depth in 1..64 {
             for move_count in 1..64 {
-                let reduction = 1000.0 + 455.0 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
+                let log_factor = (depth as f32).ln() * (move_count as f32).ln();
+
+                table[0][depth][move_count] = (500.0 + 455.0 * log_factor) as i32;
+                table[1][depth][move_count] = (1000.0 + 455.0 * log_factor) as i32;
             }
         }
 
