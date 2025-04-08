@@ -602,7 +602,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.ply -= 1;
         tt_pv |= td.stack[td.ply].tt_pv;
 
-        let factor = 2;
+        let factor = 2 + (!in_check && best_score <= static_eval - 100) as i32;
         let scaled_bonus = factor * bonus(depth);
 
         let pcm_move = td.stack[td.ply].mv;
