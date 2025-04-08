@@ -13,14 +13,14 @@ pub fn forward(accumulator: &[i16], weights: &[i16]) -> i32 {
 mod avx2 {
     use std::arch::x86_64::*;
 
-    use crate::nnue::{HIDDEN_SIZE, L0_SCALE};
+    use crate::nnue::{HIDDEN_SIZE, NETWORK_QA};
 
     const CHUNK_SIZE: usize = 16;
 
     pub unsafe fn forward(accumulator: &[i16], weights: &[i16]) -> i32 {
         let mut vector = _mm256_setzero_si256();
         let min = _mm256_setzero_si256();
-        let max = _mm256_set1_epi16(L0_SCALE as i16);
+        let max = _mm256_set1_epi16(NETWORK_QA as i16);
 
         for i in (0..HIDDEN_SIZE).step_by(CHUNK_SIZE) {
             let acc = _mm256_load_si256(accumulator.as_ptr().add(i).cast());
@@ -47,7 +47,7 @@ mod avx2 {
 
 #[cfg(not(target_feature = "avx2"))]
 mod scalar {
-    use crate::nnue::{HIDDEN_SIZE, L0_SCALE};
+    use crate::nnue::{HIDDEN_SIZE, NETWORK_QA};
 
     pub fn forward(accumulator: &[i16], weights: &[i16]) -> i32 {
         let mut output = 0;
@@ -58,7 +58,7 @@ mod scalar {
     }
 
     fn screlu(x: i32) -> i32 {
-        let v = x.clamp(0, L0_SCALE);
+        let v = x.clamp(0, NETWORK_QA);
         v * v
     }
 }
