@@ -283,8 +283,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 .sum::<i32>()
         };
 
-        let r = 2
-            + game_phase() / 12
+        let r = 4
+            + game_phase() / 10
             + depth / 3
             + ((eval - beta) / 256).min(3)
             + tt_move.is_noisy() as i32
