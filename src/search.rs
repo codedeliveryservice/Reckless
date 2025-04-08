@@ -225,7 +225,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !in_check
-        && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_valid()
         && td.stack[td.ply - 1].mv.is_quiet()
