@@ -5,8 +5,17 @@ use crate::{
 
 use accumulator::Accumulator;
 
+#[cfg(target_feature = "avx2")]
+use avx2 as simd;
+#[cfg(not(target_feature = "avx2"))]
+use sse4 as simd;
+
 mod accumulator;
-mod simd;
+
+#[cfg(target_feature = "avx2")]
+mod avx2;
+#[cfg(not(target_feature = "avx2"))]
+mod sse4;
 
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 512;
@@ -51,15 +60,8 @@ impl Network {
             }
         }
 
-        let accumulators = &self.stack[self.index];
-
-        let stm = accumulators.values[board.side_to_move()];
-        let nstm = accumulators.values[!board.side_to_move()];
-
-        let weights = &PARAMETERS.output_weights;
-
-        let output = simd::forward(&stm, &weights[0]) + simd::forward(&nstm, &weights[1]);
-        (output / NETWORK_QA + i32::from(PARAMETERS.output_bias)) * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
+        let output = self.output_transformer(board) / NETWORK_QA + PARAMETERS.output_bias as i32;
+        output * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
     }
 
     fn update_accumulators(&mut self, board: &Board) {
@@ -90,6 +92,31 @@ impl Network {
         }
 
         false
+    }
+
+    fn output_transformer(&mut self, board: &Board) -> i32 {
+        let accumulators = &self.stack[self.index];
+
+        let min = simd::zero();
+        let max = simd::splat(NETWORK_QA as i16);
+
+        let mut vector = simd::zero();
+
+        for flip in [0, 1] {
+            let accumulator = &accumulators.values[board.side_to_move() as usize ^ flip];
+            let weights = &PARAMETERS.output_weights[flip];
+
+            for i in (0..HIDDEN_SIZE).step_by(simd::VECTOR_WIDTH) {
+                let input = unsafe { *(accumulator[i..].as_ptr().cast()) };
+                let weights = unsafe { *(weights[i..].as_ptr().cast()) };
+
+                let v = simd::min(simd::max(input, min), max);
+                let w = simd::mullo(v, weights);
+                vector = simd::add_i32(vector, simd::dot(w, v));
+            }
+        }
+
+        simd::horizontal_sum(vector)
     }
 }
 
