@@ -224,6 +224,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if !in_check
+        && !excluded
+        && td.ply >= 1
+        && td.stack[td.ply - 1].mv.is_valid()
+        && td.stack[td.ply - 1].mv.is_quiet()
+        && td.stack[td.ply - 1].static_eval != Score::NONE
+    {
+        let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
+        let bonus = value.clamp(-64, 128);
+
+        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+    }
+
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
 
     if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
