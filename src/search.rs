@@ -68,11 +68,13 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             match current {
                 s if s <= alpha => {
+                    delta += delta;
                     beta = (alpha + beta) / 2;
                     alpha = (current - delta).max(-Score::INFINITE);
                     reduction = 0;
                 }
                 s if s >= beta => {
+                    delta += delta / 2;
                     beta = (current + delta).min(Score::INFINITE);
                     reduction += 1;
                 }
@@ -82,8 +84,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                     break;
                 }
             }
-
-            delta += delta / 2;
         }
 
         if td.stopped {
