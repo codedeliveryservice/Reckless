@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, PieceType, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -276,7 +276,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
         && td.board.has_non_pawns()
     {
-        let r = 4
+        let game_phase = || -> i32 {
+            [PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
+                .iter()
+                .map(|&pt| td.board.pieces(pt).len() as i32 * [0, 3, 3, 5, 9][pt])
+                .sum::<i32>()
+        };
+
+        let r = 2
+            + game_phase() / 12
             + depth / 3
             + ((eval - beta) / 256).min(3)
             + tt_move.is_noisy() as i32
