@@ -60,6 +60,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         loop {
+            td.stack = Default::default();
+
             let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
