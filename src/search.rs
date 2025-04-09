@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    evaluate::evaluate,
+    evaluate::{evaluate, MATERIAL_VALUES},
     movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
@@ -400,6 +400,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
+
+            // Futility pruning for captures
+            if !is_quiet
+                && lmr_depth < 6
+                && !in_check
+                && static_eval + 197 + 219 * lmr_depth + MATERIAL_VALUES[td.stack[td.ply].piece.piece_type()] <= alpha
+            {
+                continue;
+            }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth + 50 } - history / 32;

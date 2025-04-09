@@ -1,6 +1,6 @@
 use crate::{board::Board, thread::ThreadData, types::PieceType};
 
-const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
+pub const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
