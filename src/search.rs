@@ -262,6 +262,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval
             >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32) + correction_value.abs() / 2 - 20
+                + if td.ply >= 1 { td.stack[td.ply - 1].history / 350 } else { 0 }
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
@@ -321,13 +322,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            td.stack[td.ply].piece = td.board.moved_piece(mv);
-            td.stack[td.ply].mv = mv;
-            td.ply += 1;
-
-            td.nnue.push(mv, &td.board);
-            td.board.make_move(mv);
-            td.tt.prefetch(td.board.hash());
+            make_move(td, mv, 0);
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -335,9 +330,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
             }
 
-            td.board.undo_move(mv);
-            td.nnue.pop();
-            td.ply -= 1;
+            undo_move(td, mv);
 
             if td.stopped {
                 return Score::ZERO;
@@ -443,13 +436,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.counter.local();
 
-        td.stack[td.ply].piece = td.board.moved_piece(mv);
-        td.stack[td.ply].mv = mv;
-        td.ply += 1;
-
-        td.nnue.push(mv, &td.board);
-        td.board.make_move(mv);
-        td.tt.prefetch(td.board.hash());
+        make_move(td, mv, history);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -531,9 +518,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             score = -search::<true>(td, -beta, -alpha, new_depth, false);
         }
 
-        td.board.undo_move(mv);
-        td.nnue.pop();
-        td.ply -= 1;
+        undo_move(td, mv);
 
         if td.stopped {
             return Score::ZERO;
@@ -724,18 +709,9 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        td.stack[td.ply].piece = td.board.moved_piece(mv);
-        td.stack[td.ply].mv = mv;
-        td.ply += 1;
-
-        td.nnue.push(mv, &td.board);
-        td.board.make_move(mv);
-
+        make_move(td, mv, 0);
         let score = -qsearch::<PV>(td, -beta, -alpha);
-
-        td.board.undo_move(mv);
-        td.nnue.pop();
-        td.ply -= 1;
+        undo_move(td, mv);
 
         if td.stopped {
             return Score::ZERO;
@@ -812,4 +788,23 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
         }
     }
+}
+
+fn make_move(td: &mut ThreadData, mv: Move, history: i32) {
+    td.stack[td.ply].history = history;
+    td.stack[td.ply].piece = td.board.moved_piece(mv);
+    td.stack[td.ply].mv = mv;
+    td.ply += 1;
+
+    td.nnue.push(mv, &td.board);
+    td.board.make_move(mv);
+    td.tt.prefetch(td.board.hash());
+}
+
+fn undo_move(td: &mut ThreadData, mv: Move) {
+    td.board.undo_move(mv);
+    td.nnue.pop();
+
+    td.ply -= 1;
+    td.stack[td.ply].history = 0;
 }
