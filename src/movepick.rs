@@ -17,7 +17,7 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
-    killer: Move,
+    killers: [Move; 2],
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
@@ -25,11 +25,11 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new(killer: Move, tt_move: Move) -> Self {
+    pub const fn new(killers: [Move; 2], tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
-            killer,
+            killers,
             threshold: None,
             stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
@@ -41,7 +41,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            killer: Move::NULL,
+            killers: [Move::NULL; 2],
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -53,7 +53,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            killer: Move::NULL,
+            killers: [Move::NULL; 2],
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -167,7 +167,7 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score = (1 << 18) * (mv == self.killer) as i32
+            entry.score = (1 << 18) * self.killers.contains(&mv) as i32
                 + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);

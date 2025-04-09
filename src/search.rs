@@ -248,7 +248,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
-    td.stack[td.ply + 1].killer = Move::NULL;
+    td.stack[td.ply + 1].killers = [Move::NULL; 2];
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Razoring
@@ -370,7 +370,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
+    let mut move_picker = MovePicker::new(td.stack[td.ply].killers, tt_move);
     let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
@@ -492,7 +492,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     reduction += 1024;
                 }
 
-                if td.stack[td.ply - 1].killer == mv {
+                if td.stack[td.ply - 1].killers[0] == mv {
                     reduction -= 1024;
                 }
             }
@@ -592,7 +592,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.noisy_history.update(&td.board, mv, -bonus);
             }
         } else {
-            td.stack[td.ply].killer = best_move;
+            if td.stack[td.ply].killers[0] != best_move {
+                td.stack[td.ply].killers[1] = td.stack[td.ply].killers[0];
+                td.stack[td.ply].killers[0] = best_move;
+            }
 
             if !quiet_moves.is_empty() || depth > 3 {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
