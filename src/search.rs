@@ -243,6 +243,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
+    // Internal Iterative Reductions (IIR)
+    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
+        depth -= 1;
+    }
+
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
@@ -353,11 +358,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score - (probcut_beta - beta);
             }
         }
-    }
-
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
-        depth -= 1;
     }
 
     let mut best_score = -Score::INFINITE;
