@@ -413,7 +413,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let entry = entry.unwrap();
 
             if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
-                let singular_beta = entry.score - depth;
+                let singular_beta = entry.score - (59 + 77 * (tt_pv && !PV) as i32) * depth / 54;
+
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
