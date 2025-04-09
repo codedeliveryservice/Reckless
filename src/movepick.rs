@@ -1,7 +1,7 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{ArrayVec, Move, MoveList, MAX_MOVES},
+    types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -155,9 +155,10 @@ impl MovePicker {
 
     fn score_noisy(&mut self, td: &ThreadData) {
         for entry in self.list.iter_mut() {
-            let captured = td.board.piece_on(entry.mv.to()).piece_type();
+            let captured =
+                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = PIECE_VALUES[captured as usize % 6] * 16;
+            entry.score = PIECE_VALUES[captured] * 16;
             entry.score += td.noisy_history.get(&td.board, entry.mv);
         }
     }
