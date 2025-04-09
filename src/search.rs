@@ -661,10 +661,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
+    let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
     if let Some(entry) = entry {
+        tt_move = entry.mv;
         tt_pv |= entry.pv;
+
         if match entry.bound {
             Bound::Upper => entry.score <= alpha,
             Bound::Lower => entry.score >= beta,
@@ -695,7 +698,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch();
+    let mut move_picker = MovePicker::new_qsearch(tt_move);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
