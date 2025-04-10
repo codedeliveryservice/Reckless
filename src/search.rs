@@ -466,7 +466,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if tt_pv {
                 reduction -= 768
                     + entry.is_some_and(|entry| entry.score > alpha) as i32 * 768
-                    + entry.is_some_and(|entry| entry.depth >= depth) as i32 * (768 + cut_node as i32 * 1024);
+                    + entry.is_some_and(|entry| entry.depth >= depth) as i32 * 768;
             }
 
             if PV {
