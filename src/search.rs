@@ -435,7 +435,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 } else if score >= beta {
                     return score;
                 } else if entry.score >= beta {
-                    extension -= 2;
+                    extension = -2;
                 } else if cut_node {
                     extension = -2;
                 }
@@ -523,11 +523,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.ply += 1;
             }
         }
-        // Principal Variation Search (PVS)
+        // Full Depth Search (FDS)
         else if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
         }
 
+        // Principal Variation Search (PVS)
         if PV && (move_count == 1 || score > alpha) {
             score = -search::<true>(td, -beta, -alpha, new_depth, false);
         }
