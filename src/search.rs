@@ -408,6 +408,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Singular Extensions (SE)
+        let mut new_depth = depth - 1;
         let mut extension = 0;
 
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
@@ -439,6 +440,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 } else if cut_node {
                     extension = -2;
                 }
+
+                new_depth += extension;
             }
         }
 
@@ -452,7 +455,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_move(mv);
         td.tt.prefetch(td.board.hash());
 
-        let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
 
         // Check Extensions
