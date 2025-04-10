@@ -472,7 +472,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if cut_node {
-                reduction += 1024;
+                reduction += 1024 - (64 * move_count).min(1024);
             }
 
             if is_quiet {
