@@ -253,7 +253,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch::<false>(td, alpha, beta);
+        let score = qsearch::<false>(td, alpha, beta);
+        if depth > 3 && score <= alpha {
+            td.ply -= 1;
+            let factor = 2;
+            let scaled_bonus = factor * bonus(depth);
+
+            let pcm_move = td.stack[td.ply].mv;
+            if pcm_move != Move::NULL && pcm_move.is_quiet() {
+                td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            }
+            td.ply += 1;
+        }
+        return score;
     }
 
     // Reverse Futility Pruning (RFP)
