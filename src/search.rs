@@ -368,6 +368,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut extension = 0;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
@@ -408,8 +409,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Singular Extensions (SE)
-        let mut extension = 0;
-
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
@@ -452,8 +451,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_move(mv);
         td.tt.prefetch(td.board.hash());
 
-        let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
+        let mut new_depth = depth - 1;
+
+        if mv == tt_move {
+            new_depth += extension;
+        }
 
         // Check Extensions
         if depth >= 8 && static_eval.abs() >= 128 && td.board.in_check() {
@@ -470,7 +473,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768;
             }
 
-            if cut_node {
+            if cut_node || extension == -2 {
                 reduction += 1024;
             }
 
