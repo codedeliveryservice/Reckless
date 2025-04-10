@@ -251,6 +251,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
+    let mut cutoff_failure = false;
+
     // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
         return qsearch::<false>(td, alpha, beta);
@@ -302,7 +304,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         match score {
             s if is_decisive(s) => return beta,
             s if s >= beta => return s,
-            _ => (),
+            _ => cutoff_failure = true,
         }
     }
 
@@ -355,6 +357,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score - (probcut_beta - beta);
             }
         }
+
+        cutoff_failure = true;
     }
 
     // Internal Iterative Reductions (IIR)
@@ -471,7 +475,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768;
             }
 
-            if cut_node {
+            if cut_node && !cutoff_failure {
                 reduction += 1024;
             }
 
