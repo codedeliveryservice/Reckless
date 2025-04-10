@@ -613,9 +613,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
+    if bound == Bound::Upper && td.ply >= 1 {
         td.ply -= 1;
-        tt_pv |= td.stack[td.ply].tt_pv;
+        tt_pv |= td.stack[td.ply].tt_pv && depth > 3;
 
         let factor = 2;
         let scaled_bonus = factor * bonus(depth);
