@@ -496,7 +496,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
 
-            let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
+            let reduced_depth = (new_depth - reduction / 1024)
+                .clamp(0, new_depth + (tt_pv && entry.is_some_and(|entry| entry.score > alpha)) as i32);
 
             td.stack[td.ply - 1].reduction = reduction;
 
