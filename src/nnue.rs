@@ -9,7 +9,7 @@ mod accumulator;
 mod simd;
 
 const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 512;
+const HIDDEN_SIZE: usize = 640;
 
 const NETWORK_SCALE: i32 = 400;
 const NETWORK_QA: i32 = 384;
