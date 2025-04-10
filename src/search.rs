@@ -526,6 +526,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Principal Variation Search (PVS)
         else if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            if mv != tt_move && score >= beta {
+                td.ply -= 1;
+                update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus(depth));
+                td.ply += 1;
+            }
         }
 
         if PV && (move_count == 1 || score > alpha) {
