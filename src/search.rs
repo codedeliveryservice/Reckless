@@ -302,9 +302,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
             let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
             td.nmp_min_ply = 0;
+            
             if td.stopped {
                 return Score::ZERO;
             }
+            
             if verified_score >= beta {
                 return score;
             }
