@@ -313,7 +313,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if verified_score >= beta {
-                return score;
+                return verified_score;
             }
         }
     }
