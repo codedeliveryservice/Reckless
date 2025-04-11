@@ -290,6 +290,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.undo_null_move();
 	
 	if td.nmp_min_ply > 0 || depth < 16 {
+			td.ply -= 1;
                         return score;
 	}
 
