@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -275,6 +275,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+        && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
@@ -285,7 +286,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
 
         td.board.undo_null_move();
         td.ply -= 1;
@@ -294,10 +295,26 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        match score {
-            s if is_decisive(s) => return beta,
-            s if s >= beta => return s,
-            _ => (),
+        if score >= beta {
+            if is_win(score) {
+                score = beta;
+            }
+
+            if td.nmp_min_ply > 0 || depth < 16 {
+                return score;
+            }
+
+            td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
+            let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
+            td.nmp_min_ply = 0;
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if verified_score >= beta {
+                return score;
+            }
         }
     }
 
