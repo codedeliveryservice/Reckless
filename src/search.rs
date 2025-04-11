@@ -278,7 +278,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
     {
-        let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
+        let r = 4650
+            + 330 * depth
+            + 1024 * (tt_move.is_null() || tt_move.is_noisy()) as i32
+            + 4 * (eval - beta).min(768)
+            + 4 * correction_value.abs();
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
@@ -286,7 +290,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r / 1024, false);
 
         td.board.undo_null_move();
         td.ply -= 1;
