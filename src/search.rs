@@ -712,6 +712,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
+            if move_count >= 3 {
+                break;
+            }
+
             if mv.is_quiet() {
                 continue;
             }
