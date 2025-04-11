@@ -288,15 +288,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
         td.board.undo_null_move();
-	
-	if td.nmp_min_ply > 0 || depth < 16 {
-			td.ply -= 1;
-                        return score;
-	}
-
-	td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
-        let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
-	td.nmp_min_ply = 0;
 
 	td.ply -= 1;
 
@@ -304,12 +295,24 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        match verified_score {
-            s if is_decisive(s) => return beta,
-            s if s >= beta => return score,
-            _ => (),
+        if score >= beta {
+		    	if td.nmp_min_ply > 0 || depth < 16 {
+                        	return score;
+			}
+			if score >= beta {
+			td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
+        		let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
+			td.nmp_min_ply = 0;
+			if td.stopped {
+            			return Score::ZERO;
+        			}
+			if verified_score >= beta {
+				return score
+				}
+
+			}
+	    }
         }
-    }
 
     // ProbCut
     let probcut_beta = beta + 256 - 64 * improving as i32;
