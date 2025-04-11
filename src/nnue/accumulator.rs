@@ -1,10 +1,10 @@
-use super::{Aligned, HIDDEN_SIZE, PARAMETERS};
+use super::{simd, Aligned, HIDDEN_SIZE, PARAMETERS};
 use crate::{
     board::Board,
     types::{Color, Move, Piece, PieceType, Square},
 };
 
-type FtIndex = (usize, usize);
+type FtIndex = [usize; 2];
 
 macro_rules! ft {
     ($feature:expr, $i:expr) => {
@@ -46,7 +46,7 @@ impl Accumulator {
 
         for square in board.occupancies() {
             let piece = board.piece_on(square);
-            let (white, black) = index(piece.piece_color(), piece.piece_type(), square, wking, bking);
+            let [white, black] = index(piece.piece_color(), piece.piece_type(), square, wking, bking);
 
             for i in 0..HIDDEN_SIZE {
                 self.values[0][i] += ft!(white, i);
@@ -88,23 +88,68 @@ impl Accumulator {
     }
 
     fn add1_sub1(&mut self, prev: &Self, add1: FtIndex, sub1: FtIndex) {
-        for i in 0..HIDDEN_SIZE {
-            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i);
-            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i);
+        for side in [0, 1] {
+            let vacc = self.values[side].as_mut_ptr().cast::<simd::Vector>();
+            let vprev = prev.values[side].as_ptr().cast::<simd::Vector>();
+
+            let vadd1 = PARAMETERS.ft_weights[add1[side]].as_ptr().cast::<simd::Vector>();
+            let vsub1 = PARAMETERS.ft_weights[sub1[side]].as_ptr().cast::<simd::Vector>();
+
+            for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+                unsafe {
+                    let mut v = *vprev.add(i);
+                    v = simd::add(v, *vadd1.add(i));
+                    v = simd::sub(v, *vsub1.add(i));
+
+                    *vacc.add(i) = v;
+                }
+            }
         }
     }
 
     fn add1_sub2(&mut self, prev: &Self, add1: FtIndex, sub1: FtIndex, sub2: FtIndex) {
-        for i in 0..HIDDEN_SIZE {
-            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        for side in [0, 1] {
+            let vacc = self.values[side].as_mut_ptr().cast::<simd::Vector>();
+            let vprev = prev.values[side].as_ptr().cast::<simd::Vector>();
+
+            let vadd1 = PARAMETERS.ft_weights[add1[side]].as_ptr().cast::<simd::Vector>();
+            let vsub1 = PARAMETERS.ft_weights[sub1[side]].as_ptr().cast::<simd::Vector>();
+            let vsub2 = PARAMETERS.ft_weights[sub2[side]].as_ptr().cast::<simd::Vector>();
+
+            for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+                unsafe {
+                    let mut v = *vprev.add(i);
+                    v = simd::add(v, *vadd1.add(i));
+                    v = simd::sub(v, *vsub1.add(i));
+                    v = simd::sub(v, *vsub2.add(i));
+
+                    *vacc.add(i) = v;
+                }
+            }
         }
     }
 
     fn add2_sub2(&mut self, prev: &Self, add1: FtIndex, add2: FtIndex, sub1: FtIndex, sub2: FtIndex) {
-        for i in 0..HIDDEN_SIZE {
-            self.values[0][i] = prev.values[0][i] + ft!(add1.0, i) + ft!(add2.0, i) - ft!(sub1.0, i) - ft!(sub2.0, i);
-            self.values[1][i] = prev.values[1][i] + ft!(add1.1, i) + ft!(add2.1, i) - ft!(sub1.1, i) - ft!(sub2.1, i);
+        for side in [0, 1] {
+            let vacc = self.values[side].as_mut_ptr().cast::<simd::Vector>();
+            let vprev = prev.values[side].as_ptr().cast::<simd::Vector>();
+
+            let vadd1 = PARAMETERS.ft_weights[add1[side]].as_ptr().cast::<simd::Vector>();
+            let vadd2 = PARAMETERS.ft_weights[add2[side]].as_ptr().cast::<simd::Vector>();
+            let vsub1 = PARAMETERS.ft_weights[sub1[side]].as_ptr().cast::<simd::Vector>();
+            let vsub2 = PARAMETERS.ft_weights[sub2[side]].as_ptr().cast::<simd::Vector>();
+
+            for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+                unsafe {
+                    let mut v = *vprev.add(i);
+                    v = simd::add(v, *vadd1.add(i));
+                    v = simd::add(v, *vadd2.add(i));
+                    v = simd::sub(v, *vsub1.add(i));
+                    v = simd::sub(v, *vsub2.add(i));
+
+                    *vacc.add(i) = v;
+                }
+            }
         }
     }
 }
@@ -113,8 +158,8 @@ fn index(color: Color, piece: PieceType, square: Square, wking: Square, bking: S
     let wsquare = if wking.file() >= 4 { square ^ 7 } else { square };
     let bsquare = if bking.file() >= 4 { square ^ 7 } else { square };
 
-    (
-        384 * color as usize + 64 * piece as usize + wsquare as usize,
-        384 * !color as usize + 64 * piece as usize + (bsquare ^ 56) as usize,
-    )
+    let white = 384 * color as usize + 64 * piece as usize + wsquare as usize;
+    let black = 384 * !color as usize + 64 * piece as usize + (bsquare ^ 56) as usize;
+
+    [white, black]
 }

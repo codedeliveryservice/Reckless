@@ -24,6 +24,14 @@ pub fn mullo(a: Vector, b: Vector) -> Vector {
     unsafe { _mm_mullo_epi16(a, b) }
 }
 
+pub fn add(a: Vector, b: Vector) -> Vector {
+    unsafe { _mm_add_epi16(a, b) }
+}
+
+pub fn sub(a: Vector, b: Vector) -> Vector {
+    unsafe { _mm_sub_epi16(a, b) }
+}
+
 pub fn add_i32(a: Vector, b: Vector) -> Vector {
     unsafe { _mm_add_epi32(a, b) }
 }
