@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -286,7 +286,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
         td.board.undo_null_move();
 
         td.ply -= 1;
@@ -295,7 +295,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if score >= beta && !is_decisive(score) {
+        if score >= beta {
+            if is_win(score) {
+                score = beta;
+            }
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
