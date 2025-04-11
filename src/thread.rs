@@ -102,7 +102,7 @@ impl<'a> ThreadData<'a> {
             sel_depth: 0,
             completed_depth: 0,
             ply: 0,
-            nmp_min_ply=0,
+            nmp_min_ply: 0,
         }
     }
 
