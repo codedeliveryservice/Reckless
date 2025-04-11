@@ -275,7 +275,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval >= static_eval
-        && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+        && static_eval
+            >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+                - td.nmp_history.get(td.board.side_to_move(), td.stack[td.ply - 1].mv) / 16
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
     {
@@ -295,6 +297,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if td.stopped {
             return Score::ZERO;
         }
+
+        let bonus = if score >= beta { bonus(depth) / 2 } else { -bonus(depth) };
+        td.nmp_history.update(td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
 
         if score >= beta {
             if is_win(score) {
