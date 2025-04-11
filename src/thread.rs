@@ -73,6 +73,7 @@ pub struct ThreadData<'a> {
     pub sel_depth: i32,
     pub completed_depth: i32,
     pub ply: usize,
+    pub nmp_min_ply: i32,
 }
 
 impl<'a> ThreadData<'a> {
@@ -101,6 +102,7 @@ impl<'a> ThreadData<'a> {
             sel_depth: 0,
             completed_depth: 0,
             ply: 0,
+            nmp_min_ply=0,
         }
     }
 
