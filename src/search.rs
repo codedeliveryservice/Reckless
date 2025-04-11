@@ -578,7 +578,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
 
-    if best_move.is_valid() {
+    if bound == Bound::Exact && best_move.is_quiet() {
+        let bonus = bonus(depth);
+
+        td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
+
+        for &mv in quiet_moves.iter() {
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
+        }
+    }
+
+    if bound == Bound::Lower {
         let bonus = bonus(depth);
 
         if best_move.is_noisy() {
