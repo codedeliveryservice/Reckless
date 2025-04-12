@@ -237,7 +237,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
         let bonus = value.clamp(-64, 128);
 
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+        td.quiet_history.update(
+            tt_pv,
+            td.board.prior_threats(),
+            !td.board.side_to_move(),
+            td.stack[td.ply - 1].mv,
+            bonus,
+        );
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
@@ -332,7 +338,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some(mv) = move_picker.next(td, true) {
+        while let Some(mv) = move_picker.next(td, tt_pv, true) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -391,7 +397,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
-    while let Some(mv) = move_picker.next(td, skip_quiets) {
+    while let Some(mv) = move_picker.next(td, tt_pv, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
@@ -401,7 +407,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+            td.quiet_history.get(tt_pv, td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
@@ -614,12 +620,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply].killer = best_move;
 
             if !quiet_moves.is_empty() || depth > 3 {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
+                td.quiet_history.update(tt_pv, td.board.threats(), td.board.side_to_move(), best_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
+                td.quiet_history.update(tt_pv, td.board.threats(), td.board.side_to_move(), mv, -bonus);
             }
 
             for &mv in noisy_moves.iter() {
@@ -641,7 +647,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply].mv;
         if pcm_move != Move::NULL && pcm_move.is_quiet() {
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(tt_pv, td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
         td.ply += 1;
     }
@@ -723,7 +729,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check) {
+    while let Some(mv) = move_picker.next(td, tt_pv, !in_check) {
         if !td.board.is_legal(mv) {
             continue;
         }

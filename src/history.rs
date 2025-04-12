@@ -8,18 +8,18 @@ type PieceToHistory<T> = [[T; 64]; 12];
 
 struct QuietHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 2]; 2],
+    buckets: [[[i16; 2]; 2]; 2],
 }
 
 impl QuietHistoryEntry {
     const MAX_FACTORIZER: i32 = 2048;
     const MAX_BUCKET: i32 = 6144;
 
-    pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
+    pub fn bucket(&self, pv: bool, threats: Bitboard, mv: Move) -> i16 {
         let from_threated = threats.contains(mv.from()) as usize;
         let to_threated = threats.contains(mv.to()) as usize;
 
-        self.buckets[from_threated][to_threated]
+        self.buckets[pv as usize][from_threated][to_threated]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
@@ -27,11 +27,11 @@ impl QuietHistoryEntry {
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
     }
 
-    pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
+    pub fn update_bucket(&mut self, pv: bool, threats: Bitboard, mv: Move, bonus: i32) {
         let from_threated = threats.contains(mv.from()) as usize;
         let to_threated = threats.contains(mv.to()) as usize;
 
-        let entry = &mut self.buckets[from_threated][to_threated];
+        let entry = &mut self.buckets[pv as usize][from_threated][to_threated];
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
     }
 }
@@ -41,16 +41,16 @@ pub struct QuietHistory {
 }
 
 impl QuietHistory {
-    pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
+    pub fn get(&self, pv: bool, threats: Bitboard, stm: Color, mv: Move) -> i32 {
         let entry = &self.entries[stm][mv.from()][mv.to()];
-        (entry.factorizer + entry.bucket(threats, mv)) as i32
+        (entry.factorizer + entry.bucket(pv, threats, mv)) as i32
     }
 
-    pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
+    pub fn update(&mut self, pv: bool, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
         let entry = &mut self.entries[stm][mv.from()][mv.to()];
 
         entry.update_factorizer(bonus);
-        entry.update_bucket(threats, mv, bonus);
+        entry.update_bucket(pv, threats, mv, bonus);
     }
 }
 

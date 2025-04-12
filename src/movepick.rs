@@ -65,7 +65,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
+    pub fn next(&mut self, td: &ThreadData, pv: bool, skip_quiets: bool) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -110,7 +110,7 @@ impl MovePicker {
             if !skip_quiets {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
-                self.score_quiet(td);
+                self.score_quiet(pv, td);
             } else {
                 self.stage = Stage::BadNoisy;
             }
@@ -163,12 +163,12 @@ impl MovePicker {
         }
     }
 
-    fn score_quiet(&mut self, td: &ThreadData) {
+    fn score_quiet(&mut self, pv: bool, td: &ThreadData) {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
             entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.quiet_history.get(pv, td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);
         }
