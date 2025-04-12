@@ -1,5 +1,6 @@
 use crate::{
-    board::Board, misc::dbg_stats, types::{Bitboard, Color, Move, Piece, Square}
+    board::Board,
+    types::{Bitboard, Color, Move, Piece, Square},
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -183,7 +184,7 @@ impl NullMoveHistory {
         let butterfly = self.butterfly[stm][mv.from()][mv.to()] as i32;
         let structure = self.structure[stm][key as usize & Self::CORRECTION_MASK] as i32;
 
-        (butterfly + structure) / 2
+        butterfly + structure
     }
 
     pub fn update(&mut self, key: u64, stm: Color, mv: Move, bonus: i32) {
