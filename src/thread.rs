@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, NullMoveHistory, QuietHistory},
+    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, NullMoveHistory, QuietHistory, ReductionHistory},
     nnue::Network,
     stack::Stack,
     time::{Limits, TimeManager},
@@ -62,6 +62,7 @@ pub struct ThreadData<'a> {
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
     pub nmp_history: NullMoveHistory,
+    pub lmr_history: ReductionHistory,
     pub pawn_corrhist: CorrectionHistory,
     pub minor_corrhist: CorrectionHistory,
     pub major_corrhist: CorrectionHistory,
@@ -93,6 +94,7 @@ impl<'a> ThreadData<'a> {
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
             nmp_history: NullMoveHistory::default(),
+            lmr_history: ReductionHistory::default(),
             pawn_corrhist: CorrectionHistory::default(),
             minor_corrhist: CorrectionHistory::default(),
             major_corrhist: CorrectionHistory::default(),

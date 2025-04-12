@@ -191,6 +191,30 @@ impl Default for NullMoveHistory {
     }
 }
 
+pub struct ReductionHistory {
+    // [side_to_move][from][to]
+    entries: Box<[[[i16; 64]; 64]; 2]>,
+}
+
+impl ReductionHistory {
+    const MAX_HISTORY: i32 = 4096;
+
+    pub fn get(&self, stm: Color, mv: Move) -> i32 {
+        self.entries[stm][mv.from()][mv.to()] as i32
+    }
+
+    pub fn update(&mut self, stm: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[stm][mv.from()][mv.to()];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+    }
+}
+
+impl Default for ReductionHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 fn zeroed_box<T>() -> Box<T> {
     unsafe {
         let layout = std::alloc::Layout::new::<T>();

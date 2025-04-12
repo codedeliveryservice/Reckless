@@ -498,6 +498,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 reduction -= (history - 512) / 16;
 
+                if td.lmr_history.get(td.board.side_to_move(), mv) < 0 {
+                    reduction -= 1024;
+                }
+
                 if td.board.in_check() {
                     reduction -= 1024;
                 }
@@ -522,6 +526,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
             td.stack[td.ply - 1].reduction = 0;
+
+            if mv.is_quiet() {
+                let bonus = match score {
+                    s if s <= alpha => bonus(depth) / 8,
+                    s if s >= beta => -bonus(depth),
+                    _ => 0,
+                };
+
+                td.lmr_history.update(td.board.side_to_move(), mv, bonus);
+            }
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 64) as i32;
