@@ -6,7 +6,7 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -62,6 +62,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         loop {
             td.stack = Default::default();
 
+            td.root_delta = beta - alpha;
             let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
@@ -274,7 +275,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval >= static_eval
-        && static_eval >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+        && static_eval
+            >= beta - 20 * depth + 128 * tt_pv as i32 + 180
+                - td.nmp_history.get(td.board.side_to_move(), td.stack[td.ply - 1].mv) / 16
+        && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
     {
         let r = 4 + depth / 3 + ((eval - beta) / 256).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
@@ -285,7 +289,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
 
         td.board.undo_null_move();
         td.ply -= 1;
@@ -294,10 +298,29 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        match score {
-            s if is_decisive(s) => return beta,
-            s if s >= beta => return s,
-            _ => (),
+        let bonus = if score >= beta { stat_bonus(depth) / 2 } else { -stat_bonus(depth) };
+        td.nmp_history.update(td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+
+        if score >= beta {
+            if is_win(score) {
+                score = beta;
+            }
+
+            if td.nmp_min_ply > 0 || depth < 16 {
+                return score;
+            }
+
+            td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
+            let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
+            td.nmp_min_ply = 0;
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if verified_score >= beta {
+                return score;
+            }
         }
     }
 
@@ -463,7 +486,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if PV {
-                reduction -= 768;
+                reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
             }
 
             if cut_node {
@@ -509,8 +532,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 let bonus = match score {
-                    s if s >= beta => bonus(depth),
-                    s if s <= alpha => -bonus(depth),
+                    s if s >= beta => stat_bonus(depth),
+                    s if s <= alpha => -stat_bonus(depth),
                     _ => 0,
                 };
 
@@ -579,7 +602,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if bound == Bound::Lower {
-        let bonus = bonus(depth);
+        let bonus = stat_bonus(depth);
 
         if best_move.is_noisy() {
             td.noisy_history.update(&td.board, best_move, bonus);
@@ -614,7 +637,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_pv |= td.stack[td.ply].tt_pv;
 
         let factor = 2;
-        let scaled_bonus = factor * bonus(depth);
+        let scaled_bonus = factor * stat_bonus(depth);
 
         let pcm_move = td.stack[td.ply].mv;
         if pcm_move != Move::NULL && pcm_move.is_quiet() {
@@ -781,7 +804,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
-fn bonus(depth: i32) -> i32 {
+fn stat_bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
