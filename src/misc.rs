@@ -37,13 +37,15 @@ pub fn dbg_hit(condition: bool, slot: usize) -> bool {
     condition
 }
 
-pub fn dbg_stats<T: Into<i64>>(value: T, slot: usize) {
+pub fn dbg_stats<T: Into<i64> + Copy>(value: T, slot: usize) -> T {
     assert!(slot < SLOTS);
 
     let v = value.into();
     STATS[slot].add(0, 1);
     STATS[slot].add(1, v);
     STATS[slot].add(2, v * v);
+
+    value
 }
 
 pub fn dbg_print() {
