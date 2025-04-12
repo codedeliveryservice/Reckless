@@ -115,26 +115,49 @@ impl Default for NoisyHistory {
     }
 }
 
+struct PawnHistoryEntry {
+    factorizer: i16,
+    buckets: [i16; PawnHistory::SIZE],
+}
+
+impl PawnHistoryEntry {
+    const MAX_FACTORIZER: i32 = 2048;
+    const MAX_BUCKET: i32 = 6144;
+
+    pub fn bucket(&self, key: u64) -> i16 {
+        self.buckets[key as usize & PawnHistory::MASK]
+    }
+
+    pub fn update_factorizer(&mut self, bonus: i32) {
+        let entry = &mut self.factorizer;
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+    }
+
+    pub fn update_bucket(&mut self, key: u64, bonus: i32) {
+        let entry = &mut self.buckets[key as usize & PawnHistory::MASK];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+    }
+}
+
 pub struct PawnHistory {
     // [side_to_move][pawn_key][piece][to]
-    entries: Box<[[PieceToHistory<i32>; Self::SIZE]; 2]>,
+    entries: Box<[FromToHistory<PawnHistoryEntry>; 2]>,
 }
 
 impl PawnHistory {
-    const MAX_HISTORY: i32 = 8192;
-
     const SIZE: usize = 512;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, board: &Board, mv: Move) -> i32 {
-        self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK][board.piece_on(mv.from())][mv.to()]
+        let entry = &self.entries[board.side_to_move()][board.piece_on(mv.from())][mv.to()];
+        (entry.factorizer + entry.bucket(board.pawn_key())) as i32
     }
 
     pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK]
-            [board.piece_on(mv.from())][mv.to()];
+        let entry = &mut self.entries[board.side_to_move()][board.piece_on(mv.from())][mv.to()];
 
-        *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
+        entry.update_factorizer(bonus);
+        entry.update_bucket(board.pawn_key(), bonus);
     }
 }
 
