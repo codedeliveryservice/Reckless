@@ -492,7 +492,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
             }
 
-            if cut_node || likely_fail_high {
+            if cut_node {
+                reduction += 1024;
+            }
+
+            if likely_fail_high {
                 reduction += 1024;
             }
 
