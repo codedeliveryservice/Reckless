@@ -81,7 +81,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                 }
                 _ => {
                     score = current;
-                    average = if average == Score::NONE { current } else { (average + current) / 2 };
+                    average = if average == Score::NONE { current } else { (2 * average + current) / 3 };
                     break;
                 }
             }
