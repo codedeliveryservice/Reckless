@@ -1,6 +1,5 @@
 use crate::{
-    board::Board,
-    types::{Bitboard, Color, Move, Piece, Square},
+    board::Board, misc::dbg_stats, types::{Bitboard, Color, Move, Piece, Square}
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -169,25 +168,36 @@ impl Default for ContinuationHistory {
 }
 
 pub struct NullMoveHistory {
-    entries: Box<[FromToHistory<i16>; 2]>,
+    butterfly: Box<[FromToHistory<i16>; 2]>,
+    structure: Box<[[i16; Self::CORRECTION_SIZE]; 2]>,
 }
 
 impl NullMoveHistory {
-    const MAX_HISTORY: i32 = 1024;
+    const MAX_BUTTERFLY: i32 = 1024;
+    const MAX_STRUCTURE: i32 = 2048;
 
-    pub fn get(&self, stm: Color, mv: Move) -> i32 {
-        self.entries[stm][mv.from()][mv.to()] as i32
+    const CORRECTION_SIZE: usize = 16384;
+    const CORRECTION_MASK: usize = Self::CORRECTION_SIZE - 1;
+
+    pub fn get(&self, key: u64, stm: Color, mv: Move) -> i32 {
+        let butterfly = self.butterfly[stm][mv.from()][mv.to()] as i32;
+        let structure = self.structure[stm][key as usize & Self::CORRECTION_MASK] as i32;
+
+        (butterfly + structure) / 2
     }
 
-    pub fn update(&mut self, stm: Color, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[stm][mv.from()][mv.to()];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+    pub fn update(&mut self, key: u64, stm: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.butterfly[stm][mv.from()][mv.to()];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUTTERFLY) as i16;
+
+        let entry = &mut self.structure[stm][key as usize & Self::CORRECTION_MASK];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_STRUCTURE) as i16;
     }
 }
 
 impl Default for NullMoveHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self { butterfly: zeroed_box(), structure: zeroed_box() }
     }
 }
 
