@@ -241,6 +241,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
+    let likely_fail_high =
+        td.ply >= 1 && td.stack[td.ply - 1].entry.is_some_and(|v| v.mv.is_noisy() && v.bound == Bound::Upper);
 
     if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
         depth += 1;
@@ -248,6 +250,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[td.ply].entry = entry;
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
@@ -489,7 +492,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
             }
 
-            if cut_node {
+            if cut_node || likely_fail_high {
                 reduction += 1024;
             }
 
