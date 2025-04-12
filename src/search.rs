@@ -484,7 +484,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
             }
 
-            if cut_node {
+            if cut_node && td.stack[td.ply - 1].killer != mv {
                 reduction += 1024;
             }
 
