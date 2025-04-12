@@ -107,6 +107,10 @@ impl Board {
         self.state_stack.last().unwrap().threats
     }
 
+    pub fn prior_pawn_key(&self) -> u64 {
+        self.state_stack.last().unwrap().pawn_key
+    }
+
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]

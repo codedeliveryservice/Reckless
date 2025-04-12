@@ -130,10 +130,8 @@ impl PawnHistory {
         self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK][board.piece_on(mv.from())][mv.to()]
     }
 
-    pub fn update(&mut self, board: &Board, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[board.side_to_move()][board.pawn_key() as usize & Self::MASK]
-            [board.piece_on(mv.from())][mv.to()];
-
+    pub fn update(&mut self, key: u64, stm: Color, piece: Piece, sq: Square, bonus: i32) {
+        let entry = &mut self.entries[stm][key as usize & Self::MASK][piece][sq];
         *entry += bonus - bonus.abs() * (*entry) / Self::MAX_HISTORY;
     }
 }

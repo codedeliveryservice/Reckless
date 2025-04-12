@@ -234,10 +234,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].mv.is_quiet()
         && td.stack[td.ply - 1].static_eval != Score::NONE
     {
-        let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
+        let prev = &td.stack[td.ply - 1];
+
+        let value = 6 * -(static_eval + prev.static_eval);
         let bonus = value.clamp(-64, 128);
 
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), prev.mv, bonus);
+        td.pawn_history.update(td.board.prior_pawn_key(), !td.board.side_to_move(), prev.piece, prev.mv.to(), bonus);
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
@@ -614,13 +617,25 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply].killer = best_move;
 
             if !quiet_moves.is_empty() || depth > 3 {
-                td.pawn_history.update(&td.board, best_move, bonus / 2);
+                td.pawn_history.update(
+                    td.board.pawn_key(),
+                    td.board.side_to_move(),
+                    td.board.moved_piece(best_move),
+                    best_move.to(),
+                    bonus / 2,
+                );
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
-                td.pawn_history.update(&td.board, mv, -bonus / 2);
+                td.pawn_history.update(
+                    td.board.pawn_key(),
+                    td.board.side_to_move(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    -bonus / 2,
+                );
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
             }
 
