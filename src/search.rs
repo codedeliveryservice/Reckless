@@ -318,6 +318,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return Score::ZERO;
             }
 
+            let bonus = if verified_score >= beta { stat_bonus(depth) } else { -stat_bonus(depth) * 2 };
+            td.nmp_history.update(td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+
             if verified_score >= beta {
                 return score;
             }
