@@ -594,7 +594,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        if mv != best_move && move_count < 32 {
+        if mv != best_move && move_count < (8 + depth).min(32) {
             if mv.is_noisy() {
                 noisy_moves.push(mv);
             } else {
