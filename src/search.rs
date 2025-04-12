@@ -418,7 +418,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.noisy_history.get(&td.board, mv)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
+        let mut reduction = td.lmr.reduction(depth, move_count, beta - alpha, td.root_delta);
 
         if !is_root && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024).max(0);

@@ -203,8 +203,9 @@ pub struct LmrTable {
 }
 
 impl LmrTable {
-    pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth.min(63) as usize][move_count.min(63) as usize]
+    pub fn reduction(&self, depth: i32, move_count: i32, delta: i32, root_delta: i32) -> i32 {
+        let reduction_scale = self.table[depth.min(63) as usize][move_count.min(63) as usize];
+        reduction_scale - delta * 768 / root_delta
     }
 }
 
