@@ -241,6 +241,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
+    let likely_fail_low =
+        td.ply >= 1 && td.stack[td.ply - 1].entry.is_some_and(|v| v.mv.is_noisy() && v.bound == Bound::Lower);
 
     if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
         depth += 1;
@@ -248,6 +250,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[td.ply].entry = entry;
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
@@ -481,7 +484,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
-            if tt_pv {
+            if tt_pv && !likely_fail_low {
                 reduction -= 768 + entry.is_some_and(|entry| entry.score > alpha) as i32 * 768;
             }
 
