@@ -173,7 +173,7 @@ pub struct NullMoveHistory {
 }
 
 impl NullMoveHistory {
-    const MAX_HISTORY: i32 = 1024;
+    const MAX_HISTORY: i32 = 4096;
 
     pub fn get(&self, stm: Color, mv: Move) -> i32 {
         self.entries[stm][mv.from()][mv.to()] as i32
