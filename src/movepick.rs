@@ -171,6 +171,8 @@ impl MovePicker {
                 + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv);
+
+            entry.score /= 256;
         }
     }
 }
