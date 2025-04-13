@@ -242,7 +242,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
 
-    if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
+    let mut retroactive_eval = 0;
+
+    if !in_check && td.ply >= 1 && td.stack[td.ply - 1].static_eval != Score::NONE {
+        retroactive_eval = static_eval + td.stack[td.ply - 1].static_eval;
+    }
+
+    if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && retroactive_eval < 0 {
         depth += 1;
     }
 
@@ -251,7 +257,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1024
         && td.stack[td.ply - 1].static_eval != Score::NONE
-        && static_eval + td.stack[td.ply - 1].static_eval > 96
+        && retroactive_eval > 96
     {
         depth -= 1;
     }
@@ -274,7 +280,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && depth <= 8
         && eval >= beta
         && eval
-            >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32) + correction_value.abs() / 2 - 20
+            >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+                + (retroactive_eval / 32).clamp(-64, 64)
+                + correction_value.abs() / 2
+                - 20
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
