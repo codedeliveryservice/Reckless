@@ -35,7 +35,7 @@ struct InternalState {
     halfmove_clock: u8,
     captured: Option<Piece>,
     all_threats: Bitboard,
-    threats: [Bitboard; 3],
+    threats: [Bitboard; 6],
     pinners: Bitboard,
     checkers: Bitboard,
 }
@@ -423,41 +423,41 @@ impl Board {
         let occupancies = self.occupancies();
 
         let mut all_threats = Bitboard::default();
-        let mut threats = [Bitboard::default(); 3];
+        let mut threats = [Bitboard::default(); 6];
 
         for square in self.their(PieceType::Pawn) {
             let attacks = pawn_attacks(square, !self.side_to_move);
 
             all_threats |= attacks;
-            threats[0] |= attacks;
+            threats[PieceType::Pawn] |= attacks;
         }
 
         for square in self.their(PieceType::Knight) {
             let attacks = knight_attacks(square);
 
             all_threats |= attacks;
-            threats[1] |= attacks;
+            threats[PieceType::Knight] |= attacks;
         }
 
         for square in self.their(PieceType::Bishop) {
             let attacks = bishop_attacks(square, occupancies);
 
             all_threats |= attacks;
-            threats[1] |= attacks;
+            threats[PieceType::Bishop] |= attacks;
         }
 
         for square in self.their(PieceType::Rook) {
             let attacks = rook_attacks(square, occupancies);
 
             all_threats |= attacks;
-            threats[2] |= attacks;
+            threats[PieceType::Rook] |= attacks;
         }
 
         for square in self.their(PieceType::Queen) {
             let attacks = queen_attacks(square, occupancies);
 
             all_threats |= attacks;
-            threats[2] |= attacks;
+            threats[PieceType::Queen] |= attacks;
         }
 
         all_threats |= king_attacks(self.their(PieceType::King).lsb());

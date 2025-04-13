@@ -8,14 +8,14 @@ type PieceToHistory<T> = [[T; 64]; 12];
 
 struct QuietHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 4]; 4],
+    buckets: [[i16; 6]; 6],
 }
 
 impl QuietHistoryEntry {
     const MAX_FACTORIZER: i32 = 2048;
     const MAX_BUCKET: i32 = 6144;
 
-    const EMPTY: usize = 3;
+    const EMPTY: usize = 5;
 
     pub fn bucket(&self, threats: &[Bitboard], mv: Move) -> i16 {
         let from_threated = threats.iter().position(|v| v.contains(mv.from())).unwrap_or(Self::EMPTY);
