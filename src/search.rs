@@ -247,6 +247,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !in_check
+        && td.ply >= 1
+        && td.stack[td.ply - 1].reduction >= 1024
+        && td.stack[td.ply - 1].mv.is_quiet()
+        && static_eval < alpha
+    {
+        depth += 1;
+    }
+
+    if !in_check
         && depth >= 2
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1024
