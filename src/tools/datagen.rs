@@ -2,7 +2,7 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter},
     path::Path,
-    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     thread,
     time::{Duration, Instant},
 };
@@ -110,8 +110,9 @@ fn generate_data(path: &Path, book: &[String]) {
     while !STOP_FLAG.load(Ordering::Relaxed) {
         let board = generate_random_opening(&mut random, book);
 
+        let counter = AtomicU64::new(0);
         let tt = TranspositionTable::default();
-        let mut td = ThreadData::new(&tt, &STOP_FLAG);
+        let mut td = ThreadData::new(&tt, &STOP_FLAG, &counter);
         td.board = board.clone();
 
         let score = validation_score(&mut td);
