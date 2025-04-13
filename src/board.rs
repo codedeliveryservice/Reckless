@@ -442,37 +442,36 @@ impl Board {
 
         let mut mailbox = [PieceType::None; Square::NUM];
 
-        for square in king_attacks(self.their(PieceType::King).lsb()) {
-            mailbox[square] = PieceType::King;
-        }
+        for square in 0..64 {
+            let square = Square::new(square);
 
-        for square in self.their(PieceType::Queen) {
-            for square in queen_attacks(square, occupancies) {
-                mailbox[square] = PieceType::Queen;
-            }
-        }
-
-        for square in self.their(PieceType::Rook) {
-            for square in rook_attacks(square, occupancies) {
-                mailbox[square] = PieceType::Rook;
-            }
-        }
-
-        for square in self.their(PieceType::Bishop) {
-            for square in bishop_attacks(square, occupancies) {
-                mailbox[square] = PieceType::Bishop;
-            }
-        }
-
-        for square in self.their(PieceType::Knight) {
-            for square in knight_attacks(square) {
-                mailbox[square] = PieceType::Knight;
-            }
-        }
-
-        for square in self.their(PieceType::Pawn) {
-            for square in pawn_attacks(square, !self.side_to_move) {
+            if pawn_attacks(square, self.side_to_move) & self.their(PieceType::Pawn) != Bitboard(0) {
                 mailbox[square] = PieceType::Pawn;
+                continue;
+            }
+
+            if knight_attacks(square) & self.their(PieceType::Knight) != Bitboard(0) {
+                mailbox[square] = PieceType::Knight;
+                continue;
+            }
+
+            if bishop_attacks(square, occupancies) & self.their(PieceType::Bishop) != Bitboard(0) {
+                mailbox[square] = PieceType::Bishop;
+                continue;
+            }
+
+            if rook_attacks(square, occupancies) & self.their(PieceType::Rook) != Bitboard(0) {
+                mailbox[square] = PieceType::Rook;
+                continue;
+            }
+
+            if queen_attacks(square, occupancies) & self.their(PieceType::Queen) != Bitboard(0) {
+                mailbox[square] = PieceType::Queen;
+                continue;
+            }
+
+            if king_attacks(square) & self.their(PieceType::King) != Bitboard(0) {
+                mailbox[square] = PieceType::King;
             }
         }
 
