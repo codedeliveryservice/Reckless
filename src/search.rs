@@ -338,18 +338,25 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 256 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
+        let mut move_count = 0;
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some(mv) = move_picker.next(td, true) {
+        while let Some(mv) = move_picker.next(td, !in_check) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
+            }
+
+            if mv.is_quiet() && move_count > 0 {
+                continue;
             }
 
             if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
+
+            move_count += 1;
 
             td.stack[td.ply].piece = td.board.moved_piece(mv);
             td.stack[td.ply].mv = mv;
