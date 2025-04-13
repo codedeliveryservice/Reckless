@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+    types::{Bitboard, Color, Move, Piece, Square},
 };
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -8,14 +8,14 @@ type PieceToHistory<T> = [[T; 64]; 12];
 
 struct QuietHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 7]; 7],
+    buckets: [[i16; 4]; 4],
 }
 
 impl QuietHistoryEntry {
     const MAX_FACTORIZER: i32 = 2048;
     const MAX_BUCKET: i32 = 6144;
 
-    const EMPTY: usize = PieceType::None as usize;
+    const EMPTY: usize = 3;
 
     pub fn bucket(&self, threats: &[Bitboard], mv: Move) -> i16 {
         let from_threated = threats.iter().position(|v| v.contains(mv.from())).unwrap_or(Self::EMPTY);
