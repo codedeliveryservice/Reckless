@@ -23,7 +23,7 @@ mod see;
 /// suitable for copying when making/undoing moves.
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone)]
 struct InternalState {
     key: u64,
     pawn_key: u64,
@@ -34,10 +34,28 @@ struct InternalState {
     castling: Castling,
     halfmove_clock: u8,
     captured: Option<Piece>,
-    all_threats: Bitboard,
-    threats: [Bitboard; PieceType::NUM],
+    threats: [PieceType; Square::NUM],
     pinners: Bitboard,
     checkers: Bitboard,
+}
+
+impl Default for InternalState {
+    fn default() -> Self {
+        Self {
+            key: Default::default(),
+            pawn_key: Default::default(),
+            minor_key: Default::default(),
+            major_key: Default::default(),
+            non_pawn_keys: Default::default(),
+            en_passant: Default::default(),
+            castling: Default::default(),
+            halfmove_clock: Default::default(),
+            captured: Default::default(),
+            pinners: Default::default(),
+            checkers: Default::default(),
+            threats: [PieceType::None; Square::NUM],
+        }
+    }
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -100,11 +118,11 @@ impl Board {
         self.state.checkers
     }
 
-    pub const fn threats(&self) -> &[Bitboard] {
+    pub const fn threats(&self) -> &[PieceType] {
         &self.state.threats
     }
 
-    pub fn prior_threats(&self) -> &[Bitboard] {
+    pub fn prior_threats(&self) -> &[PieceType] {
         &self.state_stack.last().unwrap().threats
     }
 
@@ -247,8 +265,8 @@ impl Board {
         !self.state.checkers.is_empty()
     }
 
-    pub const fn is_threatened(&self, square: Square) -> bool {
-        self.state.all_threats.contains(square)
+    pub fn is_threatened(&self, square: Square) -> bool {
+        self.state.threats[square] != PieceType::None
     }
 
     pub fn upcoming_repetition(&self) -> bool {
@@ -422,53 +440,43 @@ impl Board {
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
 
-        let mut all_threats = Bitboard::default();
-        let mut threats = [Bitboard::default(); PieceType::NUM];
+        let mut mailbox = [PieceType::None; Square::NUM];
 
-        for square in self.their(PieceType::Pawn) {
-            let attacks = pawn_attacks(square, !self.side_to_move);
-
-            all_threats |= attacks;
-            threats[PieceType::Pawn] |= attacks;
-        }
-
-        for square in self.their(PieceType::Knight) {
-            let attacks = knight_attacks(square);
-
-            all_threats |= attacks;
-            threats[PieceType::Knight] |= attacks;
-        }
-
-        for square in self.their(PieceType::Bishop) {
-            let attacks = bishop_attacks(square, occupancies);
-
-            all_threats |= attacks;
-            threats[PieceType::Bishop] |= attacks;
-        }
-
-        for square in self.their(PieceType::Rook) {
-            let attacks = rook_attacks(square, occupancies);
-
-            all_threats |= attacks;
-            threats[PieceType::Rook] |= attacks;
+        for square in king_attacks(self.their(PieceType::King).lsb()) {
+            mailbox[square] = PieceType::King;
         }
 
         for square in self.their(PieceType::Queen) {
-            let attacks = queen_attacks(square, occupancies);
-
-            all_threats |= attacks;
-            threats[PieceType::Queen] |= attacks;
+            for square in queen_attacks(square, occupancies) {
+                mailbox[square] = PieceType::Queen;
+            }
         }
 
-        {
-            let attacks = king_attacks(self.their(PieceType::King).lsb());
-
-            all_threats |= attacks;
-            threats[PieceType::King] |= attacks;
+        for square in self.their(PieceType::Rook) {
+            for square in rook_attacks(square, occupancies) {
+                mailbox[square] = PieceType::Rook;
+            }
         }
 
-        self.state.all_threats = all_threats;
-        self.state.threats = threats;
+        for square in self.their(PieceType::Bishop) {
+            for square in bishop_attacks(square, occupancies) {
+                mailbox[square] = PieceType::Bishop;
+            }
+        }
+
+        for square in self.their(PieceType::Knight) {
+            for square in knight_attacks(square) {
+                mailbox[square] = PieceType::Knight;
+            }
+        }
+
+        for square in self.their(PieceType::Pawn) {
+            for square in pawn_attacks(square, !self.side_to_move) {
+                mailbox[square] = PieceType::Pawn;
+            }
+        }
+
+        self.state.threats = mailbox;
     }
 
     pub fn update_king_threats(&mut self) {
