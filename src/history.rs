@@ -6,6 +6,7 @@ use crate::{
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 12];
 
+#[derive(Clone, Copy)]
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -36,6 +37,12 @@ impl QuietHistoryEntry {
     }
 }
 
+impl Default for QuietHistoryEntry {
+    fn default() -> Self {
+        Self { factorizer: 0, buckets: [[0, -2048], [1024, 0]] }
+    }
+}
+
 pub struct QuietHistory {
     entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
 }
@@ -56,7 +63,9 @@ impl QuietHistory {
 
 impl Default for QuietHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self {
+            entries: Box::new([[[QuietHistoryEntry::default(); 64]; 64]; 2]),
+        }
     }
 }
 
