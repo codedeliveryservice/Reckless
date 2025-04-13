@@ -18,10 +18,11 @@ mod avx2;
 mod ssse3;
 
 const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 1024;
+const HIDDEN_SIZE: usize = 1536;
+const OUTPUT_BUCKETS: usize = 8;
 
 const NETWORK_SCALE: i32 = 400;
-const NETWORK_QA: i32 = 384;
+const NETWORK_QA: i32 = 362;
 const NETWORK_QB: i32 = 64;
 
 #[derive(Clone)]
@@ -60,7 +61,9 @@ impl Network {
             }
         }
 
-        let output = self.output_transformer(board) / NETWORK_QA + PARAMETERS.output_bias as i32;
+        let count = board.occupancies().len();
+        let bucket = ((63 - count) * (32 - count) / 225).min(7);
+        let output = self.output_transformer(board, bucket) / NETWORK_QA + PARAMETERS.output_bias[bucket] as i32;
         output * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
     }
 
@@ -94,7 +97,7 @@ impl Network {
         false
     }
 
-    fn output_transformer(&self, board: &Board) -> i32 {
+    fn output_transformer(&self, board: &Board, bucket: usize) -> i32 {
         let accumulators = &self.stack[self.index];
 
         let min = simd::zero();
@@ -104,7 +107,7 @@ impl Network {
 
         for flip in [0, 1] {
             let accumulator = &accumulators.values[board.side_to_move() as usize ^ flip];
-            let weights = &PARAMETERS.output_weights[flip];
+            let weights = &PARAMETERS.output_weights[bucket][flip];
 
             for i in (0..HIDDEN_SIZE).step_by(simd::VECTOR_WIDTH) {
                 let input = unsafe { *(accumulator[i..].as_ptr().cast()) };
@@ -133,8 +136,8 @@ impl Default for Network {
 struct Parameters {
     ft_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     ft_biases: Aligned<[i16; HIDDEN_SIZE]>,
-    output_weights: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
-    output_bias: i16,
+    output_weights: Aligned<[[[i16; HIDDEN_SIZE]; 2]; OUTPUT_BUCKETS]>,
+    output_bias: Aligned<[i16; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
