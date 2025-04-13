@@ -45,7 +45,7 @@ pub struct QuietHistory {
 impl QuietHistory {
     pub fn get(&self, threats: [Bitboard; 2], stm: Color, mv: Move) -> i32 {
         let entry = &self.entries[stm][mv.from()][mv.to()];
-        (entry.factorizer + entry.bucket(threats, mv)) as i32
+        (entry.factorizer + entry.bucket(threats, mv)) as i32 - 128
     }
 
     pub fn update(&mut self, threats: [Bitboard; 2], stm: Color, mv: Move, bonus: i32) {

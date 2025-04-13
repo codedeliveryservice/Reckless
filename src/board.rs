@@ -434,16 +434,12 @@ impl Board {
             other_threats |= knight_attacks(square);
         }
 
-        for square in self.their(PieceType::Bishop) {
+        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
             other_threats |= bishop_attacks(square, occupancies);
         }
 
-        for square in self.their(PieceType::Rook) {
+        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
             other_threats |= rook_attacks(square, occupancies);
-        }
-
-        for square in self.their(PieceType::Queen) {
-            other_threats |= queen_attacks(square, occupancies);
         }
 
         other_threats |= king_attacks(self.their(PieceType::King).lsb());
