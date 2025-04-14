@@ -11,7 +11,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
         eval = eval * (22400 + material(&td.board)) / 32768;
     }
 
-    eval.clamp(-16384, 16384)
+    eval.clamp(-16384, 16384) * 115 / 100
 }
 
 fn material(board: &Board) -> i32 {
