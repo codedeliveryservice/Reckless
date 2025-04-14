@@ -422,11 +422,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024).max(0);
 
-            // Late Move Pruning (LMP)
-            skip_quiets |= move_count >= lmp_threshold(depth, improving);
+            if !skip_quiets {
+                // Late Move Pruning (LMP)
+                skip_quiets = move_count >= lmp_threshold(depth, improving);
 
-            // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
+                // Futility Pruning (FP)
+                let futility_value = static_eval + 100 * lmr_depth + 150;
+                if !in_check && is_quiet && lmr_depth < 10 && futility_value <= alpha {
+                    if best_score <= futility_value && !is_decisive(best_score) && !is_win(futility_value) {
+                        best_score = (best_score + futility_value * 3) / 4;
+                    }
+                    skip_quiets = true;
+                }
+            }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth + 50 } - history / 32;
