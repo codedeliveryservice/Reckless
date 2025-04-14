@@ -237,7 +237,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
         let bonus = value.clamp(-64, 128);
 
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+        td.quiet_history.update(
+            false,
+            td.board.prior_threats(),
+            !td.board.side_to_move(),
+            td.stack[td.ply - 1].mv,
+            bonus,
+        );
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
@@ -410,7 +416,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+            td.quiet_history.get(in_check, td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
@@ -623,12 +629,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply].killer = best_move;
 
             if !quiet_moves.is_empty() || depth > 3 {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus);
+                td.quiet_history.update(in_check, td.board.threats(), td.board.side_to_move(), best_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
+                td.quiet_history.update(in_check, td.board.threats(), td.board.side_to_move(), mv, -bonus);
             }
 
             for &mv in noisy_moves.iter() {
@@ -650,7 +656,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply].mv;
         if pcm_move != Move::NULL && pcm_move.is_quiet() {
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(
+                td.stack[td.ply].static_eval == Score::NONE,
+                td.board.prior_threats(),
+                !td.board.side_to_move(),
+                pcm_move,
+                scaled_bonus,
+            );
         }
         td.ply += 1;
     }
