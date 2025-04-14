@@ -708,18 +708,28 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
 
     if !in_check {
-        let eval = evaluate(td) + correction_value(td);
+        let static_eval = evaluate(td) + correction_value(td);
+        best_score = static_eval;
 
-        if eval >= beta {
-            return eval;
+        if let Some(entry) = entry {
+            if match entry.bound {
+                Bound::Upper => entry.score < static_eval,
+                Bound::Lower => entry.score > static_eval,
+                _ => true,
+            } {
+                best_score = entry.score;
+            }
         }
 
-        if eval > alpha {
-            alpha = eval;
+        if best_score >= beta {
+            return best_score;
         }
 
-        best_score = eval;
-        futility_score = eval + 128;
+        if best_score > alpha {
+            alpha = best_score;
+        }
+
+        futility_score = static_eval + 128;
     }
 
     let mut best_move = Move::NULL;
