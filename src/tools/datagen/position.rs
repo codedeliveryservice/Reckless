@@ -38,10 +38,11 @@ impl Position {
     }
 
     pub fn to_board(&self) -> Board {
-        let mut board = Board::default();
-
-        board.side_to_move = self.side_to_move;
-        board.fullmove_number = self.fullmove_number as usize;
+        let mut board = Board {
+            side_to_move: self.side_to_move,
+            fullmove_number: self.fullmove_number as usize,
+            ..Board::default()
+        };
 
         board.state.en_passant = self.en_passant;
         board.state.castling = self.castling;

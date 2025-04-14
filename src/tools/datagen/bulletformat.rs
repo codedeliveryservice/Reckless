@@ -104,7 +104,7 @@ impl BulletFormat {
         let mut pieces = 0;
 
         for (index, Occupancy { color, piece, square }) in packed.into_iter().enumerate() {
-            pieces |= ((color as u128) << 3 | (piece as u128)) << (index * 4);
+            pieces |= (((color as u128) << 3) | (piece as u128)) << (index * 4);
             occupancies |= 1 << square as usize;
         }
 
