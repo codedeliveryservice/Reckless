@@ -12,7 +12,7 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 2048;
+    const MAX_FACTORIZER: i32 = 4096;
     const MAX_BUCKET: i32 = 6144;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
