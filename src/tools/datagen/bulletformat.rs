@@ -9,23 +9,59 @@ use crate::{
     types::{Color, PieceType},
 };
 
-pub fn convert_to_bullet_format(input: &str, output: &str) {
+#[derive(Debug)]
+pub struct Filter {
+    pub min_ply: usize,
+    pub max_ply: usize,
+    pub max_score: i16,
+}
+
+pub fn convert_to_bullet_format(input: &str, output: &str, filter: Filter) {
+    println!("Converting {input} to {output} with filter:");
+    println!("{filter:#?}");
+
     let input = File::open(input).unwrap();
     let output = File::create(output).unwrap();
 
     let mut reader = BinpackReader::new(BufReader::new(input));
     let mut writer = BufWriter::new(output);
 
+    let mut total = 0;
+    let mut filtered = 0;
+    let mut wdl = [0; 3];
+
     while let Some((position, entries)) = reader.next() {
         let mut board = position.to_board();
 
-        for (mv, score) in entries {
-            let bullet_format = BulletFormat::new(&board, position.result, score);
+        for (index, &(mv, score)) in entries.iter().enumerate() {
+            let ply = board.fullmove_number * 2 + index;
 
-            writer.write_all(&bullet_format.as_bytes()).unwrap();
+            if score.abs() <= filter.max_score
+                && !board.in_check()
+                && !mv.is_capture()
+                && !mv.is_promotion()
+                && (filter.min_ply..=filter.max_ply).contains(&ply)
+            {
+                let bullet_format = BulletFormat::new(&board, position.result, score);
+                writer.write_all(bullet_format.as_bytes()).unwrap();
+
+                filtered += 1;
+                wdl[position.result as usize] += 1;
+            }
+
             board.make_move(mv);
+            total += 1;
         }
     }
+
+    writer.flush().unwrap();
+
+    println!("Total:    {total}");
+    println!("Filtered: {filtered}");
+    println!("Ratio:    {:.2}%", (filtered as f64 / total as f64) * 100.0);
+    println!("Win:      {:.2}%", (wdl[0] as f64 / filtered as f64) * 100.0);
+    println!("Draw:     {:.2}%", (wdl[1] as f64 / filtered as f64) * 100.0);
+    println!("Loss:     {:.2}%", (wdl[2] as f64 / filtered as f64) * 100.0);
 }
 
 #[repr(C, packed)]

@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[allow(dead_code)]
-mod bulletformat;
+pub mod bulletformat;
 
 mod binpack;
 mod position;
