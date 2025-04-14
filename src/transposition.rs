@@ -117,7 +117,16 @@ impl TranspositionTable {
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        0
+        let vector = unsafe { &*self.vector.get() };
+
+        let mut count = 0;
+        for cluster in vector.iter().take(1000) {
+            for entry in &cluster.entries {
+                count += (entry.flags.bound() != Bound::None) as usize;
+            }
+        }
+
+        count / vector[0].entries.len()
     }
 
     pub fn increment_age(&self) {
@@ -157,33 +166,39 @@ impl TranspositionTable {
             score += score.signum() * ply as i32;
         }
 
+        let index = self.index(hash);
+        let cluster = unsafe {
+            let vector = &mut *self.vector.get();
+            vector.get_unchecked_mut(index)
+        };
+
         let key = verification_key(hash);
-        let cluster = self.entry_mut(hash);
+        let age = self.age();
 
-        let mut replace = 0;
-        let mut min_value = i32::MAX;
+        let mut index = 0;
+        let mut minimum = i32::MAX;
 
-        for (index, candidate) in cluster.entries.iter().enumerate() {
+        for (i, candidate) in cluster.entries.iter().enumerate() {
             if candidate.key == key || candidate.flags.bound() == Bound::None {
-                replace = index;
+                index = i;
                 break;
             }
 
-            let relative_age = ((Self::AGE_CYCLE + self.age() - candidate.flags.age()) & Self::AGE_MASK) as i32;
-            let value = candidate.depth as i32 - 2 * relative_age;
+            let relative_age = ((Self::AGE_CYCLE + age - candidate.flags.age()) & Self::AGE_MASK) as i32;
+            let quality = candidate.depth as i32 - 2 * relative_age;
 
-            if value < min_value {
-                replace = index;
-                min_value = value;
+            if quality < minimum {
+                index = i;
+                minimum = quality;
             }
         }
 
-        let entry = &mut cluster.entries[replace];
+        let entry = &mut cluster.entries[index];
 
         if !(key != entry.key
             || bound == Bound::Exact
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
-            || entry.flags.age() != self.age())
+            || entry.flags.age() != age)
         {
             return;
         }
@@ -195,7 +210,7 @@ impl TranspositionTable {
         entry.key = key;
         entry.depth = depth as i8;
         entry.score = score as i16;
-        entry.flags = Flags::new(bound, pv, self.age());
+        entry.flags = Flags::new(bound, pv, age);
     }
 
     pub fn prefetch(&self, hash: u64) {
@@ -224,16 +239,8 @@ impl TranspositionTable {
     fn entry(&self, hash: u64) -> &Cluster {
         let index = self.index(hash);
         unsafe {
-            let vec = &*self.vector.get();
-            vec.get_unchecked(index)
-        }
-    }
-
-    fn entry_mut(&self, hash: u64) -> &mut Cluster {
-        let index = self.index(hash);
-        unsafe {
-            let vec = &mut *self.vector.get();
-            vec.get_unchecked_mut(index)
+            let vector = &*self.vector.get();
+            vector.get_unchecked(index)
         }
     }
 
