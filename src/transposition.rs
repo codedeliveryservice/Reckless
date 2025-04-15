@@ -10,13 +10,19 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
+const CLUSTERS: usize = 3;
+
 const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
+
+const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
+const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
     pub mv: Move,
     pub score: i32,
+    pub eval: i32,
     pub depth: i32,
     pub bound: Bound,
     pub pv: bool,
@@ -54,13 +60,14 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (8 bytes).
+/// Internal representation of a transposition table entry (10 bytes).
 #[derive(Clone)]
 #[repr(C)]
 struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
+    eval: i16,    // 2 bytes
     depth: i8,    // 1 byte
     flags: Flags, // 1 byte
 }
@@ -70,6 +77,7 @@ impl Default for InternalEntry {
         Self {
             mv: Move::NULL,
             key: 0,
+            eval: 0,
             score: 0,
             depth: 0,
             flags: Flags::new(Bound::None, false, 0),
@@ -86,7 +94,7 @@ impl InternalEntry {
 #[derive(Clone, Default)]
 #[repr(align(32))]
 struct Cluster {
-    entries: [InternalEntry; 4],
+    entries: [InternalEntry; CLUSTERS],
 }
 
 /// The transposition table is used to cache previously performed search results.
@@ -132,7 +140,7 @@ impl TranspositionTable {
             }
         }
 
-        count / vector[0].entries.len()
+        count / CLUSTERS
     }
 
     pub fn increment_age(&self) {
@@ -148,6 +156,7 @@ impl TranspositionTable {
                 let mut hit = Entry {
                     depth: entry.depth as i32,
                     score: entry.score as i32,
+                    eval: entry.eval as i32,
                     bound: entry.flags.bound(),
                     pv: entry.flags.pv(),
                     mv: entry.mv,
@@ -166,7 +175,7 @@ impl TranspositionTable {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn write(&self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
+    pub fn write(&self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
         let index = self.index(hash);
         let cluster = unsafe {
             let vector = &mut *self.vector.get();
@@ -215,6 +224,7 @@ impl TranspositionTable {
         entry.key = key;
         entry.depth = depth as i8;
         entry.score = score as i16;
+        entry.eval = eval as i16;
         entry.flags = Flags::new(bound, pv, tt_age);
     }
 
