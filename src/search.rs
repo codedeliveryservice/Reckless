@@ -16,9 +16,10 @@ pub enum Report {
     Full,
 }
 
-#[allow(unused)]
+#[derive(Copy, Clone)]
 pub struct SearchResult {
     pub best_move: Move,
+    pub depth: i32,
     pub score: i32,
 }
 
@@ -34,7 +35,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let now = Instant::now();
 
-    let mut score = Score::NONE;
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
@@ -80,7 +80,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                     reduction += 1;
                 }
                 _ => {
-                    score = current;
                     average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
@@ -102,7 +101,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             last_move = td.pv.best_move();
         }
 
-        if (score - average).abs() < 12 {
+        if (td.best_score - average).abs() < 12 {
             eval_stability = (eval_stability + 1).min(8);
         } else {
             eval_stability = 0;
@@ -113,15 +112,19 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         if report == Report::Full {
-            td.print_uci_info(depth, score, now);
+            td.print_uci_info(depth, td.best_score, now);
         }
     }
 
     if report != Report::None {
-        td.print_uci_info(td.root_depth, score, now);
+        td.print_uci_info(td.root_depth, td.best_score, now);
     }
 
-    SearchResult { best_move: td.pv.best_move(), score }
+    SearchResult {
+        best_move: td.pv.best_move(),
+        depth: td.completed_depth,
+        score: td.best_score,
+    }
 }
 
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
@@ -491,7 +494,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
             if tt_pv {
-                reduction -= 768 + entry.is_some_and(|entry| entry.score > alpha) as i32 * 768;
+                reduction -= 768;
+                reduction -= 768 * entry.is_some_and(|entry| entry.score > alpha) as i32;
+                reduction -= 768 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
             }
 
             if PV {
@@ -583,6 +588,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if PV {
                     td.pv.update(td.ply, mv);
+
+                    if is_root {
+                        td.best_score = score;
+                    }
                 }
 
                 if score >= beta {
@@ -708,18 +717,28 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
 
     if !in_check {
-        let eval = evaluate(td) + correction_value(td);
+        let static_eval = evaluate(td) + correction_value(td);
+        best_score = static_eval;
 
-        if eval >= beta {
-            return eval;
+        if let Some(entry) = entry {
+            if match entry.bound {
+                Bound::Upper => entry.score < static_eval,
+                Bound::Lower => entry.score > static_eval,
+                _ => true,
+            } {
+                best_score = entry.score;
+            }
         }
 
-        if eval > alpha {
-            alpha = eval;
+        if best_score >= beta {
+            return best_score;
         }
 
-        best_score = eval;
-        futility_score = eval + 128;
+        if best_score > alpha {
+            alpha = best_score;
+        }
+
+        futility_score = static_eval + 128;
     }
 
     let mut best_move = Move::NULL;
