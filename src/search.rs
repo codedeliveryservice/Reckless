@@ -16,9 +16,10 @@ pub enum Report {
     Full,
 }
 
-#[allow(unused)]
+#[derive(Copy, Clone)]
 pub struct SearchResult {
     pub best_move: Move,
+    pub depth: i32,
     pub score: i32,
 }
 
@@ -34,7 +35,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let now = Instant::now();
 
-    let mut score = Score::NONE;
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
@@ -80,7 +80,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                     reduction += 1;
                 }
                 _ => {
-                    score = current;
                     average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
@@ -102,7 +101,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             last_move = td.pv.best_move();
         }
 
-        if (score - average).abs() < 12 {
+        if (td.best_score - average).abs() < 12 {
             eval_stability = (eval_stability + 1).min(8);
         } else {
             eval_stability = 0;
@@ -113,15 +112,19 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         if report == Report::Full {
-            td.print_uci_info(depth, score, now);
+            td.print_uci_info(depth, td.best_score, now);
         }
     }
 
     if report != Report::None {
-        td.print_uci_info(td.root_depth, score, now);
+        td.print_uci_info(td.root_depth, td.best_score, now);
     }
 
-    SearchResult { best_move: td.pv.best_move(), score }
+    SearchResult {
+        best_move: td.pv.best_move(),
+        depth: td.completed_depth,
+        score: td.best_score,
+    }
 }
 
 fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
@@ -585,6 +588,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if PV {
                     td.pv.update(td.ply, mv);
+
+                    if is_root {
+                        td.best_score = score;
+                    }
                 }
 
                 if score >= beta {
