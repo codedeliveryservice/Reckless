@@ -7,6 +7,7 @@ type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 12];
 
 struct QuietHistoryEntry {
+    momentum: [i32; 2],
     factorizer: i16,
     buckets: [[i16; 2]; 2],
 }
@@ -24,7 +25,10 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+        let delta = bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER;
+
+        *entry += (delta + self.momentum[0] / 2) as i16;
+        self.momentum[0] = (self.momentum[0] + delta) / 2;
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
@@ -32,7 +36,10 @@ impl QuietHistoryEntry {
         let to_threated = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threated][to_threated];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+        let delta = bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET;
+
+        *entry += (delta + self.momentum[1] / 2) as i16;
+        self.momentum[1] = (self.momentum[1] + delta) / 2;
     }
 }
 
