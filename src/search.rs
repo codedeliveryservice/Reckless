@@ -771,6 +771,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
+            if !in_check && !mv.is_promotion() && futility_score + td.board.move_value(mv) <= alpha {
+                continue;
+            }
+
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
