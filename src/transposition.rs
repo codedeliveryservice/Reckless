@@ -175,7 +175,9 @@ impl TranspositionTable {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn write(&self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool) {
+    pub fn write(
+        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
+    ) {
         let index = self.index(hash);
         let cluster = unsafe {
             let vector = &mut *self.vector.get();
