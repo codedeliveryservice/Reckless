@@ -624,6 +624,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if best_move.is_noisy() {
             td.noisy_history.update(&td.board, best_move, bonus);
+            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
 
             for &mv in noisy_moves.iter() {
                 td.noisy_history.update(&td.board, mv, -bonus);
