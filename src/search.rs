@@ -244,6 +244,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
+    let worsening = !in_check && td.ply >= 2 && static_eval + td.stack[td.ply - 1].static_eval > 0;
 
     if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
         depth += 1;
@@ -276,7 +277,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && depth <= 8
         && eval >= beta
-        && eval >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32) + correction_value.abs() / 2
+        && eval
+            >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32)
+                + (30 * worsening as i32)
+                + correction_value.abs() / 2
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
