@@ -507,6 +507,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1024;
             }
 
+            if !improving {
+                reduction += 1024;
+            }
+
+            if td.stack[td.ply].cutoff_count > 2 {
+                reduction += 896 + 64 * td.stack[td.ply].cutoff_count.max(8);
+            }
+
             if is_quiet {
                 reduction -= 4 * correction_value.abs();
 
@@ -514,14 +522,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if td.board.in_check() {
                     reduction -= 1024;
-                }
-
-                if !improving {
-                    reduction += 1024;
-                }
-
-                if td.stack[td.ply].cutoff_count > 2 {
-                    reduction += 896 + 64 * td.stack[td.ply].cutoff_count.max(8);
                 }
 
                 if td.stack[td.ply - 1].killer == mv {
