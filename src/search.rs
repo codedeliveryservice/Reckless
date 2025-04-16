@@ -486,11 +486,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
 
-        // Check Extensions
-        if depth >= 8 && static_eval.abs() >= 128 && td.board.in_check() {
-            new_depth += 1;
-        }
-
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
             if tt_pv {
