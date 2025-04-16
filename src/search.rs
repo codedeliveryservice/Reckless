@@ -523,7 +523,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 896 + 64 * td.stack[td.ply].cutoff_count.max(8);
             }
 
-            if td.stack[td.ply - 1].killer == mv {
+            if td.stack[td.ply - 1].killer == mv && history > 528 {
                 reduction -= 1024;
             }
 
