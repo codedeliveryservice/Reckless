@@ -559,6 +559,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Full Depth Search (FDS)
         else if !PV || move_count > 1 {
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            if move_count > depth {
+                let bonus = match score {
+                    s if s >= beta => 3 * stat_bonus(depth),
+                    s if s <= alpha => -stat_bonus(depth),
+                    _ => 0,
+                };
+
+                td.ply -= 1;
+                update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
+                td.ply += 1;
+            }
         }
 
         // Principal Variation Search (PVS)
