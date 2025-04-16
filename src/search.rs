@@ -244,7 +244,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let improving = !in_check && td.ply >= 2 && static_eval > td.stack[td.ply - 2].static_eval;
-    let worsening = !in_check && td.ply >= 2 && static_eval + td.stack[td.ply - 1].static_eval > 0;
+
+    let worsening = !in_check
+        && td.ply >= 1
+        && td.stack[td.ply - 1].static_eval != Score::NONE
+        && static_eval + td.stack[td.ply - 1].static_eval > 0;
 
     if td.ply >= 1 && td.stack[td.ply - 1].reduction >= 3072 && static_eval + td.stack[td.ply - 1].static_eval < 0 {
         depth += 1;
