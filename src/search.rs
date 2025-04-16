@@ -206,28 +206,34 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let correction_value = correction_value(td);
 
+    let raw_eval;
     let static_eval;
     let mut eval;
 
     if in_check {
+        raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        static_eval = td.stack[td.ply].static_eval;
+        raw_eval = td.stack[td.ply].static_eval;
+        static_eval = raw_eval;
         eval = static_eval;
-    } else {
-        static_eval = evaluate(td) + correction_value;
+    } else if let Some(entry) = entry {
+        raw_eval = if entry.eval != Score::NONE { entry.eval } else { evaluate(td) };
+        static_eval = raw_eval + correction_value;
         eval = static_eval;
 
-        if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Upper => entry.score < eval,
-                Bound::Lower => entry.score > eval,
-                _ => true,
-            } {
-                eval = entry.score;
-            }
+        if match entry.bound {
+            Bound::Upper => entry.score < eval,
+            Bound::Lower => entry.score > eval,
+            _ => true,
+        } {
+            eval = entry.score;
         }
+    } else {
+        raw_eval = evaluate(td);
+        static_eval = raw_eval + correction_value;
+        eval = static_eval;
     }
 
     if !in_check
@@ -377,7 +383,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
                 if is_decisive(score) {
                     return score;
@@ -661,7 +667,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), depth, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
@@ -711,9 +717,15 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let mut best_score = -Score::INFINITE;
     let mut futility_score = Score::NONE;
+    let mut raw_eval = Score::NONE;
 
     if !in_check {
-        let static_eval = evaluate(td) + correction_value(td);
+        raw_eval = match entry {
+            Some(entry) if entry.eval != Score::NONE => entry.eval,
+            _ => evaluate(td),
+        };
+
+        let static_eval = raw_eval + correction_value(td);
         best_score = static_eval;
 
         if let Some(entry) = entry {
@@ -810,7 +822,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
