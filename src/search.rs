@@ -714,7 +714,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let mut best_score = -Score::INFINITE;
-    let mut futility_score = Score::NONE;
+    let mut futility_base = Score::NONE;
 
     if !in_check {
         let static_eval = evaluate(td) + correction_value(td);
@@ -738,7 +738,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             alpha = best_score;
         }
 
-        futility_score = static_eval + 128;
+        futility_base = static_eval;
     }
 
     let mut best_move = Move::NULL;
@@ -771,13 +771,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
-            if !in_check && !mv.is_promotion() && futility_score + td.board.move_value(mv) <= alpha {
-                best_score = best_score.max(futility_score);
-                continue;
-            }
-
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                best_score = best_score.max(futility_score);
+            if !in_check && futility_base + td.board.move_value(mv) <= alpha && !td.board.see(mv, 1) {
+                best_score = best_score.max(futility_base + td.board.move_value(mv));
                 continue;
             }
         }
