@@ -395,10 +395,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if let Some(entry) = entry {
-        let probcut_beta = beta + 512;
+        let probcut_beta = beta + 384;
 
         if !PV
             && matches!(entry.bound, Bound::Lower | Bound::Exact)
+            && entry.mv.is_noisy()
             && entry.score >= probcut_beta
             && entry.depth >= depth - 4
             && !is_decisive(entry.score)
