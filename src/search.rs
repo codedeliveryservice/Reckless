@@ -394,6 +394,21 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if let Some(entry) = entry {
+        let probcut_beta = beta + 512;
+
+        if !PV
+            && matches!(entry.bound, Bound::Lower | Bound::Exact)
+            && entry.score >= probcut_beta
+            && entry.depth >= depth - 4
+            && !is_decisive(entry.score)
+            && !is_decisive(beta)
+            && !is_decisive(probcut_beta)
+        {
+            return probcut_beta;
+        }
+    }
+
     // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
         depth -= 1;
