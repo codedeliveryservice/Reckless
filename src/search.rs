@@ -852,6 +852,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.threats_corrhist.get(stm, td.board.threats_key())
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
@@ -868,6 +869,8 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
+
+    td.threats_corrhist.update(stm, td.board.threats_key(), depth, diff);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_valid() {
         td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
