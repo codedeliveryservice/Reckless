@@ -624,7 +624,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
 
-    if bound == Bound::Lower {
+    if best_move.is_valid() {
         let bonus = stat_bonus(depth);
         let malus = stat_bonus(depth) - 16 * (move_count - 1);
 
