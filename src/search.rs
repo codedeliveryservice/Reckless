@@ -604,6 +604,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.stack[td.ply].cutoff_count += 1;
                     break;
                 }
+            } else if mv == tt_move && mv.is_quiet() {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -stat_bonus(depth));
             }
         }
 
