@@ -284,6 +284,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval
             >= beta + 80 * depth - (80 * improving as i32) - (60 * cut_node as i32) + correction_value.abs() / 2 + 25
+        && !(tt_move.is_valid()
+            && tt_move.is_quiet()
+            && td.quiet_history.get(td.board.threats(), td.board.side_to_move(), tt_move) < 768 * depth)
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
