@@ -626,6 +626,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if bound == Bound::Lower {
         let bonus = stat_bonus(depth);
+        let malus = stat_bonus(depth) - 16 * (move_count - 1);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -638,7 +639,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             for &mv in noisy_moves.iter() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
-                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -bonus);
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
             }
         } else {
             td.stack[td.ply].killer = best_move;
@@ -649,16 +650,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -bonus);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus);
             }
 
             for &mv in noisy_moves.iter() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
-                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -bonus);
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
             }
 
             for &mv in quiet_moves.iter() {
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -bonus);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus);
             }
         }
     }
