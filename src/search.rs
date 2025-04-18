@@ -452,11 +452,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
-            if (depth >= 8 || depth <= 3)
-                && entry.depth >= depth - 3
-                && entry.bound != Bound::Upper
-                && !is_decisive(entry.score)
-            {
+            if entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
                 let singular_beta = entry.score - depth;
                 let singular_depth = (depth - 1) / 2;
 
