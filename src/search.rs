@@ -852,7 +852,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + td.threats_corrhist.get(stm, td.board.threats_key())
+        + td.threats_corrhist.get(stm, td.board.threats_key()) / 2
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
