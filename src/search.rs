@@ -6,7 +6,10 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{
+        is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, PieceType, Score, Square,
+        MAX_PLY,
+    },
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -479,6 +482,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     extension = -2;
                 }
             }
+        }
+
+        if mv == tt_move
+            && td.board.halfmove_clock() > 80
+            && (mv.is_noisy() || td.board.moved_piece(mv).piece_type() == PieceType::Pawn)
+        {
+            extension = 2;
         }
 
         let initial_nodes = td.counter.local();

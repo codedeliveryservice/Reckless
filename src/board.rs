@@ -70,6 +70,10 @@ impl Board {
         self.fullmove_number
     }
 
+    pub const fn halfmove_clock(&self) -> u8 {
+        self.state.halfmove_clock
+    }
+
     /// Returns the Zobrist hash key for the current position.
     pub const fn hash(&self) -> u64 {
         self.state.key
