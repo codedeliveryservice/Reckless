@@ -430,6 +430,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
+        reduction -= 4 * correction_value.abs();
+
+        reduction -= (history - 512) / 16;
+
         if !is_root && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024).max(0);
 
@@ -510,8 +514,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1024;
             }
 
-            reduction -= 4 * correction_value.abs();
-
             if td.board.in_check() {
                 reduction -= 1024;
             }
@@ -527,8 +529,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if td.stack[td.ply - 1].killer == mv {
                 reduction -= 1024;
             }
-
-            reduction -= (history - 512) / 16;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
 
