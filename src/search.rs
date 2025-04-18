@@ -452,7 +452,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
-            if depth >= 8 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
+            if (depth >= 8 || depth <= 3)
+                && entry.depth >= depth - 3
+                && entry.bound != Bound::Upper
+                && !is_decisive(entry.score)
+            {
                 let singular_beta = entry.score - depth;
                 let singular_depth = (depth - 1) / 2;
 
@@ -701,6 +705,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
+    let excluded = td.stack[td.ply].excluded.is_valid();
 
     td.counter.increment();
 
@@ -722,7 +727,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             Bound::Upper => entry.score <= alpha,
             Bound::Lower => entry.score >= beta,
             _ => true,
-        } {
+        } && !excluded
+        {
             return entry.score;
         }
     }
@@ -776,7 +782,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     };
 
     while let Some(mv) = move_picker.next(td, !in_check) {
-        if !td.board.is_legal(mv) {
+        if !td.board.is_legal(mv) || mv == td.stack[td.ply].excluded {
             continue;
         }
 
@@ -838,7 +844,9 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    if !excluded {
+        td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
