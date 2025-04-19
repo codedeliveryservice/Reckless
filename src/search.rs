@@ -34,6 +34,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.nnue.refresh(&td.board);
 
     let now = Instant::now();
+    let previous_score = td.best_score;
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
@@ -107,7 +108,9 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        let eval_factor = (1.0 + (previous_score - td.best_score) as f32 / 100.0).clamp(0.7, 1.3);
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, eval_factor) {
             break;
         }
 
