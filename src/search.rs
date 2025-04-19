@@ -265,6 +265,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let likely_fail_low = tt_pv && entry.is_some_and(|entry| entry.depth >= depth && entry.bound == Bound::Lower);
+
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
@@ -280,6 +282,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !PV
         && !in_check
         && !excluded
+        && !likely_fail_low
         && depth <= 8
         && eval >= beta
         && eval
