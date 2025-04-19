@@ -751,6 +751,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if best_score >= beta {
+            best_score = (best_score + beta) / 2;
+
             if entry.is_none() {
                 td.tt.write(td.board.hash(), 0, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
             }
