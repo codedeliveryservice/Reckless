@@ -528,6 +528,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1024;
             }
 
+            if tt_move.is_null() {
+                reduction += 768;
+            }
+
             reduction -= (history - 512) / 16;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
