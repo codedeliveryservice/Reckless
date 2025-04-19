@@ -795,6 +795,17 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
+            if mv.is_noisy()
+                && td.noisy_history.get(
+                    td.board.threats(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    td.board.piece_on(mv.to()).piece_type(),
+                ) < 0
+            {
+                continue;
+            }
+
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
