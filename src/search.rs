@@ -40,6 +40,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut score_history = vec![td.best_score; MAX_PLY];
 
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -107,7 +108,12 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        let index = (depth as usize).saturating_sub(4);
+        let eval_factor = (1.0 + (score_history[index] - td.best_score) as f32 / 128.0).clamp(0.75, 1.25);
+
+        score_history[index] = td.best_score;
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, eval_factor) {
             break;
         }
 
