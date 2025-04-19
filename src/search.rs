@@ -273,7 +273,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !PV && !in_check && eval < alpha - 300 - 250 * depth * depth {
-        return qsearch::<false>(td, alpha, beta);
+        return (eval + qsearch::<false>(td, alpha, beta)) / 2;
     }
 
     // Reverse Futility Pruning (RFP)
