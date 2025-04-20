@@ -265,6 +265,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    if !in_check
+        && td.ply >= 1
+        && td.stack[td.ply - 1].mv == Move::NULL
+        && td.stack[td.ply - 1].static_eval != Score::NONE
+        && static_eval + td.stack[td.ply - 1].static_eval > 96
+    {
+        depth += 1;
+    }
+
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
