@@ -678,6 +678,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.ply += 1;
     }
 
+    if let Some(entry) = entry {
+        if entry.depth > depth && best_score > entry.score && matches!(entry.bound, Bound::Upper) {
+            best_score = (best_score + entry.score) / 2;
+        }
+    }
+
     if !excluded {
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
@@ -692,12 +698,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
-
-    if let Some(entry) = entry {
-        if entry.depth > depth && best_score < entry.score && matches!(entry.bound, Bound::Lower | Bound::Exact) {
-            best_score = (best_score + entry.score) / 2;
-        }
-    }
 
     best_score
 }
