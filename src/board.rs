@@ -5,8 +5,8 @@ use crate::{
         queen_attacks, rook_attacks,
     },
     types::{
-        Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType, Square,
-        WhiteKingSide, WhiteQueenSide, ZOBRIST,
+        ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType,
+        Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
     },
 };
 
@@ -47,7 +47,7 @@ pub struct Board {
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
     state: InternalState,
-    state_stack: Vec<InternalState>,
+    state_stack: Box<ArrayVec<InternalState, 2048>>,
     fullmove_number: usize,
 }
 
@@ -104,7 +104,7 @@ impl Board {
     }
 
     pub fn prior_threats(&self) -> Bitboard {
-        self.state_stack.last().unwrap().threats
+        self.state_stack[self.state_stack.len() - 1].threats
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -178,7 +178,6 @@ impl Board {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
-        self.update_hash(piece, square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -186,7 +185,6 @@ impl Board {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
-        self.update_hash(piece, square);
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
@@ -196,14 +194,15 @@ impl Board {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
         } else {
             self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
-        }
 
-        if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
-            self.state.minor_key ^= ZOBRIST.pieces[piece][square];
-        }
-
-        if [PieceType::Rook, PieceType::Queen, PieceType::King].contains(&piece.piece_type()) {
-            self.state.major_key ^= ZOBRIST.pieces[piece][square];
+            if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
+                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
+            } else if [PieceType::Rook, PieceType::Queen].contains(&piece.piece_type()) {
+                self.state.major_key ^= ZOBRIST.pieces[piece][square];
+            } else {
+                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
+                self.state.major_key ^= ZOBRIST.pieces[piece][square];
+            }
         }
     }
 
@@ -511,7 +510,7 @@ impl Default for Board {
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
-            state_stack: Vec::default(),
+            state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
         }
     }
