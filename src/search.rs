@@ -551,7 +551,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 let mut bonus = match score {
                     s if s >= beta => (1 + 2 * (move_count > depth) as i32) * stat_bonus(depth),
-                    s if s <= alpha => -stat_bonus(depth),
+                    s if s <= alpha => -(stat_bonus(depth) - 16 * (move_count - 1)),
                     _ => 0,
                 };
 
