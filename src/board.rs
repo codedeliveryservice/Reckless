@@ -241,6 +241,10 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
+    pub const fn halfmove_clock(&self) -> u8 {
+        self.state.halfmove_clock
+    }
+
     pub const fn in_check(&self) -> bool {
         !self.state.checkers.is_empty()
     }
