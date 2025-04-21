@@ -629,7 +629,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if best_move.is_valid() {
         let bonus = stat_bonus(depth);
-        let malus = stat_bonus(depth) - 16 * (move_count - 1);
+
+        let quiet_malus = stat_bonus(depth) - 16 * (quiet_moves.len() as i32 - 1);
+        let noisy_malus = stat_bonus(depth) - 16 * (noisy_moves.len() as i32 - 1);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -642,7 +644,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             for &mv in noisy_moves.iter() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
-                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
             }
         } else {
             td.stack[td.ply].killer = best_move;
@@ -653,16 +655,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
             }
 
             for &mv in noisy_moves.iter() {
                 let captured = td.board.piece_on(mv.to()).piece_type();
-                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
             }
 
             for &mv in quiet_moves.iter() {
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -quiet_malus);
             }
         }
     }
