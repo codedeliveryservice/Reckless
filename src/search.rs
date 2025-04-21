@@ -421,6 +421,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+        let gives_check = td.board.might_give_check_who_knows(mv);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -440,7 +441,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
             // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
+            skip_quiets |=
+                !in_check && !gives_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth + 50 } - history / 32;
