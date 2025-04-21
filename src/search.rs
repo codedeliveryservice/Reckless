@@ -794,13 +794,15 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if mv.is_quiet() {
-                continue;
-            }
+            if !td.board.might_give_check_who_knows(mv) {
+                if mv.is_quiet() {
+                    continue;
+                }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                best_score = best_score.max(futility_score);
-                continue;
+                if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+                    best_score = best_score.max(futility_score);
+                    continue;
+                }
             }
         }
 
