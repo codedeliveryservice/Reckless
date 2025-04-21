@@ -6,7 +6,10 @@ use crate::{
     parameters::*,
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{
+        is_decisive, is_loss, is_win, mate_in, mated_in, randominzed_draw, ArrayVec, Color, Move, Piece, Score, Square,
+        MAX_PLY,
+    },
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -142,7 +145,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition() {
-        alpha = Score::ZERO;
+        alpha = randominzed_draw(td);
         if alpha >= beta {
             return alpha;
         }
@@ -165,7 +168,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if !is_root {
         if td.board.is_draw() {
-            return Score::DRAW;
+            return randominzed_draw(td);
         }
 
         if td.ply >= MAX_PLY - 1 {
@@ -624,7 +627,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return alpha;
         }
 
-        return if in_check { mated_in(td.ply) } else { Score::DRAW };
+        return if in_check { mated_in(td.ply) } else { randominzed_draw(td) };
     }
 
     if best_move.is_valid() {

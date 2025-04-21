@@ -1,4 +1,5 @@
 use super::MAX_PLY;
+use crate::thread::ThreadData;
 
 pub struct Score;
 
@@ -13,6 +14,11 @@ impl Score {
 
     pub const MATE_IN_MAX:  i32 =  32000 - MAX_PLY as i32;
     pub const MATED_IN_MAX: i32 = -32000 + MAX_PLY as i32;
+}
+
+pub const fn randominzed_draw(td: &ThreadData) -> i32 {
+    const MAP: [i32; 8] = [-2, -1, -1, 0, 0, 1, 1, 2];
+    MAP[(td.counter.local().wrapping_mul(0x517cc1b727220a95) & 0x7) as usize]
 }
 
 pub const fn mated_in(ply: usize) -> i32 {
