@@ -9,6 +9,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
     #[cfg(not(feature = "datagen"))]
     {
         eval = eval * (22400 + material(&td.board)) / 32768;
+        eval = (100 - td.board.fifty_move_rule_count()) * eval / 100
     }
 
     eval.clamp(-16384, 16384)
