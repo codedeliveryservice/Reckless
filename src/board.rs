@@ -236,9 +236,8 @@ impl Board {
         }
     }
 
-    /// Returns `true` if the position is a draw by the fifty-move rule.
-    pub const fn draw_by_fifty_move_rule(&self) -> bool {
-        self.state.halfmove_clock >= 100
+    pub fn draw_by_fifty_move_rule(&self) -> bool {
+        self.state.halfmove_clock >= 100 && (!self.in_check() || self.has_legal_moves())
     }
 
     pub const fn halfmove_clock(&self) -> u8 {
