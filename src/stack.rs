@@ -43,12 +43,12 @@ impl Index<usize> for Stack {
     type Output = StackEntry;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
+        unsafe { self.data.get_unchecked(index) }
     }
 }
 
 impl IndexMut<usize> for Stack {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.data[index]
+        unsafe { self.data.get_unchecked_mut(index) }
     }
 }

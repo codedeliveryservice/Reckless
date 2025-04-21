@@ -52,13 +52,13 @@ impl<T> Index<Piece> for [T] {
     type Output = T;
 
     fn index(&self, index: Piece) -> &Self::Output {
-        &self[index as usize]
+        unsafe { self.get_unchecked(index as usize) }
     }
 }
 
 impl<T> IndexMut<Piece> for [T] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
-        &mut self[index as usize]
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 
@@ -85,12 +85,12 @@ impl<T> Index<PieceType> for [T] {
     type Output = T;
 
     fn index(&self, index: PieceType) -> &Self::Output {
-        &self[index as usize]
+        unsafe { self.get_unchecked(index as usize) }
     }
 }
 
 impl<T> IndexMut<PieceType> for [T] {
     fn index_mut(&mut self, index: PieceType) -> &mut Self::Output {
-        &mut self[index as usize]
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }

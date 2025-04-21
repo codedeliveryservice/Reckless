@@ -99,13 +99,13 @@ impl<T> Index<Square> for [T] {
     type Output = T;
 
     fn index(&self, square: Square) -> &Self::Output {
-        &self[square as usize]
+        unsafe { self.get_unchecked(square as usize) }
     }
 }
 
 impl<T> IndexMut<Square> for [T] {
     fn index_mut(&mut self, square: Square) -> &mut Self::Output {
-        &mut self[square as usize]
+        unsafe { self.get_unchecked_mut(square as usize) }
     }
 }
 
