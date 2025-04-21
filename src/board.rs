@@ -242,6 +242,10 @@ impl Board {
         self.state.halfmove_clock >= 100
     }
 
+    pub const fn fifty_move_rule_count(&self) -> i32 {
+        self.state.halfmove_clock as i32
+    }
+
     pub const fn in_check(&self) -> bool {
         !self.state.checkers.is_empty()
     }
