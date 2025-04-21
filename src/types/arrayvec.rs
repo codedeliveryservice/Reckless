@@ -66,6 +66,6 @@ impl<const N: usize, T: Copy> Index<usize> for ArrayVec<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        unsafe { &*self.data[index].as_ptr() }
+        unsafe { &*self.data.get_unchecked(index).as_ptr() }
     }
 }

@@ -97,6 +97,6 @@ impl<T> Index<Castling> for [T] {
     type Output = T;
 
     fn index(&self, index: Castling) -> &Self::Output {
-        &self[index.raw as usize]
+        unsafe { self.get_unchecked(index.raw as usize) }
     }
 }
