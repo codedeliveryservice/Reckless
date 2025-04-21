@@ -34,12 +34,13 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.nnue.refresh(&td.board);
 
     let now = Instant::now();
+    let previous_score = td.best_score;
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
-    let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut anchor_score = td.best_score;
 
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -101,13 +102,16 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             last_move = td.pv.best_move();
         }
 
-        if (td.best_score - average).abs() < 12 {
-            eval_stability = (eval_stability + 1).min(8);
-        } else {
-            eval_stability = 0;
+        let eval_factor =
+            0.55 + (previous_score - td.best_score) as f32 / 100.0 + (anchor_score - td.best_score) as f32 / 100.0;
+
+        let eval_factor = eval_factor.clamp(0.5, 1.5);
+
+        if td.completed_depth <= 4 {
+            anchor_score = td.best_score;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        if td.time_manager.soft_limit(td, pv_stability, eval_factor) {
             break;
         }
 
