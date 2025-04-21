@@ -220,7 +220,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         eval = static_eval;
     } else if let Some(entry) = entry {
         raw_eval = if entry.eval != Score::NONE { entry.eval } else { evaluate(td) };
-        static_eval = raw_eval + correction_value;
+        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
         if match entry.bound {
@@ -232,7 +232,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
-        static_eval = raw_eval + correction_value;
+        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
     }
 
@@ -740,7 +740,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = raw_eval + correction_value(td);
+        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
         if let Some(entry) = entry {
@@ -861,6 +861,10 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
+}
+
+fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
+    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-16384, 16384)
 }
 
 fn stat_bonus(depth: i32) -> i32 {
