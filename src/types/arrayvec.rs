@@ -1,11 +1,12 @@
 use std::{mem::MaybeUninit, ops::Index};
 
-pub struct ArrayVec<T, const N: usize> {
+#[derive(Clone)]
+pub struct ArrayVec<T: Copy, const N: usize> {
     data: [MaybeUninit<T>; N],
     len: usize,
 }
 
-impl<T, const N: usize> ArrayVec<T, N> {
+impl<T: Copy, const N: usize> ArrayVec<T, N> {
     pub const fn new() -> Self {
         let data: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
         Self { data, len: 0 }
@@ -32,6 +33,15 @@ impl<T, const N: usize> ArrayVec<T, N> {
         self.len += 1;
     }
 
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+
+        self.len -= 1;
+        unsafe { Some(std::ptr::read(self.data[self.len].as_ptr())) }
+    }
+
     pub fn swap_remove(&mut self, index: usize) -> T {
         unsafe {
             let value = std::ptr::read(self.data[index].as_ptr());
@@ -52,7 +62,7 @@ impl<T, const N: usize> ArrayVec<T, N> {
     }
 }
 
-impl<const N: usize, T> Index<usize> for ArrayVec<T, N> {
+impl<const N: usize, T: Copy> Index<usize> for ArrayVec<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {

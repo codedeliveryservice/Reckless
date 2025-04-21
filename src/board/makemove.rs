@@ -51,11 +51,15 @@ impl Board {
         let captured = self.piece_on(to);
         if captured != Piece::None {
             self.remove_piece(captured, to);
+            self.update_hash(captured, to);
             self.state.captured = Some(captured);
         }
 
         self.remove_piece(piece, from);
         self.add_piece(piece, to);
+
+        self.update_hash(piece, from);
+        self.update_hash(piece, to);
 
         match mv.kind() {
             MoveKind::DoublePush => {
@@ -63,16 +67,29 @@ impl Board {
                 self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             }
             MoveKind::EnPassant => {
-                self.remove_piece(Piece::new(!stm, PieceType::Pawn), to ^ 8);
+                let captured = Piece::new(!stm, PieceType::Pawn);
+
+                self.remove_piece(captured, to ^ 8);
+                self.update_hash(captured, to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, root_to) = Self::get_castling_rook(to);
-                self.remove_piece(Piece::new(stm, PieceType::Rook), rook_from);
-                self.add_piece(Piece::new(stm, PieceType::Rook), root_to);
+                let (rook_from, rook_to) = Self::get_castling_rook(to);
+                let rook = Piece::new(stm, PieceType::Rook);
+
+                self.remove_piece(rook, rook_from);
+                self.add_piece(rook, rook_to);
+
+                self.update_hash(rook, rook_from);
+                self.update_hash(rook, rook_to);
             }
             _ if mv.is_promotion() => {
-                self.remove_piece(Piece::new(stm, PieceType::Pawn), to);
-                self.add_piece(Piece::new(stm, mv.promotion_piece().unwrap()), to);
+                let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
+
+                self.remove_piece(piece, to);
+                self.add_piece(promotion, to);
+
+                self.update_hash(piece, to);
+                self.update_hash(promotion, to);
             }
             _ => (),
         }
