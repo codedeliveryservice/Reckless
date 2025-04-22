@@ -546,7 +546,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
-                    score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    score = -search::<false>(td, -alpha - new_depth - 1, -alpha - new_depth, new_depth, !cut_node);
                 }
 
                 let mut bonus = match score {
