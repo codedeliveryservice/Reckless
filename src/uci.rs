@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, AtomicU64};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
     board::Board,
@@ -22,18 +22,21 @@ pub fn message_loop() {
         thread.nnue.refresh(&thread.board);
     }
 
+    let mut next_command = None;
+
     loop {
-        let command = read_stdin();
+        let command = next_command.take().unwrap_or_else(read_stdin);
         let tokens = command.split_whitespace().collect::<Vec<_>>();
         match tokens.as_slice() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut threads, report, tokens),
+            ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, tokens),
             ["position", tokens @ ..] => position(&mut threads, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
 
+            ["stop"] => stop.store(true, Ordering::Relaxed),
             ["quit"] => break,
 
             // Non-UCI commands
@@ -68,14 +71,14 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
+fn go(threads: &mut ThreadPool, stop: &AtomicBool, report: Report, tokens: &[&str]) -> Option<String> {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number());
     threads.main_thread().set_stop(false);
 
-    let results = std::thread::scope(|scope| {
+    let next_command = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
         for (id, td) in threads.iter_mut().enumerate() {
@@ -88,42 +91,60 @@ fn go(threads: &mut ThreadPool, report: Report, tokens: &[&str]) {
             handlers.push(handler);
         }
 
-        handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>()
+        let next_command = scope.spawn(|| loop {
+            let command = read_stdin();
+            match command.as_str().trim() {
+                "isready" => println!("readyok"),
+                "stop" => {
+                    stop.store(true, Ordering::Relaxed);
+                    return None;
+                }
+                _ => {
+                    return Some(command);
+                }
+            }
+        });
+
+        let results = handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>();
+
+        let min_score = results.iter().map(|v| v.score).min().unwrap();
+        let vote_value = |result: &SearchResult| (result.score - min_score + 10) * result.depth;
+
+        let mut votes = vec![0; 4096];
+        for result in &results {
+            votes[result.best_move.encoded()] += vote_value(result);
+        }
+
+        let mut best = results[0];
+        for current in &results[1..] {
+            let is_better_candidate = || -> bool {
+                if is_decisive(best.score) {
+                    return current.score > best.score;
+                }
+                if is_win(current.score) {
+                    return true;
+                }
+
+                let best_vote = votes[best.best_move.encoded()];
+                let current_vote = votes[current.best_move.encoded()];
+
+                !is_loss(current.score)
+                    && (current_vote > best_vote
+                        || (current_vote == best_vote && vote_value(current) > vote_value(&best)))
+            };
+
+            if is_better_candidate() {
+                best = *current;
+            }
+        }
+
+        println!("bestmove {}", best.best_move);
+
+        next_command.join().unwrap()
     });
 
-    let min_score = results.iter().map(|v| v.score).min().unwrap();
-    let vote_value = |result: &SearchResult| (result.score - min_score + 10) * result.depth;
-
-    let mut votes = vec![0; 4096];
-    for result in &results {
-        votes[result.best_move.encoded()] += vote_value(result);
-    }
-
-    let mut best = results[0];
-    for current in &results[1..] {
-        let is_better_candidate = || -> bool {
-            if is_decisive(best.score) {
-                return current.score > best.score;
-            }
-            if is_win(current.score) {
-                return true;
-            }
-
-            let best_vote = votes[best.best_move.encoded()];
-            let current_vote = votes[current.best_move.encoded()];
-
-            !is_loss(current.score)
-                && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(&best)))
-        };
-
-        if is_better_candidate() {
-            best = *current;
-        }
-    }
-
-    println!("bestmove {}", best.best_move);
-
     threads.main_thread().tt.increment_age();
+    next_command
 }
 
 fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
