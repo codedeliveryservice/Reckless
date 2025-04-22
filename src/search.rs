@@ -442,6 +442,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
+            // History Pruning (HP)
+            skip_quiets |= !in_check && is_quiet && depth < 4 && history < -(512 * 2048 * depth);
+
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -30 * lmr_depth * lmr_depth } else { -95 * depth + 50 } - history / 32;
             if !td.board.see(mv, threshold) {
