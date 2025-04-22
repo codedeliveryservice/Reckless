@@ -7,6 +7,12 @@ const QUIET: u8 = 0;
 const NOISY: u8 = 1;
 
 impl super::Board {
+    pub fn has_legal_moves(&self) -> bool {
+        let mut list = MoveList::new();
+        self.append_all_moves(&mut list);
+        list.iter().any(|entry| self.is_legal(entry.mv))
+    }
+
     /// Generates all possible pseudo legal moves for the current position.
     pub fn generate_all_moves(&self) -> MoveList {
         let mut list = MoveList::new();
