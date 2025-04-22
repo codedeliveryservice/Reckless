@@ -442,13 +442,18 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
-            // Futility Pruning for noisy moves
+            // Futility Pruning for noisy moves (FPN)
             if !PV
-                && !excluded
                 && !is_quiet
                 && !in_check
-                && lmr_depth < 5
-                && static_eval + 512 + 256 * lmr_depth + history / 8 <= alpha
+                && lmr_depth < 6
+                && static_eval
+                    + 128
+                    + 256 * lmr_depth
+                    + history / 8
+                    + PIECE_VALUES[td.board.moved_piece(mv).piece_type()] / 2
+                    <= alpha
+                && !td.board.might_give_check_who_knows(mv)
             {
                 continue;
             }

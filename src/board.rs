@@ -298,6 +298,20 @@ impl Board {
             | king_attacks(square) & self.pieces(PieceType::King)
     }
 
+    pub fn might_give_check_who_knows(&mut self, mv: Move) -> bool {
+        let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
+        let direct_attacks = match self.moved_piece(mv).piece_type() {
+            PieceType::Pawn => pawn_attacks(mv.to(), self.side_to_move),
+            PieceType::Knight => knight_attacks(mv.to()),
+            PieceType::Bishop => bishop_attacks(mv.to(), occupancies),
+            PieceType::Rook => rook_attacks(mv.to(), occupancies),
+            PieceType::Queen => queen_attacks(mv.to(), occupancies),
+            _ => Bitboard::default(),
+        };
+
+        direct_attacks.contains(self.their(PieceType::King).lsb())
+    }
+
     pub fn is_legal(&self, mv: Move) -> bool {
         let from = mv.from();
         let to = mv.to();
