@@ -397,11 +397,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
-        depth -= 1;
-    }
-
     let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
@@ -507,10 +502,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if PV {
                 reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
+                reduction += 1024 * tt_move.is_null() as i32;
             }
 
             if cut_node {
                 reduction += 1024;
+                reduction += 1024 * (tt_move.is_null() && depth >= 6) as i32;
             }
 
             reduction -= 4 * correction_value.abs();
