@@ -14,10 +14,11 @@ use crate::{
 pub fn message_loop() {
     let tt = TranspositionTable::default();
     let stop = AtomicBool::new(false);
+    let repeat_depth = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
 
     let mut report = Report::Full;
-    let mut threads = ThreadPool::new(&tt, &stop, &counter);
+    let mut threads = ThreadPool::new(&tt, &stop, &repeat_depth, &counter);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
     }

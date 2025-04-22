@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{sync::atomic::Ordering, time::Instant};
 
 use crate::{
     evaluate::evaluate,
@@ -40,6 +40,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut repeat_depth_counter = 0;
 
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -59,11 +60,16 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             beta = (average + delta).min(Score::INFINITE);
         }
 
+        if td.repeat_depth.load(Ordering::Relaxed) {
+            repeat_depth_counter += 1;
+        }
+
         loop {
             td.stack = Default::default();
-
             td.root_delta = beta - alpha;
-            let current = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
+
+            let adjusted_depth = depth - reduction - 3 * (repeat_depth_counter + 1) / 4;
+            let current = search::<true>(td, alpha, beta, adjusted_depth.max(1), false);
 
             if td.stopped {
                 break;

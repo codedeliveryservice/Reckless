@@ -18,16 +18,21 @@ pub struct ThreadPool<'a> {
 }
 
 impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter)] }
+    pub fn new(
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, repeat_depth: &'a AtomicBool, counter: &'a AtomicU64,
+    ) -> Self {
+        Self {
+            vector: vec![ThreadData::new(tt, stop, repeat_depth, counter)],
+        }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
+        let repeat_depth = self.vector[0].repeat_depth;
         let counter = self.vector[0].counter.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, repeat_depth, counter));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -48,7 +53,7 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global);
+            *thread = ThreadData::new(thread.tt, thread.stop, thread.repeat_depth, thread.counter.global);
         }
     }
 }
@@ -56,6 +61,7 @@ impl<'a> ThreadPool<'a> {
 pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
+    pub repeat_depth: &'a AtomicBool,
     pub counter: AtomicCounter<'a>,
     pub board: Board,
     pub time_manager: TimeManager,
@@ -84,10 +90,13 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
+    pub fn new(
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, repeat_depth: &'a AtomicBool, counter: &'a AtomicU64,
+    ) -> Self {
         Self {
             tt,
             stop,
+            repeat_depth,
             counter: AtomicCounter::new(counter),
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0),
