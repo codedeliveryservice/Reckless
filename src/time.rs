@@ -81,7 +81,7 @@ impl TimeManager {
 
                 let elapsed = self.start_time.elapsed().as_secs_f32();
 
-                td.repeat_depth.store(elapsed >= 0.6 * limit, Ordering::Relaxed);
+                td.repeat_depth.store(elapsed >= 0.75 * limit, Ordering::Relaxed);
 
                 elapsed >= limit
             }
