@@ -671,12 +671,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.ply -= 1;
         tt_pv |= td.stack[td.ply].tt_pv;
 
-        let factor = 2;
-        let scaled_bonus = factor * stat_bonus(depth);
+        let bonus = (128 * depth + 32 * depth * (6 - td.stack[td.ply].cutoff_count).max(0) - 128).min(2560);
 
         let pcm_move = td.stack[td.ply].mv;
         if pcm_move != Move::NULL && pcm_move.is_quiet() {
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
         }
         td.ply += 1;
     }
