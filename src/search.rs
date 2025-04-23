@@ -346,8 +346,22 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    fn adaptive_prob_cut_margin(depth: i32) -> i32 {
+        // Base margin
+        const BASE: i32 = 180;
+
+        // Lookup table for approximate log2(depth)
+        const LOG_TABLE: [i32; 32] =
+            [0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
+
+        let log_depth = LOG_TABLE[depth.min(31) as usize];
+        let depth_bonus = if depth >= 16 { ((depth - 16) * 5) as i32 } else { 0 };
+
+        BASE + log_depth * 55 + depth_bonus
+    }
+
     // ProbCut
-    let probcut_beta = beta + 256 - 64 * improving as i32;
+    let probcut_beta = beta + adaptive_prob_cut_margin(depth) - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
