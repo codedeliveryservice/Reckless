@@ -33,6 +33,8 @@ struct InternalState {
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
+    plies_from_null: i32,
+    repetition: i32,
     captured: Option<Piece>,
     threats: Bitboard,
     pinners: Bitboard,
@@ -207,22 +209,14 @@ impl Board {
     }
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self) -> bool {
-        self.draw_by_repetition() || self.draw_by_fifty_move_rule() || self.draw_by_insufficient_material()
+    pub fn is_draw(&self, ply: usize) -> bool {
+        self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32) || self.draw_by_insufficient_material()
     }
 
-    /// Returns `true` if the current position has already been present at least once
-    /// in the board's history.
-    ///
-    /// This method does not count the number of encounters.
-    pub fn draw_by_repetition(&self) -> bool {
-        self.state_stack
-            .iter()
-            .rev()
-            .skip(1)
-            .step_by(2)
-            .take(self.state.halfmove_clock as usize + 1)
-            .any(|state| state.key == self.state.key)
+    /// Return a draw score if a position repeats once earlier but strictly
+    /// after the root, or repeats twice before or at the root.
+    pub fn draw_by_repetition(&self, ply: i32) -> bool {
+        self.state.repetition != 0 && self.state.repetition < ply
     }
 
     /// Returns `true` if the current position is a known draw by insufficient material:
@@ -252,8 +246,8 @@ impl Board {
         self.state.threats.contains(square)
     }
 
-    pub fn upcoming_repetition(&self) -> bool {
-        let hm = (self.state.halfmove_clock as usize).min(self.state_stack.len());
+    pub fn upcoming_repetition(&self, ply: usize) -> bool {
+        let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
             return false;
         }
@@ -282,7 +276,13 @@ impl Board {
             }
 
             if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
-                return true;
+                if ply > d {
+                    return true;
+                }
+
+                if self.state.repetition != 0 {
+                    return true;
+                }
             }
         }
 

@@ -169,7 +169,7 @@ fn play_game(td: &mut ThreadData) -> (Vec<SearchResult>, f32) {
         td.board.make_move(best_move);
 
         // Draw by repetition, 50-move rule or insufficient material
-        if td.board.is_draw() || td.board.draw_by_insufficient_material() {
+        if td.board.is_draw(0) || td.board.draw_by_insufficient_material() {
             return (entries, 0.5);
         }
 
