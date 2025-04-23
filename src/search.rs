@@ -564,6 +564,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.ply += 1;
             } else if score > alpha && score < best_score + 16 {
                 new_depth -= 1;
+                if score < best_score + 5 {
+                    new_depth -= 1;
+                }
             }
         }
         // Full Depth Search (FDS)
