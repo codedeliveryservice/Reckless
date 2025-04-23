@@ -509,6 +509,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 768 + 768 * (beta - alpha > td.root_delta / 4) as i32;
             }
 
+            if PV && best_score.abs() <= 2000 {
+                reduction -= risk_tolerance(best_score);
+            }
+
             if cut_node {
                 reduction += 1024;
             }
@@ -900,4 +904,24 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
         }
     }
+}
+
+fn risk_tolerance(v: i32) -> i32 {
+    // Returns (some constant of) second derivative of sigmoid.
+    fn sigmoid_d2(x: i32, y: i32) -> i32 {
+        644_800 * x / ((x * x + 3 * y * y) * y)
+    }
+
+    // a and b are the crude approximation of the wdl model.
+    let a = 356;
+    let b = 123;
+
+    // guard against overflow
+    assert!((v.abs() + a) <= i32::MAX / 644_800);
+
+    // Compute winning and losing risk
+    let winning_risk = sigmoid_d2(v - a, b);
+    let losing_risk = sigmoid_d2(v + a, b);
+
+    -(winning_risk + losing_risk) * 32
 }
