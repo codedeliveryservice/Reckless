@@ -576,7 +576,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // History Pruning (HP)
-            if !in_check && is_quiet && depth < 2 && history < 0 {
+            if !in_check && is_quiet && depth < 3 && history < 0 {
                 continue;
             }
 
