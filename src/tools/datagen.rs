@@ -58,9 +58,15 @@ pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
     println!("Win adjudication     | score={WIN_SCORE} plycount={WIN_PLY_COUNT}");
     println!("Draw adjudication    | score={DRAW_SCORE} plycount={DRAW_PLY_COUNT} plynumber={DRAW_PLY_NUMBER}");
     println!();
-    println!("Press [ENTER] to stop the data generation.");
+    println!("Press Ctrl+C to stop the data generation.");
     println!("Generating data...");
     println!();
+
+    ctrlc::set_handler(|| {
+        STOP_FLAG.store(true, Ordering::Relaxed);
+        println!("Stopping data generation...");
+    })
+    .unwrap();
 
     thread::spawn(|| {
         let now = Instant::now();
@@ -85,10 +91,6 @@ pub fn datagen<P: AsRef<Path>>(output: P, book: P, threads: usize) {
             let path = output.as_ref();
             scope.spawn(|| generate_data(path, &lines));
         }
-
-        std::io::stdin().read_line(&mut String::new()).unwrap();
-        STOP_FLAG.store(true, Ordering::Relaxed);
-        println!("Stopping data generation...");
     });
 
     println!("Total positions: {}", COUNT.load(Ordering::Relaxed));
