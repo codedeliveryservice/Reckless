@@ -132,11 +132,12 @@ impl TranspositionTable {
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let vector = unsafe { &*self.vector.get() };
+        let tt_age = self.tt_age();
 
         let mut count = 0;
         for cluster in vector.iter().take(1000) {
             for entry in &cluster.entries {
-                count += (entry.flags.bound() != Bound::None) as usize;
+                count += (entry.flags.bound() != Bound::None && entry.flags.age() == tt_age) as usize;
             }
         }
 
