@@ -223,11 +223,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
-        if match entry.bound {
-            Bound::Upper => entry.score < eval,
-            Bound::Lower => entry.score > eval,
-            _ => true,
-        } {
+        if (entry.depth > 0 || depth <= 2)
+            && match entry.bound {
+                Bound::Upper => entry.score < eval,
+                Bound::Lower => entry.score > eval,
+                _ => true,
+            }
+        {
             eval = entry.score;
         }
     } else {
