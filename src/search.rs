@@ -230,6 +230,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         } {
             eval = entry.score;
         }
+    } else if td.ply >= 1 && td.stack[td.ply - 1].mv.is_null() {
+        raw_eval = -td.stack[td.ply - 1].static_eval + 32;
+        static_eval = raw_eval;
+        eval = static_eval;
     } else {
         raw_eval = evaluate(td);
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
