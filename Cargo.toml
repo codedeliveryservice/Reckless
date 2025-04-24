@@ -22,3 +22,7 @@ codegen-units = 1
 
 [dependencies]
 ctrlc = "3.4.6"
+
+[build-dependencies]
+cc = "1.2.19"
+bindgen = "0.71.1"

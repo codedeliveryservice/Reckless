@@ -17,6 +17,9 @@ mod transposition;
 mod types;
 mod uci;
 
+#[allow(warnings)]
+mod bindings;
+
 fn main() {
     lookup::init();
 
