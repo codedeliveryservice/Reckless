@@ -621,15 +621,22 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if move_count == 0 {
-        if excluded {
-            return alpha;
-        }
-
-        return if in_check { mated_in(td.ply) } else { Score::DRAW };
+    // Adjust best value for fail high cases
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) && !is_decisive(alpha) {
+        best_score = (best_score * depth + beta) / (depth + 1);
     }
 
-    if best_move.is_valid() {
+    if move_count == 0 {
+        best_score = if excluded {
+            alpha
+        } else {
+            if in_check {
+                mated_in(td.ply)
+            } else {
+                Score::DRAW
+            }
+        }
+    } else if best_move.is_valid() {
         let bonus = stat_bonus(depth);
         let malus = stat_bonus(depth) - 16 * (move_count - 1);
 
@@ -667,9 +674,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus);
             }
         }
-    }
-
-    if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
+    } else if td.ply >= 1 && depth > 3 {
         td.ply -= 1;
         tt_pv |= td.stack[td.ply].tt_pv;
 
