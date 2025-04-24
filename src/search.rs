@@ -683,6 +683,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.ply += 1;
     }
 
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+        best_score = (best_score + beta) / 2;
+    }
+
     if !excluded {
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
