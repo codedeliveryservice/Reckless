@@ -195,8 +195,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             && !excluded
             && entry.depth >= depth
             && match entry.bound {
-                Bound::Upper => entry.score <= alpha,
-                Bound::Lower => entry.score >= beta,
+                Bound::Upper => entry.score - 8 <= alpha,
+                Bound::Lower => entry.score + 8 >= beta,
                 _ => true,
             }
         {
