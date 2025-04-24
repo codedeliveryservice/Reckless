@@ -548,19 +548,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if new_depth > reduced_depth {
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
 
-                    let mut bonus = match score {
-                        s if s >= beta => (1 + 2 * (move_count > depth) as i32) * stat_bonus(depth),
-                        s if s <= alpha => -stat_bonus(depth),
-                        _ => 0,
-                    };
+                    if mv.is_quiet() {
+                        let bonus = match score {
+                            s if s >= beta => (1 + 2 * (move_count > depth) as i32) * stat_bonus(depth),
+                            s if s <= alpha => -stat_bonus(depth),
+                            _ => 0,
+                        };
 
-                    if !is_quiet {
-                        bonus /= 5;
+                        td.ply -= 1;
+                        update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
+                        td.ply += 1;
                     }
-
-                    td.ply -= 1;
-                    update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
-                    td.ply += 1;
                 }
             } else if score > alpha && score < best_score + 16 {
                 new_depth -= 1;
