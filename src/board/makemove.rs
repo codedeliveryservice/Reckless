@@ -8,6 +8,8 @@ impl Board {
 
         self.state.key ^= ZOBRIST.side;
         self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.plies_from_null = 0;
+        self.state.repetition = 0;
 
         self.update_threats();
         self.update_king_threats();
@@ -47,6 +49,7 @@ impl Board {
         } else {
             self.state.halfmove_clock += 1;
         }
+        self.state.plies_from_null += 1;
 
         let captured = self.piece_on(to);
         if captured != Piece::None {
@@ -101,6 +104,28 @@ impl Board {
 
         self.update_threats();
         self.update_king_threats();
+
+        self.state.repetition = 0;
+
+        let end = self.state.halfmove_clock.min(self.state.plies_from_null as u8);
+
+        if end >= 4 {
+            let mut idx = self.state_stack.len() as isize - 4;
+            for i in (4..=end).step_by(2) {
+                if idx < 0 {
+                    break;
+                }
+
+                let stp = &self.state_stack[idx as usize];
+
+                if stp.key == self.state.key {
+                    self.state.repetition = if stp.repetition != 0 { -(i as i32) } else { i as i32 };
+                    break;
+                }
+
+                idx -= 2;
+            }
+        }
     }
 
     pub fn undo_move(&mut self, mv: Move) {

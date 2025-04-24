@@ -141,7 +141,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
-    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition() {
+    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -164,7 +164,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !is_root {
-        if td.board.is_draw() {
+        if td.board.is_draw(td.ply) {
             return Score::DRAW;
         }
 
@@ -712,6 +712,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if td.time_manager.check_time(td) {
         td.stopped = true;
         return Score::ZERO;
+    }
+
+    if td.board.is_draw(td.ply) {
+        return Score::DRAW;
     }
 
     if td.ply >= MAX_PLY - 1 {
