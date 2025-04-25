@@ -893,6 +893,9 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 }
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
+    let factor = (td.root_depth as f32 / 16.0).clamp(0.75, 1.5);
+    let bonus = (bonus as f32 * factor) as i32;
+
     if td.ply >= 1 {
         let entry = td.stack[td.ply - 1];
         if entry.mv.is_valid() {
