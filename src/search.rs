@@ -678,6 +678,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply].mv;
         if pcm_move != Move::NULL && pcm_move.is_quiet() {
+            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), scaled_bonus / 2);
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
         td.ply += 1;
