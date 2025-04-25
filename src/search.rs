@@ -667,9 +667,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus);
             }
         }
-    }
-
-    if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
+    } else if td.ply >= 1 && td.stack[td.ply - 1].mv.is_valid() && depth > 3 {
         td.ply -= 1;
         tt_pv |= td.stack[td.ply].tt_pv;
 
@@ -677,7 +675,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let scaled_bonus = factor * stat_bonus(depth);
 
         let pcm_move = td.stack[td.ply].mv;
-        if pcm_move != Move::NULL && pcm_move.is_quiet() {
+        if pcm_move.is_quiet() {
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
         td.ply += 1;
