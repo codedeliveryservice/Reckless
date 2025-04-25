@@ -21,7 +21,7 @@ const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 640;
 
 const NETWORK_SCALE: i32 = 400;
-const NETWORK_QA: i32 = 384;
+const NETWORK_QA: i32 = 500;
 const NETWORK_QB: i32 = 64;
 
 #[derive(Clone)]
@@ -97,26 +97,19 @@ impl Network {
     fn output_transformer(&mut self, board: &Board) -> i32 {
         let accumulators = &self.stack[self.index];
 
-        let min = simd::zero();
-        let max = simd::splat(NETWORK_QA as i16);
-
-        let mut vector = simd::zero();
+        let mut result = 0;
 
         for flip in [0, 1] {
             let accumulator = &accumulators.values[board.side_to_move() as usize ^ flip];
             let weights = &PARAMETERS.output_weights[flip];
 
-            for i in (0..HIDDEN_SIZE).step_by(simd::VECTOR_WIDTH) {
-                let input = unsafe { *(accumulator[i..].as_ptr().cast()) };
-                let weights = unsafe { *(weights[i..].as_ptr().cast()) };
-
-                let v = simd::min(simd::max(input, min), max);
-                let w = simd::mullo(v, weights);
-                vector = simd::add_i32(vector, simd::dot(w, v));
+            for i in 0..HIDDEN_SIZE {
+                let v = accumulator[i].clamp(0, NETWORK_QA as i16) as i32;
+                result += v * v * weights[i] as i32;
             }
         }
 
-        simd::horizontal_sum(vector)
+        result
     }
 }
 
