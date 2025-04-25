@@ -527,6 +527,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 896 + 64 * td.stack[td.ply].cutoff_count.max(8);
             }
 
+            reduction += (3 * (alpha - static_eval) / 2).clamp(0, 1024);
+
             if td.stack[td.ply - 1].killer == mv {
                 reduction -= 1024;
             }
