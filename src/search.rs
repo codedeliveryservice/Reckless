@@ -426,6 +426,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
+                + td.conthist(3, mv) / 2
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -902,6 +903,13 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
 
     if td.ply >= 2 {
         let entry = td.stack[td.ply - 2];
+        if entry.mv.is_valid() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+        }
+    }
+
+    if td.ply >= 3 {
+        let entry = td.stack[td.ply - 3];
         if entry.mv.is_valid() {
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
         }
