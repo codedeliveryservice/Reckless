@@ -771,7 +771,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             alpha = best_score;
         }
 
-        futility_score = static_eval + 128;
+        futility_score = static_eval + correction_value(td).abs() / 6;
     }
 
     let mut best_move = Move::NULL;
