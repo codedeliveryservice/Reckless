@@ -793,13 +793,14 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
+    let mut skip_quiets = !in_check;
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check) {
+    while let Some(mv) = move_picker.next(td, skip_quiets) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -816,6 +817,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
 
             if mv.is_quiet() {
+                skip_quiets = true;
                 continue;
             }
 
