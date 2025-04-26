@@ -178,7 +178,7 @@ impl MovePicker {
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(3, mv) / 2
-                + td.conthist(4, mv) / 2;
+                + td.conthist(4, mv) / 6;
         }
     }
 }
