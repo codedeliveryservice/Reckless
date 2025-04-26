@@ -452,9 +452,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 && !in_check
                 && lmr_depth < 6
                 && move_picker.stage() == Stage::BadNoisy
-                && static_eval + 128 * lmr_depth <= alpha
+                && static_eval + 128 * lmr_depth + history / 16 <= alpha
             {
-                break;
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
