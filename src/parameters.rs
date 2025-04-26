@@ -39,6 +39,5 @@ macro_rules! define {
 }
 
 define! {
-    i32 asp_delta: 12;
     i32 asp_div:   32768;
 }

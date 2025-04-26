@@ -41,6 +41,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
 
+    let mut window_expansions = 0;
+
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
         td.root_depth = depth;
@@ -48,7 +50,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = asp_delta();
+        let mut delta = 12 + 6 * (window_expansions >= 4) as i32;
         let mut reduction = 0;
 
         // Aspiration Windows
@@ -71,15 +73,18 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             match current {
                 s if s <= alpha => {
+                    window_expansions += 1;
                     beta = (alpha + beta) / 2;
                     alpha = (current - delta).max(-Score::INFINITE);
                     reduction = 0;
                 }
                 s if s >= beta => {
+                    window_expansions += 1;
                     beta = (current + delta).min(Score::INFINITE);
                     reduction += 1;
                 }
                 _ => {
+                    window_expansions /= 2;
                     average = if average == Score::NONE { current } else { (average + current) / 2 };
                     break;
                 }
