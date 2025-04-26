@@ -207,6 +207,10 @@ impl TranspositionTable {
 
         let entry = &mut cluster.entries[index];
 
+        if !(entry.key == key && mv == Move::NULL) {
+            entry.mv = mv;
+        }
+
         if !(key != entry.key
             || bound == Bound::Exact
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
@@ -218,10 +222,6 @@ impl TranspositionTable {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) {
             score += score.signum() * ply as i32;
-        }
-
-        if !(entry.key == key && mv == Move::NULL) {
-            entry.mv = mv;
         }
 
         entry.key = key;
