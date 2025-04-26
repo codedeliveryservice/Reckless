@@ -58,25 +58,40 @@ impl TimeManager {
         }
     }
 
-    pub fn soft_limit(&self, td: &ThreadData, pv_stability: usize, eval_stability: usize) -> bool {
+    pub fn soft_limit(&self, td: &ThreadData, pv_stability: usize, eval_stability: usize, times: &[u128]) -> bool {
         match self.limits {
             Limits::Infinite => false,
             Limits::Depth(maximum) => td.completed_depth >= maximum,
             Limits::Nodes(maximum) => td.counter.global() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => {
+                let elapsed = self.start_time.elapsed();
                 let mut limit = self.soft_bound.as_secs_f32();
 
                 if td.completed_depth >= 7 {
                     let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
+
                     limit *= 2.15 - 1.5 * fraction;
 
                     limit *= 1.25 - 0.05 * pv_stability as f32;
 
                     limit *= 1.2 - 0.04 * eval_stability as f32;
+
+                    let mut scaling_factor = 1.0;
+                    for i in 1..times.len() - 2 {
+                        if times[i] > 0 && times[i - 1] > 0 {
+                            scaling_factor = (scaling_factor + times[i] as f32 / times[i - 1] as f32) / 2.0;
+                        }
+                    }
+
+                    let pessimistic_estimation = 2.0 * scaling_factor * times[times.len() - 1] as f32;
+
+                    if Duration::from_millis(pessimistic_estimation as u64) > elapsed {
+                        return false;
+                    }
                 }
 
-                self.start_time.elapsed() >= Duration::from_secs_f32(limit)
+                elapsed >= Duration::from_secs_f32(limit)
             }
         }
     }

@@ -40,6 +40,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut times = vec![];
 
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -94,6 +95,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
         td.completed_depth = depth;
 
+        times.push(now.elapsed().as_millis());
+
         if last_move == td.pv.best_move() {
             pv_stability = (pv_stability + 1).min(8);
         } else {
@@ -107,7 +110,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, &times) {
             break;
         }
 
