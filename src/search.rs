@@ -906,4 +906,11 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
         }
     }
+
+    if td.ply >= 3 {
+        let entry = td.stack[td.ply - 3];
+        if entry.mv.is_valid() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+        }
+    }
 }
