@@ -56,7 +56,7 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
-    pub const fn is_valid(self) -> bool {
+    pub const fn is_some(self) -> bool {
         self.0 != 0
     }
 

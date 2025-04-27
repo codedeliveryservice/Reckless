@@ -32,7 +32,7 @@ pub struct Network {
 
 impl Network {
     pub fn push(&mut self, mv: Move, board: &Board) {
-        debug_assert!(mv.is_valid());
+        debug_assert!(mv.is_some());
 
         self.index += 1;
         self.stack[self.index].accurate = false;

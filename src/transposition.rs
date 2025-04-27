@@ -10,7 +10,7 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
-const CLUSTERS: usize = 3;
+const ENTRIES_PER_CLUSTER: usize = 3;
 
 const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
@@ -94,7 +94,7 @@ impl InternalEntry {
 #[derive(Clone, Default)]
 #[repr(align(32))]
 struct Cluster {
-    entries: [InternalEntry; CLUSTERS],
+    entries: [InternalEntry; ENTRIES_PER_CLUSTER],
 }
 
 /// The transposition table is used to cache previously performed search results.
@@ -141,7 +141,7 @@ impl TranspositionTable {
             }
         }
 
-        count / CLUSTERS
+        count / ENTRIES_PER_CLUSTER
     }
 
     pub fn increment_age(&self) {
@@ -207,7 +207,7 @@ impl TranspositionTable {
 
         let entry = &mut cluster.entries[index];
 
-        if !(entry.key == key && mv == Move::NULL) {
+        if !(entry.key == key && mv.is_null()) {
             entry.mv = mv;
         }
 
