@@ -108,9 +108,14 @@ impl Default for NoisyHistory {
     }
 }
 
+struct CorrectionHistoryEntry {
+    value: i16,
+    roll: i16,
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[i16; Self::SIZE]; 2]>,
+    entries: Box<[[CorrectionHistoryEntry; Self::SIZE]; 2]>,
 }
 
 impl CorrectionHistory {
@@ -120,14 +125,15 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] / 96) as i32
+        (self.entries[stm][key as usize & Self::MASK].value / 96) as i32
     }
 
     pub fn update(&mut self, stm: Color, key: u64, depth: i32, diff: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        let bonus = (diff * depth).clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
+        let bonus = ((3 * diff * depth + entry.roll as i32) / 4).clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
 
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        entry.roll = bonus as i16;
+        entry.value += (bonus - bonus.abs() * entry.value as i32 / Self::MAX_HISTORY) as i16;
     }
 }
 
