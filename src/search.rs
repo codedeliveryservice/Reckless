@@ -696,7 +696,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, depth, best_score - static_eval, (best_score - static_eval) - correction_value);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -863,6 +863,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.corr_corrhist.get(stm, td.board.pawn_key())
         + if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
 }
 
@@ -874,7 +875,7 @@ fn stat_bonus(depth: i32) -> i32 {
     (128 * depth - 64).min(1280)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, diff2: i32) {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
@@ -883,6 +884,8 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
+
+    td.corr_corrhist.update(stm, td.board.pawn_key(), depth, diff2);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
         td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
