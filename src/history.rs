@@ -9,8 +9,8 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 2048;
-    const MAX_BUCKET: i32 = 6144;
+    const MAX_FACTORIZER: i32 = 4096;
+    const MAX_BUCKET: i32 = 8192;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
         let from_threated = threats.contains(mv.from()) as usize;
