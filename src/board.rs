@@ -5,8 +5,8 @@ use crate::{
         queen_attacks, rook_attacks,
     },
     types::{
-        ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType,
-        Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
+        piece, ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece,
+        PieceType, Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
     },
 };
 
@@ -502,6 +502,10 @@ impl Board {
             Square::C8 => (Square::A8, Square::D8),
             _ => unreachable!(),
         }
+    }
+
+    pub fn captured_piece_type(&self) -> piece::PieceType {
+        self.state.captured.map_or(PieceType::None, |p| p.piece_type())
     }
 }
 

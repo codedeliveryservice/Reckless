@@ -174,7 +174,7 @@ impl MovePicker {
             let mv = entry.mv;
 
             entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv, td.board.captured_piece_type())
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(3, mv) / 2;
