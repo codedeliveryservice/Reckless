@@ -276,6 +276,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
 
+    td.stack[td.ply].move_count = 0;
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
@@ -424,6 +425,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -692,7 +694,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply + 1].static_eval - 128) as i32
             + 2 * (td.stack[td.ply].static_eval != Score::NONE && best_score <= -td.stack[td.ply].static_eval - 128)
-                as i32;
+                as i32
+            + 2 * (td.stack[td.ply].move_count > 8) as i32;
 
         let scaled_bonus = factor * stat_bonus(depth);
 
@@ -810,6 +813,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         if !is_loss(best_score) && mv.to() != previous_square {
             if move_picker.stage() == Stage::BadNoisy {
