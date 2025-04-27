@@ -57,7 +57,7 @@ impl Move {
     }
 
     pub const fn is_some(self) -> bool {
-        self.0 != 0
+        !self.is_null()
     }
 
     pub const fn is_null(self) -> bool {

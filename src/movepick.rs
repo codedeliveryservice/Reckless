@@ -61,7 +61,7 @@ impl MovePicker {
         }
     }
 
-    pub fn stage(&self) -> Stage {
+    pub const fn stage(&self) -> Stage {
         self.stage
     }
 

@@ -38,15 +38,15 @@ impl Flags {
         Self { data: (bound as u8) | ((pv as u8) << 2) | (age << 3) }
     }
 
-    pub const fn bound(&self) -> Bound {
+    pub const fn bound(self) -> Bound {
         unsafe { std::mem::transmute(self.data & 0b11) }
     }
 
-    pub const fn pv(&self) -> bool {
+    pub const fn pv(self) -> bool {
         (self.data & 0b100) != 0
     }
 
-    pub const fn age(&self) -> u8 {
+    pub const fn age(self) -> u8 {
         self.data >> 3
     }
 }
@@ -86,7 +86,7 @@ impl Default for InternalEntry {
 }
 
 impl InternalEntry {
-    pub fn relative_age(&self, tt_age: u8) -> i32 {
+    pub const fn relative_age(&self, tt_age: u8) -> i32 {
         ((AGE_CYCLE + tt_age - self.flags.age()) & AGE_MASK) as i32
     }
 }

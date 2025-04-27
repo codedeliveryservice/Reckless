@@ -94,7 +94,7 @@ impl Network {
         false
     }
 
-    fn output_transformer(&mut self, board: &Board) -> i32 {
+    fn output_transformer(&self, board: &Board) -> i32 {
         let accumulators = &self.stack[self.index];
 
         let min = simd::zero();
