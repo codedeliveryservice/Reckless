@@ -503,6 +503,10 @@ impl Board {
             _ => unreachable!(),
         }
     }
+
+    pub fn is_captured_piece(&self) -> bool {
+        self.state.captured.is_some_and(|captured| captured.piece_type() != PieceType::None)
+    }
 }
 
 impl Default for Board {
