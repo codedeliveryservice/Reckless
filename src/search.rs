@@ -736,7 +736,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             Bound::Lower => entry.score >= beta,
             _ => true,
         } {
-            if entry.depth <= 0 && entry.score >= beta && !is_decisive(entry.score) && !is_decisive(beta) {
+            if entry.depth <= 2 && entry.score >= beta && !is_decisive(entry.score) && !is_decisive(beta) {
                 return (entry.score + beta) / 2;
             }
 
