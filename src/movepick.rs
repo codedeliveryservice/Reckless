@@ -31,7 +31,7 @@ impl MovePicker {
             tt_move,
             killer,
             threshold: None,
-            stage: if tt_move.is_valid() { Stage::HashMove } else { Stage::GenerateNoisy },
+            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -61,7 +61,7 @@ impl MovePicker {
         }
     }
 
-    pub fn stage(&self) -> Stage {
+    pub const fn stage(&self) -> Stage {
         self.stage
     }
 

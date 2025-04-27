@@ -32,7 +32,7 @@ pub struct Network {
 
 impl Network {
     pub fn push(&mut self, mv: Move, board: &Board) {
-        debug_assert!(mv.is_valid());
+        debug_assert!(mv.is_some());
 
         self.index += 1;
         self.stack[self.index].accurate = false;
@@ -94,7 +94,7 @@ impl Network {
         false
     }
 
-    fn output_transformer(&mut self, board: &Board) -> i32 {
+    fn output_transformer(&self, board: &Board) -> i32 {
         let accumulators = &self.stack[self.index];
 
         let min = simd::zero();
