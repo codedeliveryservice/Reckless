@@ -247,8 +247,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
-    let prior_capture_type = td.board.captured_piece_type();
-
     if !in_check
         && !excluded
         && td.ply >= 1
@@ -263,7 +261,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.board.prior_threats(),
             !td.board.side_to_move(),
             td.stack[td.ply - 1].mv,
-            prior_capture_type,
+            td.board.captured_piece_type(),
             bonus,
         );
     }
@@ -430,7 +428,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv, prior_capture_type)
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv, td.board.captured_piece_type())
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
@@ -662,14 +660,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.board.threats(),
                     td.board.side_to_move(),
                     best_move,
-                    prior_capture_type,
+                    td.board.captured_piece_type(),
                     bonus,
                 );
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus);
             }
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, prior_capture_type, -malus);
+                td.quiet_history.update(
+                    td.board.threats(),
+                    td.board.side_to_move(),
+                    mv,
+                    td.board.captured_piece_type(),
+                    -malus,
+                );
             }
 
             for &mv in noisy_moves.iter() {
@@ -700,7 +704,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.board.prior_threats(),
                 !td.board.side_to_move(),
                 pcm_move,
-                prior_capture_type,
+                td.board.captured_piece_type(),
                 scaled_bonus,
             );
         }
