@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    misc::dbg_hit,
     movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
@@ -266,6 +267,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
+        td.stack[td.ply - 1].reduction -= 1024;
     }
 
     if !in_check
@@ -276,6 +278,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval > 96
     {
         depth -= 1;
+        td.stack[td.ply - 1].reduction += 1024;
     }
 
     let improving =
@@ -535,11 +538,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1024;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
+            let mut reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
 
             td.stack[td.ply - 1].reduction = reduction;
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
+
+            reduced_depth += (reduction > td.stack[td.ply - 1].reduction) as i32;
+            reduced_depth -= (reduction < td.stack[td.ply - 1].reduction) as i32;
 
             td.stack[td.ply - 1].reduction = 0;
 
