@@ -391,7 +391,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     return score;
                 }
 
-                return score - (probcut_beta - beta);
+                return score - (probcut_beta - beta) / 2;
             }
         }
     }
