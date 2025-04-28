@@ -253,6 +253,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].mv.is_some()
         && td.stack[td.ply - 1].mv.is_quiet()
         && td.stack[td.ply - 1].static_eval != Score::NONE
+        && entry.is_none_or(|entry| entry.depth - 2 <= depth)
     {
         let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
         let bonus = value.clamp(-64, 128);
