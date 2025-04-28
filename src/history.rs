@@ -3,6 +3,11 @@ use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 12];
 
+fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
+    let bonus = bonus.clamp(-MAX, MAX);
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+}
+
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -22,7 +27,7 @@ impl QuietHistoryEntry {
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
         let bonus = bonus.clamp(-Self::MAX_FACTORIZER, Self::MAX_FACTORIZER);
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
@@ -30,7 +35,7 @@ impl QuietHistoryEntry {
         let to_threated = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threated][to_threated];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
     }
 }
 
@@ -74,13 +79,13 @@ impl NoisyHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_FACTORIZER) as i16;
+        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
         let threated = threats.contains(sq) as usize;
         let entry = &mut self.buckets[captured][threated];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_BUCKET) as i16;
+        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
     }
 }
 
@@ -152,7 +157,7 @@ impl ContinuationHistory {
 
     pub fn update(&mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, bonus: i32) {
         let entry = &mut self.entries[piece][sq][cont_piece][cont_sq];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
 
