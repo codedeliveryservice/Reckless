@@ -674,10 +674,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_some() && pcm_move.is_quiet() {
-            let mut bonus = 128 * depth;
-            bonus += (128 * depth) * (depth > 5) as i32;
-            bonus += (256 * depth) * (!in_check && best_score <= td.stack[td.ply].static_eval - 128) as i32;
-            bonus += (256 * depth) * (best_score <= -td.stack[td.ply - 1].static_eval - 128) as i32;
+            let mut bonus = 128 * depth - 128;
+            bonus += (128 * depth - 128) * (depth > 5) as i32;
+            bonus += (256 * depth - 256) * (!in_check && best_score <= td.stack[td.ply].static_eval - 128) as i32;
+            bonus += (256 * depth - 256) * (best_score <= -td.stack[td.ply - 1].static_eval - 128) as i32;
             bonus = bonus.min(6144);
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
