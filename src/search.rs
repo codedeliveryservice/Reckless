@@ -287,7 +287,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Reverse Futility Pruning (RFP)
-    if !PV
+    if !tt_pv
         && !in_check
         && !excluded
         && depth <= 8
