@@ -907,6 +907,13 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
         }
     }
+
+    if td.ply >= 4 {
+        let entry = td.stack[td.ply - 4];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, bonus);
+        }
+    }
 }
 
 fn make_move(td: &mut ThreadData, mv: Move) {

@@ -174,10 +174,11 @@ impl MovePicker {
             let mv = entry.mv;
 
             entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
-                + td.conthist(3, mv) / 2;
+                + 2 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + 2 * td.conthist(1, mv)
+                + 2 * td.conthist(2, mv)
+                + td.conthist(3, mv)
+                + td.conthist(4, mv);
         }
     }
 }
