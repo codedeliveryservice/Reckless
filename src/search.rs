@@ -499,6 +499,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
             reduction -= (history - 512) / 16;
             reduction -= 4 * correction_value.abs();
+            reduction -= move_count * 64;
+            reduction += 256;
 
             if tt_pv {
                 reduction -= 768;
