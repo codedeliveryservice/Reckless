@@ -751,11 +751,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         best_score = static_eval;
 
         if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Upper => entry.score < static_eval,
-                Bound::Lower => entry.score > static_eval,
-                _ => true,
-            } {
+            if !PV
+                && match entry.bound {
+                    Bound::Upper => entry.score < static_eval,
+                    Bound::Lower => entry.score > static_eval,
+                    _ => true,
+                }
+            {
                 best_score = entry.score;
             }
         }
