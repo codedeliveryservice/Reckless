@@ -24,7 +24,7 @@ macro_rules! define {
         }
 
         pub fn print_options() {
-            $(println!("option name {} type string default {}", stringify!($name), $value);)*
+            $(println!("option name {} type string", stringify!($name));)*
         }
 
         $(pub fn $name() -> $type {
@@ -163,4 +163,8 @@ define! {
     i32 mp_v1: 32;
     i32 mp_v2: 100;
     i32 mp_v3: 16;
+    i32 mp_v4: 1024;
+    i32 mp_v5: 1024;
+    i32 mp_v6: 1024;
+    i32 mp_v7: 512;
 }
