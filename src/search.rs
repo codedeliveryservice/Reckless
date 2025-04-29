@@ -278,7 +278,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
-    let improving =
+    let mut improving =
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
     // Razoring
@@ -347,6 +347,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
     }
+
+    improving |= static_eval >= beta + 64;
 
     // ProbCut
     let probcut_beta = beta + 256 - 64 * improving as i32;
