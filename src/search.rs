@@ -627,8 +627,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus = stat_bonus(depth);
-        let malus = stat_bonus(depth) - 16 * (move_count - 1);
+        let bonus = stat_bonus(depth + (best_score > beta + 150) as i32);
+        let malus = stat_bonus(depth + (best_score > beta + 150) as i32) - 16 * (move_count - 1);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
