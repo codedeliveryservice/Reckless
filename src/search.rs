@@ -513,7 +513,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if cut_node {
-                reduction += 1024;
+                reduction += 1024 + 768;
             }
 
             if td.board.in_check() {
