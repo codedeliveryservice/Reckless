@@ -840,7 +840,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
-        best_score = (best_score + beta) / 2;
+        let factor = 64 + (32 * move_count).min(128);
+        best_score = (factor * beta + (256 - factor) * best_score) / 256;
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
