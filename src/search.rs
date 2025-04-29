@@ -436,14 +436,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 10 && static_eval + 100 * lmr_depth + 150 <= alpha;
 
-            // Bad Noisy Pruning (BNP)
+            // Futility Pruning for noisy (FPN)
             if !PV
                 && !in_check
+                && !is_quiet
+                && !mv.is_promotion()
                 && lmr_depth < 6
-                && move_picker.stage() == Stage::BadNoisy
-                && static_eval + 128 * lmr_depth <= alpha
+                && static_eval + 128 * lmr_depth + history / 8 <= alpha
             {
-                break;
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
