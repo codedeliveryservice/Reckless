@@ -427,8 +427,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
+        reduction -= (history - 512) / 16;
+
         if !is_root && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
+            let lmr_depth = (depth - reduction / 1024).clamp(0, depth);
 
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
@@ -497,7 +499,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
-            reduction -= (history - 512) / 16;
             reduction -= 4 * correction_value.abs();
             reduction -= move_count * 64;
             reduction += 256;
