@@ -1,4 +1,5 @@
-use super::MAX_PLY;
+use super::{PieceType, MAX_PLY};
+use crate::board::Board;
 
 pub struct Score;
 
@@ -33,4 +34,18 @@ pub const fn is_loss(score: i32) -> bool {
 
 pub const fn is_decisive(score: i32) -> bool {
     is_win(score) || is_loss(score)
+}
+
+pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
+    let material = board.pieces(PieceType::Pawn).len()
+        + 3 * board.pieces(PieceType::Knight).len()
+        + 3 * board.pieces(PieceType::Bishop).len()
+        + 5 * board.pieces(PieceType::Rook).len()
+        + 9 * board.pieces(PieceType::Queen).len();
+
+    let v = material.clamp(16, 64) as f64 / 56.0;
+
+    let normalization = -42.2 * v.powi(3) + 38.0 * v.powi(2) - 13.2 * v + 205.54;
+
+    (100.0 * score as f64 / normalization).round() as i32
 }
