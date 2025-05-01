@@ -1,0 +1,45 @@
+name: Games
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  games:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build the engine
+        run: cargo build --verbose
+
+      - name: Checkout fastchess
+        uses: actions/checkout@v4
+        with:
+          repository: Disservin/fastchess
+          path: fastchess
+          ref: dcf2241b23388454fcec954ce6a39d28be3f8cca
+          persist-credentials: false
+
+      - name: Build fastchess
+        working-directory: fastchess
+        run: make -j
+
+      - name: Run games
+        working-directory: fastchess
+        run: |
+          ./fastchess -rounds 8 -games 1 -concurrency 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM \
+            -engine name=dev1 cmd=../target/debug/reckless \
+            -engine name=dev2 cmd=../target/debug/reckless \
+            -each proto=uci tc=8+0.08 -log file=fast.log | tee fast.out
+
+          cat fast.log
+
+          ! grep -q "illegal move" fast.out || exit 1
+          ! grep -q "disconnect" fast.out || exit 1
+          ! grep -q "stall" fast.out || exit 1
