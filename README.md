@@ -52,9 +52,6 @@ For detailed information on the specific features needed for each level, refer t
 ```bash
 # Cargo build (output: ./target/release/reckless)
 cargo rustc --release -- -C target-cpu=native
-
-# Make build (output: ./reckless)
-make
 ```
 
 [reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
@@ -120,7 +117,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 ### Evaluation
 
 -   [NNUE](https://www.chessprogramming.org/NNUE)
--   Architecture: `(768 -> 512)x2 -> 1`
+-   Architecture: `(768 -> 768)x2 -> 1`
 -   Activation Function: `SCReLU` (Squared Clipped Rectified Linear Unit)
 -   Quantization: `i16` (`384`, `64`)
 -   Trained on original data generated entirely through self-play
@@ -135,6 +132,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 ## Acknowledgements
 
 -   [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess).
+-   [Bullet](https://github.com/jw1912/bullet) is the NNUE trainer.
 -   Open source chess engines, like [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and numerous others, for serving as inspiration and providing ideas that fuel development.
 -   [Stockfish Discord server members](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
 -   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) for contributing to the project's foundation.
