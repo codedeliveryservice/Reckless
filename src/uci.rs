@@ -235,8 +235,8 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
         return Limits::Infinite;
     }
 
-    let mut main = 0;
-    let mut inc = 0;
+    let mut main = None;
+    let mut inc = None;
     let mut moves = None;
 
     for chunk in tokens.chunks(2) {
@@ -246,24 +246,27 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
             };
 
             match name {
-                "depth" if value > 0 => return Limits::Depth(value as i32),
-                "movetime" if value > 0 => return Limits::Time(value),
-                "nodes" if value > 0 => return Limits::Nodes(value),
+                "depth" if value > 0 => return Limits::Depth(value),
+                "movetime" if value > 0 => return Limits::Time(value as u64),
+                "nodes" if value > 0 => return Limits::Nodes(value as u64),
 
-                "wtime" if Color::White == color => main = value,
-                "btime" if Color::Black == color => main = value,
-                "winc" if Color::White == color => inc = value,
-                "binc" if Color::Black == color => inc = value,
-                "movestogo" => moves = Some(value),
+                "wtime" if Color::White == color => main = Some(value),
+                "btime" if Color::Black == color => main = Some(value),
+                "winc" if Color::White == color => inc = Some(value),
+                "binc" if Color::Black == color => inc = Some(value),
+                "movestogo" => moves = Some(value as u64),
 
                 _ => continue,
             }
         }
     }
 
-    if main == 0 && inc == 0 {
+    if main.is_none() && inc.is_none() {
         return Limits::Infinite;
     }
+
+    let main = main.unwrap_or_default().max(0) as u64;
+    let inc = inc.unwrap_or_default().max(0) as u64;
 
     match moves {
         Some(moves) => Limits::Cyclic(main, inc, moves),
