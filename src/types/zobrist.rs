@@ -5,11 +5,12 @@ pub struct Zobrist {
     pub en_passant: [u64; 64],
     pub castling: [u64; 16],
     pub side: u64,
+    pub halfmove_clock: [u64; 16],
 }
 
 pub const ZOBRIST: Zobrist = {
     let mut seed = 0xFFAA_B58C_5833_FE89u64;
-    let mut zobrist = [0; 849];
+    let mut zobrist = [0; 865];
 
     let mut i = 0;
     while i < zobrist.len() {

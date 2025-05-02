@@ -73,8 +73,8 @@ impl Board {
     }
 
     /// Returns the Zobrist hash key for the current position.
-    pub const fn hash(&self) -> u64 {
-        self.state.key
+    pub fn hash(&self) -> u64 {
+        self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
     }
 
     pub const fn pawn_key(&self) -> u64 {
