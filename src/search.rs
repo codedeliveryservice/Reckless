@@ -268,6 +268,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Hindsight LMR
     if !in_check
+        && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 2761
         && static_eval + td.stack[td.ply - 1].static_eval < 0
@@ -276,6 +277,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !in_check
+        && !excluded
         && depth >= 2
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1053
