@@ -205,6 +205,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
+            if entry.score >= beta && tt_move.is_some() && tt_move.is_quiet() && td.stack[td.ply].killer.is_null() {
+                td.stack[td.ply].killer = tt_move;
+            }
             return entry.score;
         }
     }
