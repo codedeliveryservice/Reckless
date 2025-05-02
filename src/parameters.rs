@@ -4,6 +4,7 @@ pub const fn lmp_threshold(depth: i32, improving: bool) -> i32 {
     (4 + depth * depth) / (2 - improving as i32)
 }
 
+#[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
 macro_rules! define {
     {$($type:ident $name:ident: $value:expr; )*} => {
@@ -24,7 +25,7 @@ macro_rules! define {
         }
 
         pub fn print_options() {
-            $(println!("option name {} type string default {}", stringify!($name), $value);)*
+            $(println!("option name {} type string", stringify!($name));)*
         }
 
         $(pub fn $name() -> $type {
@@ -36,8 +37,4 @@ macro_rules! define {
             $(pub static mut $name: $type = $value;)*
         }
     };
-}
-
-define! {
-    i32 asp_div:   32768;
 }

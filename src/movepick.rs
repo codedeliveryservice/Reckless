@@ -94,7 +94,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 32 + 100);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -158,7 +158,7 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = PIECE_VALUES[captured] * 16;
+            entry.score = PIECE_VALUES[captured] * 18;
 
             entry.score += td.noisy_history.get(
                 td.board.threats(),
@@ -173,11 +173,12 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
-                + td.conthist(3, mv) / 2;
+            entry.score = (1 << 18) * (mv == self.killer) as i32;
+
+            entry.score += 1247 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + 1011 * td.conthist(1, mv) / 1024
+                + 978 * td.conthist(2, mv) / 1024
+                + 517 * td.conthist(3, mv) / 1024;
         }
     }
 }
