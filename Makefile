@@ -1,6 +1,18 @@
 EXE := reckless
 TARGET_TUPLE := $(shell rustc --print host-tuple)
 
+ALLOWED_TUPLES := \
+	x86_64-unknown-linux-gnu \
+	x86_64-unknown-linux-musl \
+	aarch64-unknown-linux-gnu \
+	aarch64-unknown-linux-musl \
+	x86_64-pc-windows-gnu \
+	x86_64-pc-windows-msvc
+
+ifeq ($(filter $(TARGET_TUPLE),$(ALLOWED_TUPLES)),)
+$(error unsupported target tuple: $(TARGET_TUPLE))
+endif
+
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
 	V1NAME := $(EXE)-x86_64-win-v1.exe
