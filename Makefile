@@ -1,25 +1,50 @@
 EXE := reckless
 TARGET_TUPLE := $(shell rustc --print host-tuple)
 
+ALLOWED_TUPLES := \
+	x86_64-unknown-linux-gnu \
+	x86_64-unknown-linux-musl \
+	aarch64-unknown-linux-gnu \
+	aarch64-unknown-linux-musl \
+	x86_64-pc-windows-gnu \
+	x86_64-pc-windows-msvc
+
+ifeq ($(filter $(TARGET_TUPLE),$(ALLOWED_TUPLES)),)
+$(error unsupported target tuple: $(TARGET_TUPLE))
+endif
+
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
 	V1NAME := $(EXE)-x86_64-win-v1.exe
 	V2NAME := $(EXE)-x86_64-win-v2.exe
 	V3NAME := $(EXE)-x86_64-win-v3.exe
 	V4NAME := $(EXE)-x86_64-win-v4.exe
+	
+	ifdef MSYSTEM
+		UNIX := 1
+	else
+		UNIX := 0
+	endif
 else
 	NAME := $(EXE)
 	V1NAME := $(EXE)-x86_64-linux-v1
 	V2NAME := $(EXE)-x86_64-linux-v2
 	V3NAME := $(EXE)-x86_64-linux-v3
 	V4NAME := $(EXE)-x86_64-linux-v4
+	UNIX := 1
+endif
+
+ifeq ($(UNIX),1)
+	PGO_MOVE := mv "target/$(TARGET_TUPLE)/release/reckless" "$(NAME)"
+else
+	PGO_MOVE := move /Y "target\$(TARGET_TUPLE)\release\reckless.exe" "$(NAME)"
 endif
 
 rule:
 	cargo pgo instrument
 	cargo pgo run -- bench
 	cargo pgo optimize
-	mv "target/$(TARGET_TUPLE)/release/reckless" "$(NAME)"
+	$(PGO_MOVE)
 
 datagen:
 	cargo rustc --release --features=datagen -- -C target-cpu=native --emit link=$(NAME)
