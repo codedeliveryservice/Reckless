@@ -1,4 +1,5 @@
 EXE := reckless
+TARGET_TUPLE := $(shell rustc --print host-tuple)
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe
@@ -15,7 +16,10 @@ else
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
+	cargo pgo instrument
+	cargo pgo run -- bench
+	cargo pgo optimize
+	mv "target/$(TARGET_TUPLE)/release/reckless" "$(NAME)"
 
 datagen:
 	cargo rustc --release --features=datagen -- -C target-cpu=native --emit link=$(NAME)
