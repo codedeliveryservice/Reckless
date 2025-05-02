@@ -266,6 +266,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
+        if tt_move.is_some() && tt_move.is_quiet() {
+            depth += 1;
+        }
     }
 
     if !in_check
