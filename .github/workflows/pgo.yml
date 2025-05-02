@@ -1,0 +1,43 @@
+name: Reckless PGO
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - run: |
+          rustup component add llvm-tools
+          cargo install cargo-pgo
+
+      - run: |
+          cargo pgo instrument
+          cargo pgo run -- bench
+          cargo pgo optimize
+
+      - run: ./target/x86_64-unknown-linux-gnu/release/reckless bench
+
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - run: |
+          rustup component add llvm-tools
+          cargo install cargo-pgo
+
+      - run: |
+          cargo pgo instrument
+          cargo pgo run -- bench
+          cargo pgo optimize
+
+      - run: .\target\x86_64-pc-windows-msvc\release\reckless.exe bench
