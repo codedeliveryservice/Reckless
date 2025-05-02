@@ -174,7 +174,7 @@ impl MovePicker {
             let mv = entry.mv;
 
             entry.score = (1 << 18) * (mv == self.killer) as i32
-                + td.pawn_history.get(td.board.pawn_key(), td.board.moved_piece(mv), mv.to())
+                + 512 * td.pawn_history.get(td.board.pawn_key(), td.board.moved_piece(mv), mv.to()) / 1024
                 + 1247 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
                 + 1011 * td.conthist(1, mv) / 1024
                 + 978 * td.conthist(2, mv) / 1024
