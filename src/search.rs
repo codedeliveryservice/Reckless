@@ -43,6 +43,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut window_expansion = 0;
 
+    // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
         td.root_depth = depth;
@@ -65,6 +66,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             td.stack = Default::default();
             td.root_delta = beta - alpha;
 
+            // Root Search
             let score = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
@@ -153,6 +155,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    // Qsearch Dive
     if depth <= 0 {
         return qsearch::<PV>(td, alpha, beta);
     }
@@ -192,6 +195,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
+    // Early TT-Cut
     if let Some(entry) = entry {
         tt_move = entry.mv;
         tt_pv |= entry.pv;
@@ -215,6 +219,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let static_eval;
     let mut eval;
 
+    // Evaluation
     if in_check {
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
@@ -247,6 +252,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
+    // Quiet Move Ordering Using Static-Eval
     if !in_check
         && !excluded
         && td.ply >= 1
@@ -260,6 +266,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
+    // Hindsight LMR
     if !in_check
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 2761
@@ -725,6 +732,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_pv = PV;
 
+    // Early TT-Cut
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
 
@@ -741,6 +749,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut futility_score = Score::NONE;
     let mut raw_eval = Score::NONE;
 
+    // Evaluation
     if !in_check {
         raw_eval = match entry {
             Some(entry) if entry.eval != Score::NONE => entry.eval,
