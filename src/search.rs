@@ -458,7 +458,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet { -19 * lmr_depth * lmr_depth } else { -97 * depth + 54 } - 37 * history / 1024;
+            let threshold = if is_quiet { -19 * lmr_depth * lmr_depth } else { -97 * depth + 54 } - 37 * history / 1024
+                + 2 * move_count;
+
             if !td.board.see(mv, threshold) {
                 continue;
             }
