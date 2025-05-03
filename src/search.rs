@@ -381,7 +381,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                td.stack[td.ply].reduction = 1024 * (depth - 1 - probcut_depth);
+                td.stack[td.ply].reduction = 3027;
                 score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
                 td.stack[td.ply].reduction = 0;
             }
