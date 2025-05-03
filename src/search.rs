@@ -788,7 +788,9 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         futility_score = static_eval + 123;
     }
 
+    let mut bound = Bound::Upper;
     let mut best_move = Move::NULL;
+    let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
@@ -842,9 +844,14 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 alpha = score;
 
                 if score >= beta {
+                    bound = Bound::Lower;
                     break;
                 }
             }
+        }
+
+        if mv != best_move && move_count < 32 && mv.is_noisy() {
+            noisy_moves.push(mv);
         }
     }
 
@@ -852,11 +859,24 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return mated_in(td.ply);
     }
 
+    if bound == Bound::Lower {
+        td.noisy_history.update(
+            td.board.threats(),
+            td.board.moved_piece(best_move),
+            best_move.to(),
+            td.board.piece_on(best_move.to()).piece_type(),
+            96,
+        );
+
+        for &mv in noisy_moves.iter() {
+            let captured = td.board.piece_on(mv.to()).piece_type();
+            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -96);
+        }
+    }
+
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
         best_score = (best_score + beta) / 2;
     }
-
-    let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
     td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
