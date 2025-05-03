@@ -149,7 +149,7 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 16384;
+    const MAX_HISTORY: i32 = 30000;
 
     pub fn get(&self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square) -> i32 {
         self.entries[piece][sq][cont_piece][cont_sq] as i32
