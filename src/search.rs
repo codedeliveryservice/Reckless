@@ -195,8 +195,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
+    td.stack[td.ply].tt_hit = false;
+
     // Early TT-Cut
     if let Some(entry) = entry {
+        td.stack[td.ply].tt_hit = true;
         tt_move = entry.mv;
         tt_pv |= entry.pv;
 
@@ -251,6 +254,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[td.ply].move_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
@@ -430,6 +434,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -674,6 +679,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
+        if td.ply >= 1
+            && td.stack[td.ply - 1].mv.is_some()
+            && !td.board.captured_piece().is_some()
+            && !excluded
+            && td.stack[td.ply - 1].move_count <= 1 + td.stack[td.ply - 1].tt_hit as i32
+        {
+            td.ply -= 1;
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont / 2);
+            td.ply += 1;
+        }
+
         for &mv in noisy_moves.iter() {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
@@ -739,8 +755,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_pv = PV;
 
+    td.stack[td.ply].tt_hit = false;
+
     // Early TT-Cut
     if let Some(entry) = entry {
+        td.stack[td.ply].tt_hit = true;
         tt_pv |= entry.pv;
 
         if match entry.bound {
@@ -755,6 +774,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_score = -Score::INFINITE;
     let mut futility_score = Score::NONE;
     let mut raw_eval = Score::NONE;
+    td.stack[td.ply].move_count = 0;
 
     // Evaluation
     if !in_check {
@@ -807,6 +827,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         if !is_loss(best_score) && mv.to() != previous_square {
             if move_picker.stage() == Stage::BadNoisy {
