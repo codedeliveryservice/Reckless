@@ -327,7 +327,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
+        td.stack[td.ply].reduction = 1024 * (r - 1);
         let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        td.stack[td.ply].reduction = 0;
 
         td.board.undo_null_move();
         td.ply -= 1;
@@ -346,7 +348,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
+            td.stack[td.ply].reduction = 1024 * (r - 1);
             let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
+            td.stack[td.ply].reduction = 0;
             td.nmp_min_ply = 0;
 
             if td.stopped {
