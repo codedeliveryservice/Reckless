@@ -46,15 +46,38 @@ For detailed information on the specific features needed for each level, refer t
 
 ### Building from source
 
-1. Make sure you have `Rust 1.79.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
-2. Build the engine using one of the following methods:
+Make sure you have `Rust 1.79.0` or a later version installed. If not, follow the [official Rust installation guide](https://www.rust-lang.org/tools/install).
 
 ```bash
-# Cargo build (output: ./target/release/reckless)
 cargo rustc --release -- -C target-cpu=native
+# ./target/release/reckless
 ```
 
-[reckless-networks]: https://github.com/codedeliveryservice/RecklessNetworks
+#### PGO-optimized builds
+
+For PGO (Profiling Guided Optimization) builds, you need to install additional tools:
+
+```bash
+rustup component add llvm-tools
+cargo install cargo-pgo
+```
+
+Then, you can build the engine using `make`:
+
+```bash
+make
+# ./reckless
+```
+
+Or run the steps manually:
+
+```bash
+cargo pgo instrument
+cargo pgo run -- bench
+cargo pgo optimize
+# ./target/x86_64-unknown-linux-gnu/release/reckless
+# (the path may vary based on your system)
+```
 
 ### Usage
 
