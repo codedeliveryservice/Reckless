@@ -680,9 +680,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        if td.ply >= 1 && !excluded && td.stack[td.ply - 1].first_history_ordered_quiet_move {
+        if td.ply >= 1 && td.stack[td.ply - 1].first_history_ordered_quiet_move {
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont / 3);
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont);
             td.ply += 1;
         }
 
