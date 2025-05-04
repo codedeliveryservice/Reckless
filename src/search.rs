@@ -190,6 +190,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Init
+    td.stack[td.ply].first_history_ordered_quiet_move = false;
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
@@ -324,6 +325,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
+        td.stack[td.ply].first_history_ordered_quiet_move = false;
+
         td.ply += 1;
 
         td.board.make_null_move();
@@ -433,6 +436,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+
+        td.stack[td.ply].first_history_ordered_quiet_move = is_quiet && move_count == 1 + entry.is_some() as i32;
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -673,6 +678,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
                 }
             }
+        }
+
+        if td.ply >= 1 && td.stack[td.ply - 1].first_history_ordered_quiet_move {
+            td.ply -= 1;
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont);
+            td.ply += 1;
         }
 
         for &mv in noisy_moves.iter() {
