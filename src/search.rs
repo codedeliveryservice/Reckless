@@ -372,7 +372,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let probcut_depth = 0.max(depth - 4);
 
         while let Some(mv) = move_picker.next(td, true) {
-            if move_picker.stage() == Stage::BadNoisy {
+            if !in_check && move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
@@ -809,7 +809,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
-            if move_picker.stage() == Stage::BadNoisy {
+            if !in_check && move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
