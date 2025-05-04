@@ -251,6 +251,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[td.ply].move_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
@@ -430,6 +431,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -672,6 +674,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
                 }
             }
+        }
+
+        if td.ply >= 1
+            && td.stack[td.ply - 1].mv.is_some()
+            && !excluded
+            && td.stack[td.ply - 1].move_count == 1 as i32
+            && !td.board.captured_piece().is_some()
+        {
+            td.ply -= 1;
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont / 3);
+            td.ply += 1;
         }
 
         for &mv in noisy_moves.iter() {
