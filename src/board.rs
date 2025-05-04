@@ -420,6 +420,11 @@ impl Board {
         attacks.contains(to)
     }
 
+    pub fn update_checkers(&mut self) {
+        let king = self.our(PieceType::King).lsb();
+        self.state.checkers = self.attackers_to(king, self.occupancies()) & self.them();
+    }
+
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
         let mut threats = Bitboard::default();
@@ -443,14 +448,10 @@ impl Board {
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
     }
 
-    pub fn update_king_threats(&mut self) {
+    pub fn update_pinned(&mut self) {
         let king = self.our(PieceType::King).lsb();
 
         self.state.pinners = Bitboard::default();
-        self.state.checkers = Bitboard::default();
-
-        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
 
         let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
         let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
@@ -460,10 +461,8 @@ impl Board {
 
         for square in diagonal | orthogonal {
             let blockers = between(king, square) & self.us();
-            match blockers.len() {
-                0 => self.state.checkers.set(square),
-                1 => self.state.pinners |= blockers,
-                _ => (),
+            if blockers.len() == 1 {
+                self.state.pinners |= blockers;
             }
         }
     }
