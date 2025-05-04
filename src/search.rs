@@ -437,7 +437,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let is_quiet = mv.is_quiet();
 
-        td.stack[td.ply].first_history_ordered_quiet_move = is_quiet && move_count == 1 + entry.is_some() as i32;
+        td.stack[td.ply].first_history_ordered_quiet_move = move_count == 1 + tt_move.is_some() as i32 && is_quiet;
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -680,9 +680,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        if td.ply >= 1 && td.stack[td.ply - 1].first_history_ordered_quiet_move {
+        if td.ply >= 1 && !excluded && td.stack[td.ply - 1].first_history_ordered_quiet_move {
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont);
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus_cont / 4);
             td.ply += 1;
         }
 
