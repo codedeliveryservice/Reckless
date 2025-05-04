@@ -89,7 +89,7 @@ impl<'a> ThreadData<'a> {
             stop,
             counter: AtomicCounter::new(counter),
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite, 0),
+            time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
             nnue: Network::default(),
             pv: PrincipalVariationTable::default(),
