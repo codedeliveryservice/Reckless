@@ -40,6 +40,7 @@ pub fn message_loop() {
             ["quit"] => break,
 
             // Non-UCI commands
+            ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
@@ -64,6 +65,12 @@ fn uci() {
     crate::parameters::print_options();
 
     println!("uciok");
+}
+
+fn compiler() {
+    println!("Compiler Version: {}", env!("COMPILER_VERSION"));
+    println!("Compiler Target: {}", env!("COMPILER_TARGET"));
+    println!("Compiler Features: {}", env!("COMPILER_FEATURES"));
 }
 
 fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {

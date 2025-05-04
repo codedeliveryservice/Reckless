@@ -16,6 +16,7 @@ const NETWORK_NAME: &str = "v19-219f55d4.nnue";
 fn main() {
     generate_model_env();
     generate_attack_maps();
+    generate_compiler_info();
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
         download_network();
@@ -77,4 +78,20 @@ fn download_network() {
     } else {
         panic!("Failed to download the network");
     }
+}
+
+fn generate_compiler_info() {
+    fn get_env(key: &str) -> String {
+        env::var(key).unwrap_or("unknown".to_owned())
+    }
+
+    let version = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .map(|v| String::from_utf8_lossy(&v.stdout).to_string())
+        .unwrap_or("unknown".to_owned());
+
+    println!("cargo:rustc-env=COMPILER_VERSION={version}");
+    println!("cargo:rustc-env=COMPILER_TARGET={}", get_env("TARGET"));
+    println!("cargo:rustc-env=COMPILER_FEATURES={}", get_env("CARGO_CFG_TARGET_FEATURE"));
 }
