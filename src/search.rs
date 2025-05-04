@@ -512,42 +512,45 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
+        reduction -= 4071 * correction_value.abs() / 1024;
+        reduction -= 56 * move_count;
+        reduction += 280;
+
+        if tt_pv {
+            reduction -= 724;
+            reduction -= 590 * entry.is_some_and(|entry| entry.score > alpha) as i32;
+            reduction -= 747 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
+        }
+
+        if PV {
+            reduction -= 666 + 642 * (beta - alpha > td.root_delta / 4) as i32;
+        }
+
+        if cut_node {
+            reduction += 1105;
+        }
+
+        if td.board.in_check() {
+            reduction -= 967;
+        }
+
+        if !improving {
+            reduction += 827;
+        }
+
+        if td.stack[td.ply].cutoff_count > 2 {
+            reduction += 670 + 63 * td.stack[td.ply].cutoff_count.max(7);
+        } else if mv == tt_move {
+            reduction -= 3072;
+        }
+
+        if td.stack[td.ply - 1].killer == mv {
+            reduction -= 978;
+        }
+
+        reduction -= 84 * (history - 554) / 1024;
+
         if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
-            reduction -= 84 * (history - 554) / 1024;
-            reduction -= 4071 * correction_value.abs() / 1024;
-            reduction -= 56 * move_count;
-            reduction += 280;
-
-            if tt_pv {
-                reduction -= 724;
-                reduction -= 590 * entry.is_some_and(|entry| entry.score > alpha) as i32;
-                reduction -= 747 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
-            }
-
-            if PV {
-                reduction -= 666 + 642 * (beta - alpha > td.root_delta / 4) as i32;
-            }
-
-            if cut_node {
-                reduction += 1105;
-            }
-
-            if td.board.in_check() {
-                reduction -= 967;
-            }
-
-            if !improving {
-                reduction += 827;
-            }
-
-            if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 670 + 63 * td.stack[td.ply].cutoff_count.max(7);
-            }
-
-            if td.stack[td.ply - 1].killer == mv {
-                reduction -= 978;
-            }
-
             let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth);
 
             td.stack[td.ply - 1].reduction = reduction;
@@ -583,7 +586,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !PV || move_count > 1 {
-            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<false>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node);
         }
 
         // Principal Variation Search (PVS)
