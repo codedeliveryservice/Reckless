@@ -455,7 +455,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
-                && lmr_depth < 6
+                && lmr_depth < 10
                 && move_picker.stage() == Stage::BadNoisy
                 && static_eval + 132 * lmr_depth + 3 * move_count <= alpha
             {
