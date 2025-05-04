@@ -37,7 +37,8 @@ struct InternalState {
     repetition: i32,
     captured: Option<Piece>,
     threats: Bitboard,
-    pinned: Bitboard,
+    pinned: [Bitboard; Color::NUM],
+    pinners: [Bitboard; Color::NUM],
     checkers: Bitboard,
 }
 
@@ -93,8 +94,12 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
-    pub const fn pinned(&self) -> Bitboard {
-        self.state.pinned
+    pub const fn pinned(&self, color: Color) -> Bitboard {
+        self.state.pinned[color as usize]
+    }
+
+    pub const fn pinners(&self, color: Color) -> Bitboard {
+        self.state.pinners[color as usize]
     }
 
     pub const fn checkers(&self) -> Bitboard {
@@ -326,7 +331,7 @@ impl Board {
             return attackers.is_empty();
         }
 
-        if self.pinned().contains(from) {
+        if self.pinned(self.side_to_move).contains(from) {
             let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
             return self.checkers().is_empty() && along_pin;
         }
@@ -425,6 +430,11 @@ impl Board {
         attacks.contains(to)
     }
 
+    pub fn update_checkers(&mut self) {
+        let king = self.our(PieceType::King).lsb();
+        self.state.checkers = self.attackers_to(king, self.occupancies()) & self.them();
+    }
+
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
         let mut threats = Bitboard::default();
@@ -448,27 +458,26 @@ impl Board {
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
     }
 
-    pub fn update_king_threats(&mut self) {
-        let king = self.our(PieceType::King).lsb();
+    pub fn update_pinned(&mut self) {
+        self.state.pinned = [Bitboard::default(); 2];
+        self.state.pinners = [Bitboard::default(); 2];
 
-        self.state.pinned = Bitboard::default();
-        self.state.checkers = Bitboard::default();
+        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
+        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
-        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
+        for color in [Color::White, Color::Black] {
+            let king = self.king_square(color);
+            let them = self.colors(!color);
 
-        let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-        let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+            let diagonal = diagonal & them & bishop_attacks(king, them);
+            let orthogonal = orthogonal & them & rook_attacks(king, them);
 
-        let diagonal = bishop_attacks(king, self.them()) & diagonal;
-        let orthogonal = rook_attacks(king, self.them()) & orthogonal;
-
-        for square in diagonal | orthogonal {
-            let blockers = between(king, square) & self.us();
-            match blockers.len() {
-                0 => self.state.checkers.set(square),
-                1 => self.state.pinned |= blockers,
-                _ => (),
+            for square in diagonal | orthogonal {
+                let blockers = between(king, square) & self.colors(color);
+                if blockers.len() == 1 {
+                    self.state.pinned[color] |= blockers;
+                    self.state.pinners[!color].set(square);
+                }
             }
         }
     }
