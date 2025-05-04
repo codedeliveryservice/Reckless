@@ -31,15 +31,16 @@ impl super::Board {
 
         let white_pins = self.pinned(Color::White) & !between(self.king_square(Color::White), mv.to());
         let black_pins = self.pinned(Color::Black) & !between(self.king_square(Color::Black), mv.to());
+        let pins = white_pins | black_pins;
 
-        let mut attackers = self.attackers_to(mv.to(), occupancies) & !(white_pins | black_pins) & occupancies;
+        let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
 
         let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
         let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
         loop {
-            let our_attackers = attackers & self.colors(stm);
+            let our_attackers = attackers & !pins & self.colors(stm);
             if our_attackers.is_empty() {
                 break;
             }
