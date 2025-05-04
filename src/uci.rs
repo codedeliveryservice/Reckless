@@ -16,6 +16,7 @@ pub fn message_loop() {
     let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
 
+    let mut move_overhead = 0;
     let mut report = Report::Full;
     let mut threads = ThreadPool::new(&tt, &stop, &counter);
     for thread in threads.iter_mut() {
@@ -31,9 +32,9 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, tokens),
+            ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &tt, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
 
             ["stop"] => stop.store(true, Ordering::Relaxed),
@@ -58,6 +59,7 @@ fn uci() {
     println!("id author Arseniy Surkov, Shahin M. Shahin, and Styx");
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 262144");
     println!("option name Threads type spin default 1 min 1 max 512");
+    println!("option name MoveOverhead type spin default 0 min 0 max 2000");
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
 
@@ -78,11 +80,13 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(threads: &mut ThreadPool, stop: &AtomicBool, report: Report, tokens: &[&str]) -> Option<String> {
+fn go(
+    threads: &mut ThreadPool, stop: &AtomicBool, report: Report, move_overhead: u64, tokens: &[&str],
+) -> Option<String> {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number());
+    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
     threads.main_thread().set_stop(false);
 
     let next_command = std::thread::scope(|scope| {
@@ -195,7 +199,9 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(threads: &mut ThreadPool, report: &mut Report, tt: &TranspositionTable, tokens: &[&str]) {
+fn set_option(
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tt: &TranspositionTable, tokens: &[&str],
+) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
             "true" => *report = Report::Minimal,
@@ -213,6 +219,10 @@ fn set_option(threads: &mut ThreadPool, report: &mut Report, tt: &TranspositionT
         ["name", "Threads", "value", v] => {
             threads.set_count(v.parse().unwrap());
             println!("info string set Threads to {v}");
+        }
+        ["name", "MoveOverhead", "value", v] => {
+            *move_overhead = v.parse().unwrap();
+            println!("info string set MoveOverhead to {v} ms");
         }
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
