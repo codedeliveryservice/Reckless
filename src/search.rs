@@ -489,8 +489,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (!PV && score < singular_beta - 20) as i32;
-                    extension += (!PV && is_quiet && score < singular_beta - 132) as i32;
+                    extension += (!PV && score < singular_beta - 2) as i32;
+                    extension += (!PV && is_quiet && score < singular_beta - 43) as i32;
                     if extension > 1 && depth < 12 {
                         depth += 1;
                     }
