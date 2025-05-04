@@ -37,7 +37,7 @@ struct InternalState {
     repetition: i32,
     captured: Option<Piece>,
     threats: Bitboard,
-    pinners: Bitboard,
+    pinned: [Bitboard; Color::NUM],
     checkers: Bitboard,
 }
 
@@ -93,8 +93,8 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
-    pub const fn pinners(&self) -> Bitboard {
-        self.state.pinners
+    pub const fn pinned(&self, color: Color) -> Bitboard {
+        self.state.pinned[color as usize]
     }
 
     pub const fn checkers(&self) -> Bitboard {
@@ -321,7 +321,7 @@ impl Board {
             return attackers.is_empty();
         }
 
-        if self.pinners().contains(from) {
+        if self.pinned(self.side_to_move).contains(from) {
             let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
             return self.checkers().is_empty() && along_pin;
         }
@@ -449,22 +449,27 @@ impl Board {
     }
 
     pub fn update_pinned(&mut self) {
-        let king = self.our(PieceType::King).lsb();
+        self.state.pinned = [Bitboard::default(); 2];
 
-        self.state.pinners = Bitboard::default();
+        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
+        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
-        let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-        let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+        let mut update = |color: Color| {
+            let king = self.king_square(color);
 
-        let diagonal = bishop_attacks(king, self.them()) & diagonal;
-        let orthogonal = rook_attacks(king, self.them()) & orthogonal;
+            let diagonal = diagonal & bishop_attacks(king, self.colors(!color)) & self.colors(!color);
+            let orthogonal = orthogonal & rook_attacks(king, self.colors(!color)) & self.colors(!color);
 
-        for square in diagonal | orthogonal {
-            let blockers = between(king, square) & self.us();
-            if blockers.len() == 1 {
-                self.state.pinners |= blockers;
+            for square in diagonal | orthogonal {
+                let blockers = between(king, square) & self.colors(color);
+                if blockers.len() == 1 {
+                    self.state.pinned[color] |= blockers;
+                }
             }
-        }
+        };
+
+        update(Color::White);
+        update(Color::Black);
     }
 
     pub fn update_hash_keys(&mut self) {
