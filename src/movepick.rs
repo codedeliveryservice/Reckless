@@ -158,14 +158,17 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = PIECE_VALUES[captured] * 18;
-
-            entry.score += td.noisy_history.get(
-                td.board.threats(),
-                td.board.moved_piece(entry.mv),
-                entry.mv.to(),
-                td.board.piece_on(entry.mv.to()).piece_type(),
-            );
+            if td.board.in_check() {
+                entry.score = PIECE_VALUES[captured] + (1 << 28);
+            } else {
+                entry.score = PIECE_VALUES[captured] * 18;
+                entry.score += td.noisy_history.get(
+                    td.board.threats(),
+                    td.board.moved_piece(entry.mv),
+                    entry.mv.to(),
+                    td.board.piece_on(entry.mv.to()).piece_type(),
+                );
+            }
         }
     }
 
