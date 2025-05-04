@@ -70,6 +70,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 | `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
 | `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
 | `eval`          | Print the static evaluation of the current position from white's perspective       |
+| `compiler`      | Print the compiler version, target and flags used to compile the engine            |
 
 [perft]: https://www.chessprogramming.org/Perft
 [bench]: /src/tools/bench.rs
@@ -112,7 +113,6 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   Fractional Late Move Reductions
 -   Internal Iterative Reductions
 -   Singular Extensions
--   Check Extensions
 
 ### Evaluation
 
@@ -131,9 +131,9 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 
 ## Acknowledgements
 
--   [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess).
--   [Bullet](https://github.com/jw1912/bullet) is the NNUE trainer.
--   Open source chess engines, like [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and numerous others, for serving as inspiration and providing ideas that fuel development.
--   [Stockfish Discord server members](https://discord.gg/GWDRS3kU6R) for providing relevant insights and feedback.
--   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) for contributing to the project's foundation.
--   Many thanks to the [CCRL](https://www.computerchess.org.uk/ccrl/) team and all chess engine testers for their valuable contributions.
+-   [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess)
+-   [Bullet](https://github.com/jw1912/bullet) is the NNUE trainer
+-   [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and many other open source chess engines
+-   Members of the [Stockfish Discord server](https://discord.gg/GWDRS3kU6R)
+-   [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
+-   [CCRL](https://www.computerchess.org.uk/ccrl/) and all chess engine testers out there
