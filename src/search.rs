@@ -189,6 +189,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    // Init
+    td.stack[td.ply + 1].killer = Move::NULL;
+    td.stack[td.ply + 2].cutoff_count = 0;
+
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = td.tt.read(td.board.hash(), td.ply);
@@ -248,9 +252,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
-
-    td.stack[td.ply + 1].killer = Move::NULL;
-    td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
