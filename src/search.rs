@@ -449,9 +449,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Futility Pruning (FP)
             skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
 
-            // Bad Noisy Pruning (BNP)
-            if !PV
-                && !in_check
+            // Bad Noisy Futility Pruning (BNFP)
+            if !in_check
                 && lmr_depth < 6
                 && move_picker.stage() == Stage::BadNoisy
                 && static_eval + 132 * lmr_depth + 3 * move_count <= alpha
