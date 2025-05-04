@@ -53,9 +53,9 @@ cargo rustc --release -- -C target-cpu=native
 # ./target/release/reckless
 ```
 
-#### PGO-optimized builds
+#### PGO builds
 
-For PGO (Profiling Guided Optimization) builds, you need to install additional tools:
+For profile-guided optimization (PGO) builds, you need to install additional tools:
 
 ```bash
 rustup component add llvm-tools
@@ -82,7 +82,8 @@ cargo pgo optimize
 ### Usage
 
 Reckless is not a standalone chess program but a chess engine designed for use with UCI-compatible GUIs,
-such as [Cute Chess](https://github.com/cutechess/cutechess) or [ChessBase](https://www.chessbase.com/).
+such as [Cute Chess](https://github.com/cutechess/cutechess), [En Croissant](https://encroissant.org),
+or [Nibbler](https://github.com/rooklift/nibbler).
 
 ### Custom commands
 
@@ -120,7 +121,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 -   Quiescence Search
 -   Iterative Deepening
 -   Aspiration Windows
--   Lockless Transposition Table
+-   Transposition Table
 -   Lazy SMP (Shared-Memory Parallel)
 
 ### Selectivity
