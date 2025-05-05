@@ -808,17 +808,19 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != previous_square {
+        if !is_loss(best_score) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
-            if move_count >= 3 {
-                break;
-            }
+            if mv.to() != previous_square {
+                if move_count >= 3 {
+                    break;
+                }
 
-            if mv.is_quiet() {
-                continue;
+                if mv.is_quiet() {
+                    continue;
+                }
             }
 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
