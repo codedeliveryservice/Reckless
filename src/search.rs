@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    // misc::dbg_hit,
     movepick::{MovePicker, Stage},
     parameters::*,
     thread::ThreadData,
@@ -821,7 +822,16 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            // if !in_check && futility_score <= alpha {
+            //     dbg_hit(move_picker.good_see_threshold().is_some_and(|threshold| threshold <= 1), 0);
+            // }
+            // Hit #0: Total 477451, Hits 421406, Hit Rate (%) 88.26
+
+            if !in_check
+                && futility_score <= alpha
+                && move_picker.good_see_threshold().is_some_and(|threshold| threshold <= 1)
+                && !td.board.see(mv, 1)
+            {
                 best_score = best_score.max(futility_score);
                 continue;
             }

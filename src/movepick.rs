@@ -19,6 +19,7 @@ pub struct MovePicker {
     tt_move: Move,
     killer: Move,
     threshold: Option<i32>,
+    good_see_threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
@@ -31,6 +32,7 @@ impl MovePicker {
             tt_move,
             killer,
             threshold: None,
+            good_see_threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -43,6 +45,7 @@ impl MovePicker {
             tt_move: Move::NULL,
             killer: Move::NULL,
             threshold: Some(threshold),
+            good_see_threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -55,6 +58,7 @@ impl MovePicker {
             tt_move: Move::NULL,
             killer: Move::NULL,
             threshold: None,
+            good_see_threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -63,6 +67,10 @@ impl MovePicker {
 
     pub const fn stage(&self) -> Stage {
         self.stage
+    }
+
+    pub const fn good_see_threshold(&self) -> Option<i32> {
+        self.good_see_threshold
     }
 
     pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
@@ -94,9 +102,15 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
+                let threshold = self.threshold.unwrap_or_else(|| {
+                    let value = -entry.score / 34 + 107;
+                    self.good_see_threshold = Some(value);
+                    value
+                });
+
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
+                    self.good_see_threshold = None;
                     continue;
                 }
 
@@ -140,6 +154,7 @@ impl MovePicker {
 
         // Stage::BadNoisy
         while self.bad_noisy_idx < self.bad_noisy.len() {
+            self.good_see_threshold = None;
             let mv = self.bad_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
 
