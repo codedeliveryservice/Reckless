@@ -367,6 +367,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 302 - 66 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
+        if let Some(entry) = entry {
+            if entry.depth >= depth - 3
+                && entry.score != Score::NONE
+                && entry.score >= probcut_beta
+                && tt_move.is_noisy()
+            {
+                return if is_decisive(entry.score) { entry.score } else { probcut_beta };
+            }
+        }
+
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
