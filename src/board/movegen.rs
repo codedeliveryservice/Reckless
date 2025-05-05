@@ -113,9 +113,8 @@ impl super::Board {
         };
 
         self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank);
-        self.collect_pawn_captures::<TYPE>(list, pawns, seventh_rank);
-
         if TYPE == NOISY {
+            self.collect_pawn_captures::<NOISY>(list, pawns, seventh_rank);
             self.collect_en_passant_moves(list, pawns);
         }
     }
@@ -165,25 +164,18 @@ impl super::Board {
         for from in promotions {
             let captures = self.them() & pawn_attacks(from, self.side_to_move);
             for to in captures {
-                if TYPE == NOISY {
-                    list.push(from, to, MoveKind::PromotionCaptureQ);
-                }
-
-                if TYPE == QUIET {
-                    list.push(from, to, MoveKind::PromotionCaptureR);
-                    list.push(from, to, MoveKind::PromotionCaptureB);
-                    list.push(from, to, MoveKind::PromotionCaptureN);
-                }
+                list.push(from, to, MoveKind::PromotionCaptureQ);
+                list.push(from, to, MoveKind::PromotionCaptureR);
+                list.push(from, to, MoveKind::PromotionCaptureB);
+                list.push(from, to, MoveKind::PromotionCaptureN);
             }
         }
 
-        if TYPE == NOISY {
-            let non_promotions = pawns & !seventh_rank;
-            for from in non_promotions {
-                let targets = self.them() & pawn_attacks(from, self.side_to_move);
-                for to in targets {
-                    list.push(from, to, MoveKind::Capture);
-                }
+        let non_promotions = pawns & !seventh_rank;
+        for from in non_promotions {
+            let targets = self.them() & pawn_attacks(from, self.side_to_move);
+            for to in targets {
+                list.push(from, to, MoveKind::Capture);
             }
         }
     }
