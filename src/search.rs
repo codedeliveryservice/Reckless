@@ -583,7 +583,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !PV || move_count > 1 {
+            td.stack[td.ply - 1].reduction = 1024 * ((depth - 1) - new_depth);
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            td.stack[td.ply - 1].reduction = 0;
         }
 
         // Principal Variation Search (PVS)
