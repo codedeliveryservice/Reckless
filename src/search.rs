@@ -451,7 +451,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
             // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
+            skip_quiets |= !in_check
+                && is_quiet
+                && lmr_depth < 9
+                && static_eval + 93 * lmr_depth + 166 + (alpha - static_eval) / 12 <= alpha;
 
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
