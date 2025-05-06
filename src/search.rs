@@ -305,6 +305,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             >= beta + 80 * depth - (70 * improving as i32) - (33 * cut_node as i32)
                 + 512 * correction_value.abs() / 1024
                 + 25
+        && (tt_move.is_null() || tt_move.is_noisy())
     {
         return ((eval + beta) / 2).clamp(-16384, 16384);
     }
