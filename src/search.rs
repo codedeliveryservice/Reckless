@@ -591,8 +591,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Principal Variation Search (PVS)
         if PV && (move_count == 1 || score > alpha) {
             // Extend move from transposition table if we are about to dive into qsearch.
-            if mv == tt_move && td.ply as i32 <= td.root_depth * 2 {
-                new_depth = new_depth.max(1);
+            if mv == tt_move && td.ply as i32 <= td.root_depth * 2 && new_depth == 0 {
+                new_depth = 2;
             }
 
             score = -search::<true>(td, -beta, -alpha, new_depth, false);
