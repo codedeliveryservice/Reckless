@@ -690,7 +690,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
-        let factor = 1 - td.stack[td.ply - 1].history / 3072
+        let factor = -td.stack[td.ply - 1].history / 3072
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
             + 2 * (td.stack[td.ply - 1].static_eval != Score::NONE
