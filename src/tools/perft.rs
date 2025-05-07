@@ -26,7 +26,7 @@ pub fn perft(depth: usize, board: &mut Board) {
             continue;
         }
 
-        board.make_move(mv, true);
+        board.make_move(mv, board.gives_check(mv));
 
         let count = perft_internal(depth - 1, board);
         nodes += count;
@@ -64,7 +64,7 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
         if depth == 1 {
             nodes += 1;
         } else {
-            board.make_move(mv, true);
+            board.make_move(mv, board.gives_check(mv));
             nodes += perft_internal(depth - 1, board);
             board.undo_move(mv);
         }

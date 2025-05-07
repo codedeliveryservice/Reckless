@@ -18,7 +18,7 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
     for entry in board.generate_all_moves().iter() {
         let mv = entry.mv;
-        board.make_move(mv, true);
+        board.make_move(mv, board.gives_check(mv));
 
         let attackers = board.attackers_to(board.their(PieceType::King).lsb(), board.occupancies());
         if !(attackers & board.us()).is_empty() {
