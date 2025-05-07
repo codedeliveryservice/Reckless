@@ -432,6 +432,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+        let gives_check = td.board.gives_check(mv);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -463,7 +464,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet { -19 * lmr_depth * lmr_depth } else { -97 * depth + 54 } - 37 * history / 1024;
+            let threshold = if is_quiet && !gives_check { -19 * lmr_depth * lmr_depth } else { -97 * depth + 54 }
+                - 37 * history / 1024;
+
             if !td.board.see(mv, threshold) {
                 continue;
             }
