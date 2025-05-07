@@ -150,6 +150,7 @@ fn go(
         }
 
         println!("bestmove {}", best.best_move);
+        crate::misc::dbg_print();
 
         next_command.join().unwrap()
     });

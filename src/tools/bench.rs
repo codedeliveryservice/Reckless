@@ -115,4 +115,6 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let nps = nodes as f64 / seconds;
         println!("Bench: {nodes} nodes {nps:.0} nps");
     }
+
+    crate::misc::dbg_print();
 }

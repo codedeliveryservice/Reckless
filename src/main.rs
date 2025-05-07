@@ -27,8 +27,6 @@ fn main() {
         Some("bench") => tools::bench::<false>(14),
         _ => uci::message_loop(),
     }
-
-    misc::dbg_print();
 }
 
 #[cfg(feature = "datagen")]

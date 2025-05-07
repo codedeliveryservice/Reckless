@@ -25,6 +25,12 @@ impl Wrapper {
     fn get(&self, index: usize) -> i64 {
         self.data[index].load(Ordering::Relaxed)
     }
+
+    fn reset(&self) {
+        for i in 0..self.data.len() {
+            self.data[i].store(0, Ordering::Relaxed);
+        }
+    }
 }
 
 pub fn dbg_hit(condition: bool, slot: usize) -> bool {
@@ -68,5 +74,13 @@ pub fn dbg_print() {
 
             println!("Stats #{i}: Total {total}, Mean {mean:.2}, Std Dev {stddev:.2}");
         }
+    }
+
+    for slot in HITS.iter() {
+        slot.reset();
+    }
+
+    for slot in STATS.iter() {
+        slot.reset();
     }
 }
