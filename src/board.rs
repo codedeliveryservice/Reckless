@@ -298,6 +298,17 @@ impl Board {
             | king_attacks(square) & self.pieces(PieceType::King)
     }
 
+    pub fn attacks(&self, piece_type: PieceType, square: Square, occupancies: Bitboard) -> Bitboard {
+        match piece_type {
+            PieceType::Pawn => pawn_attacks(square, self.side_to_move),
+            PieceType::Knight => knight_attacks(square),
+            PieceType::Bishop => bishop_attacks(square, occupancies),
+            PieceType::Rook => rook_attacks(square, occupancies),
+            PieceType::Queen => queen_attacks(square, occupancies),
+            _ => Bitboard::default(),
+        }
+    }
+
     pub fn is_legal(&self, mv: Move) -> bool {
         let from = mv.from();
         let to = mv.to();
@@ -418,6 +429,38 @@ impl Board {
         };
 
         attacks.contains(to)
+    }
+
+    pub fn gives_check(&self, mv: Move) -> bool {
+        let king = self.their(PieceType::King).lsb();
+        let moved_piece = self.moved_piece(mv).piece_type();
+
+        if self.attacks(moved_piece, mv.to(), self.occupancies()).contains(king) {
+            return true;
+        }
+
+        let occupancies = (self.occupancies() ^ mv.from().to_bb()) | mv.to().to_bb();
+
+        let diagonal = self.our(PieceType::Bishop) | self.our(PieceType::Queen);
+        let orthogonal = self.our(PieceType::Rook) | self.our(PieceType::Queen);
+
+        let diagonal = bishop_attacks(king, occupancies) & diagonal;
+        let orthogonal = rook_attacks(king, occupancies) & orthogonal;
+
+        if !diagonal.is_empty() || !orthogonal.is_empty() {
+            return true;
+        }
+
+        if let Some(promotion) = mv.promotion_piece() {
+            return self.attacks(promotion, mv.to(), occupancies).contains(king);
+        }
+
+        if mv.is_castling() {
+            let (_, rook_to) = Self::get_castling_rook(mv.to());
+            return rook_attacks(king, occupancies).contains(rook_to);
+        }
+
+        false
     }
 
     pub fn update_threats(&mut self) {
