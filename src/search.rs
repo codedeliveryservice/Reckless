@@ -276,6 +276,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
+    let mut did_hindsight_reduction = false;
     if !tt_pv
         && !in_check
         && !excluded
@@ -285,6 +286,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].static_eval != Score::NONE
         && static_eval + td.stack[td.ply - 1].static_eval > 81
     {
+        did_hindsight_reduction = true;
         depth -= 1;
     }
 
@@ -364,6 +366,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    // Internal Iterative Reductions (IIR)
+    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) && !did_hindsight_reduction {
+        depth -= 1;
+    }
+
     // ProbCut
     let probcut_beta = beta + 302 - 66 * improving as i32;
 
@@ -407,11 +414,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score - (probcut_beta - beta);
             }
         }
-    }
-
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
-        depth -= 1;
     }
 
     let mut best_score = -Score::INFINITE;
