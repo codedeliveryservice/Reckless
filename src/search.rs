@@ -24,6 +24,10 @@ pub struct SearchResult {
 }
 
 pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
+    if td.board.generate_all_moves().iter().filter(|entry| td.board.is_legal(entry.mv)).count() == 1 {
+        td.time_manager.reset_time_bounds();
+    }
+
     td.completed_depth = 0;
     td.stopped = false;
 
