@@ -276,7 +276,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
-    if !in_check
+    if !tt_pv
+        && !in_check
         && !excluded
         && depth >= 2
         && td.ply >= 1
