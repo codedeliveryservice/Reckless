@@ -890,7 +890,7 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
     let piece_count = td.board.occupancies().len();
-    let diff = diff * (0.75 + 0.5 * (32 - piece_count) as f32 / 30.0) as i32;
+    let diff = (diff as f32 * (0.75 + 0.5 * (32 - piece_count) as f32 / 30.0)) as i32;
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
     td.minor_corrhist.update(stm, td.board.minor_key(), depth, diff);
