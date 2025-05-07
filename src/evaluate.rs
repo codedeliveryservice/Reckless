@@ -9,6 +9,9 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
     #[cfg(not(feature = "datagen"))]
     {
         eval = eval * (22400 + material(&td.board)) / 32768;
+        if td.board.total_piece_count() <= 6 {
+            eval *= 2;
+        }
     }
 
     eval.clamp(-16384, 16384)

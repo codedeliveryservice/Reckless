@@ -45,6 +45,7 @@ struct InternalState {
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
+    total_piece_count: i32,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
@@ -66,6 +67,10 @@ impl Board {
 
     pub const fn side_to_move(&self) -> Color {
         self.side_to_move
+    }
+
+    pub const fn total_piece_count(&self) -> i32 {
+        self.total_piece_count
     }
 
     pub const fn fullmove_number(&self) -> usize {
@@ -177,6 +182,7 @@ impl Board {
 
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
+        self.total_piece_count += 1;
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
@@ -184,6 +190,7 @@ impl Board {
 
     /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
+        self.total_piece_count -= 1;
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
@@ -515,6 +522,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
+            total_piece_count: 0,
         }
     }
 }
