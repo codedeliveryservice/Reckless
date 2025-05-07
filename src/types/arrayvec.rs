@@ -26,6 +26,12 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         unsafe { &*self.data.get_unchecked(index).as_ptr() }
     }
 
+    pub fn get_mut(&mut self, index: usize) -> &mut T {
+        debug_assert!(index < self.len);
+
+        unsafe { &mut *self.data.get_unchecked_mut(index).as_mut_ptr() }
+    }
+
     pub fn push(&mut self, value: T) {
         debug_assert!(self.len < N);
 

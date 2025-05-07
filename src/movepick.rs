@@ -79,18 +79,12 @@ impl MovePicker {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
             self.score_noisy(td);
+            self.insertion_sort();
         }
 
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
-                let mut index = 0;
-                for i in 1..self.list.len() {
-                    if self.list[i].score > self.list[index].score {
-                        index = i;
-                    }
-                }
-
-                let entry = self.list.remove(index);
+                let entry = self.list.remove(0);
                 if entry.mv == self.tt_move {
                     continue;
                 }
@@ -189,6 +183,20 @@ impl MovePicker {
                 + 1011 * td.conthist(1, mv) / 1024
                 + 978 * td.conthist(2, mv) / 1024
                 + 517 * td.conthist(3, mv) / 1024;
+        }
+    }
+
+    fn insertion_sort(&mut self) {
+        for current in 1..self.list.len() {
+            let item = self.list[current];
+            let mut position = current;
+
+            while position > 0 && self.list[position - 1].score < item.score {
+                self.list[position] = self.list[position - 1];
+                position -= 1;
+            }
+
+            self.list[position] = item;
         }
     }
 }
