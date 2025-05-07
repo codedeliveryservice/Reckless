@@ -432,6 +432,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+        let gives_check = td.board.gives_check(mv);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -458,6 +459,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 && lmr_depth < 6
                 && move_picker.stage() == Stage::BadNoisy
                 && static_eval + 132 * lmr_depth + 3 * move_count <= alpha
+                && !gives_check
             {
                 break;
             }
@@ -506,7 +508,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.counter.local();
 
-        make_move(td, mv, td.board.gives_check(mv));
+        make_move(td, mv, gives_check);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
