@@ -144,19 +144,19 @@ impl Default for CorrectionHistory {
 }
 
 pub struct ContinuationHistory {
-    // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
+    // [in_check][piece][to][continuation_piece][continuation_to]
+    entries: Box<[[[PieceToHistory<i16>; 64]; 13]; 2]>,
 }
 
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
-    pub fn get(&self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square) -> i32 {
-        self.entries[piece][sq][cont_piece][cont_sq] as i32
+    pub fn get(&self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, in_check: bool) -> i32 {
+        self.entries[in_check as usize][piece][sq][cont_piece][cont_sq] as i32
     }
 
-    pub fn update(&mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, bonus: i32) {
-        let entry = &mut self.entries[piece][sq][cont_piece][cont_sq];
+    pub fn update(&mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, in_check: bool, bonus: i32) {
+        let entry = &mut self.entries[in_check as usize][piece][sq][cont_piece][cont_sq];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }

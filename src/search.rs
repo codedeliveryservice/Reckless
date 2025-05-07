@@ -140,7 +140,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let is_root = td.ply == 0;
-    let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
     td.pv.clear(td.ply);
@@ -167,6 +166,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
 
+    td.stack[td.ply].in_check = td.board.in_check();
+
     if td.time_manager.check_time(td) {
         td.stopped = true;
         return Score::ZERO;
@@ -178,7 +179,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if td.ply >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { evaluate(td) };
+            return if td.stack[td.ply].in_check { Score::DRAW } else { evaluate(td) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -221,7 +222,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut eval;
 
     // Evaluation
-    if in_check {
+    if td.stack[td.ply].in_check {
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
@@ -254,7 +255,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
-    if !in_check
+    if !td.stack[td.ply].in_check
         && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_some()
@@ -268,7 +269,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Hindsight LMR
-    if !in_check
+    if !td.stack[td.ply].in_check
         && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 2761
@@ -278,7 +279,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !tt_pv
-        && !in_check
+        && !td.stack[td.ply].in_check
         && !excluded
         && depth >= 2
         && td.ply >= 1
@@ -289,17 +290,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
-    let improving =
-        !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
+    let improving = !td.stack[td.ply].in_check
+        && td.ply >= 2
+        && td.stack[td.ply - 1].mv.is_some()
+        && static_eval > td.stack[td.ply - 2].static_eval;
 
     // Razoring
-    if !PV && !in_check && eval < alpha - 307 - 235 * depth * depth {
+    if !PV && !td.stack[td.ply].in_check && eval < alpha - 307 - 235 * depth * depth {
         return qsearch::<false>(td, alpha, beta);
     }
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
-        && !in_check
+        && !td.stack[td.ply].in_check
         && !excluded
         && depth <= 7
         && eval >= beta
@@ -313,7 +316,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Null Move Pruning (NMP)
     if cut_node
-        && !in_check
+        && !td.stack[td.ply].in_check
         && !excluded
         && eval >= beta
         && eval >= static_eval
@@ -453,10 +456,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
             // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
+            skip_quiets |=
+                !td.stack[td.ply].in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
 
             // Bad Noisy Futility Pruning (BNFP)
-            if !in_check
+            if !td.stack[td.ply].in_check
                 && lmr_depth < 6
                 && move_picker.stage() == Stage::BadNoisy
                 && static_eval + 132 * lmr_depth + 3 * move_count <= alpha
@@ -643,7 +647,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return alpha;
         }
 
-        return if in_check { mated_in(td.ply) } else { Score::DRAW };
+        return if td.stack[td.ply].in_check { mated_in(td.ply) } else { Score::DRAW };
     }
 
     if best_move.is_some() {
@@ -689,7 +693,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let factor = 1
             + (depth > 5) as i32
-            + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
+            + 2 * (!td.stack[td.ply].in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
             + 2 * (td.stack[td.ply - 1].static_eval != Score::NONE
                 && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32;
 
@@ -705,7 +709,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !(in_check
+    if !(td.stack[td.ply].in_check
         || best_move.is_noisy()
         || is_decisive(best_score)
         || (bound == Bound::Upper && best_score >= static_eval)
@@ -723,9 +727,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    let in_check = td.board.in_check();
-
     td.counter.increment();
+    td.stack[td.ply].in_check = td.board.in_check();
 
     if td.time_manager.check_time(td) {
         td.stopped = true;
@@ -737,7 +740,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if td.ply >= MAX_PLY - 1 {
-        return if in_check { Score::DRAW } else { evaluate(td) };
+        return if td.stack[td.ply].in_check { Score::DRAW } else { evaluate(td) };
     }
 
     let entry = td.tt.read(td.board.hash(), td.ply);
@@ -761,7 +764,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut raw_eval = Score::NONE;
 
     // Evaluation
-    if !in_check {
+    if !td.stack[td.ply].in_check {
         raw_eval = match entry {
             Some(entry) if entry.eval != Score::NONE => entry.eval,
             _ => evaluate(td),
@@ -805,7 +808,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check) {
+    while let Some(mv) = move_picker.next(td, !td.stack[td.ply].in_check) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -825,7 +828,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            if !td.stack[td.ply].in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
             }
@@ -855,7 +858,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    if in_check && move_count == 0 {
+    if td.stack[td.ply].in_check && move_count == 0 {
         return mated_in(td.ply);
     }
 
@@ -908,21 +911,25 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     if td.ply >= 1 {
         let entry = td.stack[td.ply - 1];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1164 * bonus / 1024);
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, entry.in_check, 1164 * bonus / 1024);
         }
     }
 
     if td.ply >= 2 {
         let entry = td.stack[td.ply - 2];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1175 * bonus / 1024);
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, entry.in_check, 1175 * bonus / 1024);
         }
+    }
+
+    if td.stack[td.ply].in_check {
+        return;
     }
 
     if td.ply >= 3 {
         let entry = td.stack[td.ply - 3];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1035 * bonus / 1024);
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, entry.in_check, 1035 * bonus / 1024);
         }
     }
 }
