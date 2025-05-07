@@ -45,7 +45,7 @@ pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
 
     let v = material.clamp(16, 64) as f64 / 56.0;
 
-    let normalization = -42.2 * v.powi(3) + 38.0 * v.powi(2) - 13.2 * v + 205.54;
+    let normalization = 76.8 * v.powi(3) - 226.4 * v.powi(2) + 149.4 * v + 245.9;
 
     (100.0 * score as f64 / normalization).round() as i32
 }
