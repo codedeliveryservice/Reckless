@@ -380,7 +380,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            make_move(td, mv);
+            make_move(td, mv, true);
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -505,8 +505,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         let initial_nodes = td.counter.local();
+        let gives_check = td.board.gives_check(mv);
 
-        make_move(td, mv);
+        make_move(td, mv, gives_check);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -829,7 +830,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        make_move(td, mv);
+        make_move(td, mv, true);
 
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
@@ -925,13 +926,13 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     }
 }
 
-fn make_move(td: &mut ThreadData, mv: Move) {
+fn make_move(td: &mut ThreadData, mv: Move, gives_check: bool) {
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
     td.ply += 1;
 
     td.nnue.push(mv, &td.board);
-    td.board.make_move(mv);
+    td.board.make_move(mv, gives_check);
     td.tt.prefetch(td.board.hash());
 }
 

@@ -1,5 +1,5 @@
 use super::Board;
-use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
@@ -12,7 +12,7 @@ impl Board {
         self.state.repetition = 0;
 
         self.update_threats();
-        self.update_king_threats();
+        self.update_pinners();
 
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
@@ -25,7 +25,7 @@ impl Board {
         self.state = self.state_stack.pop().unwrap();
     }
 
-    pub fn make_move(&mut self, mv: Move) {
+    pub fn make_move(&mut self, mv: Move, gives_check: bool) {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
@@ -103,7 +103,13 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         self.update_threats();
-        self.update_king_threats();
+        self.update_pinners();
+
+        self.state.checkers = if gives_check {
+            self.attackers_to(self.king_square(self.side_to_move), self.occupancies()) & self.them()
+        } else {
+            Bitboard(0)
+        };
 
         self.state.repetition = 0;
 

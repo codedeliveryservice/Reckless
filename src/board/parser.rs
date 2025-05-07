@@ -57,8 +57,11 @@ impl FromStr for Board {
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
         board.update_threats();
-        board.update_king_threats();
+        board.update_pinners();
         board.update_hash_keys();
+
+        board.state.checkers =
+            board.attackers_to(board.king_square(board.side_to_move), board.occupancies()) & board.them();
 
         Ok(board)
     }

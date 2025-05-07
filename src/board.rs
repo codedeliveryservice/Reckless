@@ -441,11 +441,11 @@ impl Board {
 
         let occupancies = (self.occupancies() ^ mv.from().to_bb()) | mv.to().to_bb();
 
-        let diagonal = self.our(PieceType::Bishop) | self.our(PieceType::Queen);
-        let orthogonal = self.our(PieceType::Rook) | self.our(PieceType::Queen);
+        let our_diagonal = self.our(PieceType::Bishop) | self.our(PieceType::Queen);
+        let our_orthogonal = self.our(PieceType::Rook) | self.our(PieceType::Queen);
 
-        let diagonal = bishop_attacks(king, occupancies) & diagonal;
-        let orthogonal = rook_attacks(king, occupancies) & orthogonal;
+        let diagonal = bishop_attacks(king, occupancies) & our_diagonal;
+        let orthogonal = rook_attacks(king, occupancies) & our_orthogonal;
 
         if !diagonal.is_empty() || !orthogonal.is_empty() {
             return true;
@@ -458,6 +458,14 @@ impl Board {
         if mv.is_castling() {
             let (_, rook_to) = Self::get_castling_rook(mv.to());
             return rook_attacks(king, occupancies).contains(rook_to);
+        }
+
+        if mv.is_en_passant() {
+            let capsq = mv.to() ^ 8;
+            let b = (self.occupancies() ^ mv.from().to_bb() ^ capsq.to_bb()) | mv.to().to_bb();
+
+            return !(rook_attacks(king, b) & our_orthogonal).is_empty()
+                || !(bishop_attacks(king, b) & our_diagonal).is_empty();
         }
 
         false
@@ -486,14 +494,8 @@ impl Board {
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
     }
 
-    pub fn update_king_threats(&mut self) {
+    pub fn update_pinners(&mut self) {
         let king = self.our(PieceType::King).lsb();
-
-        self.state.pinners = Bitboard::default();
-        self.state.checkers = Bitboard::default();
-
-        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
 
         let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
         let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
@@ -501,12 +503,12 @@ impl Board {
         let diagonal = bishop_attacks(king, self.them()) & diagonal;
         let orthogonal = rook_attacks(king, self.them()) & orthogonal;
 
+        self.state.pinners = Bitboard::default();
+
         for square in diagonal | orthogonal {
             let blockers = between(king, square) & self.us();
-            match blockers.len() {
-                0 => self.state.checkers.set(square),
-                1 => self.state.pinners |= blockers,
-                _ => (),
+            if blockers.len() == 1 {
+                self.state.pinners |= blockers;
             }
         }
     }
