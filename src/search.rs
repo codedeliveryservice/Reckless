@@ -273,11 +273,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 2761
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
-        depth += 1;
+        depth += 1 + tt_pv as i32;
     }
 
-    if !tt_pv
-        && !in_check
+    if !in_check
         && !excluded
         && depth >= 2
         && td.ply >= 1
