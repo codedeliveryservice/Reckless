@@ -912,7 +912,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
                 piece,
                 sq,
                 entry.mv.is_noisy(),
-                1164 * bonus / 1024,
+                1264 * bonus / 1024,
             );
         }
     }
@@ -926,7 +926,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
                 piece,
                 sq,
                 entry.mv.is_noisy(),
-                1175 * bonus / 1024,
+                1275 * bonus / 1024,
             );
         }
     }
@@ -940,7 +940,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
                 piece,
                 sq,
                 entry.mv.is_noisy(),
-                1035 * bonus / 1024,
+                1235 * bonus / 1024,
             );
         }
     }
