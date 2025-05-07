@@ -380,7 +380,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            make_move(td, mv);
+            make_move(td, mv, td.board.gives_check(mv));
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -432,6 +432,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+        let gives_check = td.board.gives_check(mv);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -451,7 +452,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
             // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
+            skip_quiets |=
+                !in_check && !gives_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
 
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
@@ -505,7 +507,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         let initial_nodes = td.counter.local();
-        make_move(td, mv);
+
+        make_move(td, mv, gives_check);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -828,7 +831,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        make_move(td, mv);
+        make_move(td, mv, td.board.gives_check(mv));
 
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
@@ -924,13 +927,13 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     }
 }
 
-fn make_move(td: &mut ThreadData, mv: Move) {
+fn make_move(td: &mut ThreadData, mv: Move, gives_check: bool) {
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
     td.ply += 1;
 
     td.nnue.push(mv, &td.board);
-    td.board.make_move(mv, td.board.gives_check(mv));
+    td.board.make_move(mv, gives_check);
     td.tt.prefetch(td.board.hash());
 }
 
