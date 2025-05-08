@@ -7,7 +7,6 @@ publish = false
 
 [features]
 spsa = []
-datagen = []
 
 [profile.dev]
 opt-level = 3
