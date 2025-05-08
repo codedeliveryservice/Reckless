@@ -23,9 +23,16 @@ fn main() {
     #[cfg(feature = "datagen")]
     datagen(std::env::args());
 
-    match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(14),
-        _ => uci::message_loop(),
+    let args = std::env::args().collect::<Vec<_>>();
+
+    if let Some("bench") = args.get(1).map(|s| s.as_str()) {
+        let hash = args.get(2).and_then(|v| v.parse().ok());
+        let threads = args.get(3).and_then(|v| v.parse().ok());
+        let depth = args.get(4).and_then(|v| v.parse().ok());
+
+        tools::bench::<false>(hash, threads, depth);
+    } else {
+        uci::message_loop();
     }
 }
 

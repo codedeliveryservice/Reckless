@@ -8,14 +8,14 @@
 //! it is not comprehensive enough to be definitive.
 
 use std::{
-    sync::atomic::{AtomicBool, AtomicU64},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
 
 use crate::{
     board::Board,
     search::{self, Report},
-    thread::ThreadData,
+    thread::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
 };
@@ -68,52 +68,80 @@ const POSITIONS: &[&str] = &[
     "8/8/5pk1/5Nn1/R3r1P1/8/6K1/8 w - - 4 65",
 ];
 
-pub fn bench<const PRETTY: bool>(depth: i32) {
+pub fn bench<const PRETTY: bool>(hash: Option<usize>, threads: Option<usize>, depth: Option<i32>) {
+    let hash = hash.unwrap_or(16);
+    let threads = threads.unwrap_or(1);
+    let depth = depth.unwrap_or(14);
+
     if PRETTY {
-        println!("{}", "-".repeat(50));
-        println!("{:>15} {:>13} {:>15}", "Nodes", "Elapsed", "NPS");
-        println!("{}", "-".repeat(50));
+        println!("{}", "-".repeat(52));
+        println!("{:>15} {:>13} {:>14}", "Nodes", "Elapsed", "NPS");
+        println!("{}", "-".repeat(52));
     }
+
+    let stop = AtomicBool::new(false);
+    let counter = AtomicU64::new(0);
+
+    let tt = TranspositionTable::default();
+    tt.resize(threads, hash);
+
+    let mut pool = ThreadPool::new(&tt, &stop, &counter);
+    pool.main_thread().time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+    pool.set_count(threads);
 
     let time = Instant::now();
 
-    let mut nodes = 0;
+    let mut total = 0;
     let mut index = 0;
 
     for position in POSITIONS {
         let now = Instant::now();
 
-        let tt = TranspositionTable::default();
-        let stop = AtomicBool::new(false);
-        let counter = AtomicU64::new(0);
+        for thread in pool.iter_mut() {
+            thread.board = Board::new(position).unwrap();
+        }
 
-        let mut td = ThreadData::new(&tt, &stop, &counter);
-        td.board = Board::new(position).unwrap();
-        td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+        std::thread::scope(|scope| {
+            let mut handlers = Vec::new();
 
-        search::start(&mut td, Report::None);
+            for td in pool.iter_mut() {
+                let handler = scope.spawn(|| {
+                    search::start(td, Report::None);
+                    td.set_stop(true);
+                });
 
-        nodes += td.counter.local();
+                handlers.push(handler);
+            }
+
+            for handler in handlers {
+                handler.join().unwrap();
+            }
+
+            stop.store(false, Ordering::Relaxed);
+        });
+
+        let nodes = pool.main_thread().counter.global();
+
+        total += nodes;
         index += 1;
 
-        let seconds = now.elapsed().as_secs_f64();
-        let knps = td.counter.local() as f64 / seconds / 1000.0;
-
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", td.counter.local());
+            let seconds = now.elapsed().as_secs_f64();
+            let nps = nodes as f64 / seconds;
+
+            println!("{index:>3} {nodes:>11} {seconds:>12.3}s {nps:>14.0} nodes/s");
         }
     }
 
     let seconds = time.elapsed().as_secs_f64();
-    let knps = nodes as f64 / seconds / 1000.0;
+    let nps = total as f64 / seconds;
 
     if PRETTY {
-        println!("{}", "-".repeat(50));
-        println!("{nodes:>15} {seconds:>12.3}s {knps:>15.3} kN/s");
-        println!("{}", "-".repeat(50));
+        println!("{}", "-".repeat(52));
+        println!("{total:>15} {seconds:>12.3}s {nps:>14.0} nodes/s");
+        println!("{}", "-".repeat(52));
     } else {
-        let nps = nodes as f64 / seconds;
-        println!("Bench: {nodes} nodes {nps:.0} nps");
+        println!("Bench: {total} nodes {nps:.0} nps");
     }
 
     crate::misc::dbg_print();

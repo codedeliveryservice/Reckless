@@ -43,11 +43,17 @@ pub fn message_loop() {
             // Non-UCI commands
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
-            ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
-            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
 
-            ["bench"] => eprintln!("Usage: bench <depth>"),
+            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
+
+            ["bench", tokens @ ..] => {
+                let hash = tokens.get(0).map(|v| v.parse().ok()).flatten();
+                let threads = tokens.get(1).map(|v| v.parse().ok()).flatten();
+                let depth = tokens.get(2).map(|v| v.parse().ok()).flatten();
+
+                tools::bench::<true>(hash, threads, depth);
+            }
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
         };
