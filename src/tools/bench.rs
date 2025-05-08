@@ -88,7 +88,7 @@ pub fn bench<const PRETTY: bool>(depth: i32) {
         let counter = AtomicU64::new(0);
 
         let mut td = ThreadData::new(&tt, &stop, &counter);
-        td.board = Board::new(position).unwrap();
+        td.board = Board::new(position, false).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
         search::start(&mut td, Report::None);

@@ -7,7 +7,7 @@ impl Board {
         self.state_stack.push(self.state);
 
         self.state.key ^= ZOBRIST.side;
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.castling[self.state.castling_rights];
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
 
@@ -35,7 +35,6 @@ impl Board {
         self.state_stack.push(self.state);
 
         self.state.key ^= ZOBRIST.side;
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
@@ -76,7 +75,7 @@ impl Board {
                 self.update_hash(captured, to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, rook_to) = Self::get_castling_rook(to);
+                let (rook_from, rook_to) = self.get_castling_rook(to);
                 let rook = Piece::new(stm, PieceType::Rook);
 
                 self.remove_piece(rook, rook_from);
@@ -99,8 +98,11 @@ impl Board {
 
         self.side_to_move = !self.side_to_move;
 
-        self.state.castling.update(from, to);
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        if self.castling_rights_mask[from] != 0 || self.castling_rights_mask[to] != 0 {
+            self.state.key ^= ZOBRIST.castling[self.state.castling_rights];
+            self.state.castling_rights.raw &= !(self.castling_rights_mask[from] | self.castling_rights_mask[to]);
+            self.state.key ^= ZOBRIST.castling[self.state.castling_rights];
+        }
 
         self.update_threats();
         self.update_king_threats();
@@ -148,7 +150,7 @@ impl Board {
                 self.add_piece(Piece::new(!stm, PieceType::Pawn), to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, root_to) = Self::get_castling_rook(to);
+                let (rook_from, root_to) = self.get_castling_rook(to);
                 self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
                 self.remove_piece(Piece::new(stm, PieceType::Rook), root_to);
             }

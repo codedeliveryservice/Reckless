@@ -71,7 +71,7 @@ impl Network {
 
         for i in index..self.index {
             if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
-                current.update(&prev[i], wking, bking);
+                current.update(&prev[i], board, wking, bking);
             }
         }
     }

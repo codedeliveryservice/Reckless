@@ -37,7 +37,7 @@ pub fn perft(depth: usize, board: &mut Board) {
         let seconds = now.elapsed().as_secs_f64();
         let knps = count as f64 / seconds / 1000.0;
 
-        println!("{index:>3} {mv:>8} {count:>12} {seconds:>12.3}s {knps:>15.3} kN/s");
+        println!("{index:>3} {:>8} {count:>12} {seconds:>12.3}s {knps:>15.3} kN/s", mv.to_uci(board));
     }
 
     let seconds = now.elapsed().as_secs_f64();

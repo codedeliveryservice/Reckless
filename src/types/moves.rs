@@ -1,5 +1,7 @@
 use std::mem;
 
+use crate::board::Board;
+
 use super::{PieceType, Square};
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
@@ -89,10 +91,6 @@ impl Move {
         (self.0 >> 15) != 0
     }
 
-    pub const fn is_normal(self) -> bool {
-        matches!(self.kind(), MoveKind::Normal)
-    }
-
     pub const fn is_en_passant(self) -> bool {
         matches!(self.kind(), MoveKind::EnPassant)
     }
@@ -114,11 +112,12 @@ impl Move {
             _ => None,
         }
     }
-}
 
-impl std::fmt::Display for Move {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut output = format!("{}{}", self.from(), self.to());
+    pub fn to_uci(self, board: &Board) -> String {
+        let from = self.from();
+        let to = if self.is_castling() && board.is_frc() { board.get_castling_rook(self.to()).0 } else { self.to() };
+
+        let mut output = format!("{from}{to}");
 
         match self.promotion_piece() {
             Some(PieceType::Knight) => output.push('n'),
@@ -128,6 +127,6 @@ impl std::fmt::Display for Move {
             _ => (),
         };
 
-        f.pad(&output)
+        output
     }
 }

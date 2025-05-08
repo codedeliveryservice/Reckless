@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use super::Board;
 use crate::types::{Color, Square};
 
@@ -13,16 +11,14 @@ pub enum ParseFenError {
     InvalidActiveColor,
 }
 
-impl FromStr for Board {
-    type Err = ParseFenError;
-
+impl Board {
     /// Parses a [Forsyth–Edwards Notation][fen] string into a `Board`.
     ///
     /// The parser is not very strict and will accept some invalid FEN strings,
     /// it's the responsibility of the GUI to ensure the FEN string is valid.
     ///
     /// [fen]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
-    fn from_str(fen: &str) -> Result<Self, Self::Err> {
+    pub fn parse(fen: &str, frc: bool) -> Result<Self, ParseFenError> {
         let mut board = Self::default();
         let mut parts = fen.split_whitespace();
 
@@ -51,7 +47,8 @@ impl FromStr for Board {
             _ => return Err(ParseFenError::InvalidActiveColor),
         };
 
-        board.state.castling = parts.next().unwrap_or_default().into();
+        board.set_castling(parts.next().unwrap());
+
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
@@ -59,6 +56,8 @@ impl FromStr for Board {
         board.update_threats();
         board.update_king_threats();
         board.update_hash_keys();
+
+        board.frc = frc;
 
         Ok(board)
     }

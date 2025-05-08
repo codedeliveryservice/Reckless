@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
     types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
@@ -74,33 +74,26 @@ impl super::Board {
     }
 
     fn collect_castling(&self, list: &mut MoveList) {
-        use crate::types::{BlackKingSide, BlackQueenSide, WhiteKingSide, WhiteQueenSide};
-
         match self.side_to_move {
             Color::White => {
-                self.collect_castling_kind::<WhiteKingSide>(list);
-                self.collect_castling_kind::<WhiteQueenSide>(list);
+                self.collect_castling_kind(list, CastlingKind::WhiteKingside);
+                self.collect_castling_kind(list, CastlingKind::WhiteKingside);
             }
             Color::Black => {
-                self.collect_castling_kind::<BlackKingSide>(list);
-                self.collect_castling_kind::<BlackQueenSide>(list);
+                self.collect_castling_kind(list, CastlingKind::BlackKingside);
+                self.collect_castling_kind(list, CastlingKind::BlackQueenside);
             }
         }
     }
 
-    /// Adds the castling move to the move list if it's allowed.
-    ///
-    /// This method does not check if the king is in check after the castling,
-    /// as this will be checked by the `make_move` method.
-    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
-        if (KIND::PATH_MASK & self.occupancies()).is_empty() && self.state.castling.is_allowed::<KIND>() {
-            for square in KIND::CHECK_SQUARES {
-                if self.is_threatened(square) {
-                    return;
-                }
-            }
+    fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
+        let king = self.king_square(self.side_to_move);
 
-            list.push_move(KIND::CASTLING_MOVE);
+        if self.state.castling_rights.is_allowed(kind)
+            && (self.castling_path[kind] & self.occupancies()).is_empty()
+            && ((king.to_bb() | between(king, kind.landing_square())) & self.threats()).is_empty()
+        {
+            list.push(king, kind.landing_square(), MoveKind::Castling);
         }
     }
 

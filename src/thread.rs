@@ -154,11 +154,11 @@ impl<'a> ThreadData<'a> {
         );
 
         for mv in self.pv.line() {
-            print!(" {mv}");
+            print!(" {}", mv.to_uci(&self.board));
         }
 
         if self.pv.line().is_empty() {
-            print!(" {}", self.pv.best_move());
+            print!(" {}", self.pv.best_move().to_uci(&self.board));
         }
 
         println!();

@@ -4,10 +4,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
-    types::{
-        ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType,
-        Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
-    },
+    types::{ArrayVec, Bitboard, CastlingKind, CastlingRights, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -31,7 +28,7 @@ struct InternalState {
     major_key: u64,
     non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
-    castling: Castling,
+    castling_rights: CastlingRights,
     halfmove_clock: u8,
     plies_from_null: i32,
     repetition: i32,
@@ -51,17 +48,21 @@ pub struct Board {
     state: InternalState,
     state_stack: Box<ArrayVec<InternalState, 2048>>,
     fullmove_number: usize,
+    castling_rights_mask: [u8; Square::NUM],
+    castling_rook_square: [Square; 16],
+    castling_path: [Bitboard; 16],
+    frc: bool,
 }
 
 impl Board {
     /// Returns the board corresponding to the specified Forsyth–Edwards notation.
-    pub fn new(fen: &str) -> Result<Self, ParseFenError> {
-        fen.parse()
+    pub fn new(fen: &str, frc: bool) -> Result<Self, ParseFenError> {
+        Self::parse(fen, frc)
     }
 
     /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
-        Self::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+        Self::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false).unwrap()
     }
 
     pub const fn side_to_move(&self) -> Color {
@@ -70,6 +71,10 @@ impl Board {
 
     pub const fn fullmove_number(&self) -> usize {
         self.fullmove_number
+    }
+
+    pub const fn is_frc(&self) -> bool {
+        self.frc
     }
 
     /// Returns the Zobrist hash key for the current position.
@@ -242,10 +247,6 @@ impl Board {
         !self.state.checkers.is_empty()
     }
 
-    pub const fn is_threatened(&self, square: Square) -> bool {
-        self.state.threats.contains(square)
-    }
-
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
@@ -365,22 +366,18 @@ impl Board {
         }
 
         if mv.is_castling() {
-            macro_rules! check_castling {
-                ($kind:tt) => {
-                    ($kind::PATH_MASK & self.occupancies()).is_empty()
-                        && self.state.castling.is_allowed::<$kind>()
-                        && $kind::CHECK_SQUARES.iter().all(|&square| !self.is_threatened(square))
-                };
-            }
+            let kind = match to {
+                Square::G1 => CastlingKind::WhiteKingside,
+                Square::C1 => CastlingKind::WhiteQueenside,
+                Square::G8 => CastlingKind::BlackKingside,
+                Square::C8 => CastlingKind::BlackQueenside,
+                _ => unreachable!(),
+            };
 
             return piece == PieceType::King
-                && match mv {
-                    WhiteKingSide::CASTLING_MOVE => check_castling!(WhiteKingSide),
-                    WhiteQueenSide::CASTLING_MOVE => check_castling!(WhiteQueenSide),
-                    BlackKingSide::CASTLING_MOVE => check_castling!(BlackKingSide),
-                    BlackQueenSide::CASTLING_MOVE => check_castling!(BlackQueenSide),
-                    _ => unreachable!(),
-                };
+                && self.state.castling_rights.is_allowed(kind)
+                && (self.castling_path[kind] & self.occupancies()).is_empty()
+                && ((between(from, mv.to()) | to.to_bb()) & self.threats()).is_empty();
         }
 
         if piece == PieceType::Pawn {
@@ -491,16 +488,57 @@ impl Board {
             self.state.key ^= ZOBRIST.side;
         }
 
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.castling[self.state.castling_rights];
     }
 
-    pub const fn get_castling_rook(king_to: Square) -> (Square, Square) {
+    pub fn set_castling(&mut self, rights: &str) {
+        for right in rights.chars() {
+            let color = if right.is_uppercase() { Color::White } else { Color::Black };
+            let king = self.king_square(color);
+
+            let (kind, rook) = match right {
+                'K' => (CastlingKind::WhiteKingside, Square::H1),
+                'Q' => (CastlingKind::WhiteQueenside, Square::A1),
+                'k' => (CastlingKind::BlackKingside, Square::H8),
+                'q' => (CastlingKind::BlackQueenside, Square::A8),
+                v @ 'A'..='H' => {
+                    let rook = Square::A1.shift(v.to_digit(10).unwrap() as i8 - 1);
+
+                    if king.file() < rook.file() {
+                        (CastlingKind::WhiteKingside, rook)
+                    } else {
+                        (CastlingKind::WhiteQueenside, rook)
+                    }
+                }
+                v @ 'a'..='h' => {
+                    let rook = Square::A8.shift(v.to_digit(10).unwrap() as i8 - 1);
+
+                    if king.file() < rook.file() {
+                        (CastlingKind::BlackKingside, rook)
+                    } else {
+                        (CastlingKind::BlackQueenside, rook)
+                    }
+                }
+                _ => continue,
+            };
+
+            self.castling_path[kind as usize] = between(king, rook);
+            self.castling_rook_square[kind as usize] = rook;
+
+            self.castling_rights_mask[king] |= kind as u8;
+            self.castling_rights_mask[rook] |= kind as u8;
+
+            self.state.castling_rights.raw |= kind as u8;
+        }
+    }
+
+    pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (Square::H1, Square::F1),
-            Square::C1 => (Square::A1, Square::D1),
-            Square::G8 => (Square::H8, Square::F8),
-            Square::C8 => (Square::A8, Square::D8),
-            _ => unreachable!(),
+            Square::G1 => (self.castling_rook_square[CastlingKind::WhiteKingside as usize], Square::F1),
+            Square::C1 => (self.castling_rook_square[CastlingKind::WhiteQueenside as usize], Square::D1),
+            Square::G8 => (self.castling_rook_square[CastlingKind::BlackKingside as usize], Square::F8),
+            Square::C8 => (self.castling_rook_square[CastlingKind::BlackQueenside as usize], Square::D8),
+            _ => unreachable!("{king_to}"),
         }
     }
 }
@@ -515,6 +553,10 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
+            castling_rights_mask: [0; Square::NUM],
+            castling_rook_square: [Square::None; 16],
+            castling_path: [Bitboard::default(); 16],
+            frc: false,
         }
     }
 }

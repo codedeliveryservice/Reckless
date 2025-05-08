@@ -6,7 +6,7 @@ macro_rules! assert_perft {
     ($($name:ident: $fen:tt, [$($nodes:expr),*],)*) => {$(
         #[test]
         fn $name() {
-            let mut board = Board::new($fen).unwrap();
+            let mut board = Board::new($fen, false).unwrap();
             for (depth, &nodes) in [$($nodes),*].iter().enumerate() {
                 assert_eq!(perft(&mut board, depth + 1), nodes);
             }
