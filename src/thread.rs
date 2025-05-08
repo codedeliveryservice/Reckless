@@ -286,7 +286,7 @@ impl<'a> AtomicCounter<'a> {
         self.global.store(0, Ordering::Relaxed);
     }
 
-    fn flush(&mut self) {
+    pub fn flush(&mut self) {
         self.local += self.buffer;
         self.global.fetch_add(self.buffer, Ordering::Relaxed);
         self.buffer = 0;

@@ -99,6 +99,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             break;
         }
 
+        td.counter.flush();
         td.completed_depth = depth;
 
         if last_move == td.pv.best_move() {
