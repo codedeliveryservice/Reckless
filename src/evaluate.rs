@@ -6,10 +6,7 @@ const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
 pub fn evaluate(td: &mut ThreadData) -> i32 {
     let mut eval = td.nnue.evaluate(&td.board);
 
-    #[cfg(not(feature = "datagen"))]
-    {
-        eval = eval * (22400 + material(&td.board)) / 32768;
-    }
+    eval = eval * (22400 + material(&td.board)) / 32768;
 
     eval.clamp(-16384, 16384)
 }
