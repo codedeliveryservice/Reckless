@@ -275,6 +275,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
+        td.stack[td.ply - 1].reduction -= 1024;
     }
 
     if !tt_pv
@@ -556,9 +557,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
 
+            let hindsight = td.stack[td.ply - 1].reduction - reduction;
+
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
+                new_depth += hindsight / 1024;
                 new_depth += (score > best_score + 68) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
