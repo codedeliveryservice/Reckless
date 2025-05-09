@@ -499,7 +499,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 } else if score >= beta {
                     return score;
                 } else if entry.score >= beta {
-                    extension = -2;
+                    extension = -2 - !PV as i32;
                 } else if cut_node {
                     extension = -2;
                 }
