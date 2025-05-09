@@ -14,6 +14,8 @@ impl Score {
 
     pub const MATE_IN_MAX:  i32 =  32000 - MAX_PLY as i32;
     pub const MATED_IN_MAX: i32 = -32000 + MAX_PLY as i32;
+
+    pub const TB_WIN:    i32    = Self::MATE_IN_MAX - 1;
 }
 
 pub const fn mated_in(ply: usize) -> i32 {
@@ -22,6 +24,14 @@ pub const fn mated_in(ply: usize) -> i32 {
 
 pub const fn mate_in(ply: usize) -> i32 {
     Score::MATE - ply as i32
+}
+
+pub const fn tb_loss_in(ply: usize) -> i32 {
+    -Score::TB_WIN + ply as i32
+}
+
+pub const fn tb_win_in(ply: usize) -> i32 {
+    Score::TB_WIN - ply as i32
 }
 
 pub const fn is_win(score: i32) -> bool {
