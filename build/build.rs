@@ -17,6 +17,7 @@ fn main() {
     generate_model_env();
     generate_attack_maps();
     generate_compiler_info();
+    generate_syzygy_binding();
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
         download_network();
@@ -24,6 +25,27 @@ fn main() {
 
     println!("cargo:rerun-if-env-changed=EVALFILE");
     println!("cargo:rerun-if-changed=networks/{NETWORK_NAME}");
+}
+
+fn generate_syzygy_binding() {
+    cc::Build::new()
+        .compiler("clang")
+        .include("./deps/Fathom")
+        .file("./deps/Fathom/tbprobe.c")
+        .flag("-Wno-deprecated-declarations")
+        .flag("-Wno-sign-compare")
+        .flag("-Wno-macro-redefined")
+        .flag("-march=native")
+        .flag("-O3")
+        .compile("fathom");
+
+    bindgen::Builder::default()
+        .header("./deps/Fathom/tbprobe.h")
+        .layout_tests(false)
+        .generate()
+        .unwrap()
+        .write_to_file("src/bindings.rs")
+        .unwrap();
 }
 
 fn generate_model_env() {

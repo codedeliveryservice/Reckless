@@ -75,6 +75,10 @@ impl Castling {
     pub const fn is_allowed<KIND: CastlingKind>(self) -> bool {
         (self.raw & KIND::MASK) != 0
     }
+
+    pub const fn raw(self) -> u8 {
+        self.raw
+    }
 }
 
 impl From<&str> for Castling {
