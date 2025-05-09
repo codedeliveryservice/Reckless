@@ -17,8 +17,10 @@ pub fn message_loop() {
     let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
 
+    let mut tb_pieces = 0;
     let mut move_overhead = 0;
     let mut report = Report::Full;
+
     let mut threads = ThreadPool::new(&tt, &stop, &counter);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
@@ -35,8 +37,10 @@ pub fn message_loop() {
 
             ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
-            ["ucinewgame"] => reset(&mut threads, &tt),
+            ["setoption", tokens @ ..] => {
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut tb_pieces, &tt, tokens)
+            }
+            ["ucinewgame"] => reset(&mut threads, &tt, tb_pieces),
 
             ["stop"] => stop.store(true, Ordering::Relaxed),
             ["quit"] => break,
@@ -77,8 +81,8 @@ fn compiler() {
     println!("Compiler Features: {}", env!("COMPILER_FEATURES"));
 }
 
-fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
-    threads.clear();
+fn reset(threads: &mut ThreadPool, tt: &TranspositionTable, tb_pieces: usize) {
+    threads.clear(tb_pieces);
     tt.clear(threads.len());
 }
 
@@ -203,7 +207,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 }
 
 fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tt: &TranspositionTable, tokens: &[&str],
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tb_pieces: &mut usize,
+    tt: &TranspositionTable, tokens: &[&str],
 ) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -220,7 +225,7 @@ fn set_option(
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
-            threads.set_count(v.parse().unwrap());
+            threads.set_count(v.parse().unwrap(), *tb_pieces);
             println!("info string set Threads to {v}");
         }
         ["name", "MoveOverhead", "value", v] => {
@@ -228,7 +233,11 @@ fn set_option(
             println!("info string set MoveOverhead to {v} ms");
         }
         ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
-            Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
+            Some(size) => {
+                *tb_pieces = size;
+                threads.iter_mut().for_each(|v| v.tb_pieces = size);
+                println!("info string Loaded Syzygy tablebases with {size} pieces");
+            }
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
         #[cfg(feature = "spsa")]
