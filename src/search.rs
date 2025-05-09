@@ -502,6 +502,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     extension = -2;
                 } else if cut_node {
                     extension = -2;
+                } else if entry.score <= score {
+                    extension = -1;
                 }
             }
         }
