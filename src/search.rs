@@ -210,6 +210,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
+            if entry.score >= beta && tt_move.is_noisy() {
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(tt_move),
+                    tt_move.to(),
+                    td.board.piece_on(tt_move.to()).piece_type(),
+                    (133 * depth - 65).min(1270),
+                );
+            }
+
             return entry.score;
         }
     }
