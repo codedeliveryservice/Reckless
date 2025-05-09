@@ -36,6 +36,7 @@ fn generate_syzygy_binding() {
         .flag("-Wno-sign-compare")
         .flag("-Wno-macro-redefined")
         .flag("-march=native")
+        .flag("-O3")
         .compile("fathom");
 
     bindgen::Builder::default()
