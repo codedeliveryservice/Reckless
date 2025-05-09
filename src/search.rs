@@ -224,9 +224,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !is_root && !excluded && td.board.occupancies().len() <= tb_size() {
         if let Some(outcome) = tb_probe(&td.board) {
             let (score, bound) = match outcome {
-                GameOutcome::Loss => (tb_win_in(td.ply), Bound::Upper),
-                GameOutcome::Win => (tb_loss_in(td.ply), Bound::Lower),
-                _ => (0, Bound::Exact),
+                GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
+                GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
+                _ => (Score::ZERO, Bound::Exact),
             };
 
             if bound == Bound::Exact
