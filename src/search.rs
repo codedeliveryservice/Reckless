@@ -442,6 +442,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+                + 7 * PIECE_VALUES[captured]
+                - 5000
         };
 
         let mut reduction = td.lmr.reduction(depth, move_count);
