@@ -108,6 +108,14 @@ impl Board {
     pub fn prior_threats(&self) -> Bitboard {
         self.state_stack[self.state_stack.len() - 1].threats
     }
+    
+    pub const fn en_passant(&self) -> Square {
+        self.state.en_passant
+    }
+
+    pub const fn castling(&self) -> Castling {
+        self.state.castling
+    }
 
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
