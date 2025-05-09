@@ -45,6 +45,7 @@ struct InternalState {
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
+    total_count: i32,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
@@ -107,6 +108,14 @@ impl Board {
 
     pub fn prior_threats(&self) -> Bitboard {
         self.state_stack[self.state_stack.len() - 1].threats
+    }
+
+    pub const fn en_passant(&self) -> Square {
+        self.state.en_passant
+    }
+
+    pub const fn castling(&self) -> Castling {
+        self.state.castling
     }
 
     /// Returns a `Bitboard` for the specified `Color`.
@@ -175,9 +184,14 @@ impl Board {
         }
     }
 
+    pub fn total_count(&self) -> i32 {
+        self.total_count
+    }
+
     /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
+        self.total_count += 1;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
     }
@@ -185,6 +199,7 @@ impl Board {
     /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
+        self.total_count -= 1;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
     }
@@ -223,7 +238,7 @@ impl Board {
     /// - Two kings only
     /// - Two kings and one minor piece
     pub fn draw_by_insufficient_material(&self) -> bool {
-        match self.occupancies().len() {
+        match self.total_count() {
             2 => true,
             3 => self.pieces(PieceType::Knight) | self.pieces(PieceType::Bishop) != Bitboard(0),
             _ => false,
@@ -515,6 +530,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
+            total_count: 0,
         }
     }
 }

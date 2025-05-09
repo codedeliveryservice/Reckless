@@ -4,9 +4,13 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
+    tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{
+        is_decisive, is_loss, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece, Score,
+        Square, MAX_PLY,
+    },
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -190,33 +194,60 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    let mut best_score = -Score::INFINITE;
+    let mut best_move = Move::NULL;
+    let mut max_score = Score::INFINITE;
+
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_move = Move::NULL;
+    let mut tt_score = Score::NONE;
     let mut tt_pv = PV;
 
     // Search Early TT-Cut
     if let Some(entry) = entry {
         tt_move = entry.mv;
+        tt_score = score_from_tt(entry.score, td.ply, td.board.halfmove_clock());
         tt_pv |= entry.pv;
 
         if !PV
             && !excluded
             && entry.depth >= depth
             && match entry.bound {
-                Bound::Upper => entry.score <= alpha,
-                Bound::Lower => entry.score >= beta,
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
                 _ => true,
             }
         {
-            if tt_move.is_some() && tt_move.is_quiet() && entry.score >= beta {
+            if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
                 let bonus = (133 * depth - 65).min(1270);
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
             }
 
-            return entry.score;
+            return tt_score;
+        }
+    }
+
+    if td.board.total_count() <= 7
+        && !is_root
+        && !excluded
+        && td.board.halfmove_clock() == 0
+        && td.board.total_count() <= tb_size() as i32
+        && td.board.castling().raw() == 0
+    {
+        if let Some((score, bound)) = probe_tablebase_cold_path(td, &mut alpha, beta, depth, tt_pv) {
+            if PV {
+                if bound == Bound::Lower {
+                    best_score = score;
+                    alpha = alpha.max(best_score);
+                } else {
+                    max_score = score;
+                }
+            } else {
+                return score;
+            }
         }
     }
 
@@ -235,17 +266,18 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
         eval = static_eval;
-    } else if let Some(entry) = entry {
+    } else if tt_score != Score::NONE {
+        let entry = entry.unwrap();
         raw_eval = if entry.eval != Score::NONE { entry.eval } else { evaluate(td) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
         if match entry.bound {
-            Bound::Upper => entry.score < eval,
-            Bound::Lower => entry.score > eval,
+            Bound::Upper => tt_score < eval,
+            Bound::Lower => tt_score > eval,
             _ => true,
         } {
-            eval = entry.score;
+            eval = tt_score;
         }
     } else {
         raw_eval = evaluate(td);
@@ -313,8 +345,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             >= beta + 80 * depth - (70 * improving as i32) - (33 * cut_node as i32)
                 + 512 * correction_value.abs() / 1024
                 + 25
+        && !is_loss(beta)
+        && !is_win(eval)
     {
-        return ((eval + beta) / 2).clamp(-16384, 16384);
+        return (eval + beta) / 2;
     }
 
     // Null Move Pruning (NMP)
@@ -326,6 +360,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval >= beta - 16 * depth + 131 * tt_pv as i32 + 205
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
+        && !is_loss(beta)
     {
         let r = 4 + depth / 3 + ((eval - beta) / 250).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
 
@@ -336,7 +371,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_null_move();
 
         td.stack[td.ply].reduction = 1024 * (r - 1);
-        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
         td.stack[td.ply].reduction = 0;
 
         td.board.undo_null_move();
@@ -346,11 +381,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if score >= beta {
-            if is_win(score) {
-                score = beta;
-            }
-
+        if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
@@ -374,7 +405,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     // ProbCut
     let probcut_beta = beta + 302 - 66 * improving as i32;
 
-    if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
+    if depth >= 3 && !is_decisive(beta) && (tt_score >= probcut_beta) {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
@@ -423,8 +454,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let initial_depth = depth;
 
-    let mut best_score = -Score::INFINITE;
-    let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
@@ -485,8 +514,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
-            if depth >= 5 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
-                let singular_beta = entry.score - depth;
+            if depth >= 5 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(tt_score) {
+                let singular_beta = tt_score - depth;
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
@@ -504,9 +533,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     if extension > 1 && depth < 12 {
                         depth += 1;
                     }
-                } else if score >= beta {
+                } else if score >= beta && !is_decisive(score) {
                     return score;
-                } else if entry.score >= beta {
+                } else if tt_score >= beta {
                     extension = -2;
                 } else if cut_node {
                     extension = -2;
@@ -530,7 +559,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if tt_pv {
                 reduction -= 724;
-                reduction -= 590 * entry.is_some_and(|entry| entry.score > alpha) as i32;
+                reduction -= 590 * (tt_score != Score::NONE && tt_score > alpha) as i32;
                 reduction -= 747 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
             }
 
@@ -713,6 +742,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if PV {
+        best_score = best_score.min(max_score);
+    }
+
     if !excluded {
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
@@ -754,17 +787,20 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_pv = PV;
+    let mut tt_score = Score::NONE;
 
     // QS Early TT-Cut
     if let Some(entry) = entry {
+        tt_score = score_from_tt(entry.score, td.ply, td.board.halfmove_clock());
+
         tt_pv |= entry.pv;
 
         if match entry.bound {
-            Bound::Upper => entry.score <= alpha,
-            Bound::Lower => entry.score >= beta,
+            Bound::Upper => tt_score <= alpha,
+            Bound::Lower => tt_score >= beta,
             _ => true,
         } {
-            return entry.score;
+            return tt_score;
         }
     }
 
@@ -782,18 +818,18 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
-        if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Upper => entry.score < static_eval,
-                Bound::Lower => entry.score > static_eval,
+        if !is_decisive(tt_score)
+            && match entry.unwrap().bound {
+                Bound::Upper => tt_score < static_eval,
+                Bound::Lower => tt_score > static_eval,
                 _ => true,
-            } {
-                best_score = entry.score;
             }
+        {
+            best_score = tt_score;
         }
 
         if best_score >= beta {
-            if entry.is_none() {
+            if tt_score == Score::NONE {
                 td.tt.write(td.board.hash(), 0, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
             }
 
@@ -898,7 +934,7 @@ fn correction_value(td: &ThreadData) -> i32 {
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-16384, 16384)
+    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX, Score::TB_WIN_IN_MAX)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
@@ -953,4 +989,67 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
     td.ply -= 1;
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+#[inline(never)]
+#[cold]
+fn probe_tablebase_cold_path(
+    td: &mut ThreadData, alpha: &mut i32, beta: i32, depth: i32, tt_pv: bool,
+) -> Option<(i32, Bound)> {
+    if let Some(outcome) = tb_probe(&td.board) {
+        let (score, bound) = match outcome {
+            GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
+            GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
+            _ => (Score::ZERO, Bound::Exact),
+        };
+
+        if bound == Bound::Exact
+            || (bound == Bound::Lower && score >= beta)
+            || (bound == Bound::Upper && score <= *alpha)
+        {
+            let new_depth = (depth + 6).min(MAX_PLY as i32 - 1);
+            td.tt.write(td.board.hash(), new_depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+            return Some((score, bound));
+        }
+    }
+
+    None
+}
+
+fn score_from_tt(score: i32, ply: usize, half_clock: u8) -> i32 {
+    // Adjust mate distance from "plies from the root" to "plies from the current position"
+    if score != Score::NONE {
+        // handle TB win or better
+        if is_win(score) {
+            // Downgrade a potentially false mate score
+            if score >= Score::MATE_IN_MAX && Score::MATE - score > 100 - half_clock as i32 {
+                return Score::TB_WIN_IN_MAX - 1;
+            }
+
+            // Downgrade a potentially false TB score.
+            if Score::TB_WIN - score > 100 - half_clock as i32 {
+                return Score::TB_WIN_IN_MAX - 1;
+            }
+
+            return score - ply as i32;
+        }
+        // handle TB loss or worse
+        else if is_loss(score) {
+            // Downgrade a potentially false mate score.
+            if score <= -Score::MATE_IN_MAX && Score::MATE + score > 100 - half_clock as i32 {
+                return -Score::TB_WIN_IN_MAX + 1;
+            }
+
+            // Downgrade a potentially false TB score.
+            if Score::TB_WIN + score > 100 - half_clock as i32 {
+                return -Score::TB_WIN_IN_MAX + 1;
+            }
+
+            return score + ply as i32;
+        } else {
+            return score;
+        }
+    } else {
+        return Score::NONE;
+    }
 }

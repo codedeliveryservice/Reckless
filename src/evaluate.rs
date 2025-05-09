@@ -1,4 +1,8 @@
-use crate::{board::Board, thread::ThreadData, types::PieceType};
+use crate::{
+    board::Board,
+    thread::ThreadData,
+    types::{PieceType, Score},
+};
 
 const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
 
@@ -8,7 +12,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     eval = eval * (22400 + material(&td.board)) / 32768;
 
-    eval.clamp(-16384, 16384)
+    eval.clamp(-Score::TB_WIN_IN_MAX, Score::TB_WIN_IN_MAX)
 }
 
 fn material(board: &Board) -> i32 {

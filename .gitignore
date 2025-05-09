@@ -3,3 +3,4 @@
 *.exe
 *.pdb
 reckless*
+bindings.rs
