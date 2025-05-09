@@ -285,6 +285,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 1053
         && td.stack[td.ply - 1].static_eval != Score::NONE
         && static_eval + td.stack[td.ply - 1].static_eval > 81
+        && !(depth >= 5
+            && tt_move.is_some()
+            && matches!(entry, Some(e) if e.depth >= depth - 3
+                               && e.bound != Bound::Upper
+                               && !is_decisive(e.score)))
     {
         depth -= 1;
     }
