@@ -140,14 +140,8 @@ impl<'a> ThreadData<'a> {
         let nps = self.counter.global() as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();
 
-        let score = match score {
-            s if is_win(s) => format!("mate {}", (Score::MATE - score + 1) / 2),
-            s if is_loss(s) => format!("mate {}", (-Score::MATE - score) / 2),
-            _ => format!("cp {}", normalize_to_cp(score, &self.board)),
-        };
-
         print!(
-            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
+            "info depth {depth} seldepth {} score cp {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
             self.sel_depth,
             self.counter.global(),
             self.tt.hashfull(),
