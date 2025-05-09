@@ -238,6 +238,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 || (bound == Bound::Lower && score >= beta)
                 || (bound == Bound::Upper && score <= alpha)
             {
+                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
                 td.tt.write(td.board.hash(), depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
                 return score;
             }
