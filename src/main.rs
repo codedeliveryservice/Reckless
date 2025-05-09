@@ -10,6 +10,7 @@ mod nnue;
 mod parameters;
 mod search;
 mod stack;
+mod tb;
 mod thread;
 mod time;
 mod tools;
