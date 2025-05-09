@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{is_loss, is_win, normalize_to_cp, Move, Score, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -140,10 +140,15 @@ impl<'a> ThreadData<'a> {
         let nps = self.counter.global() as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();
 
-        let score = match score {
-            s if is_win(s) => format!("mate {}", (Score::MATE - score + 1) / 2),
-            s if is_loss(s) => format!("mate {}", (-Score::MATE - score) / 2),
-            _ => format!("cp {}", normalize_to_cp(score, &self.board)),
+        let score = if score.abs() < Score::TB_WIN_IN_MAX {
+            format!("cp {}", normalize_to_cp(score, &self.board))
+        } else if score.abs() <= Score::TB_WIN {
+            let ply = Score::TB_WIN - score.abs();
+            let cp_score = 20_000 - ply;
+            format!("cp {}", if score.is_positive() { cp_score } else { -cp_score })
+        } else {
+            let mate = (Score::MATE - score.abs() + if score.is_positive() { 1 } else { 0 }) / 2;
+            format!("mate {}", if score.is_positive() { mate } else { -mate })
         };
 
         print!(

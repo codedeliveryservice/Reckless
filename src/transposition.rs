@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-use crate::types::{is_decisive, Move};
+use crate::types::{is_decisive, is_loss, is_win, Move, Score};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -148,25 +148,20 @@ impl TranspositionTable {
         self.age.store((self.tt_age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, ply: usize) -> Option<Entry> {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> Option<Entry> {
         let cluster = self.entry(hash);
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
             if key == entry.key && entry.flags.bound() != Bound::None {
-                let mut hit = Entry {
+                let hit = Entry {
                     depth: entry.depth as i32,
-                    score: entry.score as i32,
+                    score: score_from_tt(entry.score as i32, ply, halfmove_clock),
                     eval: entry.eval as i32,
                     bound: entry.flags.bound(),
                     pv: entry.flags.pv(),
                     mv: entry.mv,
                 };
-
-                // Adjust mate distance from "plies from the current position" to "plies from the root"
-                if is_decisive(hit.score) {
-                    hit.score -= hit.score.signum() * ply as i32;
-                }
 
                 return Some(hit);
             }
@@ -285,6 +280,45 @@ impl TranspositionTable {
 /// Returns the verification key of the hash (bottom 16 bits).
 const fn verification_key(hash: u64) -> u16 {
     hash as u16
+}
+
+/// Adjust mate distance from "plies from the root" to "plies from the current position".
+const fn score_from_tt(score: i32, ply: usize, halfmove_clock: u8) -> i32 {
+    if score == Score::NONE {
+        return Score::NONE;
+    }
+
+    // Handle TB win or better
+    if is_win(score) {
+        // Downgrade a potentially false mate score
+        if score >= Score::MATE_IN_MAX && Score::MATE - score > 100 - halfmove_clock as i32 {
+            return Score::TB_WIN_IN_MAX - 1;
+        }
+
+        // Downgrade a potentially false TB score.
+        if Score::TB_WIN - score > 100 - halfmove_clock as i32 {
+            return Score::TB_WIN_IN_MAX - 1;
+        }
+
+        return score - ply as i32;
+    }
+
+    // Handle TB loss or worse
+    if is_loss(score) {
+        // Downgrade a potentially false mate score.
+        if score <= -Score::MATE_IN_MAX && Score::MATE + score > 100 - halfmove_clock as i32 {
+            return -Score::TB_WIN_IN_MAX + 1;
+        }
+
+        // Downgrade a potentially false TB score.
+        if Score::TB_WIN + score > 100 - halfmove_clock as i32 {
+            return -Score::TB_WIN_IN_MAX + 1;
+        }
+
+        return score + ply as i32;
+    }
+
+    score
 }
 
 impl Default for TranspositionTable {
