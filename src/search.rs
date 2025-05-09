@@ -221,7 +221,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if !is_root && !excluded && td.board.occupancies().len() <= tb_size() {
+    if !is_root
+        && !excluded
+        && td.board.halfmove_clock() == 0
+        && td.board.castling().raw() == 0
+        && td.board.occupancies().len() <= tb_size()
+    {
         if let Some(outcome) = tb_probe(&td.board) {
             let (score, bound) = match outcome {
                 GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),

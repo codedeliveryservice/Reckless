@@ -39,8 +39,8 @@ pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
             board.pieces(PieceType::Bishop).0,
             board.pieces(PieceType::Knight).0,
             board.pieces(PieceType::Pawn).0,
-            board.halfmove_clock() as u32,
-            board.castling().raw() as u32,
+            0,
+            0,
             board.en_passant() as u32 & 0x3F,
             board.side_to_move() == Color::White,
         )
