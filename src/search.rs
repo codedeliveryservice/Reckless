@@ -48,19 +48,17 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.sel_depth = 0;
         td.root_depth = depth;
 
-        let mut alpha = -Score::INFINITE;
-        let mut beta = Score::INFINITE;
+        let mut alpha;
+        let mut beta;
 
         let mut delta = 10;
         let mut reduction = 0;
 
         // Aspiration Windows
-        if depth >= 4 {
-            delta += window_expansion + average * average / 32247;
+        delta += window_expansion + average * average / 32247;
 
-            alpha = (average - delta).max(-Score::INFINITE);
-            beta = (average + delta).min(Score::INFINITE);
-        }
+        alpha = (average - delta).max(-Score::INFINITE);
+        beta = (average + delta).min(Score::INFINITE);
 
         loop {
             td.stack = Default::default();
