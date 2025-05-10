@@ -288,6 +288,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval > 81
     {
         depth -= 1;
+        td.stack[td.ply - 1].reduction += 1024;
     }
 
     let improving =
