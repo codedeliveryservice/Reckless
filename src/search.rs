@@ -559,7 +559,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 68) as i32;
+                new_depth += (score > best_score + 48 + 4 * depth) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
