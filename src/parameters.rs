@@ -4,7 +4,6 @@ pub const fn lmp_threshold(depth: i32, improving: bool) -> i32 {
     (4 + depth * depth) / (2 - improving as i32)
 }
 
-#[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
 macro_rules! define {
     {$($type:ident $name:ident: $value:expr; )*} => {
@@ -38,3 +37,22 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 conthist_mp_0: 1141;
+    i32 conthist_mp_1: 1031;
+    i32 conthist_mp_2: 988;
+    i32 conthist_mp_3: 554;
+    i32 conthist_mp_4: 0;
+    i32 conthist_mp_5: 0;
+    i32 conthist_mp_6: 0;
+    i32 conthist_s_1: 1287;
+    i32 conthist_s_2: 1323;
+    i32 conthist_s_3: 937;
+    i32 conthist_s_4: 0;
+    i32 conthist_s_5: 0;
+    i32 conthist_s_6: 0;
+    i32 prun_hist_div: 7084;
+    i32 red_hist_mul: 90;
+    i32 red_hist_cor: 556;
+);
