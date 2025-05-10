@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
-    misc::dbg_hit,
     movepick::{MovePicker, Stage},
     parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
@@ -230,7 +229,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.castling().raw() == 0
     {
         if let Some(score) =
-            probe_tablebase_cold_path(td, alpha, beta, depth, PV, tt_pv, &mut best_score, &mut max_score)
+            probe_tablebase_cold_path(td, &mut alpha, beta, depth, PV, tt_pv, &mut best_score, &mut max_score)
         {
             return score;
         }
@@ -968,9 +967,10 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
     td.board.undo_move(mv);
 }
 
+#[inline(never)]
 #[cold]
 fn probe_tablebase_cold_path(
-    td: &mut ThreadData, alpha: i32, beta: i32, depth: i32, pv: bool, tt_pv: bool, best_score: &mut i32,
+    td: &mut ThreadData, alpha: &mut i32, beta: i32, depth: i32, pv: bool, tt_pv: bool, best_score: &mut i32,
     max_score: &mut i32,
 ) -> Option<i32> {
     if let Some(outcome) = tb_probe(&td.board) {
@@ -982,7 +982,7 @@ fn probe_tablebase_cold_path(
 
         if bound == Bound::Exact
             || (bound == Bound::Lower && score >= beta)
-            || (bound == Bound::Upper && score <= alpha)
+            || (bound == Bound::Upper && score <= *alpha)
         {
             let new_depth = (depth + 6).min(MAX_PLY as i32 - 1);
             td.tt.write(td.board.hash(), new_depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
@@ -992,7 +992,7 @@ fn probe_tablebase_cold_path(
         if pv {
             if bound == Bound::Lower {
                 *best_score = score;
-                // `alpha` was passed by value; update external alpha as needed in caller if required.
+                *alpha = *alpha.max(best_score);
             } else {
                 *max_score = score;
             }
