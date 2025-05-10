@@ -17,3 +17,6 @@ debug-assertions = true
 lto = "fat"
 panic = "abort"
 codegen-units = 1
+
+[dependencies]
+memmap = "0.7.0"
