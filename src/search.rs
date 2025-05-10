@@ -626,6 +626,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.stack[td.ply].cutoff_count += 1;
                     break;
                 }
+
+                if depth > 2 && depth < 16 && !is_decisive(score) {
+                    depth -= 1;
+                }
             }
         }
 
