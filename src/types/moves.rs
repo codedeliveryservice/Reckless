@@ -69,16 +69,7 @@ impl Move {
     }
 
     pub const fn is_noisy(self) -> bool {
-        matches!(
-            self.kind(),
-            MoveKind::Capture
-                | MoveKind::EnPassant
-                | MoveKind::PromotionQ
-                | MoveKind::PromotionCaptureN
-                | MoveKind::PromotionCaptureB
-                | MoveKind::PromotionCaptureR
-                | MoveKind::PromotionCaptureQ
-        )
+        self.is_capture() || matches!(self.kind(), MoveKind::PromotionQ)
     }
 
     pub const fn is_capture(self) -> bool {
