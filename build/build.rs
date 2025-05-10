@@ -29,7 +29,7 @@ fn main() {
 
 fn generate_syzygy_binding() {
     cc::Build::new()
-        .compiler("gcc")
+        .compiler("clang")
         .include("./deps/Fathom")
         .file("./deps/Fathom/tbprobe.c")
         .flag("-Wno-deprecated-declarations")

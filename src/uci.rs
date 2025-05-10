@@ -227,10 +227,17 @@ fn set_option(
             *move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
-        ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
-            Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
-            None => eprintln!("Failed to load Syzygy tablebases"),
-        },
+        ["name", "SyzygyPath", "value", v] => {
+            let path = std::path::Path::new(v);
+            if path.exists() && path.is_dir() {
+                match tb_initilize(v) {
+                    Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
+                    None => eprintln!("Failed to load Syzygy tablebases from valid path"),
+                }
+            } else {
+                eprintln!("Invalid Syzygy path: '{v}' does not exist or is not a directory");
+            }
+        }
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
