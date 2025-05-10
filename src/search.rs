@@ -525,9 +525,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
+            hist_lmr_0() * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + conthist_lmr_1() * td.conthist(1, mv) / 1024
+                + conthist_lmr_2() * td.conthist(2, mv) / 1024
+                + conthist_lmr_3() * td.conthist(3, mv) / 1024
+                + conthist_lmr_4() * td.conthist(4, mv) / 1024
+                + conthist_lmr_5() * td.conthist(5, mv) / 1024
+                + conthist_lmr_6() * td.conthist(6, mv) / 1024
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
