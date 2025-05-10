@@ -204,6 +204,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !PV
             && !excluded
             && entry.depth >= depth
+            && (cut_node || entry.score <= alpha)
             && match entry.bound {
                 Bound::Upper => entry.score <= alpha,
                 Bound::Lower => entry.score >= beta,
