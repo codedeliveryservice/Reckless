@@ -210,6 +210,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
+            if entry.score >= beta && tt_move.is_some() && !tt_move.is_noisy() {
+                td.quiet_history.update(
+                    td.board.threats(),
+                    td.board.side_to_move(),
+                    tt_move,
+                    (126 * depth - 75).min(1325),
+                );
+            }
+
             return entry.score;
         }
     }
