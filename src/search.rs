@@ -967,7 +967,6 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
     td.board.undo_move(mv);
 }
 
-#[inline(never)]
 #[cold]
 fn probe_tablebase_cold_path(
     td: &mut ThreadData, alpha: &mut i32, beta: i32, depth: i32, pv: bool, tt_pv: bool, best_score: &mut i32,

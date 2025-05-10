@@ -13,7 +13,6 @@ pub enum GameOutcome {
     Draw,
 }
 
-#[cold]
 pub fn tb_initilize(path: &str) -> Option<usize> {
     let cpath = CString::new(path).ok()?;
 
@@ -25,12 +24,10 @@ pub fn tb_initilize(path: &str) -> Option<usize> {
     }
 }
 
-#[cold]
 pub fn tb_size() -> usize {
     unsafe { TB_LARGEST as usize }
 }
 
-#[cold]
 pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
     let code = unsafe {
         tb_probe_wdl(
