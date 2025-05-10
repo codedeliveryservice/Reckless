@@ -196,7 +196,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
-    // Early TT-Cut
+    // Search Early TT-Cut
     if let Some(entry) = entry {
         tt_move = entry.mv;
         tt_pv |= entry.pv;
@@ -743,7 +743,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let entry = td.tt.read(td.board.hash(), td.ply);
     let mut tt_pv = PV;
 
-    // Early TT-Cut
+    // QS Early TT-Cut
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
 
