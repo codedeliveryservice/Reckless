@@ -255,7 +255,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
-        && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_some()
         && td.stack[td.ply - 1].mv.is_quiet()
