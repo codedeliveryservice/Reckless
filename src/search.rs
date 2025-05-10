@@ -935,6 +935,27 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
             td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1035 * bonus / 1024);
         }
     }
+
+    if td.ply >= 4 {
+        let entry = td.stack[td.ply - 4];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1024 * bonus / 1024);
+        }
+    }
+
+    if td.ply >= 5 {
+        let entry = td.stack[td.ply - 5];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1024 * bonus / 1024);
+        }
+    }
+
+    if td.ply >= 6 {
+        let entry = td.stack[td.ply - 6];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.piece, entry.mv.to(), piece, sq, 1024 * bonus / 1024);
+        }
+    }
 }
 
 fn make_move(td: &mut ThreadData, mv: Move) {
