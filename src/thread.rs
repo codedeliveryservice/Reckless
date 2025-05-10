@@ -19,15 +19,15 @@ pub struct ThreadPool<'a> {
 
 impl<'a> ThreadPool<'a> {
     pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter, 0)] }
+        Self { vector: vec![ThreadData::new(tt, stop, counter)] }
     }
 
-    pub fn set_count(&mut self, threads: usize, tb_pieces: usize) {
+    pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
         let counter = self.vector[0].counter.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter, tb_pieces));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -46,9 +46,9 @@ impl<'a> ThreadPool<'a> {
         self.vector.iter_mut()
     }
 
-    pub fn clear(&mut self, tb_pieces: usize) {
+    pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, tb_pieces);
+            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global);
         }
     }
 }
@@ -80,11 +80,10 @@ pub struct ThreadData<'a> {
     pub completed_depth: i32,
     pub ply: usize,
     pub nmp_min_ply: i32,
-    pub tb_pieces: usize,
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_pieces: usize) -> Self {
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
         Self {
             tt,
             stop,
@@ -112,7 +111,6 @@ impl<'a> ThreadData<'a> {
             completed_depth: 0,
             ply: 0,
             nmp_min_ply: 0,
-            tb_pieces,
         }
     }
 

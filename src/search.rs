@@ -4,7 +4,7 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
-    tb::{tb_probe, GameOutcome},
+    tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::Bound,
     types::{
@@ -225,7 +225,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
-        && td.board.occupancies().len() <= td.tb_pieces
+        && td.board.occupancies().len() <= tb_size()
     {
         if let Some(outcome) = tb_probe(&td.board) {
             let (score, bound) = match outcome {
