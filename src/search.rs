@@ -657,7 +657,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if best_move.is_some() {
         let bonus_noisy = (133 * depth - 65).min(1270);
-        let malus_noisy = (143 * depth - 75).min(1270) - 15 * (move_count - 1);
+        let malus_noisy = (143 * depth - 75).min(1270);
 
         let bonus_quiet = (126 * depth - 75).min(1325);
         let malus_quiet = (119 * depth - 59).min(1180) - 18 * (move_count - 1);
