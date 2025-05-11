@@ -460,9 +460,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
 
-            // Futility Pruning (FP)
-            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
-
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
                 && lmr_depth < 6
@@ -470,6 +467,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 && static_eval + 132 * lmr_depth + 3 * move_count <= alpha
             {
                 break;
+            }
+
+            // Futility Pruning (FP)
+            skip_quiets |= !in_check && is_quiet && lmr_depth < 9 && static_eval + 93 * lmr_depth + 166 <= alpha;
+
+
+            if is_quiet && !skip_quiets && lmr_depth < 3 && td.conthist(1, mv) < 0 && td.conthist(2, mv) < 0 {
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
