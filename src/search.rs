@@ -776,6 +776,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if !in_check {
         raw_eval = match entry {
             Some(entry) if entry.eval != Score::NONE => entry.eval,
+            _ if td.stack[td.ply - 1].mv.is_null() => -td.stack[td.ply - 1].static_eval,
             _ => evaluate(td),
         };
 
