@@ -1,12 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    evaluate::evaluate,
-    movepick::{MovePicker, Stage},
-    parameters::*,
-    thread::ThreadData,
-    transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    evaluate::evaluate, misc::dbg_hit, movepick::{MovePicker, Stage}, parameters::*, thread::ThreadData, transposition::Bound, types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY}
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -469,7 +464,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 break;
             }
 
-            if is_quiet && lmr_depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -600 * depth + 468 {
+            if is_quiet && lmr_depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -1200 * depth + 468 {
                 continue;
             }
 
