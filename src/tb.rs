@@ -195,7 +195,7 @@ impl EntryInfo for PawnEntry {
     fn pawns(&self, i: usize) -> u8 { self.pawns[i] }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum TbHashEntry {
     Piece(usize),
     Pawn(usize),
@@ -227,10 +227,8 @@ fn prt_str(board: &Board, flip: bool) -> String {
     s
 }
 
-static mut PSQ: [[u64; 64]; 16] = [[0; 64]; 16];
-
 fn material(pc: usize, num: usize) -> u64 {
-    unsafe { PSQ[pc][num] }
+    unsafe { crate::types::zobrist::PSQ[pc][num] }
 }
 
 fn calc_key_from_pcs(pcs: &[i32; 16], flip: bool) -> u64 {
@@ -240,7 +238,7 @@ fn calc_key_from_pcs(pcs: &[i32; 16], flip: bool) -> u64 {
         for pt in 1..7 {
             let pc = (c << 3) + pt as usize;
             for i in 0..pcs[pc as usize] {
-                key ^= material(pc ^ (flip as usize), i as usize);
+                key ^= material(pc ^ ((flip as usize) << 3), i as usize);
             }
         }
     }
@@ -371,34 +369,7 @@ static mut TB_MAP: *mut HashMap<u64, TbHashEntry> = 0 as *mut HashMap<u64, TbHas
 
 static mut NUM_WDL: u32 = 0;
 
-struct Prng(u64);
-
-impl Prng {
-    pub fn new(seed: u64) -> Prng {
-        Prng(seed)
-    }
-
-    pub fn rand64(&mut self) -> u64 {
-        (*self).0 ^= (*self).0 >> 12;
-        (*self).0 ^= (*self).0 << 25;
-        (*self).0 ^= (*self).0 >> 27;
-        u64::wrapping_mul(self.0, 2685821657736338717)
-    }
-}
-
 pub fn init_tb(name: &str) {
-  let mut rng = Prng::new(1070372);
-
-    unsafe {
-        for i in 1..15 {
-            if i != 7 && i != 8 {
-                for s in 0..64 {
-                    PSQ[i][s] = rng.rand64();
-                }
-            }
-        }
-    }
-
     const PAWN  : usize = 1;
     const KNIGHT: usize = 2;
     const BISHOP: usize = 3;
@@ -983,35 +954,8 @@ fn fill_squares(board: &Board, pc: &[u8; TB_PIECES], num: usize, flip: bool, p: 
     }
 }
 
-const PRIME_WHITE_QUEEN : u64 = 11811845319353239651;
-const PRIME_WHITE_ROOK  : u64 = 10979190538029446137;
-const PRIME_WHITE_BISHOP: u64 = 12311744257139811149;
-const PRIME_WHITE_KNIGHT: u64 = 15202887380319082783;
-const PRIME_WHITE_PAWN  : u64 = 17008651141875982339;
-const PRIME_BLACK_QUEEN : u64 = 15484752644942473553;
-const PRIME_BLACK_ROOK  : u64 = 18264461213049635989;
-const PRIME_BLACK_BISHOP: u64 = 15394650811035483107;
-const PRIME_BLACK_KNIGHT: u64 = 13469005675588064321;
-const PRIME_BLACK_PAWN  : u64 = 11695583624105689831;
-
-fn calc_key(board: &Board) -> u64 {
-    let white = board.colors(Color::White);
-    let black = board.colors(Color::Black);
-
-    (white & board.pieces(PieceType::Queen)).len() as u64  * PRIME_WHITE_QUEEN
-        + (white & board.pieces(PieceType::Rook)).len() as u64   * PRIME_WHITE_ROOK
-        + (white & board.pieces(PieceType::Bishop)).len() as u64 * PRIME_WHITE_BISHOP
-        + (white & board.pieces(PieceType::Knight)).len() as u64 * PRIME_WHITE_KNIGHT
-        + (white & board.pieces(PieceType::Pawn)).len() as u64   * PRIME_WHITE_PAWN
-        + (black & board.pieces(PieceType::Queen)).len() as u64  * PRIME_BLACK_QUEEN
-        + (black & board.pieces(PieceType::Rook)).len() as u64   * PRIME_BLACK_ROOK
-        + (black & board.pieces(PieceType::Bishop)).len() as u64 * PRIME_BLACK_BISHOP
-        + (black & board.pieces(PieceType::Knight)).len() as u64 * PRIME_BLACK_KNIGHT
-        + (black & board.pieces(PieceType::Pawn)).len() as u64   * PRIME_BLACK_PAWN
-}
-
 fn probe_helper<T: TbTable> (board: &Board, e: &T::Entry, success: &mut i32) -> i32 {
-    let key = calc_key(board);
+    let key = board.material_key();
 
     let tb = e.table();
     if !tb.ready().load(Ordering::Acquire) {
@@ -1054,7 +998,7 @@ fn probe_helper<T: TbTable> (board: &Board, e: &T::Entry, success: &mut i32) -> 
 
 fn probe_table<T: TbType>(board: &Board, success: &mut i32) -> i32 {
     // Obtain the position's material signature key
-    let key = calc_key(board);
+    let key = board.material_key();
 
     // Test for KvK
     if board.occupancies() == board.pieces(PieceType::King) {

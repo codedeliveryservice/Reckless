@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use super::Board;
-use crate::types::{Color, Square};
+use crate::types::{zobrist, Color, Piece, PieceType, Square};
 
 #[derive(Debug)]
 pub enum ParseFenError {
@@ -42,6 +42,16 @@ impl FromStr for Board {
 
                 board.add_piece(piece, square);
                 file += 1;
+            }
+        }
+
+        for color in [Color::White, Color::Black] {
+            for piece_type in [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King] {
+                let pc = Piece::new(color, piece_type);
+
+                for num in 0..board.of(piece_type, color).len() {
+                    board.state.material_key ^= zobrist::material(pc, num);
+                }
             }
         }
 

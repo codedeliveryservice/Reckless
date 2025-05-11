@@ -1,5 +1,7 @@
 #![allow(clippy::if_same_then_else)]
 
+use types::zobrist;
+
 mod board;
 mod evaluate;
 mod history;
@@ -20,6 +22,7 @@ mod uci;
 
 fn main() {
     lookup::init();
+    zobrist::init();
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(14),

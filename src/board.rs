@@ -39,6 +39,7 @@ struct InternalState {
     threats: Bitboard,
     pinners: Bitboard,
     checkers: Bitboard,
+    material_key: u64,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -95,6 +96,10 @@ impl Board {
 
     pub const fn castling(&self) -> Castling {
         self.state.castling
+    }
+
+    pub const fn material_key(&self) -> u64 {
+        self.state.material_key
     }
 
     pub const fn pinners(&self) -> Bitboard {

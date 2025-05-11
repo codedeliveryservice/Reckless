@@ -1,5 +1,5 @@
 use super::Board;
-use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{zobrist, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
@@ -56,6 +56,8 @@ impl Board {
             self.remove_piece(captured, to);
             self.update_hash(captured, to);
             self.state.captured = Some(captured);
+            self.state.material_key ^=
+                zobrist::material(captured, self.of(captured.piece_type(), captured.piece_color()).len());
         }
 
         self.remove_piece(piece, from);
@@ -74,6 +76,9 @@ impl Board {
 
                 self.remove_piece(captured, to ^ 8);
                 self.update_hash(captured, to ^ 8);
+
+                self.state.material_key ^=
+                    zobrist::material(captured, self.of(captured.piece_type(), captured.piece_color()).len());
             }
             MoveKind::Castling => {
                 let (rook_from, rook_to) = Self::get_castling_rook(to);
@@ -93,6 +98,10 @@ impl Board {
 
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
+
+                self.state.material_key ^=
+                    zobrist::material(promotion, self.of(promotion.piece_type(), promotion.piece_color()).len())
+                        ^ zobrist::material(piece, self.of(piece.piece_type(), piece.piece_color()).len())
             }
             _ => (),
         }
