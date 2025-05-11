@@ -714,7 +714,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), scaled_bonus / 2);
+            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), scaled_bonus);
             td.ply += 1;
         }
     }
