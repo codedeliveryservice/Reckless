@@ -469,7 +469,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 break;
             }
 
-            if is_quiet && lmr_depth == 1 && td.conthist(1, mv) + td.conthist(2, mv) < -600 * depth + 468 {
+            if is_quiet && lmr_depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -600 * depth + 468 {
                 continue;
             }
 
