@@ -4,9 +4,13 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
+    tb::{max_cardinality, probe_wdl},
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{
+        is_decisive, is_loss, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece, Score,
+        Square, MAX_PLY,
+    },
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -190,6 +194,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    let mut best_score = -Score::INFINITE;
+    let mut max_score = Score::INFINITE;
+
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = td.tt.read(td.board.hash(), td.ply);
@@ -211,6 +218,42 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         {
             return entry.score;
+        }
+    }
+
+    if !is_root
+        && !excluded
+        && td.board.halfmove_clock() == 0
+        && td.board.castling().raw() == 0
+        && td.board.occupancies().len() <= max_cardinality() as usize
+    {
+        let mut sucesss = 0;
+        let code = probe_wdl(&mut td.board, &mut sucesss);
+
+        if sucesss != 0 {
+            let (score, bound) = match code {
+                2 => (tb_win_in(td.ply), Bound::Lower),
+                -2 => (tb_loss_in(td.ply), Bound::Upper),
+                _ => (Score::ZERO, Bound::Exact),
+            };
+
+            if bound == Bound::Exact
+                || (bound == Bound::Lower && score >= beta)
+                || (bound == Bound::Upper && score <= alpha)
+            {
+                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
+                td.tt.write(td.board.hash(), depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+                return score;
+            }
+
+            if PV {
+                if bound == Bound::Lower {
+                    best_score = score;
+                    alpha = alpha.max(best_score);
+                } else {
+                    max_score = score;
+                }
+            }
         }
     }
 
@@ -415,7 +458,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
-    let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -699,6 +741,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if pcm_move.is_some() && pcm_move.is_quiet() {
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
+    }
+
+    if PV {
+        best_score = best_score.min(max_score);
     }
 
     if !excluded {

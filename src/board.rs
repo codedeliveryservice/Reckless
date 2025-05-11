@@ -93,6 +93,10 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
+    pub const fn castling(&self) -> Castling {
+        self.state.castling
+    }
+
     pub const fn pinners(&self) -> Bitboard {
         self.state.pinners
     }
