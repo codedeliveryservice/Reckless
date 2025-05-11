@@ -558,7 +558,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 978;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024).clamp(0, new_depth + (PV || cut_node) as i32);
+            let reduced_depth = (new_depth - reduction / 1024)
+                .clamp(0, new_depth + (PV || cut_node) as i32 + (PV && best_move.is_null()) as i32);
 
             td.stack[td.ply - 1].reduction = reduction;
 
