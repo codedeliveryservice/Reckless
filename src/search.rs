@@ -704,17 +704,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
             + 2 * (td.stack[td.ply - 1].static_eval != Score::NONE
-                && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32
-            + (-td.stack[td.ply - 1].history / 8192).min(3);
+                && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32;
 
-        let scaled_bonus = factor.max(0) * (146 * depth - 54).min(1353);
+        let scaled_bonus = factor * (146 * depth - 54).min(1353);
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_some() && pcm_move.is_quiet() {
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
+            let cont_factor = factor + (-td.stack[td.ply - 1].history / 8192).min(4);
+            let cont_bonus = cont_factor.max(0) * (146 * depth - 54).min(1353);
+
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), scaled_bonus);
+            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), cont_bonus);
             td.ply += 1;
         }
     }
