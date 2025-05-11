@@ -589,6 +589,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;
+                td.ply -= 1;
+                update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), -(135 * depth - 71).min(1177));
+                td.ply += 1;
             }
         }
         // Full Depth Search (FDS)
