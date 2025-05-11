@@ -331,6 +331,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
+        td.stack[td.ply].history = 0;
         td.ply += 1;
 
         td.board.make_null_move();
@@ -388,7 +389,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            make_move(td, mv);
+            make_move(td, mv, 0);
 
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -516,7 +517,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.counter.local();
 
-        make_move(td, mv);
+        make_move(td, mv, history);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -703,16 +704,17 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
             + 2 * (td.stack[td.ply - 1].static_eval != Score::NONE
-                && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32;
+                && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32
+            + (-td.stack[td.ply - 1].history / 8192).min(3);
 
-        let scaled_bonus = factor * (146 * depth - 54).min(1353);
+        let scaled_bonus = factor.max(0) * (146 * depth - 54).min(1353);
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_some() && pcm_move.is_quiet() {
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), (146 * depth - 54).min(1353));
+            update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), scaled_bonus / 2);
             td.ply += 1;
         }
     }
@@ -847,7 +849,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        make_move(td, mv);
+        make_move(td, mv, 0);
 
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
@@ -943,9 +945,10 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     }
 }
 
-fn make_move(td: &mut ThreadData, mv: Move) {
+fn make_move(td: &mut ThreadData, mv: Move, history: i32) {
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
+    td.stack[td.ply].history = history;
     td.ply += 1;
 
     td.nnue.push(mv, &td.board);
