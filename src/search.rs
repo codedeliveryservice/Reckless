@@ -574,7 +574,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
 
                     let mut bonus = match score {
-                        s if s >= beta => (1 + 2 * (move_count > depth) as i32) * (143 * depth - 65).min(1212),
+                        s if s >= beta => (1 + move_count / 4) * (143 * depth - 65).min(1212),
                         s if s <= alpha => -(135 * depth - 71).min(1177),
                         _ => 0,
                     };
