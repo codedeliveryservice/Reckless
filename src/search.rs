@@ -696,9 +696,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
+    if bound == Bound::Upper && td.ply >= 1 {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
+    }
 
+    if bound == Bound::Upper && td.ply >= 1 && depth > 3 {
         let factor = 1
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
