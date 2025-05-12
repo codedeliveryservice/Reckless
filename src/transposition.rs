@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-use crate::types::{is_decisive, is_loss, is_win, Move, Score};
+use crate::types::{is_decisive, is_loss, is_valid, is_win, Depth, Move, Score};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -77,9 +77,9 @@ impl Default for InternalEntry {
         Self {
             mv: Move::NULL,
             key: 0,
-            eval: 0,
-            score: 0,
-            depth: 0,
+            eval: Score::NONE as i16,
+            score: Score::NONE as i16,
+            depth: Depth::NONE as i8,
             flags: Flags::new(Bound::None, false, 0),
         }
     }
@@ -153,7 +153,7 @@ impl TranspositionTable {
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
-            if key == entry.key && entry.flags.bound() != Bound::None {
+            if key == entry.key && entry.depth as i32 != Depth::NONE {
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
@@ -215,7 +215,7 @@ impl TranspositionTable {
         }
 
         // Adjust mate distance from "plies from the root" to "plies from the current position"
-        if is_decisive(score) {
+        if is_valid(score) && is_decisive(score) {
             score += score.signum() * ply as i32;
         }
 
