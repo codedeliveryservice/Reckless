@@ -8,8 +8,8 @@ use crate::{
     thread::ThreadData,
     transposition::Bound,
     types::{
-        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Depth, Move,
-        Piece, Score, Square, MAX_PLY,
+        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
+        Score, Square, MAX_PLY,
     },
 };
 
@@ -202,7 +202,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
-    let mut tt_depth = Depth::UNSEARCHED;
+    let mut tt_depth = 0;
     let mut tt_bound = Bound::None;
 
     let mut tt_pv = PV;
@@ -286,7 +286,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = raw_eval;
         eval = static_eval;
     } else if let Some(entry) = entry {
-        raw_eval = if entry.eval != Score::NONE { entry.eval } else { evaluate(td) };
+        raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
@@ -301,6 +301,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
+        td.tt.write(td.board.hash(), -1, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
     }
@@ -824,11 +826,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         tt_score = entry.score;
         tt_bound = entry.bound;
 
-        if match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        } {
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
+                _ => true,
+            }
+        {
             return tt_score;
         }
     }
@@ -840,26 +844,26 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     // Evaluation
     if !in_check {
         raw_eval = match entry {
-            Some(entry) if entry.eval != Score::NONE => entry.eval,
+            Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
 
         let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
-        if is_valid(tt_score) {
-            if match tt_bound {
+        if is_valid(tt_score)
+            && match tt_bound {
                 Bound::Upper => tt_score < static_eval,
                 Bound::Lower => tt_score > static_eval,
                 _ => true,
-            } {
-                best_score = tt_score;
             }
+        {
+            best_score = tt_score;
         }
 
         if best_score >= beta {
             if entry.is_none() {
-                td.tt.write(td.board.hash(), 0, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
+                td.tt.write(td.board.hash(), -1, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
             }
 
             return best_score;
@@ -942,7 +946,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), -1, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
