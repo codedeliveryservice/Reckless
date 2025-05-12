@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::atomic::Ordering,
+    time::{Duration, Instant},
+};
 
 use crate::thread::ThreadData;
 
@@ -88,7 +91,7 @@ impl TimeManager {
             return false;
         }
 
-        if td.counter.local() & 2047 == 2047 && td.get_stop() {
+        if td.stop.load(Ordering::Relaxed) {
             return true;
         }
 

@@ -118,10 +118,6 @@ impl<'a> ThreadData<'a> {
         self.stop.store(value, Ordering::Relaxed);
     }
 
-    pub fn get_stop(&self) -> bool {
-        self.stop.load(Ordering::Relaxed)
-    }
-
     pub fn conthist(&self, index: usize, mv: Move) -> i32 {
         if self.ply < index || self.stack[self.ply - index].mv.is_null() {
             return 0;
