@@ -6,10 +6,10 @@ use crate::{
     parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
-    transposition::Bound,
+    transposition::{Bound, TtDepth},
     types::{
-        is_decisive, is_loss, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece, Score,
-        Square, MAX_PLY,
+        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
+        Score, Square, MAX_PLY,
     },
 };
 
@@ -200,31 +200,40 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
+    let mut tt_score = Score::NONE;
+    let mut tt_bound = Bound::None;
+
     let mut tt_pv = PV;
 
     // Search Early TT-Cut
     if let Some(entry) = entry {
         tt_move = entry.mv;
         tt_pv |= entry.pv;
+        tt_score = entry.score;
+        tt_depth = entry.depth;
+        tt_bound = entry.bound;
 
         if !PV
             && !excluded
-            && entry.depth >= depth
-            && match entry.bound {
-                Bound::Upper => entry.score <= alpha,
-                Bound::Lower => entry.score >= beta,
+            && tt_depth >= depth
+            && is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
                 _ => true,
             }
         {
-            if tt_move.is_some() && tt_move.is_quiet() && entry.score >= beta {
+            if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
                 let bonus = (133 * depth - 65).min(1270);
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
             }
 
             if td.board.halfmove_clock() < 90 {
-                return entry.score;
+                debug_assert!(is_valid(tt_score));
+                return tt_score;
             }
         }
     }
@@ -278,19 +287,24 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = raw_eval;
         eval = static_eval;
     } else if let Some(entry) = entry {
-        raw_eval = if entry.eval != Score::NONE { entry.eval } else { evaluate(td) };
+        raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
-        if match entry.bound {
-            Bound::Upper => entry.score < eval,
-            Bound::Lower => entry.score > eval,
-            _ => true,
-        } {
-            eval = entry.score;
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score < eval,
+                Bound::Lower => tt_score > eval,
+                _ => true,
+            }
+        {
+            debug_assert!(is_valid(tt_score));
+            eval = tt_score;
         }
     } else {
         raw_eval = evaluate(td);
+        td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
     }
@@ -307,7 +321,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_some()
         && td.stack[td.ply - 1].mv.is_quiet()
-        && td.stack[td.ply - 1].static_eval != Score::NONE
+        && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
         let bonus = value.clamp(-67, 160);
@@ -331,7 +345,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && depth >= 2
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1053
-        && td.stack[td.ply - 1].static_eval != Score::NONE
+        && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 81
     {
         depth -= 1;
@@ -416,7 +430,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     // ProbCut
     let probcut_beta = beta + 302 - 66 * improving as i32;
 
-    if depth >= 3 && !is_decisive(beta) && entry.is_none_or(|entry| entry.score >= probcut_beta) {
+    if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
@@ -526,8 +540,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
-            if depth >= 5 && entry.depth >= depth - 3 && entry.bound != Bound::Upper && !is_decisive(entry.score) {
-                let singular_beta = entry.score - depth;
+            if depth >= 5
+                && tt_depth >= depth - 3
+                && tt_bound != Bound::Upper
+                && is_valid(tt_score)
+                && !is_decisive(tt_score)
+            {
+                debug_assert!(is_valid(tt_score));
+                let singular_beta = tt_score - depth;
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
@@ -547,7 +567,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     }
                 } else if score >= beta {
                     return score;
-                } else if entry.score >= beta {
+                } else if tt_score >= beta {
                     extension = -2;
                 } else if cut_node {
                     extension = -2;
@@ -571,8 +591,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if tt_pv {
                 reduction -= 724;
-                reduction -= 590 * entry.is_some_and(|entry| entry.score > alpha) as i32;
-                reduction -= 747 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
+                reduction -= 590 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 747 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
             if PV {
@@ -744,8 +764,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let factor = 1
             + (depth > 5) as i32
             + 2 * (!in_check && best_score <= td.stack[td.ply].static_eval - 130) as i32
-            + 2 * (td.stack[td.ply - 1].static_eval != Score::NONE
-                && best_score <= -td.stack[td.ply - 1].static_eval - 120) as i32;
+            + 2 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 120)
+                as i32;
 
         let scaled_bonus = factor * (146 * depth - 54).min(1353);
 
@@ -800,17 +820,24 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_pv = PV;
+    let mut tt_score = Score::NONE;
+    let mut tt_bound = Bound::None;
 
     // QS Early TT-Cut
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
+        tt_score = entry.score;
+        tt_bound = entry.bound;
 
-        if match entry.bound {
-            Bound::Upper => entry.score <= alpha,
-            Bound::Lower => entry.score >= beta,
-            _ => true,
-        } {
-            return entry.score;
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
+                _ => true,
+            }
+        {
+            debug_assert!(is_valid(tt_score));
+            return tt_score;
         }
     }
 
@@ -821,26 +848,36 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     // Evaluation
     if !in_check {
         raw_eval = match entry {
-            Some(entry) if entry.eval != Score::NONE => entry.eval,
+            Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
 
         let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
-        if let Some(entry) = entry {
-            if match entry.bound {
-                Bound::Upper => entry.score < static_eval,
-                Bound::Lower => entry.score > static_eval,
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score < static_eval,
+                Bound::Lower => tt_score > static_eval,
                 _ => true,
-            } {
-                best_score = entry.score;
             }
+        {
+            debug_assert!(is_valid(tt_score));
+            best_score = tt_score;
         }
 
         if best_score >= beta {
             if entry.is_none() {
-                td.tt.write(td.board.hash(), 0, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
+                td.tt.write(
+                    td.board.hash(),
+                    TtDepth::SOME,
+                    raw_eval,
+                    best_score,
+                    Bound::Lower,
+                    Move::NULL,
+                    td.ply,
+                    tt_pv,
+                );
             }
 
             return best_score;
@@ -923,7 +960,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), 0, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 

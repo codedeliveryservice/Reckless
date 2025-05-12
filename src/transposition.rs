@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-use crate::types::{is_decisive, is_loss, is_win, Move, Score};
+use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -72,14 +72,21 @@ struct InternalEntry {
     flags: Flags, // 1 byte
 }
 
+pub enum TtDepth {}
+
+impl TtDepth {
+    pub const NONE: i32 = 0;
+    pub const SOME: i32 = -1;
+}
+
 impl Default for InternalEntry {
     fn default() -> Self {
         Self {
             mv: Move::NULL,
             key: 0,
-            eval: 0,
-            score: 0,
-            depth: 0,
+            eval: Score::NONE as i16,
+            score: Score::NONE as i16,
+            depth: TtDepth::NONE as i8,
             flags: Flags::new(Bound::None, false, 0),
         }
     }
@@ -153,7 +160,7 @@ impl TranspositionTable {
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
-            if key == entry.key && entry.flags.bound() != Bound::None {
+            if key == entry.key && entry.depth != TtDepth::NONE as i8 {
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
@@ -174,6 +181,9 @@ impl TranspositionTable {
     pub fn write(
         &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
     ) {
+        // Used for checking if an entry exists
+        debug_assert!(depth != TtDepth::NONE);
+
         let index = self.index(hash);
         let cluster = unsafe {
             let vector = &mut *self.vector.get();
@@ -215,7 +225,7 @@ impl TranspositionTable {
         }
 
         // Adjust mate distance from "plies from the root" to "plies from the current position"
-        if is_decisive(score) {
+        if is_decisive(score) && is_valid(score) {
             score += score.signum() * ply as i32;
         }
 

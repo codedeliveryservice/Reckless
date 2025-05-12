@@ -46,6 +46,10 @@ pub const fn is_decisive(score: i32) -> bool {
     is_win(score) || is_loss(score)
 }
 
+pub const fn is_valid(score: i32) -> bool {
+    score != Score::NONE
+}
+
 pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
     let material = board.pieces(PieceType::Pawn).len()
         + 3 * board.pieces(PieceType::Knight).len()
