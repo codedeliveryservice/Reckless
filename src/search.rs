@@ -301,6 +301,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
+        td.tt.write(td.board.hash(), Depth::UNSEARCHED, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
     }
@@ -824,11 +826,13 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         tt_score = entry.score;
         tt_bound = entry.bound;
 
-        if match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        } {
+        if entry.depth > Depth::UNSEARCHED
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
+                _ => true,
+            }
+        {
             return tt_score;
         }
     }
@@ -859,7 +863,16 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         if best_score >= beta {
             if entry.is_none() {
-                td.tt.write(td.board.hash(), 0, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
+                td.tt.write(
+                    td.board.hash(),
+                    Depth::UNSEARCHED,
+                    raw_eval,
+                    best_score,
+                    Bound::Lower,
+                    Move::NULL,
+                    td.ply,
+                    false,
+                );
             }
 
             return best_score;
