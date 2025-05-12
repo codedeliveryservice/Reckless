@@ -576,7 +576,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if PV {
-                reduction -= 666 + 642 * (beta - alpha > td.root_delta / 4) as i32;
+                reduction -=
+                    666 + 642 * (tt_move.is_some() && best_move.is_null() || beta - alpha > td.root_delta / 4) as i32;
             }
 
             if cut_node {
