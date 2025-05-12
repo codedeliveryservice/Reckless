@@ -588,7 +588,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if !improving {
-                reduction += 827;
+                reduction += 827 + 827 * entry.is_some_and(|v| v.score < alpha) as i32;
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
