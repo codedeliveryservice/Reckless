@@ -583,6 +583,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1105;
             }
 
+            if move_count > 1 && entry.is_some_and(|v| v.score < alpha && v.depth > depth / 2) {
+                reduction += 1024;
+            }
+
             if td.board.in_check() {
                 reduction -= 967;
             }
