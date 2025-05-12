@@ -608,7 +608,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 827;
             }
 
-            if td.stack[td.ply].cutoff_count > 2 {
+            if td.stack[td.ply].cutoff_count > 0 {
                 reduction += 670 + 63 * td.stack[td.ply].cutoff_count.max(7);
             }
 
