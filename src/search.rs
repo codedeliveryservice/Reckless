@@ -583,6 +583,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1105;
             }
 
+            if excluded {
+                reduction -= 1024;
+            }
+
             if td.board.in_check() {
                 reduction -= 967;
             }
