@@ -496,7 +496,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !is_root && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024 + history / 4096).max(0);
+            let lmr_depth = (depth - reduction / 1024 + history / 8192).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
