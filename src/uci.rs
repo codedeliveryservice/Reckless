@@ -1,14 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
-    board::Board,
-    evaluate::evaluate,
-    search::{self, Report, SearchResult},
-    thread::{ThreadData, ThreadPool},
-    time::{Limits, TimeManager},
-    tools,
-    transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color},
+    board::Board, evaluate::evaluate, search::{self, Report, SearchResult}, thread::{ThreadData, ThreadPool}, time::{Limits, TimeManager}, time_it, tools, transposition::{TranspositionTable, DEFAULT_TT_SIZE}, types::{is_decisive, is_loss, is_win, Color}
 };
 
 pub fn message_loop() {
@@ -32,7 +25,7 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, move_overhead, tokens),
+            ["go", tokens @ ..] => next_command = time_it!("uci go", { go(&mut threads, &stop, report, move_overhead, tokens) }),
             ["position", tokens @ ..] => position(&mut threads, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
@@ -92,6 +85,7 @@ fn go(
     let next_command = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
+        time_it!("starting search threads", {
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
                 let result = search::start(td, if id == 0 { report } else { Report::None });
@@ -101,6 +95,7 @@ fn go(
 
             handlers.push(handler);
         }
+        });
 
         let next_command = scope.spawn(|| loop {
             let command = read_stdin();
@@ -116,8 +111,11 @@ fn go(
             }
         });
 
-        let results = handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>();
-
+        let results = time_it!("joining threads", {
+        handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>()
+        });
+        
+        time_it!("thread voting", {
         let min_score = results.iter().map(|v| v.score).min().unwrap();
         let vote_value = |result: &SearchResult| (result.score - min_score + 10) * result.depth;
 
@@ -151,6 +149,7 @@ fn go(
 
         println!("bestmove {}", best.best_move);
         crate::misc::dbg_print();
+        });
 
         next_command.join().unwrap()
     });
@@ -203,6 +202,7 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 fn set_option(
     threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tt: &TranspositionTable, tokens: &[&str],
 ) {
+    crate::time_it!("set_option", {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
             "true" => *report = Report::Minimal,
@@ -232,6 +232,7 @@ fn set_option(
         }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
+    });
 }
 
 fn eval(td: &mut ThreadData) {

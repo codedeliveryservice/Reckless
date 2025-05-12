@@ -17,8 +17,22 @@ mod transposition;
 mod types;
 mod uci;
 
+#[macro_export]
+macro_rules! time_it {
+    ($name:expr, $block:block) => {{
+        let start = std::time::Instant::now();
+        let result = $block;
+        let duration = start.elapsed();
+        
+        eprintln!("[{} #{}] '{}' took {:?}", file!(), line!(), $name, duration);
+        result
+    }};
+}
+
 fn main() {
+    time_it!("lookup::init", {
     lookup::init();
+    });
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(14),
