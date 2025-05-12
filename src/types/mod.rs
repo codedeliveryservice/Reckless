@@ -22,7 +22,11 @@ pub use zobrist::*;
 
 /// The maximum number of plies that can be searched.
 pub const MAX_PLY: usize = 128;
+pub enum Depth {}
 
+impl Depth {
+    pub const UNSEARCHED: i32 = -7;
+}
 /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
 /// the maximum number of chess moves in a certain position *appears* to be 218.
 pub const MAX_MOVES: usize = 218;
