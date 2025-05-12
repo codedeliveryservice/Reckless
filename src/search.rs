@@ -573,6 +573,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 724;
                 reduction -= 590 * entry.is_some_and(|entry| entry.score > alpha) as i32;
                 reduction -= 747 * entry.is_some_and(|entry| entry.depth >= depth) as i32;
+            } else if !improving {
+                reduction += 827;
             }
 
             if PV {
@@ -585,10 +587,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.board.in_check() {
                 reduction -= 967;
-            }
-
-            if !improving {
-                reduction += 827;
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
