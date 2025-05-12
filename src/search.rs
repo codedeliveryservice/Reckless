@@ -301,6 +301,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
+        td.tt.write(td.board.hash(), Depth::UNSEARCHED, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
     }
