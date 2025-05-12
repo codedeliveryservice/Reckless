@@ -4,6 +4,7 @@ use crate::{
     board::Board,
     evaluate::evaluate,
     search::{self, Report, SearchResult},
+    tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
@@ -62,6 +63,7 @@ fn uci() {
     println!("option name MoveOverhead type spin default 0 min 0 max 2000");
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
+    println!("option name SyzygyPath type string default");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -225,6 +227,10 @@ fn set_option(
             *move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
+        ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
+            Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
+            None => eprintln!("Failed to load Syzygy tablebases"),
+        },
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);

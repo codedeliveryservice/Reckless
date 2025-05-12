@@ -4,9 +4,13 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
+    tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::Bound,
-    types::{is_decisive, is_loss, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square, MAX_PLY},
+    types::{
+        is_decisive, is_loss, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece, Score,
+        Square, MAX_PLY,
+    },
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -190,9 +194,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    let mut best_score = -Score::INFINITE;
+    let mut max_score = Score::INFINITE;
+
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_move = Move::NULL;
     let mut tt_pv = PV;
 
@@ -216,7 +223,42 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
             }
 
-            return entry.score;
+            if td.board.halfmove_clock() < 90 {
+                return entry.score;
+            }
+        }
+    }
+
+    if !is_root
+        && !excluded
+        && td.board.halfmove_clock() == 0
+        && td.board.castling().raw() == 0
+        && td.board.occupancies().len() <= tb_size()
+    {
+        if let Some(outcome) = tb_probe(&td.board) {
+            let (score, bound) = match outcome {
+                GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
+                GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
+                _ => (Score::ZERO, Bound::Exact),
+            };
+
+            if bound == Bound::Exact
+                || (bound == Bound::Lower && score >= beta)
+                || (bound == Bound::Upper && score <= alpha)
+            {
+                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
+                td.tt.write(td.board.hash(), depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+                return score;
+            }
+
+            if PV {
+                if bound == Bound::Lower {
+                    best_score = score;
+                    alpha = alpha.max(best_score);
+                } else {
+                    max_score = score;
+                }
+            }
         }
     }
 
@@ -423,7 +465,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let initial_depth = depth;
 
-    let mut best_score = -Score::INFINITE;
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -713,6 +754,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if PV {
+        best_score = best_score.min(max_score);
+    }
+
     if !excluded {
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
@@ -752,7 +797,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
-    let entry = td.tt.read(td.board.hash(), td.ply);
+    let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_pv = PV;
 
     // QS Early TT-Cut
