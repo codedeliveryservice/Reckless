@@ -355,6 +355,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !PV
         && !excluded
         && tt_depth >= depth
+        && td.board.halfmove_clock() < 90
         && is_valid(tt_score)
         && match tt_bound {
             Bound::Upper => tt_score <= alpha,
@@ -362,10 +363,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             _ => true,
         }
     {
-        if td.board.halfmove_clock() < 90 {
-            debug_assert!(is_valid(tt_score));
-            return tt_score;
-        }
+        debug_assert!(is_valid(tt_score));
+        return tt_score;
     }
 
     let improving =
