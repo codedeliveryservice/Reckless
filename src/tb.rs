@@ -6,7 +6,7 @@ use crate::{
     types::{Color, PieceType},
 };
 
-#[derive(PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum GameOutcome {
     Win,
     Loss,

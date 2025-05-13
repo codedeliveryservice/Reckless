@@ -238,6 +238,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    // Tablebases Probe
     if !is_root
         && !excluded
         && td.board.halfmove_clock() == 0
@@ -248,7 +249,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let (score, bound) = match outcome {
                 GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
                 GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
-                _ => (Score::ZERO, Bound::Exact),
+                GameOutcome::Draw => (Score::DRAW, Bound::Exact),
             };
 
             if bound == Bound::Exact
@@ -351,7 +352,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
-    // Hindsight Early TT-Cut
+    // Hindsight Late TT-Cut
     if !PV
         && !excluded
         && tt_depth >= depth

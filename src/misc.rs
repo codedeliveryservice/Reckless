@@ -76,11 +76,11 @@ pub fn dbg_print() {
         }
     }
 
-    for slot in HITS.iter() {
+    for slot in &HITS {
         slot.reset();
     }
 
-    for slot in STATS.iter() {
+    for slot in &STATS {
         slot.reset();
     }
 }

@@ -223,7 +223,7 @@ impl Board {
 
     /// Return a draw score if a position repeats once earlier but strictly
     /// after the root, or repeats twice before or at the root.
-    pub fn draw_by_repetition(&self, ply: i32) -> bool {
+    pub const fn draw_by_repetition(&self, ply: i32) -> bool {
         self.state.repetition != 0 && self.state.repetition < ply
     }
 

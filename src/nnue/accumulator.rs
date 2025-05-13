@@ -12,14 +12,14 @@ macro_rules! ft {
     };
 }
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 pub struct Delta {
     pub mv: Move,
     pub piece: Piece,
     pub captured: Piece,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 pub struct Accumulator {
     pub values: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
     pub delta: Delta,
