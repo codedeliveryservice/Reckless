@@ -273,8 +273,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let correction_value = correction_value(td);
 
-    let raw_eval;
     let static_eval;
+    let mut raw_eval;
     let mut eval;
 
     // Evaluation
@@ -288,6 +288,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         eval = static_eval;
     } else if let Some(entry) = entry {
         raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
+
+        if raw_eval > alpha && raw_eval < beta {
+            raw_eval = (raw_eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+        }
+
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
@@ -303,6 +308,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
+
+        if raw_eval > alpha && raw_eval < beta {
+            raw_eval = (raw_eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+        }
+
         td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
