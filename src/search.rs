@@ -229,6 +229,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 let bonus = (133 * depth - 65).min(1270);
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
+                if td.stack[td.ply].killer.is_some() && tt_move != td.stack[td.ply].killer {
+                    td.quiet_history.update(
+                        td.board.threats(),
+                        td.board.side_to_move(),
+                        td.stack[td.ply].killer,
+                        -bonus / 2,
+                    );
+                }
             }
 
             if td.board.halfmove_clock() < 90 {
