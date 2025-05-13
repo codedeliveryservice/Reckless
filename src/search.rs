@@ -805,6 +805,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     td.counter.increment();
 
+    if PV {
+        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+    }
+
     if td.time_manager.check_time(td) {
         td.stopped = true;
         return Score::ZERO;
@@ -942,6 +946,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             if score > alpha {
                 best_move = mv;
                 alpha = score;
+
+                if PV {
+                    td.pv.update(td.ply, mv);
+                }
 
                 if score >= beta {
                     break;
