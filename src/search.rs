@@ -313,6 +313,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let bonus = value.clamp(-67, 160);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+        td.stack[td.ply - 1].static_eval += bonus / 8;
     }
 
     // Hindsight LMR
