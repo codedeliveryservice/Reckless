@@ -605,7 +605,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 4071 * correction_value.abs() / 1024;
             reduction -= 56 * move_count;
             reduction += 280;
-            reduction += td.counter.local() as i32 & 0xFF - 256;
+            reduction += (td.counter.local() as i32 & 0xFF) - 128;
 
             if tt_pv {
                 reduction -= 724;
