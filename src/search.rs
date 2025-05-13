@@ -600,7 +600,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + is_root as i32 && (is_quiet || !tt_pv) {
+        if depth >= 3 && move_count > 1 + is_root as i32 {
             reduction -= 84 * (history - 554) / 1024;
             reduction -= 4071 * correction_value.abs() / 1024;
             reduction -= 56 * move_count;
