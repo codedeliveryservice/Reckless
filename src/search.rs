@@ -721,13 +721,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (133 * depth - 65).min(1270);
+        let bonus_noisy = (133 * depth - 65).min(1270) + 16 * (move_count - 1);
         let malus_noisy = (143 * initial_depth - 75).min(1270) - 15 * (move_count - 1);
 
-        let bonus_quiet = (126 * depth - 75).min(1325);
+        let bonus_quiet = (126 * depth - 75).min(1325) + 16 * (move_count - 1);
         let malus_quiet = (119 * initial_depth - 59).min(1180) - 18 * (move_count - 1);
 
-        let bonus_cont = (139 * depth - 61).min(1433);
+        let bonus_cont = (139 * depth - 61).min(1433) + 16 * (move_count - 1);
         let malus_cont = (171 * initial_depth - 67).min(1047) - 16 * (move_count - 1);
 
         if best_move.is_noisy() {
