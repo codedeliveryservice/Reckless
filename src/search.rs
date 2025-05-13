@@ -351,6 +351,22 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    // Hindsight Early TT-Cut
+    if !PV
+        && !excluded
+        && tt_depth >= depth
+        && td.board.halfmove_clock() < 90
+        && is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score <= alpha,
+            Bound::Lower => tt_score >= beta,
+            _ => true,
+        }
+    {
+        debug_assert!(is_valid(tt_score));
+        return tt_score;
+    }
+
     let improving =
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
