@@ -973,8 +973,8 @@ fn correction_value(td: &ThreadData) -> i32 {
     let correction = 1181 * td.pawn_corrhist.get(stm, td.board.pawn_key())
         + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
         + 898 * td.major_corrhist.get(stm, td.board.major_key())
-        + 972 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 972 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + 1024 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + 1024 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + 1083 * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 };
 
     correction / 1024
