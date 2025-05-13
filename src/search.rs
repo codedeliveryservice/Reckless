@@ -323,8 +323,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
-        let value = 6 * -(static_eval + td.stack[td.ply - 1].static_eval);
-        let bonus = value.clamp(-67, 1000);
+        let value = 4 * -(static_eval + td.stack[td.ply - 1].static_eval);
+        let bonus = value.clamp(-47, 140);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
