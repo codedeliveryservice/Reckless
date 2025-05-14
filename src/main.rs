@@ -25,7 +25,7 @@ fn main() {
     lookup::init();
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(14),
+        Some("bench") => tools::bench::<false>(None),
         _ => uci::message_loop(),
     }
 }
