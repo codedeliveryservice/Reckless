@@ -390,7 +390,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 512 * correction_value.abs() / 1024
                 + 25
     {
-        return ((eval + beta) / 2).clamp(-16384, 16384);
+        return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
 
     // Null Move Pruning (NMP)
@@ -1006,7 +1006,7 @@ fn correction_value(td: &ThreadData) -> i32 {
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-16384, 16384)
+    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
