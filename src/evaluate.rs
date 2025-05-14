@@ -1,23 +1,23 @@
 use crate::{
-    board::Board,
+    board::Board, parameters::*,
     thread::ThreadData,
     types::{PieceType, Score},
 };
-
-const MATERIAL_VALUES: [i32; 6] = [128, 384, 416, 640, 1280, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
     let mut eval = td.nnue.evaluate(&td.board);
 
-    eval = eval * (22400 + material(&td.board)) / 32768;
+    eval = eval * (material_base() + material(&td.board)) / 32768;
 
     eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
 fn material(board: &Board) -> i32 {
+    let material_values = [material_pawn(), material_knight(), material_bishop(), material_rook(), material_queen(), 0];
+
     [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
         .iter()
-        .map(|&pt| board.pieces(pt).len() as i32 * MATERIAL_VALUES[pt])
+        .map(|&pt| board.pieces(pt).len() as i32 * material_values[pt])
         .sum::<i32>()
 }
