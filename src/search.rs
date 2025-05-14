@@ -901,7 +901,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 );
             }
 
-            return best_score;
+            return (best_score + beta) / 2;
         }
 
         if best_score > alpha {
