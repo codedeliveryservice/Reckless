@@ -918,7 +918,9 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check) {
+    let mut skip_quiets = !in_check;
+
+    while let Some(mv) = move_picker.next(td, skip_quiets) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -934,10 +936,6 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if mv.is_quiet() {
-                continue;
-            }
-
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
@@ -949,6 +947,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let score = -qsearch::<PV>(td, -beta, -alpha);
 
         undo_move(td, mv);
+
+        if !is_loss(score) {
+            skip_quiets = true;
+        }
 
         if td.stopped {
             return Score::ZERO;
