@@ -937,8 +937,8 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if mv.is_quiet() {
-                continue;
+            if in_check && mv.is_quiet() {
+                break;
             }
 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
