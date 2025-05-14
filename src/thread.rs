@@ -18,16 +18,19 @@ pub struct ThreadPool<'a> {
 }
 
 impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter)] }
+    pub fn new(
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+    ) -> Self {
+        Self { vector: vec![ThreadData::new(tt, stop, counter, tb_hits)] }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
         let counter = self.vector[0].counter.global;
+        let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter, tb_hits));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -48,7 +51,7 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global);
+            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, thread.tb_hits.global);
         }
     }
 }
@@ -57,6 +60,7 @@ pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
     pub counter: AtomicCounter<'a>,
+    pub tb_hits: AtomicCounter<'a>,
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Stack,
@@ -83,11 +87,14 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64) -> Self {
+    pub fn new(
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+    ) -> Self {
         Self {
             tt,
             stop,
             counter: AtomicCounter::new(counter),
+            tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
@@ -152,10 +159,11 @@ impl<'a> ThreadData<'a> {
         };
 
         print!(
-            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} pv",
+            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             self.sel_depth,
             self.counter.global(),
             self.tt.hashfull(),
+            self.tb_hits.global(),
         );
 
         for mv in self.pv.line() {

@@ -16,14 +16,15 @@ pub fn message_loop() {
     let tt = TranspositionTable::default();
     let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
+    let tb_hits = AtomicU64::new(0);
 
-    let mut move_overhead = 0;
-    let mut report = Report::Full;
-    let mut threads = ThreadPool::new(&tt, &stop, &counter);
+    let mut threads = ThreadPool::new(&tt, &stop, &counter, &tb_hits);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
     }
 
+    let mut move_overhead = 0;
+    let mut report = Report::Full;
     let mut next_command = None;
 
     loop {
