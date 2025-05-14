@@ -45,10 +45,8 @@ pub fn message_loop() {
             // Non-UCI commands
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
-            ["bench", depth] => tools::bench::<true>(depth.parse().unwrap()),
+            ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
-
-            ["bench"] => eprintln!("Usage: bench <depth>"),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
