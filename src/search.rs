@@ -104,6 +104,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         td.counter.flush();
+        td.tb_hits.flush();
         td.completed_depth = depth;
 
         if last_move == td.pv.best_move() {
@@ -246,6 +247,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.occupancies().len() <= tb_size()
     {
         if let Some(outcome) = tb_probe(&td.board) {
+            td.tb_hits.increment();
+
             let (score, bound) = match outcome {
                 GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
                 GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
