@@ -870,6 +870,38 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let mut best_score = -Score::INFINITE;
+    let mut max_score = Score::INFINITE;
+
+    // Tablebases Probe
+    if td.board.halfmove_clock() == 0 && td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
+        if let Some(outcome) = tb_probe(&td.board) {
+            td.tb_hits.increment();
+
+            let (score, bound) = match outcome {
+                GameOutcome::Win => (tb_win_in(td.ply), Bound::Lower),
+                GameOutcome::Loss => (tb_loss_in(td.ply), Bound::Upper),
+                GameOutcome::Draw => (Score::DRAW, Bound::Exact),
+            };
+
+            if bound == Bound::Exact
+                || (bound == Bound::Lower && score >= beta)
+                || (bound == Bound::Upper && score <= alpha)
+            {
+                td.tt.write(td.board.hash(), 6, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+                return score;
+            }
+
+            if PV {
+                if bound == Bound::Lower {
+                    best_score = score;
+                    alpha = alpha.max(best_score);
+                } else {
+                    max_score = score;
+                }
+            }
+        }
+    }
+
     let mut futility_score = Score::NONE;
     let mut raw_eval = Score::NONE;
 
@@ -991,6 +1023,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
+
+    if PV {
+        best_score = best_score.min(max_score);
+    }
 
     td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
