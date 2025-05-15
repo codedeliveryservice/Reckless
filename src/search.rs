@@ -34,6 +34,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.pv.clear(0);
     td.node_table.clear();
     td.counter.clear();
+    td.tb_hits.clear();
 
     td.nnue.refresh(&td.board);
 
