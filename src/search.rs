@@ -149,7 +149,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
-    td.pv.clear(td.ply);
+    if PV {
+        td.pv.clear(td.ply);
+    }
 
     if td.stopped {
         return Score::ZERO;
@@ -820,6 +822,10 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
+
+    if PV {
+        td.pv.clear(td.ply);
+    }
 
     td.counter.increment();
 
