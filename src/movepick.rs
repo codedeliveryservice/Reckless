@@ -188,7 +188,8 @@ impl MovePicker {
             entry.score += 1141 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
                 + 1031 * td.conthist(1, mv) / 1024
                 + 988 * td.conthist(2, mv) / 1024
-                + 554 * td.conthist(3, mv) / 1024;
+                + 554 * td.conthist(3, mv) / 1024
+                + 988 * td.conthist(4, mv) / 1024;
         }
     }
 }
