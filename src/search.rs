@@ -459,10 +459,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let probcut_depth = 0.max(depth - 4);
 
         while let Some(mv) = move_picker.next(td, true) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
             if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
