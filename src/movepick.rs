@@ -185,10 +185,10 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score += 1247 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
-                + 1011 * td.conthist(1, mv) / 1024
-                + 978 * td.conthist(2, mv) / 1024
-                + 517 * td.conthist(3, mv) / 1024;
+            entry.score += 1141 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + 1031 * td.conthist(1, mv) / 1024
+                + 988 * td.conthist(2, mv) / 1024
+                + 554 * td.conthist(3, mv) / 1024;
         }
     }
 }
