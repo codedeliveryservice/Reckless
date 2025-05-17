@@ -454,7 +454,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // ProbCut
-    let probcut_beta = beta + 298 - 64 * improving as i32;
+    let probcut_beta = beta + 298
+        - 64 * improving as i32
+        - 32 * (td.ply >= 1
+            && is_valid(static_eval)
+            && is_valid(td.stack[td.ply - 1].static_eval)
+            && static_eval + td.stack[td.ply - 1].static_eval > 0) as i32;
 
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
