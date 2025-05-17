@@ -4,12 +4,12 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
-    tb::{tb_probe, tb_size, GameOutcome},
+    tb::{GameOutcome, tb_probe, tb_size},
     thread::ThreadData,
     transposition::{Bound, TtDepth},
     types::{
-        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, is_decisive, is_loss, is_valid, is_win, mate_in,
+        mated_in, tb_loss_in, tb_win_in,
     },
 };
 
@@ -324,6 +324,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[td.ply].move_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
@@ -521,6 +522,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -793,6 +795,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += 273
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 118)
                     as i32;
+
+            factor += 128 * (td.stack[td.ply - 1].move_count > depth) as i32;
 
             let scaled_bonus = factor * (140 * depth - 51).min(1555) / 128;
 
