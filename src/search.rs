@@ -324,6 +324,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
+    td.stack[td.ply].move_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !in_check
@@ -521,6 +522,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -793,6 +795,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += 273
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 118)
                     as i32;
+
+            factor += 128 * (td.stack[td.ply - 1].move_count > 8) as i32;
 
             let scaled_bonus = factor * (140 * depth - 51).min(1555) / 128;
 
