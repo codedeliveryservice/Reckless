@@ -659,7 +659,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
+                    td.stack[td.ply - 1].reduction = 1024 * ((depth - 1) - new_depth);
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    td.stack[td.ply - 1].reduction = 0;
 
                     if mv.is_quiet() {
                         let bonus = match score {
