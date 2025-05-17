@@ -592,6 +592,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         depth += 1;
                     }
                 } else if score >= beta {
+                    if is_quiet {
+                        td.stack[td.ply].killer = tt_move;
+                    }
                     return score;
                 } else if tt_score >= beta {
                     extension = -2;
