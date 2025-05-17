@@ -566,7 +566,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = entry.unwrap();
 
-            if depth >= 5
+            if depth >= 5 - td.stack[td.ply].tt_pv as i32
                 && tt_depth >= depth - 3
                 && tt_bound != Bound::Upper
                 && is_valid(tt_score)
