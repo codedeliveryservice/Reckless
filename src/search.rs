@@ -4,12 +4,12 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::*,
-    tb::{GameOutcome, tb_probe, tb_size},
+    tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::{Bound, TtDepth},
     types::{
-        ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, is_decisive, is_loss, is_valid, is_win, mate_in,
-        mated_in, tb_loss_in, tb_win_in,
+        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
+        Score, Square, MAX_PLY,
     },
 };
 
@@ -796,7 +796,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 118)
                     as i32;
 
-            factor += 128 * (td.stack[td.ply - 1].move_count > 5) as i32;
+            factor += 178 * (td.stack[td.ply - 1].move_count > 17) as i32;
 
             let scaled_bonus = factor * (140 * depth - 51).min(1555) / 128;
 
