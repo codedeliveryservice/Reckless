@@ -765,14 +765,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         } else {
             td.stack[td.ply].killer = best_move;
 
-            if !quiet_moves.is_empty() || depth > 3 {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-                update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
+            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
-                for &mv in quiet_moves.iter() {
-                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                    update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
-                }
+            for &mv in quiet_moves.iter() {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }
 
@@ -782,7 +780,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper && td.ply >= 1 && (!quiet_moves.is_empty() || depth > 3) {
+    if bound == Bound::Upper && td.ply >= 1 {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
