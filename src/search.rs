@@ -396,6 +396,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 531 * correction_value.abs() / 1024
                 + 24
     {
+        if tt_move.is_some() && tt_move.is_quiet() {
+            td.stack[td.ply].killer = tt_move;
+        }
         return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
 
