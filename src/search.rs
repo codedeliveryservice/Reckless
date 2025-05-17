@@ -224,7 +224,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !PV
             && !excluded
-            && tt_depth >= depth
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha,
@@ -232,15 +231,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
-            if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
-                let bonus = (124 * depth - 64).min(1367);
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
-                update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
-            }
+            if tt_depth >= depth {
+                if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
+                    let bonus = (124 * depth - 64).min(1367);
+                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
+                    update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
+                }
 
-            if td.board.halfmove_clock() < 90 {
-                debug_assert!(is_valid(tt_score));
-                return tt_score;
+                if td.board.halfmove_clock() < 90 {
+                    debug_assert!(is_valid(tt_score));
+                    return tt_score;
+                }
+            }
+            if tt_score >= beta && tt_move.is_some() && tt_move.is_quiet() && td.stack[td.ply].killer.is_null() {
+                td.stack[td.ply].killer = tt_move;
             }
         }
     }
