@@ -344,7 +344,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 2551
-        && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
     }
@@ -356,7 +356,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1014
         && is_valid(td.stack[td.ply - 1].static_eval)
-        && static_eval + td.stack[td.ply - 1].static_eval > 67
+        && eval + td.stack[td.ply - 1].static_eval > 67
     {
         depth -= 1;
     }
