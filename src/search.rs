@@ -810,6 +810,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if !(in_check
         || best_move.is_noisy()
+        || (td.ply >= 1 && !is_valid(td.stack[td.ply - 1].static_eval))
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
