@@ -434,7 +434,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if td.nmp_min_ply > 0 || depth < 16 {
-                return score;
+                return (score + beta) / 2;
             }
 
             td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
