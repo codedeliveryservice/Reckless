@@ -1,4 +1,4 @@
-pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
+pub const PIECE_VALUES: [i32; 7] = [132, 414, 432, 661, 1217, 0, 0];
 
 pub const fn lmp_threshold(depth: i32, improving: bool) -> i32 {
     (4 + depth * depth) / (2 - improving as i32)
