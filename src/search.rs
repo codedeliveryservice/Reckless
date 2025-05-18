@@ -786,7 +786,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
-        if pcm_move.is_some() && pcm_move.is_quiet() {
+        if pcm_move.is_some() {
             let mut factor = 118;
             factor += 134 * (depth > 5) as i32;
             factor += 211 * (!in_check && best_score <= td.stack[td.ply].static_eval - 135) as i32;
@@ -796,7 +796,20 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             let scaled_bonus = factor * (140 * depth - 51).min(1555) / 128;
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            if pcm_move.is_quiet() {
+                td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            } else {
+                let captured = td.board.captured_piece();
+                if captured.is_some() {
+                    td.noisy_history.update(
+                        td.board.prior_threats(),
+                        td.stack[td.ply - 1].piece,
+                        td.stack[td.ply - 1].mv.to(),
+                        captured.unwrap().piece_type(),
+                        1000,
+                    );
+                }
+            }
         }
     }
 
