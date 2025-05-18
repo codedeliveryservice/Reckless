@@ -18,7 +18,7 @@ mod avx2;
 mod ssse3;
 
 const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 768;
+const HIDDEN_SIZE: usize = 896;
 
 const NETWORK_SCALE: i32 = 400;
 const NETWORK_QA: i32 = 384;
