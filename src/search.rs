@@ -952,7 +952,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            if futility_score + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] <= alpha {
+                best_score = best_score.max(futility_score + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()]);
+                continue;
+            }
+
+            if futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
             }
