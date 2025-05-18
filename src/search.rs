@@ -346,7 +346,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 2551
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
-        depth += 1;
+        depth += 1 + ((static_eval + td.stack[td.ply - 1].static_eval) < -512) as i32;
     }
 
     if !tt_pv
