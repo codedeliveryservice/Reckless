@@ -152,11 +152,11 @@ impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
     pub fn get(&self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square) -> i32 {
-        self.entries[piece][sq][cont_piece][cont_sq] as i32
+        self.entries[cont_piece][cont_sq][piece][sq] as i32
     }
 
     pub fn update(&mut self, piece: Piece, sq: Square, cont_piece: Piece, cont_sq: Square, bonus: i32) {
-        let entry = &mut self.entries[piece][sq][cont_piece][cont_sq];
+        let entry = &mut self.entries[cont_piece][cont_sq][piece][sq];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
