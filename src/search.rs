@@ -526,9 +526,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
+            967 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + 1100 * td.conthist(1, mv) / 1024
+                + 1010 * td.conthist(2, mv) / 1024
+                + 67 * td.conthist(3, mv) / 1024
+                + 36 * td.conthist(4, mv) / 1024
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -537,7 +539,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !is_root && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7084).max(0);
+            let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7372).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= lmp_threshold(depth, improving);
@@ -611,7 +613,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + is_root as i32 {
-            reduction -= 90 * (history - 556) / 1024;
+            reduction -= 88 * (history - 556) / 1024;
             reduction -= 3819 * correction_value.abs() / 1024;
             reduction -= 57 * move_count;
             reduction += 313;
@@ -1055,6 +1057,27 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
         let entry = td.stack[td.ply - 3];
         if entry.mv.is_some() {
             td.continuation_history.update(entry.conthist, piece, sq, 937 * bonus / 1024);
+        }
+    }
+
+    if td.ply >= 4 {
+        let entry = td.stack[td.ply - 4];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.conthist, piece, sq, 941 * bonus / 1024);
+        }
+    }
+
+    if td.ply >= 5 {
+        let entry = td.stack[td.ply - 5];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.conthist, piece, sq, 1020 * bonus / 1024);
+        }
+    }
+
+    if td.ply >= 6 {
+        let entry = td.stack[td.ply - 6];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.conthist, piece, sq, 1017 * bonus / 1024);
         }
     }
 }
