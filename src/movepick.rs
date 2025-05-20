@@ -189,6 +189,11 @@ impl MovePicker {
                 + 1031 * td.conthist(1, mv) / 1024
                 + 988 * td.conthist(2, mv) / 1024
                 + 554 * td.conthist(3, mv) / 1024;
+
+            if td.ply < 4 {
+                entry.score += 16 * td.low_ply_history.get(td.board.threats(), td.board.side_to_move(), mv, td.ply)
+                    / (1 + 2 * td.ply as i32);
+            }
         }
     }
 }
