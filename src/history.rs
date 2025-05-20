@@ -63,6 +63,30 @@ impl Default for QuietHistory {
     }
 }
 
+pub struct LowPlyHistory {
+    entries: Box<[FromToHistory<QuietHistoryEntry>; 4]>,
+}
+
+impl LowPlyHistory {
+    pub fn get(&self, threats: Bitboard, mv: Move, ply: usize) -> i32 {
+        let entry = &self.entries[ply][mv.from()][mv.to()];
+        (entry.factorizer + entry.bucket(threats, mv)) as i32
+    }
+
+    pub fn update(&mut self, threats: Bitboard, mv: Move, bonus: i32, ply: usize) {
+        let entry = &mut self.entries[ply][mv.from()][mv.to()];
+
+        entry.update_factorizer(bonus);
+        entry.update_bucket(threats, mv, bonus);
+    }
+}
+
+impl Default for LowPlyHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 struct NoisyHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 7],
