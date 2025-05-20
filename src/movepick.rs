@@ -23,7 +23,7 @@ pub struct MovePicker<const TYPE: u8> {
     list: MoveList,
     tt_move: Move,
     killer: Move,
-    threshold: Option<i32>,
+    threshold: i32,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
@@ -35,7 +35,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
             list: MoveList::new(),
             tt_move,
             killer,
-            threshold: None,
+            threshold: 0,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -47,7 +47,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
-            threshold: Some(threshold),
+            threshold,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -59,7 +59,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
-            threshold: None,
+            threshold: 0,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -99,7 +99,8 @@ impl<const TYPE: u8> MovePicker<TYPE> {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
+                let threshold = if TYPE == PROBCUT { self.threshold } else { -entry.score / 34 + 107 };
+
                 if !td.board.see(entry.mv, threshold) {
                     if TYPE != PROBCUT {
                         self.bad_noisy.push(entry.mv);
@@ -110,7 +111,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
                 return Some(entry.mv);
             }
 
-            self.stage = Stage::Killer;
+            self.stage = if TYPE == NORMAL { Stage::Killer } else { Stage::GenerateQuiet };
         }
 
         if self.stage == Stage::Killer {
@@ -157,15 +158,17 @@ impl<const TYPE: u8> MovePicker<TYPE> {
         }
 
         // Stage::BadNoisy
-        while self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
-            self.bad_noisy_idx += 1;
+        if TYPE != PROBCUT {
+            while self.bad_noisy_idx < self.bad_noisy.len() {
+                let mv = self.bad_noisy[self.bad_noisy_idx];
+                self.bad_noisy_idx += 1;
 
-            if mv == self.tt_move {
-                continue;
+                if mv == self.tt_move {
+                    continue;
+                }
+
+                return Some(mv);
             }
-
-            return Some(mv);
         }
 
         None
