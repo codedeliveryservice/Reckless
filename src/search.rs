@@ -362,15 +362,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Hindsight Late TT-Cut
-    if !PV
+    if cut_node
         && !excluded
         && tt_depth >= depth
         && td.board.halfmove_clock() < 90
         && is_valid(tt_score)
         && match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
+            Bound::Upper => false,
+            _ => tt_score >= beta,
         }
     {
         debug_assert!(is_valid(tt_score));
