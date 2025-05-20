@@ -458,7 +458,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 298 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
-        let mut move_picker = MovePicker::<PROBCUT>::new_probcut(probcut_beta - static_eval);
+        let mut move_picker = MovePicker::<PROBCUT>::new(probcut_beta - static_eval, Move::NULL, Move::NULL);
 
         let probcut_depth = 0.max(depth - 4);
 
@@ -513,7 +513,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::<NORMAL>::new(td.stack[td.ply].killer, tt_move);
+    let mut move_picker = MovePicker::<NORMAL>::new(0, td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
@@ -926,7 +926,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::<QSEARCH>::new_qsearch();
+    let mut move_picker = MovePicker::<QSEARCH>::new(0, Move::NULL, Move::NULL);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
