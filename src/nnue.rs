@@ -49,9 +49,8 @@ impl Network {
         self.stack[self.index].refresh(board);
     }
 
-    pub fn evaluate(&mut self, board: &Board) -> i32 {
-        debug_assert!(self.stack[0].accurate);
-
+    #[inline(always)]
+    pub fn apply_updates(&mut self, board: &Board) {
         if !self.stack[self.index].accurate {
             if self.can_update() {
                 self.update_accumulators(board);
@@ -59,7 +58,11 @@ impl Network {
                 self.refresh(board);
             }
         }
+    }
 
+    pub fn evaluate(&mut self, board: &Board) -> i32 {
+        debug_assert!(self.stack[0].accurate);
+        self.apply_updates(board);
         let output = self.output_transformer(board) / NETWORK_QA + PARAMETERS.output_bias as i32;
         output * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
     }

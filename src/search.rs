@@ -293,6 +293,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
+        td.nnue.apply_updates(&td.board);
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
         eval = static_eval;
