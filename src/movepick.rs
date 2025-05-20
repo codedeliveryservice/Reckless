@@ -189,6 +189,10 @@ impl MovePicker {
                 + 1031 * td.conthist(1, mv) / 1024
                 + 988 * td.conthist(2, mv) / 1024
                 + 554 * td.conthist(3, mv) / 1024;
+
+            if td.ply == 0 {
+                entry.score += 6 * td.root_history.get(td.board.threats(), mv);
+            }
         }
     }
 }
