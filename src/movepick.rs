@@ -4,6 +4,10 @@ use crate::{
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
 
+pub const NORMAL: u8 = 0;
+pub const PROBCUT: u8 = 1;
+pub const QSEARCH: u8 = 2;
+
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
@@ -15,7 +19,7 @@ pub enum Stage {
     BadNoisy,
 }
 
-pub struct MovePicker {
+pub struct MovePicker<const TYPE: u8> {
     list: MoveList,
     tt_move: Move,
     killer: Move,
@@ -25,7 +29,7 @@ pub struct MovePicker {
     bad_noisy_idx: usize,
 }
 
-impl MovePicker {
+impl<const TYPE: u8> MovePicker<TYPE> {
     pub const fn new(killer: Move, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
@@ -97,7 +101,9 @@ impl MovePicker {
 
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
                 if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                    if TYPE != PROBCUT {
+                        self.bad_noisy.push(entry.mv);
+                    }
                     continue;
                 }
 
