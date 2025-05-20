@@ -30,37 +30,13 @@ pub struct MovePicker<const TYPE: u8> {
 }
 
 impl<const TYPE: u8> MovePicker<TYPE> {
-    pub const fn new(killer: Move, tt_move: Move) -> Self {
+    pub const fn new(threshold: i32, killer: Move, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
+            threshold,
             tt_move,
             killer,
-            threshold: 0,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_probcut(threshold: i32) -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            killer: Move::NULL,
-            threshold,
-            stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_qsearch() -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            killer: Move::NULL,
-            threshold: 0,
-            stage: Stage::GenerateNoisy,
+            stage: if TYPE == NORMAL { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
