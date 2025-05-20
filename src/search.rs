@@ -373,6 +373,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             _ => true,
         }
     {
+        if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
+            let bonus = (124 * depth - 64).min(1367);
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
+            update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
+        }
+
         debug_assert!(is_valid(tt_score));
         return tt_score;
     }
