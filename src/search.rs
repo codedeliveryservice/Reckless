@@ -552,7 +552,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            if is_quiet && depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -512 * depth - 768 {
+            if is_quiet && depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -v1() * depth - v2() {
                 continue;
             }
 

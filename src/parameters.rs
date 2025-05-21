@@ -38,3 +38,8 @@ macro_rules! define {
         }
     };
 }
+
+define! {
+    i32 v1: 512;
+    i32 v2: 768;
+}
