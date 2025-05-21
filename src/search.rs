@@ -2,7 +2,6 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
-    history::LowPlyHistory,
     movepick::{MovePicker, Stage},
     parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
@@ -36,7 +35,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.node_table.clear();
     td.counter.clear();
     td.tb_hits.clear();
-    td.low_ply_history = LowPlyHistory::default();
 
     td.nnue.refresh(&td.board);
 
