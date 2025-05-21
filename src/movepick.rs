@@ -4,6 +4,12 @@ use crate::{
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
 
+enum Threshold {
+    Normal,
+    Quiescence,
+    Probcut(i32),
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
@@ -19,7 +25,7 @@ pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
     killer: Move,
-    threshold: Option<i32>,
+    threshold: Threshold,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
@@ -31,7 +37,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move,
             killer,
-            threshold: None,
+            threshold: Threshold::Normal,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -43,7 +49,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
-            threshold: Some(threshold),
+            threshold: Threshold::Probcut(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -55,7 +61,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move: Move::NULL,
             killer: Move::NULL,
-            threshold: None,
+            threshold: Threshold::Quiescence,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -95,7 +101,12 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
+                let threshold = match self.threshold {
+                    Threshold::Normal => -entry.score / 34 + 107,
+                    Threshold::Quiescence => -entry.score / 34 + 107,
+                    Threshold::Probcut(threshold) => threshold,
+                };
+
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
