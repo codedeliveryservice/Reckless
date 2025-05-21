@@ -1,3 +1,5 @@
+use std::cell::UnsafeCell;
+
 use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -114,9 +116,18 @@ impl Default for NoisyHistory {
     }
 }
 
+#[derive(Default)]
+pub struct CorrectionHistories {
+    pub pawn_corrhist: CorrectionHistory,
+    pub minor_corrhist: CorrectionHistory,
+    pub major_corrhist: CorrectionHistory,
+    pub non_pawn_corrhist: [CorrectionHistory; 2],
+    pub last_move_corrhist: CorrectionHistory,
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[i16; Self::SIZE]; 2]>,
+    entries: UnsafeCell<Box<[[i16; Self::SIZE]; 2]>>,
 }
 
 impl CorrectionHistory {
@@ -126,20 +137,22 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] / 96) as i32
+        (unsafe { &*self.entries.get() }[stm][key as usize & Self::MASK] / 96) as i32
     }
 
-    pub fn update(&mut self, stm: Color, key: u64, depth: i32, diff: i32) {
-        let entry = &mut self.entries[stm][key as usize & Self::MASK];
+    pub fn update(&self, stm: Color, key: u64, depth: i32, diff: i32) {
+        let entry = &mut unsafe { &mut *self.entries.get() }[stm][key as usize & Self::MASK];
         let bonus = (diff * depth).clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
 
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
     }
 }
 
+unsafe impl Sync for CorrectionHistory {}
+
 impl Default for CorrectionHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self { entries: UnsafeCell::new(zeroed_box()) }
     }
 }
 

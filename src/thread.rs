@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationHistory, CorrectionHistories, NoisyHistory, QuietHistory},
     nnue::Network,
     stack::Stack,
     time::{Limits, TimeManager},
@@ -19,18 +19,22 @@ pub struct ThreadPool<'a> {
 
 impl<'a> ThreadPool<'a> {
     pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+        tt: &'a TranspositionTable, corrhist: &'a CorrectionHistories, stop: &'a AtomicBool, counter: &'a AtomicU64,
+        tb_hits: &'a AtomicU64,
     ) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter, tb_hits)] }
+        Self {
+            vector: vec![ThreadData::new(tt, corrhist, stop, counter, tb_hits)],
+        }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
+        let corrhist = self.vector[0].corrhist;
         let stop = self.vector[0].stop;
         let counter = self.vector[0].counter.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter, tb_hits));
+        self.vector.resize_with(threads, || ThreadData::new(tt, corrhist, stop, counter, tb_hits));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -51,13 +55,15 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, thread.tb_hits.global);
+            *thread =
+                ThreadData::new(thread.tt, thread.corrhist, thread.stop, thread.counter.global, thread.tb_hits.global);
         }
     }
 }
 
 pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
+    pub corrhist: &'a CorrectionHistories,
     pub stop: &'a AtomicBool,
     pub counter: AtomicCounter<'a>,
     pub tb_hits: AtomicCounter<'a>,
@@ -69,11 +75,6 @@ pub struct ThreadData<'a> {
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
-    pub pawn_corrhist: CorrectionHistory,
-    pub minor_corrhist: CorrectionHistory,
-    pub major_corrhist: CorrectionHistory,
-    pub non_pawn_corrhist: [CorrectionHistory; 2],
-    pub last_move_corrhist: CorrectionHistory,
     pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
@@ -89,11 +90,13 @@ pub struct ThreadData<'a> {
 
 impl<'a> ThreadData<'a> {
     pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+        tt: &'a TranspositionTable, corrhist: &'a CorrectionHistories, stop: &'a AtomicBool, counter: &'a AtomicU64,
+        tb_hits: &'a AtomicU64,
     ) -> Self {
         Self {
             tt,
             stop,
+            corrhist,
             counter: AtomicCounter::new(counter),
             tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
@@ -104,11 +107,6 @@ impl<'a> ThreadData<'a> {
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
-            pawn_corrhist: CorrectionHistory::default(),
-            minor_corrhist: CorrectionHistory::default(),
-            major_corrhist: CorrectionHistory::default(),
-            non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
-            last_move_corrhist: CorrectionHistory::default(),
             node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             optimism: [0; 2],

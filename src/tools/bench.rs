@@ -14,6 +14,7 @@ use std::{
 
 use crate::{
     board::Board,
+    history::CorrectionHistories,
     search::{self, Report},
     thread::ThreadData,
     time::{Limits, TimeManager},
@@ -88,11 +89,12 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         let now = Instant::now();
 
         let tt = TranspositionTable::default();
+        let corrhist = CorrectionHistories::default();
         let stop = AtomicBool::new(false);
         let counter = AtomicU64::new(0);
         let tb_hits = AtomicU64::new(0);
 
-        let mut td = ThreadData::new(&tt, &stop, &counter, &tb_hits);
+        let mut td = ThreadData::new(&tt, &corrhist, &stop, &counter, &tb_hits);
         td.board = Board::new(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 

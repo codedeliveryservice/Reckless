@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use crate::{
     board::Board,
     evaluate::evaluate,
+    history::CorrectionHistories,
     search::{self, Report, SearchResult},
     tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
@@ -14,11 +15,12 @@ use crate::{
 
 pub fn message_loop() {
     let tt = TranspositionTable::default();
+    let corrhist = CorrectionHistories::default();
     let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut threads = ThreadPool::new(&tt, &stop, &counter, &tb_hits);
+    let mut threads = ThreadPool::new(&tt, &corrhist, &stop, &counter, &tb_hits);
     for thread in threads.iter_mut() {
         thread.nnue.refresh(&thread.board);
     }
