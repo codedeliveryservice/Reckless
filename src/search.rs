@@ -552,6 +552,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            // Continuation history pruning
+            if is_quiet && depth < 3 && td.conthist(1, mv) + td.conthist(2, mv) < -512 * depth - 256 {
+                continue;
+            }
+
             // Bad Noisy Futility Pruning (BNFP)
             if !in_check
                 && lmr_depth < 6
