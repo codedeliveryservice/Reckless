@@ -1,5 +1,5 @@
 use crate::{
-    parameters::PIECE_VALUES,
+    parameters::*,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
@@ -102,8 +102,8 @@ impl MovePicker {
                 }
 
                 let threshold = match self.threshold {
-                    Threshold::Normal => -entry.score / 34 + 107,
-                    Threshold::Quiescence => -entry.score / 34 + 107,
+                    Threshold::Normal => -entry.score / ab_threshold_v1() + ab_threshold_v2(),
+                    Threshold::Quiescence => -entry.score / qs_threshold_v1() + qs_threshold_v2(),
                     Threshold::Probcut(threshold) => threshold,
                 };
 
@@ -181,7 +181,7 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = PIECE_VALUES[captured] * 18;
+            entry.score = PIECE_VALUES[captured]() * 18;
 
             entry.score += td.noisy_history.get(
                 td.board.threats(),

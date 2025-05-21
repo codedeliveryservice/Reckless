@@ -1,4 +1,4 @@
-pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
+pub const PIECE_VALUES: [fn() -> i32; 7] = [pawn, knight, bishop, rook, queen, || 0, || 0];
 
 pub const fn lmp_threshold(depth: i32, improving: bool) -> i32 {
     (4 + depth * depth) / (2 - improving as i32)
@@ -37,4 +37,16 @@ macro_rules! define {
             $(pub static mut $name: $type = $value;)*
         }
     };
+}
+
+define! {
+    i32 ab_threshold_v1: 34;
+    i32 ab_threshold_v2: 107;
+    i32 qs_threshold_v1: 34;
+    i32 qs_threshold_v2: 107;
+    i32 pawn: 100;
+    i32 knight: 375;
+    i32 bishop: 400;
+    i32 rook: 625;
+    i32 queen: 1200;
 }
