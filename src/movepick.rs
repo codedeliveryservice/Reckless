@@ -103,7 +103,7 @@ impl MovePicker {
 
                 let threshold = match self.threshold {
                     Threshold::Normal => -entry.score / 34 + 107,
-                    Threshold::Quiescence => -entry.score / 34 + 75,
+                    Threshold::Quiescence => -entry.score / 64 + 75,
                     Threshold::Probcut(threshold) => threshold,
                 };
 
