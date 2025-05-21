@@ -695,7 +695,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if entry.is_none() {
+        if !in_check {
             correction_value = correction(td);
             static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
             td.stack[td.ply].static_eval = static_eval;
