@@ -49,4 +49,10 @@ define! {
     i32 bishop: 400;
     i32 rook: 625;
     i32 queen: 1200;
+    i32 pruning_quite_v1: 21;
+    i32 pruning_quite_v2: 42;
+    i32 pruning_quite_v3: 0;
+    i32 pruning_noisy_v1: 98;
+    i32 pruning_noisy_v2: 42;
+    i32 pruning_noisy_v3: 50;
 }
