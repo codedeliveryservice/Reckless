@@ -636,6 +636,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1141;
             }
 
+            if (PV || cut_node) && tt_move.is_null() {
+                reduction += 1024;
+            }
+
             if td.board.in_check() {
                 reduction -= 928;
             }
