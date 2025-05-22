@@ -240,7 +240,38 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
-                return tt_score;
+
+                if depth >= 8
+                    && tt_move.is_some()
+                    && td.board.is_pseudo_legal(tt_move)
+                    && td.board.is_legal(tt_move)
+                    && !is_decisive(tt_score)
+                {
+                    td.board.make_move(tt_move);
+
+                    let next_entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+
+                    let mut next_tt_score = Score::NONE;
+                    if let Some(next_entry) = next_entry {
+                        next_tt_score = next_entry.score;
+                    }
+
+                    td.board.undo_move(tt_move);
+
+                    if !is_valid(next_tt_score) {
+                        return tt_score;
+                    }
+
+                    if tt_score >= beta && -next_tt_score >= beta {
+                        return tt_score;
+                    }
+
+                    if tt_score <= alpha && -next_tt_score <= alpha {
+                        return tt_score;
+                    }
+                } else {
+                    return tt_score;
+                }
             }
         }
     }
