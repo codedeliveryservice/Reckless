@@ -624,7 +624,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if tt_pv {
                 reduction -= 792;
-                reduction -= 597 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 597 * (!is_valid(tt_score) || tt_score > alpha) as i32;
                 reduction -= 717 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
