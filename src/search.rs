@@ -539,7 +539,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7084).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= move_count >= lmp_threshold(depth, improving);
+            skip_quiets |= move_count >= lmp_threshold(depth, improving || static_eval >= beta);
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 120 * lmr_depth + 80;
