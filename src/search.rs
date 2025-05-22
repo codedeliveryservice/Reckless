@@ -224,7 +224,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !PV
             && !excluded
-            && tt_depth >= depth
+            && tt_depth > depth - (tt_score <= beta + 120) as i32
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha,
