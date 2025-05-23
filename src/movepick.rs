@@ -36,7 +36,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
             threshold,
             tt_move,
             killer,
-            stage: if TYPE == NORMAL { Stage::HashMove } else { Stage::GenerateNoisy },
+            stage: Stage::HashMove,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -51,7 +51,17 @@ impl<const TYPE: u8> MovePicker<TYPE> {
             self.stage = Stage::GenerateNoisy;
 
             if td.board.is_pseudo_legal(self.tt_move) {
-                return Some(self.tt_move);
+                match TYPE {
+                    PROBCUT if self.tt_move.is_noisy() && td.board.see(self.tt_move, self.threshold) => {
+                        return Some(self.tt_move);
+                    }
+                    QSEARCH if self.tt_move.is_noisy() || td.board.in_check() => {
+                        return Some(self.tt_move);
+                    }
+                    _ => {
+                        return Some(self.tt_move);
+                    }
+                }
             }
         }
 
@@ -87,7 +97,7 @@ impl<const TYPE: u8> MovePicker<TYPE> {
                 return Some(entry.mv);
             }
 
-            self.stage = if TYPE == NORMAL { Stage::Killer } else { Stage::GenerateQuiet };
+            self.stage = Stage::Killer;
         }
 
         if self.stage == Stage::Killer {
@@ -134,17 +144,15 @@ impl<const TYPE: u8> MovePicker<TYPE> {
         }
 
         // Stage::BadNoisy
-        if TYPE != PROBCUT {
-            while self.bad_noisy_idx < self.bad_noisy.len() {
-                let mv = self.bad_noisy[self.bad_noisy_idx];
-                self.bad_noisy_idx += 1;
+        while self.bad_noisy_idx < self.bad_noisy.len() {
+            let mv = self.bad_noisy[self.bad_noisy_idx];
+            self.bad_noisy_idx += 1;
 
-                if mv == self.tt_move {
-                    continue;
-                }
-
-                return Some(mv);
+            if mv == self.tt_move {
+                continue;
             }
+
+            return Some(mv);
         }
 
         None

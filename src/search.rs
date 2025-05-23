@@ -456,15 +456,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 298 - 64 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
-        let mut move_picker = MovePicker::<PROBCUT>::new(probcut_beta - static_eval, Move::NULL, Move::NULL);
+        let mut move_picker = MovePicker::<PROBCUT>::new(probcut_beta - static_eval, Move::NULL, tt_move);
 
         let probcut_depth = 0.max(depth - 4);
 
         while let Some(mv) = move_picker.next(td, true) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
             if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
@@ -860,12 +856,14 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut tt_pv = PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut tt_move = Move::NULL;
 
     // QS Early TT-Cut
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_move = entry.mv;
 
         if is_valid(tt_score)
             && match tt_bound {
@@ -931,7 +929,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::<QSEARCH>::new(0, Move::NULL, Move::NULL);
+    let mut move_picker = MovePicker::<QSEARCH>::new(0, Move::NULL, tt_move);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
