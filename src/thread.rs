@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, Square, MAX_MOVES, MAX_PLY},
+    types::{Move, Score, Square, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -153,7 +153,7 @@ impl<'a> ThreadData<'a> {
         let ms = elapsed.as_millis();
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
-            format!("cp {}", normalize_to_cp(score, &self.board))
+            format!("cp {score}")
         } else if score.abs() <= Score::TB_WIN {
             let ply = Score::TB_WIN - score.abs();
             let cp_score = 20_000 - ply;
