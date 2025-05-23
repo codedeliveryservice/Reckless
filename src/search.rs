@@ -281,7 +281,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction_value(td);
+    let correction_value = correction_value(td, tt_pv, cut_node);
 
     let raw_eval;
     let static_eval;
@@ -819,7 +819,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, tt_pv, cut_node, depth, best_score - static_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -890,7 +890,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(raw_eval, correction_value(td, tt_pv, false), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -1009,15 +1009,20 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction_value(td: &ThreadData, tt_pv: bool, cut_node: bool) -> i32 {
     let stm = td.board.side_to_move();
 
-    let correction = 1114 * td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
-        + 757 * td.major_corrhist.get(stm, td.board.major_key())
-        + 1015 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + 992 * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 };
+    let correction = 1114 * td.pawn_corrhist.get(tt_pv, cut_node, stm, td.board.pawn_key())
+        + 975 * td.minor_corrhist.get(tt_pv, cut_node, stm, td.board.minor_key())
+        + 757 * td.major_corrhist.get(tt_pv, cut_node, stm, td.board.major_key())
+        + 1015 * td.non_pawn_corrhist[Color::White].get(tt_pv, cut_node, stm, td.board.non_pawn_key(Color::White))
+        + 1015 * td.non_pawn_corrhist[Color::Black].get(tt_pv, cut_node, stm, td.board.non_pawn_key(Color::Black))
+        + 992
+            * if td.ply >= 1 {
+                td.last_move_corrhist.get(tt_pv, cut_node, stm, td.stack[td.ply - 1].mv.encoded() as u64)
+            } else {
+                0
+            };
 
     correction / 1024
 }
@@ -1026,18 +1031,25 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+fn update_correction_histories(td: &mut ThreadData, tt_pv: bool, cut_node: bool, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
-    td.minor_corrhist.update(stm, td.board.minor_key(), depth, diff);
-    td.major_corrhist.update(stm, td.board.major_key(), depth, diff);
+    td.pawn_corrhist.update(tt_pv, cut_node, stm, td.board.pawn_key(), depth, diff);
+    td.minor_corrhist.update(tt_pv, cut_node, stm, td.board.minor_key(), depth, diff);
+    td.major_corrhist.update(tt_pv, cut_node, stm, td.board.major_key(), depth, diff);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
+    td.non_pawn_corrhist[Color::White].update(tt_pv, cut_node, stm, td.board.non_pawn_key(Color::White), depth, diff);
+    td.non_pawn_corrhist[Color::Black].update(tt_pv, cut_node, stm, td.board.non_pawn_key(Color::Black), depth, diff);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
-        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+        td.last_move_corrhist.update(
+            tt_pv,
+            cut_node,
+            td.board.side_to_move(),
+            td.stack[td.ply - 1].mv.encoded() as u64,
+            depth,
+            diff,
+        );
     }
 }
 
