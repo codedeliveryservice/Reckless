@@ -205,6 +205,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut max_score = Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
+    let initial_depth = depth;
 
     let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_depth = 0;
@@ -474,7 +475,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                td.stack[td.ply].reduction = 1024 * (depth - 1 - probcut_depth);
+                td.stack[td.ply].reduction = 1024 * (initial_depth - 1 - probcut_depth);
                 score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
                 td.stack[td.ply].reduction = 0;
             }
@@ -501,8 +502,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
         depth -= 1;
     }
-
-    let initial_depth = depth;
 
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
@@ -685,7 +684,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !PV || move_count > 1 {
-            td.stack[td.ply - 1].reduction = 1024 * ((depth - 1) - new_depth);
+            td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
             score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
