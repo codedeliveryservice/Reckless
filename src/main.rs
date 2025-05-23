@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(clippy::manual_is_multiple_of)]
 #![allow(clippy::if_same_then_else)]
 
@@ -27,8 +28,15 @@ fn main() {
     lookup::init();
     nnue::initialize();
 
-    match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(None),
-        _ => uci::message_loop(),
+    if let Some("bench") = std::env::args().nth(1).as_deref() {
+        tools::bench::<false>(None);
+        return;
     }
+
+    if std::env::args().any(|v| v.contains("genfens")) {
+        tools::genfens();
+        return;
+    }
+
+    uci::message_loop();
 }
