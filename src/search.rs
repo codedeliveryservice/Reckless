@@ -460,8 +460,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some(mv) = move_picker.next(td, true) {
+        while let Some(mv) = move_picker.next(td, !(in_check && tt_move.is_quiet())) {
             if move_picker.stage() == Stage::BadNoisy {
+                break;
+            }
+
+            if in_check && tt_move.is_quiet() && mv != tt_move {
                 break;
             }
 
