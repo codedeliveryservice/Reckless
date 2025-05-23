@@ -112,6 +112,10 @@ impl<T> IndexMut<Square> for [T] {
 impl std::fmt::Display for Square {
     /// Formats the `Square` using the algebraic notation.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if *self == Square::None {
+            return write!(f, "-");
+        }
+
         let rank = (*self as u8) / 8 + b'1';
         let file = (*self as u8) % 8 + b'a';
         write!(f, "{}{}", file as char, rank as char)

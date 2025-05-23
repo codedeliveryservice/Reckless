@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::{fmt::Display, ops::Index};
 
 use super::{Bitboard, Move, MoveKind, Square};
 
@@ -102,5 +102,27 @@ impl<T> Index<Castling> for [T] {
 
     fn index(&self, index: Castling) -> &Self::Output {
         unsafe { self.get_unchecked(index.raw as usize) }
+    }
+}
+
+impl Display for Castling {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.raw() == 0 {
+            return write!(f, "-");
+        }
+
+        if self.is_allowed::<WhiteKingSide>() {
+            write!(f, "K")?;
+        }
+        if self.is_allowed::<WhiteQueenSide>() {
+            write!(f, "Q")?;
+        }
+        if self.is_allowed::<BlackKingSide>() {
+            write!(f, "k")?;
+        }
+        if self.is_allowed::<BlackQueenSide>() {
+            write!(f, "q")?;
+        }
+        Ok(())
     }
 }

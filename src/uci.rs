@@ -45,6 +45,7 @@ pub fn message_loop() {
             // Non-UCI commands
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
+            ["d"] => display(threads.main_thread()),
             ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
@@ -245,6 +246,10 @@ fn eval(td: &mut ThreadData) {
         Color::Black => -evaluate(td),
     };
     println!("{eval}");
+}
+
+fn display(td: &mut ThreadData) {
+    println!("FEN: {}", td.board.to_fen());
 }
 
 fn read_stdin() -> String {

@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut, Not};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut, Not},
+};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Color {
@@ -32,5 +35,14 @@ impl<T> Index<Color> for [T] {
 impl<T> IndexMut<Color> for [T] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index as usize) }
+    }
+}
+
+impl Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::White => write!(f, "w"),
+            Self::Black => write!(f, "b"),
+        }
     }
 }

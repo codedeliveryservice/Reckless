@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use super::Board;
-use crate::types::{Color, Square};
+use crate::types::{Color, Piece, Square};
 
 #[derive(Debug)]
 pub enum ParseFenError {
@@ -61,5 +61,49 @@ impl FromStr for Board {
         board.update_hash_keys();
 
         Ok(board)
+    }
+}
+
+impl Board {
+    pub fn to_fen(&self) -> String {
+        let mut fen = String::new();
+
+        for rank in (0..8).rev() {
+            let mut empty_count = 0;
+
+            for file in 0..8 {
+                let piece = self.piece_on(Square::from_rank_file(rank, file));
+                if piece == Piece::None {
+                    empty_count += 1;
+                    continue;
+                }
+
+                if empty_count > 0 {
+                    fen.push_str(&empty_count.to_string());
+                    empty_count = 0;
+                }
+                fen.push_str(&piece.to_string());
+            }
+
+            if empty_count > 0 {
+                fen.push_str(&empty_count.to_string());
+            }
+
+            if rank > 0 {
+                fen.push('/');
+            }
+        }
+
+        fen.push(' ');
+        fen.push_str(&self.side_to_move.to_string());
+        fen.push(' ');
+        fen.push_str(&self.state.castling.to_string());
+        fen.push(' ');
+        fen.push_str(&self.state.en_passant.to_string());
+        fen.push(' ');
+        fen.push_str(&self.state.halfmove_clock.to_string());
+        fen.push(' ');
+        fen.push_str(&self.fullmove_number.to_string());
+        fen
     }
 }

@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
 use super::Color;
 
@@ -59,6 +62,27 @@ impl<T> Index<Piece> for [T] {
 impl<T> IndexMut<Piece> for [T] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index as usize) }
+    }
+}
+
+impl Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let piece = match self {
+            Self::WhitePawn => 'P',
+            Self::BlackPawn => 'p',
+            Self::WhiteKnight => 'N',
+            Self::BlackKnight => 'n',
+            Self::WhiteBishop => 'B',
+            Self::BlackBishop => 'b',
+            Self::WhiteRook => 'R',
+            Self::BlackRook => 'r',
+            Self::WhiteQueen => 'Q',
+            Self::BlackQueen => 'q',
+            Self::WhiteKing => 'K',
+            Self::BlackKing => 'k',
+            Self::None => panic!(),
+        };
+        write!(f, "{piece}")
     }
 }
 
