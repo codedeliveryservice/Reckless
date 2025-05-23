@@ -11,7 +11,7 @@ use crate::{
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_PLY},
+    types::{Move, Score, MAX_PLY},
 };
 
 #[repr(align(64))]
@@ -202,7 +202,7 @@ impl ThreadData {
             }
 
             let mut score_str = if score.abs() < Score::TB_WIN_IN_MAX {
-                format!("cp {}", normalize_to_cp(score, &self.board))
+                format!("cp {score}")
             } else if score.abs() <= Score::TB_WIN {
                 let ply = Score::TB_WIN - score.abs();
                 let cp_score = 20_000 - ply;
