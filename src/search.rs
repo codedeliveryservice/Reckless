@@ -503,7 +503,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && is_valid(tt_score)
         && (tt_bound != Bound::Upper)
         && tt_depth >= depth - 4
-        && tt_score >= probcut_beta
+        && tt_score >= probcut_beta + 128
         && tt_move.is_noisy()
         && !is_decisive(beta)
         && !is_decisive(tt_score)
