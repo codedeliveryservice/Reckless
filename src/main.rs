@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(clippy::manual_is_multiple_of)]
 #![allow(clippy::if_same_then_else)]
 #![allow(unsafe_op_in_unsafe_fn)]
@@ -31,6 +32,11 @@ mod bindings;
 fn main() {
     lookup::initialize();
     nnue::initialize();
+
+    if std::env::args().any(|v| v.contains("genfens")) {
+        tools::genfens();
+        return;
+    }
 
     let buffer: std::collections::VecDeque<String> = std::env::args().skip(1).collect();
 
