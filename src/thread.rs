@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
+    types::{Move, Score, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -154,7 +154,7 @@ impl<'a> ThreadData<'a> {
         let score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
-            format!("cp {}", normalize_to_cp(score, &self.board))
+            format!("cp {score}")
         } else if score.abs() <= Score::TB_WIN {
             let ply = Score::TB_WIN - score.abs();
             let cp_score = 20_000 - ply;
