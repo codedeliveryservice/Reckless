@@ -65,7 +65,7 @@ impl Move {
     }
 
     pub const fn is_quiet(self) -> bool {
-        !self.is_noisy()
+        self.is_some() && !self.is_noisy()
     }
 
     pub const fn is_noisy(self) -> bool {

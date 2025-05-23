@@ -232,7 +232,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
-            if tt_move.is_some() && tt_move.is_quiet() && tt_score >= beta {
+            if tt_move.is_quiet() && tt_score >= beta {
                 let bonus = (124 * depth - 64).min(1367);
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), bonus);
@@ -329,7 +329,6 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !in_check
         && !excluded
         && td.ply >= 1
-        && td.stack[td.ply - 1].mv.is_some()
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
@@ -793,7 +792,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
-        if pcm_move.is_some() && pcm_move.is_quiet() {
+        if pcm_move.is_quiet() {
             let mut factor = 118;
             factor += 134 * (depth > 5) as i32;
             factor += 211 * (!in_check && best_score <= td.stack[td.ply].static_eval - 135) as i32;
