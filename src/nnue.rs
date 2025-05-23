@@ -5,16 +5,20 @@ use crate::{
 
 use accumulator::Accumulator;
 
-#[cfg(target_feature = "avx2")]
+#[cfg(all(target_feature = "avx2", not(target_arch = "aarch64")))]
 use avx2 as simd;
-#[cfg(not(target_feature = "avx2"))]
+#[cfg(target_arch = "aarch64")]
+use fallback as simd;
+#[cfg(all(not(target_feature = "avx2"), not(target_arch = "aarch64")))]
 use ssse3 as simd;
 
 mod accumulator;
 
-#[cfg(target_feature = "avx2")]
+#[cfg(all(target_feature = "avx2", not(target_arch = "aarch64")))]
 mod avx2;
-#[cfg(not(target_feature = "avx2"))]
+#[cfg(target_arch = "aarch64")]
+mod fallback;
+#[cfg(all(not(target_feature = "avx2"), not(target_arch = "aarch64")))]
 mod ssse3;
 
 const INPUT_SIZE: usize = 768;
