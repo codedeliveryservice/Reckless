@@ -649,6 +649,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.stack[td.ply - 1].killer == mv {
                 reduction -= 1043;
+            } else if is_quiet && tt_move.is_noisy() {
+                reduction += 768;
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
