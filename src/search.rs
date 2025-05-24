@@ -1011,18 +1011,19 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let correction = 1114 * td.pawn_corrhist.get(stm, td.board.pawn_key())
+    let mut correction = 1114 * td.pawn_corrhist.get(stm, td.board.pawn_key())
         + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
         + 757 * td.major_corrhist.get(stm, td.board.major_key())
         + 1015 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + 992 * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
-        + 757
-            * if td.ply >= 2 {
-                td.pre_last_move_corrhist.get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
-            } else {
-                0
-            };
+        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+
+    if td.ply >= 1 {
+        correction += 992 * td.prior_moves_corrhist[0].get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
+    }
+
+    if td.ply >= 2 {
+        correction += 757 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
+    }
 
     correction / 1024
 }
@@ -1043,11 +1044,11 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
-        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
+        td.prior_moves_corrhist[0].update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
     }
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
-        td.pre_last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 2].mv.encoded() as u64, bonus);
+        td.prior_moves_corrhist[1].update(td.board.side_to_move(), td.stack[td.ply - 2].mv.encoded() as u64, bonus);
     }
 }
 
