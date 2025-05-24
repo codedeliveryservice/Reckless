@@ -68,6 +68,10 @@ impl Board {
         self.side_to_move
     }
 
+    pub const fn has_captured(&self) -> bool {
+        self.state.captured.is_some()
+    }
+
     pub const fn fullmove_number(&self) -> usize {
         self.fullmove_number
     }
