@@ -1033,25 +1033,21 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
+    let bonus = depth * diff;
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), depth, diff);
-    td.minor_corrhist.update(stm, td.board.minor_key(), depth, diff);
-    td.major_corrhist.update(stm, td.board.major_key(), depth, diff);
+    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
+    td.major_corrhist.update(stm, td.board.major_key(), bonus);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), depth, diff);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), depth, diff);
+    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
-        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+        td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
     }
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
-        td.pre_last_move_corrhist.update(
-            td.board.side_to_move(),
-            td.stack[td.ply - 2].mv.encoded() as u64,
-            depth,
-            diff,
-        );
+        td.pre_last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 2].mv.encoded() as u64, bonus);
     }
 }
 
