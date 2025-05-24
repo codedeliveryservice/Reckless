@@ -21,3 +21,9 @@ codegen-units = 1
 [build-dependencies]
 cc = "1.2.19"
 bindgen = "0.71.1"
+
+[dependencies]
+bzip2 = "0.5.2"
+indicatif = "0.17.11"
+pgn-lexer = "0.1.1"
+shakmaty = "0.27.3"
