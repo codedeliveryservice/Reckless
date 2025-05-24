@@ -643,7 +643,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 770 + 62 * td.stack[td.ply].cutoff_count.max(7);
+                reduction += 989 + 686 * !(PV || cut_node) as i32;
             }
 
             if td.stack[td.ply - 1].killer == mv {
