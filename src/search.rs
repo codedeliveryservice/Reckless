@@ -1016,7 +1016,13 @@ fn correction_value(td: &ThreadData) -> i32 {
         + 757 * td.major_corrhist.get(stm, td.board.major_key())
         + 1015 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + 992 * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 };
+        + 992 * if td.ply >= 1 { td.last_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64) } else { 0 }
+        + 992
+            * if td.ply >= 2 {
+                td.pre_last_move_corrhist.get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
+            } else {
+                0
+            };
 
     correction / 1024
 }
@@ -1037,6 +1043,15 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
         td.last_move_corrhist.update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, depth, diff);
+    }
+
+    if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
+        td.pre_last_move_corrhist.update(
+            td.board.side_to_move(),
+            td.stack[td.ply - 2].mv.encoded() as u64,
+            depth,
+            diff,
+        );
     }
 }
 
