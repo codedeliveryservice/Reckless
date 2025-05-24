@@ -145,14 +145,14 @@ impl Default for CorrectionHistory {
 
 pub struct ContinuationHistory {
     // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
+    entries: Box<[[[PieceToHistory<i16>; 64]; 13]; 2]>,
 }
 
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
-    pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut [[i16; 64]; 13] {
-        self.entries[piece][sq].as_mut_ptr() as *mut [[i16; 64]; 13]
+    pub fn subtable_ptr(&mut self, noisy: bool, piece: Piece, sq: Square) -> *mut [[i16; 64]; 13] {
+        self.entries[noisy as usize][piece][sq].as_mut_ptr() as *mut [[i16; 64]; 13]
     }
 
     pub fn get(&self, subtable_ptr: *mut [[i16; 64]; 13], piece: Piece, sq: Square) -> i32 {
