@@ -889,7 +889,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(raw_eval, 0, td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
