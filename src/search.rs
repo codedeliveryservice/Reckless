@@ -282,7 +282,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction_value(td);
+    let mut correction_value = correction(td, false);
 
     let raw_eval;
     let static_eval;
@@ -310,7 +310,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         {
             debug_assert!(is_valid(tt_score));
-            eval = tt_score;
+            correction_value = correction(td, true);
+            if !is_decisive(tt_score) {
+                eval = corrected_eval(tt_score, correction_value, 0);
+            } else {
+                eval = tt_score;
+            }
         }
     } else {
         raw_eval = evaluate(td);
@@ -818,7 +823,16 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, depth, best_score - static_eval, false);
+    }
+
+    if eval != static_eval
+        && !(in_check
+            || best_move.is_noisy()
+            || (bound == Bound::Upper && best_score >= eval)
+            || (bound == Bound::Lower && best_score <= eval))
+    {
+        update_correction_histories(td, depth, best_score - eval, true);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -889,7 +903,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(raw_eval, correction(td, false), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -900,7 +914,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         {
             debug_assert!(is_valid(tt_score));
-            best_score = tt_score;
+
+            if !is_decisive(tt_score) {
+                best_score = corrected_eval(tt_score, correction(td, true), 0);
+            } else {
+                best_score = tt_score;
+            }
         }
 
         if best_score >= beta {
@@ -1008,21 +1027,23 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction(td: &ThreadData, is_eval: bool) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = 1114 * td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
-        + 757 * td.major_corrhist.get(stm, td.board.major_key())
-        + 1015 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+    let mut correction = 1114 * td.pawn_corrhist[is_eval as usize].get(stm, td.board.pawn_key())
+        + 975 * td.minor_corrhist[is_eval as usize].get(stm, td.board.minor_key())
+        + 757 * td.major_corrhist[is_eval as usize].get(stm, td.board.major_key())
+        + 1015 * td.non_pawn_corrhist[is_eval as usize][Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + 1015 * td.non_pawn_corrhist[is_eval as usize][Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
 
     if td.ply >= 1 {
-        correction += 992 * td.prior_moves_corrhist[0].get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
+        correction +=
+            992 * td.prior_moves_corrhist[is_eval as usize][0].get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
     }
 
     if td.ply >= 2 {
-        correction += 757 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
+        correction +=
+            757 * td.prior_moves_corrhist[is_eval as usize][1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
     }
 
     correction / 1024
@@ -1032,23 +1053,31 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, is_eval: bool) {
     let stm = td.board.side_to_move();
     let bonus = depth * diff;
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
-    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
-    td.major_corrhist.update(stm, td.board.major_key(), bonus);
+    td.pawn_corrhist[is_eval as usize].update(stm, td.board.pawn_key(), bonus);
+    td.minor_corrhist[is_eval as usize].update(stm, td.board.minor_key(), bonus);
+    td.major_corrhist[is_eval as usize].update(stm, td.board.major_key(), bonus);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    td.non_pawn_corrhist[is_eval as usize][Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    td.non_pawn_corrhist[is_eval as usize][Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
-        td.prior_moves_corrhist[0].update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
+        td.prior_moves_corrhist[is_eval as usize][0].update(
+            td.board.side_to_move(),
+            td.stack[td.ply - 1].mv.encoded() as u64,
+            bonus,
+        );
     }
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
-        td.prior_moves_corrhist[1].update(td.board.side_to_move(), td.stack[td.ply - 2].mv.encoded() as u64, bonus);
+        td.prior_moves_corrhist[is_eval as usize][1].update(
+            td.board.side_to_move(),
+            td.stack[td.ply - 2].mv.encoded() as u64,
+            bonus,
+        );
     }
 }
 
