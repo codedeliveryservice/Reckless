@@ -1019,6 +1019,9 @@ fn correction_value(td: &ThreadData) -> i32 {
 
     if td.ply >= 1 {
         correction += 992 * td.prior_moves_corrhist[0].get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
+        correction += 100
+            * td.piece_to_corrhist
+                .get(stm, ((td.stack[td.ply - 1].piece as u64) << 6) | (td.stack[td.ply - 1].mv.to() as u64));
     }
 
     if td.ply >= 2 {
@@ -1045,6 +1048,12 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
         td.prior_moves_corrhist[0].update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
+
+        td.piece_to_corrhist.update(
+            td.board.side_to_move(),
+            ((td.stack[td.ply - 1].piece as u64) << 6) | (td.stack[td.ply - 1].mv.to() as u64),
+            bonus,
+        );
     }
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
