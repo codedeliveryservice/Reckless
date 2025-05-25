@@ -826,11 +826,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         update_correction_histories(td, depth, best_score - static_eval, false);
     }
 
-    if eval != static_eval
-        && !(in_check
-            || best_move.is_noisy()
-            || (bound == Bound::Upper && best_score >= eval)
-            || (bound == Bound::Lower && best_score <= eval))
+    if !(in_check
+        || best_move.is_noisy()
+        || (bound == Bound::Upper && best_score >= eval)
+        || (bound == Bound::Lower && best_score <= eval))
     {
         update_correction_histories(td, depth, best_score - eval, true);
     }
