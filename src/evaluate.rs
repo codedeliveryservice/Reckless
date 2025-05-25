@@ -13,7 +13,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     let material = material(&td.board);
     let complexity = eval.abs() / 4;
-    optimism += optimism * complexity / 468;
+    optimism += optimism * complexity / 256;
     eval = (eval * (20000 + material) + optimism * (2000 + material)) / 32768;
 
     eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
