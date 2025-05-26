@@ -20,7 +20,7 @@ mod ssse3;
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 1024;
 
-const NETWORK_SCALE: i32 = 400;
+const NETWORK_SCALE: i32 = 380;
 const NETWORK_QA: i32 = 384;
 const NETWORK_QB: i32 = 64;
 
