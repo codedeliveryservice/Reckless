@@ -1080,6 +1080,7 @@ fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
     td.ply += 1;
+    td.ply2 += 1;
 
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
@@ -1088,6 +1089,7 @@ fn make_move(td: &mut ThreadData, mv: Move) {
 
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.ply -= 1;
+    td.ply2 -= 1;
     td.nnue.pop();
     td.board.undo_move(mv);
 }

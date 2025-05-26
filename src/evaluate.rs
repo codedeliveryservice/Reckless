@@ -8,6 +8,8 @@ const MATERIAL_VALUES: [i32; 6] = [132, 414, 432, 661, 1217, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
+    assert!(td.ply == td.ply2);
+
     let mut eval = td.nnue.evaluate(&td.board);
 
     let material = material(&td.board);
