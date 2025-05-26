@@ -90,7 +90,7 @@ impl MovePicker {
                     }
                 }
 
-                let entry = self.list.remove(index);
+                let entry = &self.list.remove(index);
                 if entry.mv == self.tt_move {
                     continue;
                 }
@@ -138,7 +138,7 @@ impl MovePicker {
                         }
                     }
 
-                    let entry = self.list.remove(index);
+                    let entry = &self.list.remove(index);
                     if entry.mv == self.tt_move || entry.mv == self.killer {
                         continue;
                     }
