@@ -1026,12 +1026,12 @@ fn correction_value(td: &ThreadData) -> i32 {
 
         let mv = td.stack[td.ply - 1].mv;
         if mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-            correction += 757
-                * td.continuation_correction_history.get(
+            correction +=
+                757 * td.continuation_correction_history.get(
                     td.stack[td.ply - 2].contcorrhist,
                     td.stack[td.ply - 1].piece,
                     mv.to(),
-                );
+                ) / 96;
         }
     }
 
