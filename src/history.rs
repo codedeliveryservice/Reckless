@@ -131,8 +131,6 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        let bonus = bonus.clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
-
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
     }
 }
@@ -151,16 +149,16 @@ pub struct ContinuationHistory {
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
-    pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut [[i16; 64]; 13] {
-        self.entries[piece][sq].as_mut_ptr() as *mut [[i16; 64]; 13]
+    pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
+        self.entries[piece][sq].as_mut_ptr().cast()
     }
 
-    pub fn get(&self, subtable_ptr: *mut [[i16; 64]; 13], piece: Piece, sq: Square) -> i32 {
+    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
         (unsafe { &*subtable_ptr }[piece][sq]) as i32
     }
 
-    pub fn update(&mut self, subtable_ptr: *mut [[i16; 64]; 13], cont_piece: Piece, cont_sq: Square, bonus: i32) {
-        let entry = &mut unsafe { &mut *subtable_ptr }[cont_piece][cont_sq];
+    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
+        let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }

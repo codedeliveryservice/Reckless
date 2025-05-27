@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, Square, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -240,16 +240,16 @@ impl Default for LmrTable {
 }
 
 pub struct NodeTable {
-    table: [[u64; 64]; 64],
+    table: Box<[u64]>,
 }
 
 impl NodeTable {
-    pub fn add(&mut self, mv: Move, nodes: u64) {
-        self.table[mv.from()][mv.to()] += nodes;
+    pub const fn add(&mut self, mv: Move, nodes: u64) {
+        self.table[mv.encoded()] += nodes;
     }
 
-    pub fn get(&self, mv: Move) -> u64 {
-        self.table[mv.from()][mv.to()]
+    pub const fn get(&self, mv: Move) -> u64 {
+        self.table[mv.encoded()]
     }
 
     pub fn clear(&mut self) {
@@ -259,7 +259,7 @@ impl NodeTable {
 
 impl Default for NodeTable {
     fn default() -> Self {
-        Self { table: [[0; 64]; 64] }
+        Self { table: vec![0; Square::NUM * Square::NUM].into_boxed_slice() }
     }
 }
 
