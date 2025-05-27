@@ -131,8 +131,6 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        let bonus = bonus.clamp(-Self::MAX_HISTORY / 4, Self::MAX_HISTORY / 4);
-
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
     }
 }
