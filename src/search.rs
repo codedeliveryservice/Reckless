@@ -819,6 +819,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Lower && best_score <= static_eval))
     {
         update_correction_histories(td, depth, best_score - static_eval);
+
+        if !is_decisive(best_score) {
+            best_score += self::correction_value(td);
+        }
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
