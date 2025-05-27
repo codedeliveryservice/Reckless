@@ -207,7 +207,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
-    let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
@@ -569,7 +569,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut extension = 0;
 
         if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
-            let entry = entry.unwrap();
+            let entry = &entry.unwrap();
 
             if depth >= 5
                 && tt_depth >= depth - 3
@@ -855,7 +855,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
-    let entry = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_pv = PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1054,21 +1054,21 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
     if td.ply >= 1 {
-        let entry = td.stack[td.ply - 1];
+        let entry = &td.stack[td.ply - 1];
         if entry.mv.is_some() {
             td.continuation_history.update(entry.conthist, piece, sq, 1287 * bonus / 1024);
         }
     }
 
     if td.ply >= 2 {
-        let entry = td.stack[td.ply - 2];
+        let entry = &td.stack[td.ply - 2];
         if entry.mv.is_some() {
             td.continuation_history.update(entry.conthist, piece, sq, 1323 * bonus / 1024);
         }
     }
 
     if td.ply >= 3 {
-        let entry = td.stack[td.ply - 3];
+        let entry = &td.stack[td.ply - 3];
         if entry.mv.is_some() {
             td.continuation_history.update(entry.conthist, piece, sq, 937 * bonus / 1024);
         }
