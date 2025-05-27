@@ -410,6 +410,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let r = 4 + depth / 3 + ((eval - beta) / 252).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
+        td.stack[td.ply].contcorrhist = std::ptr::null_mut();
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
         td.ply += 1;
@@ -1022,6 +1023,16 @@ fn correction_value(td: &ThreadData) -> i32 {
 
     if td.ply >= 2 {
         correction += 757 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64);
+
+        let mv = td.stack[td.ply - 1].mv;
+        if mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
+            correction += 757
+                * td.continuation_correction_history.get(
+                    td.stack[td.ply - 2].contcorrhist,
+                    td.stack[td.ply - 1].piece,
+                    mv.to(),
+                );
+        }
     }
 
     correction / 1024
@@ -1048,6 +1059,16 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
         td.prior_moves_corrhist[1].update(td.board.side_to_move(), td.stack[td.ply - 2].mv.encoded() as u64, bonus);
+
+        let mv = td.stack[td.ply - 1].mv;
+        if mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
+            td.continuation_correction_history.update(
+                td.stack[td.ply - 2].contcorrhist,
+                td.stack[td.ply - 1].piece,
+                mv.to(),
+                bonus,
+            );
+        }
     }
 }
 
@@ -1076,6 +1097,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
 
 fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].conthist = td.continuation_history.subtable_ptr(td.board.moved_piece(mv), mv.to());
+    td.stack[td.ply].contcorrhist = td.continuation_correction_history.subtable_ptr(td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
     td.ply += 1;
