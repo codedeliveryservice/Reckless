@@ -867,11 +867,11 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         tt_bound = entry.bound;
 
         if is_valid(tt_score)
-            && match tt_bound {
+            && (match tt_bound {
                 Bound::Upper => tt_score <= alpha,
                 Bound::Lower => tt_score >= beta,
                 _ => true,
-            }
+            } || in_check)
         {
             debug_assert!(is_valid(tt_score));
             return tt_score;
