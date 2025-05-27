@@ -110,9 +110,8 @@ impl<T> IndexMut<Square> for [T] {
 }
 
 impl std::fmt::Display for Square {
-    /// Formats the `Square` using the algebraic notation.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if *self == Square::None {
+        if *self == Self::None {
             return write!(f, "-");
         }
 

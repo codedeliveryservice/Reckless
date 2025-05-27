@@ -3,7 +3,6 @@ use std::time::Instant;
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::{Bound, TtDepth},
@@ -537,7 +536,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7084).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= move_count >= lmp_threshold(depth, improving || static_eval >= beta);
+            skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta) as i32);
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 120 * lmr_depth + 80;
@@ -1022,7 +1021,7 @@ fn correction_value(td: &ThreadData) -> i32 {
     }
 
     if td.ply >= 2 {
-        correction += 757 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64)
+        correction += 757 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64);
     }
 
     correction / 1024
