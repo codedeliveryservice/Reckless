@@ -218,24 +218,13 @@ impl Board {
 
     /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self, ply: usize) -> bool {
-        self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32) || self.draw_by_insufficient_material()
+        self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
     }
 
     /// Return a draw score if a position repeats once earlier but strictly
     /// after the root, or repeats twice before or at the root.
     pub const fn draw_by_repetition(&self, ply: i32) -> bool {
         self.state.repetition != 0 && self.state.repetition < ply
-    }
-
-    /// Returns `true` if the current position is a known draw by insufficient material:
-    /// - Two kings only
-    /// - Two kings and one minor piece
-    pub fn draw_by_insufficient_material(&self) -> bool {
-        match self.occupancies().len() {
-            2 => true,
-            3 => self.pieces(PieceType::Knight) | self.pieces(PieceType::Bishop) != Bitboard(0),
-            _ => false,
-        }
     }
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
