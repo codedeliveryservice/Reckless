@@ -487,6 +487,13 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    td.board.piece_on(mv.to()).piece_type(),
+                    (128 * (probcut_depth + 1) - 60).min(1132),
+                );
                 td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
                 if is_decisive(score) {
