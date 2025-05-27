@@ -26,10 +26,10 @@ mod see;
 #[derive(Copy, Clone, Default)]
 struct InternalState {
     key: u64,
-    pawn_key: u64,
+    pawn_key: [u64; Color::NUM],
+    non_pawn_keys: [u64; Color::NUM],
     minor_key: u64,
     major_key: u64,
-    non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -77,8 +77,12 @@ impl Board {
         self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
     }
 
-    pub const fn pawn_key(&self) -> u64 {
-        self.state.pawn_key
+    pub const fn pawn_key(&self, color: Color) -> u64 {
+        self.state.pawn_key[color as usize]
+    }
+
+    pub const fn non_pawn_key(&self, color: Color) -> u64 {
+        self.state.non_pawn_keys[color as usize]
     }
 
     pub const fn minor_key(&self) -> u64 {
@@ -87,10 +91,6 @@ impl Board {
 
     pub const fn major_key(&self) -> u64 {
         self.state.major_key
-    }
-
-    pub const fn non_pawn_key(&self, color: Color) -> u64 {
-        self.state.non_pawn_keys[color as usize]
     }
 
     pub const fn pinners(&self) -> Bitboard {
@@ -201,7 +201,7 @@ impl Board {
         self.state.key ^= ZOBRIST.pieces[piece][square];
 
         if piece.piece_type() == PieceType::Pawn {
-            self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+            self.state.pawn_key[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
         } else {
             self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
 
@@ -478,10 +478,10 @@ impl Board {
 
     pub fn update_hash_keys(&mut self) {
         self.state.key = 0;
-        self.state.pawn_key = 0;
         self.state.minor_key = 0;
         self.state.major_key = 0;
         self.state.non_pawn_keys = [0; Color::NUM];
+        self.state.pawn_key = [0; Color::NUM];
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);

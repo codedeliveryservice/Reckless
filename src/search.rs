@@ -1011,11 +1011,12 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = 1114 * td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
-        + 757 * td.major_corrhist.get(stm, td.board.major_key())
+    let mut correction = 1114 * td.pawn_corrhist[Color::White].get(stm, td.board.pawn_key(Color::White))
+        + 1114 * td.pawn_corrhist[Color::Black].get(stm, td.board.pawn_key(Color::Black))
         + 1015 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+        + 1015 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + 975 * td.minor_corrhist.get(stm, td.board.minor_key())
+        + 757 * td.major_corrhist.get(stm, td.board.major_key());
 
     if td.ply >= 1 {
         correction += 992 * td.prior_moves_corrhist[0].get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
@@ -1036,12 +1037,14 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
     let bonus = depth * diff;
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
-    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
-    td.major_corrhist.update(stm, td.board.major_key(), bonus);
+    td.pawn_corrhist[Color::White].update(stm, td.board.pawn_key(Color::White), bonus);
+    td.pawn_corrhist[Color::Black].update(stm, td.board.pawn_key(Color::Black), bonus);
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+
+    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
+    td.major_corrhist.update(stm, td.board.major_key(), bonus);
 
     if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
         td.prior_moves_corrhist[0].update(td.board.side_to_move(), td.stack[td.ply - 1].mv.encoded() as u64, bonus);
