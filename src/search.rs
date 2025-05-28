@@ -786,7 +786,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper && td.ply >= 1 && (!quiet_moves.is_empty() || depth > 3) {
+    if bound != Bound::Lower && td.ply >= 1 && (!quiet_moves.is_empty() || depth > 3) {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
