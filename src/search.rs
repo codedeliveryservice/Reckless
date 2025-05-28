@@ -512,6 +512,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
+    let previous_square = if td.ply >= 1 {
+        match td.stack[td.ply - 1].mv {
+            Move::NULL => Square::None,
+            mv => mv.to(),
+        }
+    } else {
+        Square::None
+    };
+
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -520,6 +529,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         move_count += 1;
 
         let is_quiet = mv.is_quiet();
+        let is_recapture = td.board.is_captured() && (mv.to() == previous_square);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -550,7 +560,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Bad Noisy Futility Pruning (BNFP)
             let capt_futility_value = static_eval + 122 * lmr_depth + 371 * move_count / 128;
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < 6
+                && move_picker.stage() == Stage::BadNoisy
+                && capt_futility_value <= alpha
+                && !is_recapture
+            {
                 if !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
                 }

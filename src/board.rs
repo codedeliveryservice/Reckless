@@ -72,6 +72,10 @@ impl Board {
         self.fullmove_number
     }
 
+    pub const fn is_captured(&self) -> bool {
+        self.state.captured.is_some()
+    }
+
     /// Returns the Zobrist hash key for the current position.
     pub fn hash(&self) -> u64 {
         self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
