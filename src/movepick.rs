@@ -1,7 +1,7 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
+    types::{ArrayVec, Move, MoveList, PieceType, Square, MAX_MOVES},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -96,7 +96,19 @@ impl MovePicker {
                 }
 
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
-                if !td.board.see(entry.mv, threshold) {
+
+                let previous_square = if td.ply >= 1 {
+                    match td.stack[td.ply - 1].mv {
+                        Move::NULL => Square::None,
+                        mv => mv.to(),
+                    }
+                } else {
+                    Square::None
+                };
+
+                let is_recapture = td.board.is_captured() && (entry.mv.to() == previous_square);
+
+                if !is_recapture && !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
                 }
