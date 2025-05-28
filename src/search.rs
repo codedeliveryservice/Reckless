@@ -790,7 +790,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
-        if pcm_move.is_quiet() {
+        if (!(tt_score <= alpha && tt_bound == Bound::Upper) || tt_depth == TtDepth::SOME) && pcm_move.is_quiet() {
             let mut factor = 118;
             factor += 134 * (depth > 5) as i32;
             factor += 211 * (!in_check && best_score <= td.stack[td.ply].static_eval - 135) as i32;
