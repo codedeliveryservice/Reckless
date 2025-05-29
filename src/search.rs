@@ -151,8 +151,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
+    td.stack[td.ply].is_pv = false;
+
     if PV {
         td.pv.clear(td.ply);
+        td.stack[td.ply].is_pv = true;
     }
 
     if td.stopped {
@@ -649,8 +652,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1043;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024)
-                .clamp((PV && tt_move.is_some() && best_move.is_null()) as i32, new_depth + (PV || cut_node) as i32);
+            let reduced_depth = (new_depth - reduction / 1024).clamp(
+                (PV && tt_move.is_some() && best_move.is_null()) as i32,
+                new_depth + (PV || cut_node) as i32 + (td.ply >= 2 && td.stack[td.ply - 2].is_pv) as i32,
+            );
 
             td.stack[td.ply - 1].reduction = reduction;
 
