@@ -212,6 +212,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
+    td.stack[td.ply].pv_passed_cutnode = false;
     let mut tt_pv = PV;
 
     // Search Early TT-Cut
@@ -629,7 +630,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 622 + 619 * (beta - alpha > 32 * td.root_delta / 128) as i32;
             }
 
-            if cut_node {
+            if cut_node && !(td.ply >= 2 && td.stack[td.ply - 2].pv_passed_cutnode) {
                 reduction += 1141;
             }
 
@@ -654,7 +655,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             td.stack[td.ply - 1].reduction = reduction;
 
+            td.stack[td.ply - 1].pv_passed_cutnode = PV;
             score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
+            td.stack[td.ply - 1].pv_passed_cutnode = false;
 
             td.stack[td.ply - 1].reduction = 0;
 
