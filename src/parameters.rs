@@ -1,6 +1,5 @@
 pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
 
-#[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
 macro_rules! define {
     {$($type:ident $name:ident: $value:expr; )*} => {
@@ -34,3 +33,11 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 material_pawn: 132;
+    i32 material_knight: 414;
+    i32 material_bishop: 432;
+    i32 material_rook: 661;
+    i32 material_queen: 1217;
+);
