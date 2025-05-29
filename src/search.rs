@@ -212,6 +212,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
+    td.stack[td.ply].verifying_with_nonpv = false;
     let mut tt_pv = PV;
 
     // Search Early TT-Cut
@@ -231,6 +232,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 Bound::Lower => tt_score >= beta,
                 _ => true,
             }
+            && !td.stack[td.ply - 1].verifying_with_nonpv
         {
             if tt_move.is_quiet() && tt_score >= beta {
                 let bonus = (124 * depth - 64).min(1367);
@@ -663,7 +665,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
+                    td.stack[td.ply - 1].verifying_with_nonpv = PV;
                     score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    td.stack[td.ply - 1].verifying_with_nonpv = false;
 
                     if mv.is_quiet() {
                         let bonus = match score {
