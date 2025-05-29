@@ -20,6 +20,7 @@ pub struct StackEntry {
     pub excluded: Move,
     pub killer: Move,
     pub tt_pv: bool,
+    pub pv_passed_cutnode: bool,
     pub cutoff_count: i32,
     pub reduction: i32,
     pub conthist: *mut [[i16; 64]; 13],
@@ -39,6 +40,7 @@ impl Default for StackEntry {
             cutoff_count: 0,
             reduction: 0,
             conthist: std::ptr::null_mut(),
+            pv_passed_cutnode: false,
         }
     }
 }
