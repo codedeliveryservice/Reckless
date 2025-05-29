@@ -153,6 +153,9 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if PV {
         td.pv.clear(td.ply);
+        td.stack[td.ply].is_pv = true;
+    } else {
+        td.stack[td.ply].is_pv = false;
     }
 
     if td.stopped {
@@ -630,7 +633,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if cut_node {
-                reduction += 1141;
+                reduction += 1141 + 1024 * (td.ply >= 2 && td.stack[td.ply - 2].is_pv) as i32;
             }
 
             if td.board.in_check() {
