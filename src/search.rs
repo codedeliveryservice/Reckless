@@ -904,15 +904,26 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_score = -Score::INFINITE;
     let mut futility_score = Score::NONE;
     let mut raw_eval = Score::NONE;
+    let static_eval;
 
     // Evaluation
     if !in_check {
-        raw_eval = match entry {
-            Some(entry) if is_valid(entry.eval) => entry.eval,
-            _ => evaluate(td),
+        if let Some(entry) = entry {
+            if is_valid(entry.eval) {
+                raw_eval = entry.eval;
+                static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+            } else {
+                raw_eval = evaluate(td);
+                static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+            }
+        } else if td.stack[td.ply - 1].mv.is_some() {
+            raw_eval = evaluate(td);
+            static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        } else {
+            raw_eval = -td.stack[td.ply - 1].static_eval;
+            static_eval = raw_eval;
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
