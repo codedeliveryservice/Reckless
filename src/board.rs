@@ -39,6 +39,7 @@ struct InternalState {
     threats: Bitboard,
     pinners: Bitboard,
     checkers: Bitboard,
+    in_check: bool,
 }
 
 /// A wrapper around the `InternalState` with historical tracking.
@@ -236,7 +237,7 @@ impl Board {
     }
 
     pub const fn in_check(&self) -> bool {
-        !self.state.checkers.is_empty()
+        self.state.in_check
     }
 
     pub const fn is_threatened(&self, square: Square) -> bool {
@@ -320,14 +321,14 @@ impl Board {
 
         if self.pinners().contains(from) {
             let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
-            return self.checkers().is_empty() && along_pin;
+            return !self.in_check() && along_pin;
         }
 
-        if self.checkers().multiple() {
+        if self.in_check() && self.checkers().multiple() {
             return false;
         }
 
-        if self.checkers().is_empty() {
+        if !self.in_check() {
             return true;
         }
 
@@ -463,6 +464,8 @@ impl Board {
                 _ => (),
             }
         }
+
+        self.state.in_check = !self.state.checkers.is_empty();
     }
 
     pub fn update_hash_keys(&mut self) {
