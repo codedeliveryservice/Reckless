@@ -26,6 +26,29 @@ pub struct SearchResult {
     pub score: i32,
 }
 
+trait NodeType {
+    const PV: bool;
+    const ROOT: bool;
+}
+
+struct Root;
+impl NodeType for Root {
+    const PV: bool = true;
+    const ROOT: bool = true;
+}
+
+struct PV;
+impl NodeType for PV {
+    const PV: bool = true;
+    const ROOT: bool = false;
+}
+
+struct NonPV;
+impl NodeType for NonPV {
+    const PV: bool = false;
+    const ROOT: bool = false;
+}
+
 pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.completed_depth = 0;
     td.stopped = false;
@@ -74,7 +97,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             td.root_delta = beta - alpha;
 
             // Root Search
-            let score = search::<true>(td, alpha, beta, (depth - reduction).max(1), false);
+            let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
 
             if td.stopped {
                 break;
@@ -143,15 +166,14 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     }
 }
 
-fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
+fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    let is_root = td.ply == 0;
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
-    if PV {
+    if NODE::PV {
         td.pv.clear(td.ply);
     }
 
@@ -159,7 +181,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
-    if !is_root && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
+    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -168,12 +190,12 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Qsearch Dive
     if depth <= 0 {
-        return qsearch::<PV>(td, alpha, beta);
+        return qsearch::<NODE>(td, alpha, beta);
     }
 
     td.counter.increment();
 
-    if PV {
+    if NODE::PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
 
@@ -182,7 +204,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
-    if !is_root {
+    if !NODE::ROOT {
         if td.board.is_draw(td.ply) {
             return Score::DRAW;
         }
@@ -212,7 +234,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
-    let mut tt_pv = PV;
+    let mut tt_pv = NODE::PV;
 
     // Search Early TT-Cut
     if let Some(entry) = entry {
@@ -222,7 +244,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_depth = entry.depth;
         tt_bound = entry.bound;
 
-        if !PV
+        if !NODE::PV
             && !excluded
             && tt_depth >= depth
             && is_valid(tt_score)
@@ -246,7 +268,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Tablebases Probe
-    if !is_root
+    if !NODE::ROOT
         && !excluded
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
@@ -270,7 +292,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             }
 
-            if PV {
+            if NODE::PV {
                 if bound == Bound::Lower {
                     best_score = score;
                     alpha = alpha.max(best_score);
@@ -379,8 +401,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
     // Razoring
-    if !PV && !in_check && eval < alpha - 268 - 250 * depth * depth {
-        return qsearch::<false>(td, alpha, beta);
+    if !NODE::PV && !in_check && eval < alpha - 268 - 250 * depth * depth {
+        return qsearch::<NonPV>(td, alpha, beta);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -417,7 +439,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_null_move();
 
         td.stack[td.ply].reduction = 1024 * (r - 1);
-        let mut score = -search::<false>(td, -beta, -beta + 1, depth - r, false);
+        let mut score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
         td.stack[td.ply].reduction = 0;
 
         td.board.undo_null_move();
@@ -438,7 +460,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
             td.stack[td.ply].reduction = 1024 * (r - 1);
-            let verified_score = search::<false>(td, beta - 1, beta, depth - r, false);
+            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false);
             td.stack[td.ply].reduction = 0;
             td.nmp_min_ply = 0;
 
@@ -471,11 +493,11 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             make_move(td, mv);
 
-            let mut score = -qsearch::<false>(td, -probcut_beta, -probcut_beta + 1);
+            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
                 td.stack[td.ply].reduction = 1024 * (initial_depth - 1 - probcut_depth);
-                score = -search::<false>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
                 td.stack[td.ply].reduction = 0;
             }
 
@@ -498,7 +520,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (PV || cut_node) {
+    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
         depth -= 1;
     }
 
@@ -532,7 +554,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
-        if !is_root && !is_loss(best_score) {
+        if !NODE::ROOT && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7084).max(0);
 
             // Late Move Pruning (LMP)
@@ -567,7 +589,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !is_root && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
+        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = &entry.unwrap();
 
             if depth >= 5
@@ -581,7 +603,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
-                let score = search::<false>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+                let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
                 td.stack[td.ply].excluded = Move::NULL;
 
                 if td.stopped {
@@ -590,8 +612,8 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score < singular_beta {
                     extension = 1;
-                    extension += (!PV && score < singular_beta - 17) as i32;
-                    extension += (!PV && is_quiet && score < singular_beta - 97) as i32;
+                    extension += (!NODE::PV && score < singular_beta - 17) as i32;
+                    extension += (!NODE::PV && is_quiet && score < singular_beta - 97) as i32;
                     if extension > 1 && depth < 12 {
                         depth += 1;
                     }
@@ -613,7 +635,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + is_root as i32 {
+        if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
             reduction -= 90 * (history - 556) / 1024;
             reduction -= 3819 * correction_value.abs() / 1024;
             reduction -= 57 * move_count;
@@ -625,7 +647,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 717 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if PV {
+            if NODE::PV {
                 reduction -= 622 + 619 * (beta - alpha > 32 * td.root_delta / 128) as i32;
             }
 
@@ -649,12 +671,14 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1043;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024)
-                .clamp((PV && tt_move.is_some() && best_move.is_null()) as i32, new_depth + (PV || cut_node) as i32);
+            let reduced_depth = (new_depth - reduction / 1024).clamp(
+                (NODE::PV && tt_move.is_some() && best_move.is_null()) as i32,
+                new_depth + (NODE::PV || cut_node) as i32,
+            );
 
             td.stack[td.ply - 1].reduction = reduction;
 
-            score = -search::<false>(td, -alpha - 1, -alpha, reduced_depth, true);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true);
 
             td.stack[td.ply - 1].reduction = 0;
 
@@ -663,7 +687,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
-                    score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
 
                     if mv.is_quiet() {
                         let bonus = match score {
@@ -682,15 +706,15 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
         // Full Depth Search (FDS)
-        else if !PV || move_count > 1 {
+        else if !NODE::PV || move_count > 1 {
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<false>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 
         // Principal Variation Search (PVS)
-        if PV && (move_count == 1 || score > alpha) {
-            score = -search::<true>(td, -beta, -alpha, new_depth, false);
+        if NODE::PV && (move_count == 1 || score > alpha) {
+            score = -search::<PV>(td, -beta, -alpha, new_depth, false);
         }
 
         undo_move(td, mv);
@@ -699,7 +723,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if is_root {
+        if NODE::ROOT {
             td.node_table.add(mv, td.counter.local() - initial_nodes);
         }
 
@@ -711,10 +735,10 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 alpha = score;
                 best_move = mv;
 
-                if PV {
+                if NODE::PV {
                     td.pv.update(td.ply, mv);
 
-                    if is_root {
+                    if NODE::ROOT {
                         td.best_score = score;
                     }
                 }
@@ -804,7 +828,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if PV {
+    if NODE::PV {
         best_score = best_score.min(max_score);
     }
 
@@ -825,19 +849,19 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     best_score
 }
 
-fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
 
-    if PV {
+    if NODE::PV {
         td.pv.clear(td.ply);
     }
 
     td.counter.increment();
 
-    if PV {
+    if NODE::PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
 
@@ -855,7 +879,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
-    let mut tt_pv = PV;
+    let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
@@ -964,7 +988,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         make_move(td, mv);
 
-        let score = -qsearch::<PV>(td, -beta, -alpha);
+        let score = -qsearch::<NODE>(td, -beta, -alpha);
 
         undo_move(td, mv);
 
@@ -979,7 +1003,7 @@ fn qsearch<const PV: bool>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 best_move = mv;
                 alpha = score;
 
-                if PV {
+                if NODE::PV {
                     td.pv.update(td.ply, mv);
                 }
 
