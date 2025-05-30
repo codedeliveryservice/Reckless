@@ -909,6 +909,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if !in_check {
         raw_eval = match entry {
             Some(entry) if is_valid(entry.eval) => entry.eval,
+            _ if td.stack[td.ply - 1].mv.is_null() => -td.stack[td.ply - 1].static_eval,
             _ => evaluate(td),
         };
 
