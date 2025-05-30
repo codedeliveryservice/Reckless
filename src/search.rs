@@ -348,9 +348,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
-    if !in_check
+    if !NODE::ROOT
+        && !in_check
         && !excluded
-        && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
@@ -361,20 +361,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Hindsight LMR
-    if !in_check
+    if !NODE::ROOT
+        && !in_check
         && !excluded
-        && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 2551
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
     }
 
-    if !tt_pv
+    if !NODE::ROOT
+        && !tt_pv
         && !in_check
         && !excluded
         && depth >= 2
-        && td.ply >= 1
         && td.stack[td.ply - 1].reduction >= 1014
         && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 67
@@ -810,7 +810,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if bound == Bound::Upper && td.ply >= 1 && (!quiet_moves.is_empty() || depth > 3) {
+    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3) {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
