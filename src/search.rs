@@ -565,6 +565,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
+                    td.stack[td.ply].static_eval = best_score;
                 }
                 skip_quiets = true;
                 continue;
@@ -575,6 +576,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
+                    td.stack[td.ply].static_eval = best_score;
                 }
                 break;
             }
@@ -729,6 +731,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if score > best_score {
             best_score = score;
+            td.stack[td.ply].static_eval = best_score;
 
             if score > alpha {
                 bound = Bound::Exact;
