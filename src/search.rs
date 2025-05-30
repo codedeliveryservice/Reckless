@@ -563,7 +563,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Futility Pruning (FP)
             let futility_value = static_eval + 120 * lmr_depth + 80;
             if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha {
-                if !is_decisive(best_score) && best_score <= futility_value {
+                if !NODE::PV && !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
                 skip_quiets = true;
@@ -573,7 +573,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Bad Noisy Futility Pruning (BNFP)
             let capt_futility_value = static_eval + 122 * lmr_depth + 371 * move_count / 128;
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
-                if !is_decisive(best_score) && best_score <= capt_futility_value {
+                if !NODE::PV && !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
                 }
                 break;
