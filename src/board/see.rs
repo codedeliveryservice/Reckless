@@ -1,7 +1,7 @@
 use crate::{
-    lookup::{bishop_attacks, rook_attacks},
+    lookup::{between, bishop_attacks, rook_attacks},
     parameters::PIECE_VALUES,
-    types::{Bitboard, Move, PieceType},
+    types::{Bitboard, Color, Move, PieceType},
 };
 
 impl super::Board {

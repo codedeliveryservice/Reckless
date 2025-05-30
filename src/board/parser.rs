@@ -56,8 +56,9 @@ impl FromStr for Board {
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
+        board.update_checkers();
+        board.update_pinned();
         board.update_threats();
-        board.update_king_threats();
         board.update_hash_keys();
 
         Ok(board)
