@@ -331,6 +331,7 @@ fn search<const PV: bool>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply >= 1
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
+        && entry.is_none()
     {
         let value = 664 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
         let bonus = value.clamp(-69, 164);
