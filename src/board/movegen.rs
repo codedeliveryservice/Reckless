@@ -38,15 +38,19 @@ impl super::Board {
     fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
         let occupancies = self.occupancies();
 
-        self.collect_pawn_moves::<TYPE>(list);
+        // If in double check, only king moves are legal
+        if !self.in_check() || !self.checkers().multiple() {
+            self.collect_pawn_moves::<TYPE>(list);
 
-        self.collect_for::<TYPE, _>(list, PieceType::Knight, knight_attacks);
-        self.collect_for::<TYPE, _>(list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, PieceType::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, PieceType::Queen, |square| queen_attacks(square, occupancies));
+            self.collect_for::<TYPE, _>(list, PieceType::Knight, knight_attacks);
+            self.collect_for::<TYPE, _>(list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+            self.collect_for::<TYPE, _>(list, PieceType::Rook, |square| rook_attacks(square, occupancies));
+            self.collect_for::<TYPE, _>(list, PieceType::Queen, |square| queen_attacks(square, occupancies));
+        }
+
         self.collect_for::<TYPE, _>(list, PieceType::King, king_attacks);
 
-        if TYPE == QUIET {
+        if TYPE == QUIET && !self.in_check() {
             self.collect_castling(list);
         }
     }
