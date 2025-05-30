@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, Not};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, Mul, Not};
 
 use super::{Rank, Square};
 
@@ -10,6 +10,8 @@ use super::{Rank, Square};
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
+    pub const ALL: Self = Self(0xFFFFFFFFFFFFFFFF);
+
     /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {
         Self(0xFF << (rank as usize * 8))
@@ -113,5 +115,13 @@ impl Not for Bitboard {
 
     fn not(self) -> Self::Output {
         Self(!self.0)
+    }
+}
+
+impl Mul<u64> for Bitboard {
+    type Output = Self;
+
+    fn mul(self, rhs: u64) -> Self::Output {
+        Self(self.0 * rhs)
     }
 }
