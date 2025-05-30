@@ -36,6 +36,7 @@ struct InternalState {
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
+    all_threats: Bitboard,
     threats: Bitboard,
     pinned: [Bitboard; Color::NUM],
     checkers: Bitboard,
@@ -240,7 +241,7 @@ impl Board {
     }
 
     pub const fn is_threatened(&self, square: Square) -> bool {
-        self.state.threats.contains(square)
+        self.state.all_threats.contains(square)
     }
 
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
@@ -425,30 +426,44 @@ impl Board {
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
         let mut threats = Bitboard::default();
+        let mut all_threats = Bitboard::default();
 
         let king = self.king_square(!self.side_to_move);
         let pinned = self.pinned(!self.side_to_move);
 
         for square in self.their(PieceType::Pawn) {
             let mask = Bitboard::ALL * (pinned.contains(square) as u64);
-            threats |= pawn_attacks(square, !self.side_to_move) & (!mask | pinned | between(king, square));
+            let attacks = pawn_attacks(square, !self.side_to_move);
+
+            threats |= attacks & (!mask | pinned | between(king, square));
+            all_threats |= attacks;
         }
 
         for square in self.their(PieceType::Knight) & !pinned {
-            threats |= knight_attacks(square);
+            let attacks = knight_attacks(square);
+
+            threats |= attacks;
+            all_threats |= attacks;
         }
 
         for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
             let mask = Bitboard::ALL * (pinned.contains(square) as u64);
-            threats |= bishop_attacks(square, occupancies) & (!mask | pinned | between(king, square));
+            let attacks = bishop_attacks(square, occupancies);
+
+            threats |= attacks & (!mask | pinned | between(king, square));
+            all_threats |= attacks;
         }
 
         for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
             let mask = Bitboard::ALL * (pinned.contains(square) as u64);
-            threats |= rook_attacks(square, occupancies) & (!mask | pinned | between(king, square));
+            let attacks = rook_attacks(square, occupancies);
+
+            threats |= attacks & (!mask | pinned | between(king, square));
+            all_threats |= attacks;
         }
 
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+        self.state.all_threats = all_threats | self.state.threats;
     }
 
     pub fn update_pinned(&mut self) {
