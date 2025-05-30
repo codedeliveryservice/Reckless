@@ -4,7 +4,7 @@ use crate::{
     types::{PieceType, Score},
 };
 
-const MATERIAL_VALUES: [i32; 6] = [132, 414, 432, 661, 1217, 0];
+const MATERIAL_VALUES: [i32; 6] = [130, 402, 395, 680, 1109, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
