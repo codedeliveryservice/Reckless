@@ -1,5 +1,5 @@
 use crate::{
-    parameters::PIECE_VALUES,
+    parameters::*,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
@@ -170,15 +170,16 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = 2278 * PIECE_VALUES[captured] / 128;
+            entry.score = score_noisy_pc() * PIECE_VALUES[captured] / 128;
 
-            entry.score +=
-                952 * td.noisy_history.get(
+            entry.score += score_noisy_hist()
+                * td.noisy_history.get(
                     td.board.threats(),
                     td.board.moved_piece(entry.mv),
                     entry.mv.to(),
                     td.board.piece_on(entry.mv.to()).piece_type(),
-                ) / 1024
+                )
+                / 1024
         }
     }
 
@@ -186,10 +187,10 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score += 1110 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
-                + 1068 * td.conthist(1, mv) / 1024
-                + 876 * td.conthist(2, mv) / 1024
-                + 477 * td.conthist(3, mv) / 1024;
+            entry.score += mp_v1() * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + mp_v2() * td.conthist(1, mv) / 1024
+                + mp_v3() * td.conthist(2, mv) / 1024
+                + mp_v4() * td.conthist(3, mv) / 1024;
         }
     }
 }
