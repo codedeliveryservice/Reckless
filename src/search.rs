@@ -325,8 +325,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if is_valid(tt_score)
             && match tt_bound {
-                Bound::Upper => tt_score < eval,
-                Bound::Lower => tt_score > eval,
+                Bound::Upper => tt_score < raw_eval,
+                Bound::Lower => tt_score > raw_eval,
                 _ => true,
             }
         {
