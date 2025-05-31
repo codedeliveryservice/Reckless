@@ -414,6 +414,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval
             >= beta + 82 * depth - (69 * improving as i32) - (27 * cut_node as i32)
                 + 531 * correction_value.abs() / 1024
+                + 64 * td.stack[td.ply - 1].tt_pv as i32
                 + 24
     {
         return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
