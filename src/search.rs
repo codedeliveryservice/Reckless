@@ -582,6 +582,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet { -21 * lmr_depth * lmr_depth } else { -98 * depth + 50 } - 42 * history / 1024;
             if !td.board.see(mv, threshold) {
+                if !in_check
+                    && !is_quiet
+                    && capt_futility_value <= alpha
+                    && !is_decisive(best_score)
+                    && best_score <= capt_futility_value
+                {
+                    best_score = capt_futility_value;
+                }
                 continue;
             }
         }
