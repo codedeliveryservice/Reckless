@@ -39,18 +39,16 @@ impl super::Board {
         let occupancies = self.occupancies();
 
         // If in double check, only king moves are legal
-        if !self.in_check() || !self.checkers().multiple() {
-            self.collect_pawn_moves::<TYPE>(list);
+        self.collect_pawn_moves::<TYPE>(list);
 
-            self.collect_for::<TYPE, _>(list, PieceType::Knight, knight_attacks);
-            self.collect_for::<TYPE, _>(list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-            self.collect_for::<TYPE, _>(list, PieceType::Rook, |square| rook_attacks(square, occupancies));
-            self.collect_for::<TYPE, _>(list, PieceType::Queen, |square| queen_attacks(square, occupancies));
-        }
+        self.collect_for::<TYPE, _>(list, PieceType::Knight, knight_attacks);
+        self.collect_for::<TYPE, _>(list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(list, PieceType::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(list, PieceType::Queen, |square| queen_attacks(square, occupancies));
 
         self.collect_for::<TYPE, _>(list, PieceType::King, king_attacks);
 
-        if TYPE == QUIET && !self.in_check() {
+        if TYPE == QUIET {
             self.collect_castling(list);
         }
     }
