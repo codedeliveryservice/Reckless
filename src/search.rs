@@ -558,7 +558,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
-        if !NODE::ROOT && !is_loss(best_score) {
+        if !NODE::ROOT && !is_loss(best_score) && mv != td.stack[td.ply].killer {
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7084).max(0);
 
             // Late Move Pruning (LMP)
