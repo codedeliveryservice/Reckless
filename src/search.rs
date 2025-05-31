@@ -405,6 +405,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
+    let potential_singularity =
+        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !in_check
@@ -415,12 +418,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             >= beta + 82 * depth - (69 * improving as i32) - (27 * cut_node as i32)
                 + 531 * correction_value.abs() / 1024
                 + 24
+        && !potential_singularity
     {
         return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
-
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     // Null Move Pruning (NMP)
     if cut_node
