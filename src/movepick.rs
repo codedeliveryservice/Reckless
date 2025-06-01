@@ -170,14 +170,15 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = PIECE_VALUES[captured] * 18;
+            entry.score = 2278 * PIECE_VALUES[captured] / 128;
 
-            entry.score += td.noisy_history.get(
-                td.board.threats(),
-                td.board.moved_piece(entry.mv),
-                entry.mv.to(),
-                td.board.piece_on(entry.mv.to()).piece_type(),
-            );
+            entry.score +=
+                952 * td.noisy_history.get(
+                    td.board.threats(),
+                    td.board.moved_piece(entry.mv),
+                    entry.mv.to(),
+                    td.board.piece_on(entry.mv.to()).piece_type(),
+                ) / 1024
         }
     }
 
@@ -185,10 +186,10 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score += 1141 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
-                + 1031 * td.conthist(1, mv) / 1024
-                + 988 * td.conthist(2, mv) / 1024
-                + 554 * td.conthist(3, mv) / 1024;
+            entry.score += 1110 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+                + 1068 * td.conthist(1, mv) / 1024
+                + 876 * td.conthist(2, mv) / 1024
+                + 477 * td.conthist(3, mv) / 1024;
         }
     }
 }
