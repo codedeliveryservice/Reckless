@@ -126,7 +126,7 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] / 96) as i32
+        (self.entries[stm][key as usize & Self::MASK] / 110) as i32
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
