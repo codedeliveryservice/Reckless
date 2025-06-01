@@ -372,6 +372,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth += 1;
     }
 
+    let potential_singularity =
+        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+
     if !NODE::ROOT
         && !tt_pv
         && !in_check
@@ -380,6 +383,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 868
         && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 68
+        && !potential_singularity
     {
         depth -= 1;
     }
@@ -420,9 +424,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
-
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     // Null Move Pruning (NMP)
     if cut_node
