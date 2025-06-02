@@ -839,7 +839,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), initial_depth.max(depth), raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(
+            td.board.hash(),
+            if bound == Bound::Lower { depth.max(initial_depth) } else { depth },
+            raw_eval,
+            best_score,
+            bound,
+            best_move,
+            td.ply,
+            tt_pv,
+        );
     }
 
     if !(in_check
