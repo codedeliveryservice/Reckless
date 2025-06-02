@@ -173,7 +173,7 @@ impl MovePicker {
             entry.score = 2238 * PIECE_VALUES[captured] / 128;
 
             entry.score +=
-                909 * td.noisy_history.get(
+                769 * td.noisy_history.get(
                     td.board.threats(),
                     td.board.moved_piece(entry.mv),
                     entry.mv.to(),
