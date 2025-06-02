@@ -220,7 +220,10 @@ impl TranspositionTable {
             || bound == Bound::Exact
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
             || entry.flags.age() != tt_age)
-        {
+        {    
+            if entry.depth >= 5 && entry.flags.bound() != Bound::Exact {
+                entry.depth -= 1;
+            }
             return;
         }
 
