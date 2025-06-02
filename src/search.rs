@@ -1093,7 +1093,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     if td.ply >= 1 {
         let entry = &td.stack[td.ply - 1];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 1523 * bonus / 1024);
+            td.continuation_history.update(entry.conthist, piece, sq, 2048 * bonus / 1024);
         }
     }
 
