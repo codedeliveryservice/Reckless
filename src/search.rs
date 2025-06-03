@@ -268,7 +268,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 || (tt_bound == Bound::Upper && tt_score >= entry.eval)
                 || (tt_bound == Bound::Lower && tt_score <= entry.eval))
             {
-                update_correction_histories(td, depth, (tt_score - entry.eval) / 5);
+                update_correction_histories(td, depth, (tt_score - entry.eval) / 2);
             }
 
             if td.board.halfmove_clock() < 90 {
