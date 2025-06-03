@@ -202,7 +202,23 @@ impl Board {
 
         if piece.piece_type() == PieceType::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
-        } else {
+        }
+
+        if piece.piece_type() == PieceType::King {
+            let file = square.file();
+            let rank = square.rank();
+
+            let region = match (file < 4, rank < 4) {
+                (true, true) => 0,
+                (false, true) => 1,
+                (true, false) => 2,
+                (false, false) => 3,
+            };
+
+            self.state.pawn_key ^= ZOBRIST.pieces[piece][region];
+        }
+
+        if piece.piece_type() != PieceType::Pawn {
             self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
 
             if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
