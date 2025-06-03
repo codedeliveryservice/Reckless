@@ -717,7 +717,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
             if tt_move.is_null() {
-                reduction += 1024;
+                reduction += 2048;
             }
 
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - (new_depth - (reduction > 3072) as i32));
