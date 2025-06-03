@@ -202,7 +202,7 @@ impl Board {
 
         if piece.piece_type() == PieceType::Pawn {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
-        } else {
+        } else if piece.piece_type() != PieceType::King {
             self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
 
             if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
