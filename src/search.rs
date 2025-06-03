@@ -540,6 +540,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
 
+    let mut extension = 0;
+
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -598,7 +600,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Singular Extensions (SE)
-        let mut extension = 0;
+        extension = 0;
 
         if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = &entry.unwrap();
@@ -797,7 +799,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 bonus_noisy,
             );
         } else {
-            td.stack[td.ply].killer = best_move;
+            if extension <= 0 || td.stack[td.ply].killer.is_null() {
+                td.stack[td.ply].killer = best_move;
+            }
 
             if !quiet_moves.is_empty() || depth > 3 {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
