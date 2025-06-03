@@ -684,7 +684,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         );
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
+        if depth >= 2 && move_count > 1 {
             td.stack[td.ply - 1].reduction = reduction;
 
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true);
