@@ -200,7 +200,7 @@ impl Board {
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
         self.state.key ^= ZOBRIST.pieces[piece][square];
 
-        if piece.piece_type() == PieceType::Pawn {
+        if piece.piece_type() == PieceType::Pawn || piece.piece_type() == PieceType::King {
             self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
         } else {
             self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
