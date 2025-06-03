@@ -262,6 +262,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
+            if !(!is_valid(entry.eval)
+                || in_check
+                || tt_move.is_noisy()
+                || (tt_bound == Bound::Upper && tt_score >= entry.eval)
+                || (tt_bound == Bound::Lower && tt_score <= entry.eval)
+                || depth < 3)
+            {
+                update_correction_histories(td, depth - 1, tt_score - entry.eval);
+            }
+
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
                 return tt_score;
