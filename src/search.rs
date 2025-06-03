@@ -210,7 +210,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if td.ply >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { evaluate(td) };
+            return if in_check { Score::DRAW } else { evaluate(td, 0) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -321,7 +321,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = raw_eval;
         eval = static_eval;
     } else if let Some(entry) = entry {
-        raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
+        raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td, correction_value) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
@@ -336,7 +336,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             eval = tt_score;
         }
     } else {
-        raw_eval = evaluate(td);
+        raw_eval = evaluate(td, correction_value);
         td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
@@ -881,7 +881,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if td.ply >= MAX_PLY - 1 {
-        return if in_check { Score::DRAW } else { evaluate(td) };
+        return if in_check { Score::DRAW } else { evaluate(td, correction_value(td)) };
     }
 
     let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
@@ -915,7 +915,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if !in_check {
         raw_eval = match entry {
             Some(entry) if is_valid(entry.eval) => entry.eval,
-            _ => evaluate(td),
+            _ => evaluate(td, correction_value(td)),
         };
 
         let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());

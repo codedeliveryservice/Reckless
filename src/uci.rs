@@ -242,8 +242,8 @@ fn set_option(
 
 fn eval(td: &mut ThreadData) {
     let eval = match td.board.side_to_move() {
-        Color::White => evaluate(td),
-        Color::Black => -evaluate(td),
+        Color::White => evaluate(td, 0),
+        Color::Black => -evaluate(td, 0),
     };
     println!("{eval}");
 }
