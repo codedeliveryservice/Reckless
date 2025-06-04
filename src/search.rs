@@ -4,7 +4,7 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     tb::{tb_probe, tb_size, GameOutcome},
-    thread::ThreadData,
+    thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
@@ -59,10 +59,15 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.tb_hits.clear();
 
     td.nnue.refresh(&td.board);
+    td.root_moves = td
+        .board
+        .generate_all_moves()
+        .iter()
+        .filter_map(|entry| td.board.is_legal(entry.mv).then_some(RootMove::new(entry.mv)))
+        .collect();
 
     let now = Instant::now();
 
-    let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
     let mut eval_stability = 0;
@@ -74,6 +79,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
         td.root_depth = depth;
+
+        let average = td.root_moves.iter().find(|rm| rm.mv == last_move).map_or(Score::NONE, |rm| rm.average_score);
 
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
@@ -117,7 +124,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                 }
                 _ => {
                     window_expansion /= 2;
-                    average = if average == Score::NONE { score } else { (average + score) / 2 };
                     break;
                 }
             }
@@ -731,6 +737,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if NODE::ROOT {
             td.node_table.add(mv, td.counter.local() - initial_nodes);
+
+            if score > alpha || move_count == 1 {
+                let rm = td.root_moves.iter_mut().find(|rm| rm.mv == mv).unwrap();
+                rm.average_score = if rm.average_score == Score::NONE { score } else { (rm.average_score + score) / 2 };
+            }
         }
 
         if score > best_score {

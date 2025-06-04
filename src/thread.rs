@@ -85,6 +85,7 @@ pub struct ThreadData<'a> {
     pub completed_depth: i32,
     pub ply: usize,
     pub nmp_min_ply: i32,
+    pub root_moves: Vec<RootMove>,
 }
 
 impl<'a> ThreadData<'a> {
@@ -120,6 +121,7 @@ impl<'a> ThreadData<'a> {
             completed_depth: 0,
             ply: 0,
             nmp_min_ply: 0,
+            root_moves: Vec::new(),
         }
     }
 
@@ -210,6 +212,18 @@ impl Default for PrincipalVariationTable {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
         }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct RootMove {
+    pub mv: Move,
+    pub average_score: i32,
+}
+
+impl RootMove {
+    pub const fn new(mv: Move) -> Self {
+        Self { mv, average_score: Score::NONE }
     }
 }
 
