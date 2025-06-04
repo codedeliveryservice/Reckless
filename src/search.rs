@@ -391,9 +391,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let parent_score = td.stack[td.ply - 1].tt_score;
 
         if is_valid(parent_score) && is_valid(static_eval) {
-            if parent_bound == Bound::Lower && parent_score > static_eval + 96 {
+            if parent_bound == Bound::Lower && -parent_score > static_eval + 96 {
                 depth -= 1;
-            } else if parent_bound == Bound::Upper && parent_score < static_eval - 128 {
+            } else if parent_bound == Bound::Upper && -parent_score < static_eval - 128 {
                 depth += 1;
             }
         }
