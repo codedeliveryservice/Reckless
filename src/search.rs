@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    misc::dbg_stats,
     movepick::{MovePicker, Stage},
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
@@ -69,11 +70,14 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut pv_stability = 0;
 
     let mut window_expansion = 0;
+    let mut best_move_changes = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
         td.root_depth = depth;
+
+        best_move_changes /= 2;
 
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
@@ -146,7 +150,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        best_move_changes += td.best_move_changes.min(16);
+
+        dbg_stats(best_move_changes as i32, 0);
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, best_move_changes) {
             break;
         }
 
@@ -743,9 +751,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if NODE::PV {
                     td.pv.update(td.ply, mv);
+                }
 
-                    if NODE::ROOT {
-                        td.best_score = score;
+                if NODE::ROOT {
+                    td.best_score = score;
+
+                    if move_count > 1 {
+                        td.best_move_changes += 1;
                     }
                 }
 
