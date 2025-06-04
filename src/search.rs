@@ -843,7 +843,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    let actual_singualrity = best_move == tt_move && extension > 0;
+    let actual_singualrity = best_move == tt_move && extension > 1;
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
