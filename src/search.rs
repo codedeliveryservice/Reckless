@@ -345,6 +345,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[td.ply].tt_bound = tt_bound;
+    td.stack[td.ply].tt_score = tt_score;
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
@@ -382,6 +384,19 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval > 69
     {
         depth -= 1;
+    }
+
+    if !NODE::ROOT && !in_check && !excluded && depth >= 3 {
+        let parent_bound = td.stack[td.ply - 1].tt_bound;
+        let parent_score = td.stack[td.ply - 1].tt_score;
+
+        if is_valid(parent_score) && is_valid(static_eval) {
+            if parent_bound == Bound::Lower && parent_score > static_eval + 96 {
+                depth -= 1;
+            } else if parent_bound == Bound::Upper && parent_score < static_eval - 128 {
+                depth += 1;
+            }
+        }
     }
 
     // Hindsight Late TT-Cut
