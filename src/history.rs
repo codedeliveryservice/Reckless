@@ -141,6 +141,33 @@ impl Default for CorrectionHistory {
     }
 }
 
+pub struct UniformCorrectionHistory {
+    // [key]
+    entries: Box<[i16; Self::SIZE]>,
+}
+
+impl UniformCorrectionHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    const SIZE: usize = 16384;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, key: u64) -> i32 {
+        (self.entries[key as usize & Self::MASK] / 108) as i32
+    }
+
+    pub fn update(&mut self, key: u64, bonus: i32) {
+        let entry = &mut self.entries[key as usize & Self::MASK];
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+    }
+}
+
+impl Default for UniformCorrectionHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct ContinuationHistory {
     // [piece][to][continuation_piece][continuation_to]
     entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
