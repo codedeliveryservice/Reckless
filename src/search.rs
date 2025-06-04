@@ -1054,6 +1054,14 @@ fn correction_value(td: &ThreadData) -> i32 {
         correction += 661 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64);
     }
 
+    if td.ply >= 4 {
+        correction += 661 * td.prior_moves_corrhist[3].get(stm, td.stack[td.ply - 4].mv.encoded() as u64);
+    }
+
+    if td.ply >= 6 {
+        correction += 661 * td.prior_moves_corrhist[5].get(stm, td.stack[td.ply - 6].mv.encoded() as u64);
+    }
+
     correction / 1024
 }
 
@@ -1084,6 +1092,22 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
         td.prior_moves_corrhist[1].update(
             td.board.side_to_move(),
             td.stack[td.ply - 2].mv.encoded() as u64,
+            986 * bonus / 1024,
+        );
+    }
+
+    if td.ply >= 4 && td.stack[td.ply - 4].mv.is_some() {
+        td.prior_moves_corrhist[3].update(
+            td.board.side_to_move(),
+            td.stack[td.ply - 4].mv.encoded() as u64,
+            986 * bonus / 1024,
+        );
+    }
+
+    if td.ply >= 6 && td.stack[td.ply - 6].mv.is_some() {
+        td.prior_moves_corrhist[5].update(
+            td.board.side_to_move(),
+            td.stack[td.ply - 6].mv.encoded() as u64,
             986 * bonus / 1024,
         );
     }
