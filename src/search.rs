@@ -1040,7 +1040,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = 1074 * td.pawn_corrhist.get(stm, td.board.pawn_key())
+    let mut correction = 1074 * td.uniform_pawn_corrhist.get(td.board.pawn_key_bucketed())
+        + 1074 * td.pawn_corrhist.get(stm, td.board.pawn_key())
         + 919 * td.minor_corrhist.get(stm, td.board.minor_key())
         + 724 * td.major_corrhist.get(stm, td.board.major_key())
         + 1058 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
@@ -1064,6 +1065,8 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
     let bonus = (depth * diff).clamp(-3927, 3373);
+
+    td.uniform_pawn_corrhist.update(td.board.pawn_key_bucketed(), 768 * bonus / 1024);
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), 1026 * bonus / 1024);
     td.minor_corrhist.update(stm, td.board.minor_key(), 1159 * bonus / 1024);
