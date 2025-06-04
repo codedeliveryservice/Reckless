@@ -539,6 +539,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
+    let mut extension = 0;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
@@ -598,7 +599,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         // Singular Extensions (SE)
-        let mut extension = 0;
+        extension = 0;
 
         if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = &entry.unwrap();
@@ -842,10 +843,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
+    let actual_singualrity = best_move == tt_move && extension > 0;
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
-        || (bound == Bound::Lower && best_score <= static_eval))
+        || (bound == Bound::Lower && best_score <= static_eval)
+        || actual_singualrity)
     {
         update_correction_histories(td, depth, best_score - static_eval);
     }
