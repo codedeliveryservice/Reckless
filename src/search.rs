@@ -354,6 +354,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !in_check
         && !excluded
         && td.stack[td.ply - 1].mv.is_quiet()
+        && td.board.captured_piece().is_none()
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 674 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
