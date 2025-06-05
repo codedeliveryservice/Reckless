@@ -228,7 +228,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
-    let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let position_key = td.board.hash();
+    let entry = &td.tt.read(position_key, td.board.halfmove_clock(), td.ply);
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
@@ -290,7 +291,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 || (bound == Bound::Upper && score <= alpha)
             {
                 let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.tt.write(td.board.hash(), depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+                td.tt.write(position_key, depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
                 return score;
             }
 
@@ -337,7 +338,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
-        td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+        td.tt.write(position_key, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
@@ -514,7 +515,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(position_key, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
                 if is_decisive(score) {
                     return score;
@@ -689,6 +690,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
+                if !excluded && score >= beta {
+                    td.tt.write(
+                        position_key,
+                        if reduced_depth > 0 { reduced_depth } else { TtDepth::SOME },
+                        raw_eval,
+                        score,
+                        Bound::Lower,
+                        mv,
+                        td.ply,
+                        tt_pv,
+                    );
+                }
                 new_depth += (score > best_score + 46 + 512 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
@@ -839,7 +852,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(position_key, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
