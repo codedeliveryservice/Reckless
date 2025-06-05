@@ -653,6 +653,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 791 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
+            if td.ply >= 2 && td.stack[td.ply - 2].static_eval == Score::NONE && td.stack[td.ply - 2].tt_pv {
+                reduction -= 1024;
+            }
+
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
             }
