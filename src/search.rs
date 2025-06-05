@@ -547,7 +547,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         move_count += 1;
 
-        if tt_move.is_null() && move_count == 1 {
+        if !(NODE::PV || cut_node) && tt_move.is_null() && move_count == 1 {
             td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, mv, td.ply, tt_pv);
         }
 
