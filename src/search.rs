@@ -561,7 +561,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657).max(0);
+            let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657 - 2 * cut_node as i32).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 18) as i32);
@@ -584,6 +584,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
                 break;
             }
+
+            let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657).max(0);
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
