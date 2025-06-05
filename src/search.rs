@@ -690,7 +690,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                if !excluded && score >= beta {
+                if tt_move.is_null() && score >= beta {
                     td.tt.write(
                         position_key,
                         if reduced_depth > 0 { reduced_depth } else { TtDepth::SOME },
