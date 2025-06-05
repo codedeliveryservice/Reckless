@@ -673,7 +673,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if td.stack[td.ply].cutoff_count > 2 {
             reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
         } else if mv == tt_move {
-            reduction -= 2048;
+            reduction = 0;
         }
 
         reduction -= 98 * (history - 568) / 1024;
@@ -716,10 +716,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            if tt_move.is_null() {
-                reduction += 1024;
-            }
-
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - (new_depth - (reduction > 3072) as i32));
             score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction > 3072) as i32, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
