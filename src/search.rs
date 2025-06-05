@@ -549,14 +549,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let is_quiet = mv.is_quiet();
 
-        let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
+        let mainhist;
+        let mut conthist1 = 0;
+        let mut conthist2 = 0;
+
+        if is_quiet {
+            mainhist = td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv);
+            conthist1 = td.conthist(1, mv);
+            conthist2 = td.conthist(2, mv);
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
-        };
+            mainhist = td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured);
+        }
+
+        let history = mainhist + conthist1 + conthist2;
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
@@ -642,10 +648,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
-            reduction -= 98 * (history - 568) / 1024;
             reduction -= 3295 * correction_value.abs() / 1024;
             reduction -= 54 * move_count;
             reduction += 295;
+
+            if is_quiet {
+                let history = 2 * mainhist + conthist1 + conthist2;
+
+                reduction -= 54 * (history - 1024) / 1024;
+            } else {
+                reduction -= 98 * (history - 568) / 1024;
+            }
 
             if tt_pv {
                 reduction -= 683;
