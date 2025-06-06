@@ -65,7 +65,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
-    let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut score_history = Vec::new();
 
@@ -142,16 +141,10 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             last_move = td.pv.best_move();
         }
 
-        if (td.best_score - average).abs() < 12 {
-            eval_stability = (eval_stability + 1).min(8);
-        } else {
-            eval_stability = 0;
-        }
-
         let score_deviation = score_history.iter().rev().take(4).map(|&v| (v - average).abs()).sum::<i32>()
             / score_history.len().min(4) as i32;
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability, score_deviation) {
+        if td.time_manager.soft_limit(td, pv_stability, score_deviation) {
             break;
         }
 
