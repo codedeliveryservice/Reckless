@@ -651,6 +651,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 683;
                 reduction -= 647 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 791 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 768 * cut_node as i32;
             }
 
             if NODE::PV {
