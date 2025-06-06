@@ -244,6 +244,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_depth = entry.depth;
         tt_bound = entry.bound;
 
+        tt_pv |= !NODE::ROOT
+            && td.stack[td.ply - 1]
+                .tt_entry
+                .is_some_and(|v| is_valid(v.score) && v.pv && v.depth >= depth && v.mv == td.stack[td.ply - 1].mv);
+
         if !NODE::PV
             && !excluded
             && tt_depth >= depth
@@ -345,6 +350,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[td.ply].tt_entry = *entry;
 
     td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;

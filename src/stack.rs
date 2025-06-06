@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use crate::types::{Move, Piece, Score, MAX_PLY};
+use crate::{transposition::Entry, types::{Move, Piece, Score, MAX_PLY}};
 
 pub struct Stack {
     data: [StackEntry; MAX_PLY + 8],
@@ -23,6 +23,7 @@ pub struct StackEntry {
     pub cutoff_count: i32,
     pub reduction: i32,
     pub conthist: *mut [[i16; 64]; 13],
+    pub tt_entry: Option<Entry>,
 }
 
 unsafe impl Send for StackEntry {}
@@ -39,7 +40,8 @@ impl Default for StackEntry {
             cutoff_count: 0,
             reduction: 0,
             conthist: std::ptr::null_mut(),
-        }
+            tt_entry: None,
+        }        
     }
 }
 
