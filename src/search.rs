@@ -642,41 +642,23 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
-            reduction -= 98 * (history - 568) / 1024;
-            reduction -= 3295 * correction_value.abs() / 1024;
-            reduction -= 54 * move_count;
-            reduction += 295;
+            let v = [
+                history as f32,
+                correction_value.abs() as f32,
+                move_count as f32,
+                td.stack[td.ply].cutoff_count as f32,
+                tt_pv as i32 as f32,
+                (is_valid(tt_score) && tt_score > alpha) as i32 as f32,
+                (is_valid(tt_score) && tt_depth >= depth) as i32 as f32,
+                cut_node as i32 as f32,
+                NODE::PV as i32 as f32,
+                (beta - alpha > 34 * td.root_delta / 128) as i32 as f32,
+                in_check as i32 as f32,
+                improving as i32 as f32,
+                (td.stack[td.ply - 1].killer == mv) as i32 as f32,
+            ];
 
-            if tt_pv {
-                reduction -= 683;
-                reduction -= 647 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 791 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-                reduction -= 768 * cut_node as i32;
-            }
-
-            if NODE::PV {
-                reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
-            }
-
-            if cut_node {
-                reduction += 1141;
-            }
-
-            if td.board.in_check() {
-                reduction -= 820;
-            }
-
-            if !improving {
-                reduction += 800;
-            }
-
-            if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
-            }
-
-            if td.stack[td.ply - 1].killer == mv {
-                reduction -= 955;
-            }
+            reduction += crate::parameters::lmr_forward(v) as i32;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(
                 (NODE::PV && tt_move.is_some() && best_move.is_null()) as i32,
