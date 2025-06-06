@@ -536,6 +536,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut singularity = false;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
     let mut skip_quiets = false;
@@ -617,9 +618,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 if score < singular_beta {
+                    singularity = true;
                     extension = 1;
                     extension += (!NODE::PV && score < singular_beta - 17) as i32;
                     extension += (!NODE::PV && is_quiet && score < singular_beta - 101) as i32;
+
                     if extension > 1 && depth < 14 {
                         depth += 1;
                     }
@@ -655,6 +658,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
+            }
+
+            if singularity {
+                reduction -= 512;
             }
 
             if cut_node {
