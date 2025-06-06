@@ -660,6 +660,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if cut_node {
                 reduction += 1141;
+                reduction -=
+                    768 * (is_valid(tt_score) && tt_score > static_eval + 96 && tt_bound == Bound::Lower) as i32;
             }
 
             if td.board.in_check() {
