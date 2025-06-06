@@ -67,6 +67,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut score_history = Vec::new();
 
     let mut window_expansion = 0;
 
@@ -118,6 +119,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                 _ => {
                     window_expansion /= 2;
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
+                    score_history.push(score);
                     break;
                 }
             }
@@ -146,7 +148,10 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        let score_deviation = score_history.iter().rev().take(4).map(|&v| (v - average).abs()).sum::<i32>()
+            / score_history.len().min(4) as i32;
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, score_deviation) {
             break;
         }
 
