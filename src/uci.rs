@@ -43,7 +43,6 @@ pub fn message_loop() {
             ["quit"] => break,
 
             // Non-UCI commands
-            ["params"] => crate::parameters::print_parameters(),
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
