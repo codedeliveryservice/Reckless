@@ -43,6 +43,7 @@ pub fn message_loop() {
             ["quit"] => break,
 
             // Non-UCI commands
+            ["params"] => crate::parameters::print_parameters(),
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
@@ -234,7 +235,6 @@ fn set_option(
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
-            println!("info string set {name} to {v}");
         }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
