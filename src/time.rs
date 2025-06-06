@@ -75,7 +75,7 @@ impl TimeManager {
 
                     limit *= 1.25 - 0.05 * pv_stability as f32;
 
-                    limit *= 1.2 - score_deviation as f32 / 256.0;
+                    limit *= 0.9 + score_deviation.max(256) as f32 / 512.0;
                 }
 
                 self.start_time.elapsed() >= Duration::from_secs_f32(limit)
