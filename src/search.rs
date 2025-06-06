@@ -653,9 +653,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += 295;
 
             if is_quiet {
-                let history = 2 * mainhist + conthist1 + conthist2;
-
-                reduction -= 54 * (history - 1024) / 1024;
+                reduction -= 98 * (history - 2048) / 1024;
             } else {
                 reduction -= 98 * (history - 568) / 1024;
             }
