@@ -634,6 +634,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         let initial_nodes = td.counter.local();
+        let history = if is_quiet {
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.conthist(1, mv)
+                + td.conthist(2, mv)
+        } else {
+            let captured = td.board.piece_on(mv.to()).piece_type();
+            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+        };
 
         make_move(td, mv);
 
