@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, Square, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, Square, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -214,25 +214,22 @@ impl Default for PrincipalVariationTable {
 }
 
 pub struct LmrTable {
-    table: [[i32; 64]; 64],
+    table: [i32; MAX_MOVES],
 }
 
 impl LmrTable {
     pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth.min(63) as usize][move_count.min(63) as usize]
+        self.table[depth as usize] * self.table[move_count as usize] + 1086
     }
 }
 
 impl Default for LmrTable {
     #[allow(clippy::needless_range_loop)]
     fn default() -> Self {
-        let mut table = [[0; 64]; 64];
+        let mut table = [0; MAX_MOVES];
 
-        for depth in 1..64 {
-            for move_count in 1..64 {
-                let reduction = 1000.0 + 455.0 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
-            }
+        for index in 1..MAX_MOVES {
+            table[index] = (2796.0 / 128.0 * (index as f32).ln()) as i32;
         }
 
         Self { table }
