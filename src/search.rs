@@ -660,10 +660,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
             }
 
-            if extended_tt_move {
-                reduction += 1024;
-            }
-
             if cut_node {
                 reduction += 1141;
             }
@@ -682,6 +678,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.stack[td.ply - 1].killer == mv {
                 reduction -= 955;
+            } else if extended_tt_move {
+                reduction += 1024;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(
