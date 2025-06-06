@@ -590,7 +590,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 -24 * lmr_depth * lmr_depth - 43 * history / 1024
             } else {
                 -94 * depth + 48 - 42 * history / 1024
-            };
+            } - 32 * tt_pv as i32;
 
             if !td.board.see(mv, threshold) {
                 continue;
