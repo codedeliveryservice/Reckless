@@ -525,6 +525,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    let probcut_beta = beta + 384;
+
+    if !NODE::PV
+        && is_valid(tt_score)
+        && tt_move.is_noisy()
+        && tt_score >= probcut_beta
+        && tt_depth >= depth - 4
+        && tt_bound == Bound::Lower
+        && !is_decisive(tt_score)
+        && !is_decisive(probcut_beta)
+    {
+        return probcut_beta;
+    }
+
     // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
         depth -= 1;
