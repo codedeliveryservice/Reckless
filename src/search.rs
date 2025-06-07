@@ -653,7 +653,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 cut_node as i32 as f32,
                 NODE::PV as i32 as f32,
                 (beta - alpha > 34 * td.root_delta / 128) as i32 as f32,
-                in_check as i32 as f32,
+                td.board.in_check() as i32 as f32,
                 improving as i32 as f32,
                 (td.stack[td.ply - 1].killer == mv) as i32 as f32,
             ];

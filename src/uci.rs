@@ -234,6 +234,7 @@ fn set_option(
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
+            println!("info string set {name} to {v}");
         }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
