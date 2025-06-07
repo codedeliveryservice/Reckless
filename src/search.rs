@@ -643,13 +643,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Late Move Reductions (LMR)
         if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
             let v = [
-                history as f32,
-                correction_value.abs() as f32,
+                0 as f32,
+                0 as f32,
                 move_count as f32,
                 td.stack[td.ply].cutoff_count as f32,
                 tt_pv as i32 as f32,
-                (tt_pv && is_valid(tt_score) && tt_score > alpha) as i32 as f32,
-                (tt_pv && is_valid(tt_score) && tt_depth >= depth) as i32 as f32,
+                (is_valid(tt_score) && tt_score > alpha) as i32 as f32,
+                (is_valid(tt_score) && tt_depth >= depth) as i32 as f32,
                 cut_node as i32 as f32,
                 NODE::PV as i32 as f32,
                 (beta - alpha > 34 * td.root_delta / 128) as i32 as f32,
@@ -657,6 +657,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 improving as i32 as f32,
                 (td.stack[td.ply - 1].killer == mv) as i32 as f32,
             ];
+
+            reduction -= 98 * (history - 568) / 1024;
+            reduction -= 3295 * correction_value.abs() / 1024;
 
             reduction += crate::parameters::lmr_forward(v) as i32;
 
