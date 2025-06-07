@@ -780,7 +780,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (124 * depth - 65).min(1177);
+        let bonus_noisy = (124 * initial_depth - 65).min(1177);
         let malus_noisy = (145 * initial_depth - 75).min(1403) - 14 * (move_count - 1);
 
         let bonus_quiet = (148 * depth - 71).min(1458);
