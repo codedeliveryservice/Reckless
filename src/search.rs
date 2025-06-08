@@ -740,6 +740,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if score > alpha {
                 bound = Bound::Exact;
                 alpha = score;
+
+                if best_move.is_some() && move_count < 32 {
+                    if best_move.is_noisy() {
+                        noisy_moves.push(best_move);
+                    } else {
+                        quiet_moves.push(best_move);
+                    }
+                }
                 best_move = mv;
 
                 if NODE::PV {
