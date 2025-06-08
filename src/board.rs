@@ -182,7 +182,7 @@ impl Board {
     ///
     /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
     pub fn has_non_pawns(&self) -> bool {
-        self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
+        (self.us() & !(self.pieces(PieceType::Pawn) | self.pieces(PieceType::King))).has_any()
     }
 
     pub fn increment_game_ply(&mut self) {
