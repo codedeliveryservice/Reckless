@@ -689,6 +689,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             td.stack[td.ply - 1].reduction = 0;
 
+            if 98 * (history - 568) / 1024 > 0 && score <= alpha {
+                td.ply -= 1;
+                update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), -100);
+                td.ply += 1;
+            }
+
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 46 + 512 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
