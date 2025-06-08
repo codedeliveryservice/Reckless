@@ -64,6 +64,12 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
+    let mut overwrite_iteration_index = 0;
+
+    if report != Report::None {
+        let iteration_score = if td.best_previous_score == -Score::INFINITE { 0 } else { td.best_previous_score };
+        td.last_iterations_scores.fill(iteration_score);
+    }
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
@@ -133,6 +139,15 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
+        let diff1 = (td.best_previous_score - td.best_score) as f32;
+        let diff2 = (td.last_iterations_scores[overwrite_iteration_index] - td.best_score) as f32;
+
+        let mut falling_eval = (11.396 + 2.035 * diff1 + 0.968 * diff2) / 100.0;
+        falling_eval = falling_eval.clamp(0.8, 1.1);
+
+        td.last_iterations_scores[overwrite_iteration_index] = td.best_score;
+        overwrite_iteration_index = (overwrite_iteration_index + 1) & 3;
+
         if last_move == td.pv.best_move() {
             pv_stability = (pv_stability + 1).min(8);
         } else {
@@ -146,7 +161,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, falling_eval) {
             break;
         }
 
@@ -156,6 +171,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     }
 
     if report != Report::None {
+        td.best_previous_score = td.best_score;
         td.print_uci_info(td.root_depth, td.best_score, now);
     }
 
