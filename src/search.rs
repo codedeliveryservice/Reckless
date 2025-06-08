@@ -143,7 +143,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         let diff2 = (td.last_iterations_scores[overwrite_iteration_index] - td.best_score) as f32;
 
         let mut falling_eval = (11.396 + 2.035 * diff1 + 0.968 * diff2) / 100.0;
-        falling_eval = falling_eval.clamp(0.8, 1.1);
+        falling_eval = falling_eval.clamp(1.0, 1.6);
 
         td.last_iterations_scores[overwrite_iteration_index] = td.best_score;
         overwrite_iteration_index = (overwrite_iteration_index + 1) & 3;
