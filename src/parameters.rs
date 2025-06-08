@@ -1,3 +1,4 @@
+use std::arch::x86_64::*;
 pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
 
 #[allow(unused_macros)]
@@ -35,14 +36,6 @@ macro_rules! define {
     };
 }
 
-fn relu(x: f32) -> f32 {
-    if x > 0.0 {
-        x
-    } else {
-        0.0
-    }
-}
-
 const FC1_WEIGHT: [f32; 104] = [
     -0.235930, -0.007297, 0.212446, 0.364875, 0.071978, -0.123717, 0.005488, 0.450056, -0.295969, 0.168642, 0.157221,
     -0.093035, 0.107610, -0.096240, 0.144838, -0.103337, 0.160000, 0.013998, 0.007580, -0.003271, -0.067188, -0.021317,
@@ -65,25 +58,58 @@ const Y_STD: f32 = 1878.540161;
 const HIDDEN_SIZE: usize = 8;
 const INPUT_SIZE: usize = 13;
 
-pub fn lmr_forward(mut input: [f32; INPUT_SIZE]) -> f32 {
+#[target_feature(enable = "avx2")]
+pub unsafe fn lmr_forward(mut input: [f32; INPUT_SIZE]) -> f32 {
     input[0] = (input[0] + 593.73) / 4011.14;
     input[1] /= 92.83;
     input[2] /= 9.53;
     input[3] /= 3.78;
 
-    let mut hidden = [0.0; HIDDEN_SIZE];
+    let mut hidden = [0.0f32; HIDDEN_SIZE];
+
     for i in 0..HIDDEN_SIZE {
-        let mut output = 0.0;
-        for j in 0..INPUT_SIZE {
-            output += FC1_WEIGHT[i * INPUT_SIZE + j] * input[j];
+        let weight_offset = i * INPUT_SIZE;
+        let w_ptr = FC1_WEIGHT[weight_offset..].as_ptr();
+        let in_ptr = input.as_ptr();
+
+        let mut sum = _mm256_setzero_ps();
+
+        let len = INPUT_SIZE;
+        let mut j = 0;
+
+        while j + 8 <= len {
+            let w = _mm256_loadu_ps(w_ptr.add(j));
+            let x = _mm256_loadu_ps(in_ptr.add(j));
+            sum = _mm256_fmadd_ps(w, x, sum);
+            j += 8;
         }
-        hidden[i] = relu(output + FC1_BIAS[i]);
+
+        let mut acc = _mm256_hadd_ps(sum, sum);
+        acc = _mm256_hadd_ps(acc, acc);
+        let sum_arr: [f32; 8] = std::mem::transmute(acc);
+        let mut output = sum_arr[0] + sum_arr[4];
+
+        while j < len {
+            output += *w_ptr.add(j) * *in_ptr.add(j);
+            j += 1;
+        }
+
+        output += FC1_BIAS[i];
+        hidden[i] = if output > 0.0 { output } else { 0.0 };
     }
 
-    let mut y = 0.0;
-    for i in 0..HIDDEN_SIZE {
-        y += FC2_WEIGHT[i] * hidden[i];
-    }
+    let w2_ptr = FC2_WEIGHT.as_ptr();
+    let h_ptr = hidden.as_ptr();
+
+    let w2 = _mm256_loadu_ps(w2_ptr);
+    let h = _mm256_loadu_ps(h_ptr);
+    let sum = _mm256_mul_ps(w2, h);
+
+    let mut acc = _mm256_hadd_ps(sum, sum);
+    acc = _mm256_hadd_ps(acc, acc);
+    let sum_arr: [f32; 8] = std::mem::transmute(acc);
+    let mut y = sum_arr[0] + sum_arr[4];
+
     y += FC2_BIAS;
     y * Y_STD + Y_MEAN
 }

@@ -658,7 +658,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 (td.stack[td.ply - 1].killer == mv) as i32 as f32,
             ];
 
-            reduction += crate::parameters::lmr_forward(v) as i32;
+            reduction += unsafe { crate::parameters::lmr_forward(v) } as i32;
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(
                 (NODE::PV && tt_move.is_some() && best_move.is_null()) as i32,
