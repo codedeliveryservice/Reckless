@@ -656,6 +656,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
+                reduction -= 24 * move_count;
             }
 
             if cut_node {
