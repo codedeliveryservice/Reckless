@@ -656,6 +656,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
+            } else if td.stack[td.ply].cutoff_count > 2 {
+                reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
             }
 
             if cut_node {
@@ -668,10 +670,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if !improving {
                 reduction += 800;
-            }
-
-            if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
             }
 
             if td.stack[td.ply - 1].killer == mv {
