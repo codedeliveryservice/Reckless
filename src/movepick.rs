@@ -1,8 +1,36 @@
+use std::marker::PhantomData;
+
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
+
+#[derive(PartialEq)]
+pub enum Type {
+    Normal,
+    Probcut,
+    QSearch,
+}
+
+pub trait MovePickerType {
+    const TYPE: Type;
+}
+
+pub struct Normal;
+impl MovePickerType for Normal {
+    const TYPE: Type = Type::Normal;
+}
+
+pub struct Probcut;
+impl MovePickerType for Probcut {
+    const TYPE: Type = Type::Probcut;
+}
+
+pub struct QSearch;
+impl MovePickerType for QSearch {
+    const TYPE: Type = Type::QSearch;
+}
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
@@ -15,7 +43,7 @@ pub enum Stage {
     BadNoisy,
 }
 
-pub struct MovePicker {
+pub struct MovePicker<MovePickerType> {
     list: MoveList,
     tt_move: Move,
     killer: Move,
@@ -23,9 +51,10 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    _marker: PhantomData<MovePickerType>,
 }
 
-impl MovePicker {
+impl<T: MovePickerType> MovePicker<T> {
     pub const fn new(killer: Move, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
@@ -35,6 +64,7 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            _marker: PhantomData,
         }
     }
 
@@ -47,6 +77,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            _marker: PhantomData,
         }
     }
 
@@ -59,6 +90,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            _marker: PhantomData,
         }
     }
 
@@ -95,10 +127,12 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
-                if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
-                    continue;
+                if T::TYPE != Type::QSearch {
+                    let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
+                    if !td.board.see(entry.mv, threshold) {
+                        self.bad_noisy.push(entry.mv);
+                        continue;
+                    }
                 }
 
                 return Some(entry.mv);
