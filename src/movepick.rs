@@ -183,10 +183,38 @@ impl MovePicker {
     }
 
     fn score_quiet(&mut self, td: &ThreadData) {
+        let pawn_threats = td.board.threats_by(PieceType::Pawn);
+        let minor_threats =
+            pawn_threats | td.board.threats_by(PieceType::Knight) | td.board.threats_by(PieceType::Bishop);
+        let rook_threats = minor_threats | td.board.threats_by(PieceType::Rook);
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score += 1188 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
+            let from = mv.from();
+            let to = mv.to();
+            let piece = td.board.piece_on(from).piece_type();
+
+            let mut bonus = 0;
+
+            match piece {
+                PieceType::Queen => {
+                    bonus += 12288 * rook_threats.contains(from) as i32;
+                    bonus -= 12288 * rook_threats.contains(to) as i32;
+                }
+                PieceType::Rook => {
+                    bonus += 8192 * minor_threats.contains(from) as i32;
+                    bonus -= 8192 * minor_threats.contains(to) as i32;
+                }
+                PieceType::Bishop | PieceType::Knight => {
+                    bonus += 4096 * pawn_threats.contains(from) as i32;
+                    bonus -= 4096 * pawn_threats.contains(to) as i32;
+                }
+                _ => {}
+            };
+
+            entry.score += bonus
+                + 1188 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
                 + 1028 * td.conthist(1, mv) / 1024
                 + 868 * td.conthist(2, mv) / 1024
                 + 868 * td.conthist(4, mv) / 1024
