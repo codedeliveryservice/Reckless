@@ -1034,8 +1034,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
+    let depth = if in_check { 1 } else { TtDepth::SOME };
 
-    td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
