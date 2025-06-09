@@ -67,7 +67,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut overwrite_iteration_index = 0;
 
     if report != Report::None {
-        let iteration_score = if td.best_previous_score == -Score::INFINITE { 0 } else { td.best_previous_score };
+        let iteration_score = if td.best_previous_score == Score::INFINITE { 0 } else { td.best_previous_score };
         td.last_iterations_scores.fill(iteration_score);
     }
 
