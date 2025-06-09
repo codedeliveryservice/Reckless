@@ -113,7 +113,7 @@ impl<'a> ThreadData<'a> {
             lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
-            best_score: 0,
+            best_score: -Score::INFINITE,
             root_depth: 0,
             root_delta: 0,
             sel_depth: 0,
