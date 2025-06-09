@@ -170,15 +170,16 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
 
-            entry.score = 2238 * PIECE_VALUES[captured] / 128;
-
-            entry.score +=
-                909 * td.noisy_history.get(
-                    td.board.threats(),
-                    td.board.moved_piece(entry.mv),
-                    entry.mv.to(),
-                    td.board.piece_on(entry.mv.to()).piece_type(),
-                ) / 1024
+            entry.score = 2238 * PIECE_VALUES[captured] / 128
+                + 15954 * entry.mv.is_promotion() as i32
+                + 909
+                    * td.noisy_history.get(
+                        td.board.threats(),
+                        td.board.moved_piece(entry.mv),
+                        entry.mv.to(),
+                        td.board.piece_on(entry.mv.to()).piece_type(),
+                    )
+                    / 1024
         }
     }
 
