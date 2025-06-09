@@ -384,6 +384,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let potential_singularity =
+        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+
     // Hindsight Late TT-Cut
     if cut_node
         && !excluded
@@ -394,6 +397,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             Bound::Upper => false,
             _ => tt_score >= beta,
         }
+        && !potential_singularity
     {
         debug_assert!(is_valid(tt_score));
         return tt_score;
@@ -420,9 +424,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
-
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     // Null Move Pruning (NMP)
     if cut_node
