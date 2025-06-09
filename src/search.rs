@@ -991,6 +991,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 best_score = best_score.max(futility_score);
                 continue;
             }
+
+            if !td.board.see(mv, -75) {
+                continue;
+            }
         }
 
         make_move(td, mv);
