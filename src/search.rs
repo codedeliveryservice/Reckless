@@ -256,7 +256,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[td.ply - 1].move_count <= 3 {
+            if tt_move.is_quiet() && tt_score >= beta {
                 let quiet_bonus = (137 * depth - 73).min(1405);
                 let conthist_bonus = (105 * depth - 63).min(1435);
 
@@ -828,6 +828,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if pcm_move.is_quiet() {
             let mut factor = 102;
             factor += 141 * (depth > 5) as i32;
+            factor += 200 * (td.stack[td.ply - 1].move_count > 7) as i32;
             factor += 227 * (!in_check && best_score <= td.stack[td.ply].static_eval - 129) as i32;
             factor += 277
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 101)
