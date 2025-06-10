@@ -699,7 +699,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                     if mv.is_quiet() {
                         let bonus = match score {
-                            s if s >= beta => (1 + 2 * (move_count > depth) as i32) * (152 * depth - 50).min(973),
+                            s if s >= beta => {
+                                (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
+                                    * (152 * depth - 50).min(973)
+                            }
                             s if s <= alpha => -(139 * depth - 63).min(1166),
                             _ => 0,
                         };
