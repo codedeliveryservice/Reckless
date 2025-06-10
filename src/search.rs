@@ -256,15 +256,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[td.ply - 1].move_count <= 3 {
                 let quiet_bonus = (137 * depth - 73).min(1405);
                 let conthist_bonus = (105 * depth - 63).min(1435);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-
-                if td.stack[td.ply - 1].move_count <= 3 {
-                    update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
-                }
+                update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
             if td.board.halfmove_clock() < 90 {
