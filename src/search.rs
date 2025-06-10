@@ -177,6 +177,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
+    td.stack[td.ply].move_count = 0;
+
     if NODE::PV {
         td.pv.clear(td.ply);
     }
@@ -551,6 +553,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -833,11 +836,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = 102;
-            factor += 141 * (depth > 5) as i32;
-            factor += 227 * (!in_check && best_score <= static_eval - 129) as i32;
-            factor += 277
+            factor += 135 * (depth > 5) as i32;
+            factor += 157 * (!in_check && best_score <= static_eval - 129) as i32;
+            factor += 209
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 101)
                     as i32;
+            factor += 138 * (td.stack[td.ply - 1].move_count > 7) as i32;
 
             let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
 
