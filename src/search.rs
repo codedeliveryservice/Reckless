@@ -940,7 +940,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if best_score >= beta {
-            if !is_decisive(best_score) {
+            if !is_decisive(best_score) && !is_decisive(beta) {
                 best_score = (best_score + beta) / 2;
             }
 
