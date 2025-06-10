@@ -173,6 +173,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
+    td.stack[td.ply].move_count = 0;
+
     if NODE::PV {
         td.pv.clear(td.ply);
     }
@@ -547,6 +549,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -814,6 +817,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
                     update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
                 }
+            }
+        }
+
+        if !NODE::ROOT {
+            let prior = &td.stack[td.ply - 1];
+            if prior.mv.is_quiet() && (prior.move_count == 1 || prior.mv == prior.killer) {
+                td.ply -= 1;
+                update_continuation_histories(td, prior.piece, prior.mv.to(), (64 * depth - 32).min(640));
+                td.ply += 1;
             }
         }
 
