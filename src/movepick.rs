@@ -183,6 +183,8 @@ impl MovePicker {
     }
 
     fn score_quiet(&mut self, td: &ThreadData) {
+        let mut state = td.board.hash() ^ td.counter.local();
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
@@ -192,8 +194,13 @@ impl MovePicker {
                 + 868 * td.conthist(4, mv) / 1024
                 + 868 * td.conthist(6, mv) / 1024;
 
-            entry.score /= 32;
-            entry.score *= 32;
+            entry.score &= !31;
+
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+
+            entry.score += ((state >> 4) & 0b11) as i32;
         }
     }
 }
