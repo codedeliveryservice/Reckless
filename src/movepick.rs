@@ -191,6 +191,9 @@ impl MovePicker {
                 + 868 * td.conthist(2, mv) / 1024
                 + 868 * td.conthist(4, mv) / 1024
                 + 868 * td.conthist(6, mv) / 1024;
+
+            entry.score /= 32;
+            entry.score *= 32;
         }
     }
 }
