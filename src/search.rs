@@ -940,6 +940,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if best_score >= beta {
+            if !is_decisive(best_score) {
+                best_score = (best_score + beta) / 2;
+            }
+
             if entry.is_none() {
                 td.tt.write(
                     td.board.hash(),
