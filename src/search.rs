@@ -173,6 +173,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
+    td.stack[td.ply].move_count = 0;
+
     if NODE::PV {
         td.pv.clear(td.ply);
     }
@@ -259,7 +261,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 let conthist_bonus = (105 * depth - 63).min(1435);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+
+                if td.stack[td.ply - 1].move_count <= 3 {
+                    update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+                }
             }
 
             if td.board.halfmove_clock() < 90 {
@@ -547,6 +552,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
