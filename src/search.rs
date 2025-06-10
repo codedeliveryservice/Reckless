@@ -824,7 +824,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let prior = &td.stack[td.ply - 1];
             if prior.mv.is_quiet() && (prior.move_count == 1 || prior.mv == prior.killer) {
                 td.ply -= 1;
-                update_continuation_histories(td, prior.piece, prior.mv.to(), (64 * depth - 32).min(640));
+                update_continuation_histories(td, prior.piece, prior.mv.to(), -(64 * depth - 32).min(640));
                 td.ply += 1;
             }
         }
