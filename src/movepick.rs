@@ -199,16 +199,16 @@ impl MovePicker {
 
             match piece {
                 PieceType::Queen => {
-                    bonus += 24576 * rook_threats.contains(from) as i32;
-                    bonus -= 23552 * rook_threats.contains(to) as i32;
+                    bonus += 2048 * rook_threats.contains(from) as i32;
+                    bonus -= 1920 * rook_threats.contains(to) as i32;
                 }
                 PieceType::Rook => {
-                    bonus += 16384 * minor_threats.contains(from) as i32;
-                    bonus -= 15360 * minor_threats.contains(to) as i32;
+                    bonus += 1024 * minor_threats.contains(from) as i32;
+                    bonus -= 960 * minor_threats.contains(to) as i32;
                 }
                 PieceType::Bishop | PieceType::Knight => {
-                    bonus += 6411 * pawn_threats.contains(from) as i32;
-                    bonus -= 5120 * pawn_threats.contains(to) as i32;
+                    bonus += 512 * pawn_threats.contains(from) as i32;
+                    bonus -= 480 * pawn_threats.contains(to) as i32;
                 }
                 _ => {}
             };
