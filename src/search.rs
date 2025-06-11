@@ -810,9 +810,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
-                for &mv in quiet_moves.iter() {
-                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                    update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
+                for (index, &mv) in quiet_moves.iter().enumerate() {
+                    let maluser = (100 * index as i32 / quiet_moves.len() as i32 - 50).max(0) * depth / 4;
+                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet - maluser);
+                    update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont - maluser);
                 }
             }
         }
