@@ -265,7 +265,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
 
-                if tt_move.is_some()
+                if depth >= 12
+                    && tt_move.is_some()
                     && td.board.is_pseudo_legal(tt_move)
                     && td.board.is_legal(tt_move)
                     && !is_decisive(tt_score)
