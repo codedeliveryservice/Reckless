@@ -5,6 +5,7 @@ use crate::{
 
 const QUIET: u8 = 0;
 const NOISY: u8 = 1;
+const EVASIONS: u8 = 2;
 
 impl super::Board {
     pub fn has_legal_moves(&self) -> bool {
@@ -34,6 +35,10 @@ impl super::Board {
         self.generate_moves::<NOISY>(list);
     }
 
+    pub fn append_evasion_moves(&self, list: &mut MoveList) {
+        self.generate_moves::<EVASIONS>(list);
+    }
+
     /// Generates pseudo legal moves for the current position.
     fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
         self.collect_for::<TYPE, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
@@ -43,10 +48,11 @@ impl super::Board {
         }
 
         let occupancies = self.occupancies();
-        let target = if self.in_check() {
-            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
-        } else {
-            Bitboard::ALL
+        let target = match TYPE {
+            EVASIONS => {
+                between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
+            }
+            _ => Bitboard::ALL,
         };
 
         self.collect_pawn_moves::<TYPE>(list);
@@ -67,13 +73,13 @@ impl super::Board {
         T: Fn(Square) -> Bitboard,
     {
         for from in self.our(piece) {
-            if TYPE == NOISY {
+            if TYPE != QUIET {
                 for to in gen(from) & target & self.them() {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
-            if TYPE == QUIET {
+            if TYPE != NOISY {
                 for to in gen(from) & target & !self.occupancies() {
                     list.push(from, to, MoveKind::Normal);
                 }
@@ -122,7 +128,7 @@ impl super::Board {
 
         self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank);
 
-        if TYPE == NOISY {
+        if TYPE != QUIET {
             self.collect_pawn_captures(list, pawns, seventh_rank);
             self.collect_en_passant_moves(list, pawns);
         }
@@ -137,7 +143,7 @@ impl super::Board {
 
         let empty = !self.occupancies();
 
-        if TYPE == QUIET {
+        if TYPE != NOISY {
             let non_promotions = pawns & !seventh_rank;
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
@@ -155,11 +161,11 @@ impl super::Board {
         for to in promotions {
             let from = to.shift(-up);
 
-            if TYPE == NOISY {
+            if TYPE != QUIET {
                 list.push(from, to, MoveKind::PromotionQ);
             }
 
-            if TYPE == QUIET {
+            if TYPE != NOISY {
                 list.push(from, to, MoveKind::PromotionR);
                 list.push(from, to, MoveKind::PromotionB);
                 list.push(from, to, MoveKind::PromotionN);
