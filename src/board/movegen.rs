@@ -49,7 +49,7 @@ impl super::Board {
             Bitboard::ALL
         };
 
-        self.collect_pawn_moves::<TYPE>(list);
+        self.collect_pawn_moves::<TYPE>(list, target);
 
         self.collect_for::<TYPE, _>(list, target, PieceType::Knight, knight_attacks);
         self.collect_for::<TYPE, _>(list, target, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
@@ -113,23 +113,25 @@ impl super::Board {
     }
 
     /// Adds all pawn moves to the move list.
-    fn collect_pawn_moves<const TYPE: u8>(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<const TYPE: u8>(&self, list: &mut MoveList, target: Bitboard) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank);
+        self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank, target);
 
         if TYPE == NOISY {
-            self.collect_pawn_captures(list, pawns, seventh_rank);
+            self.collect_pawn_captures(list, pawns, seventh_rank, target);
             self.collect_en_passant_moves(list, pawns);
         }
     }
 
     /// Adds single, double and promotion pawn pushes to the move list.
-    fn collect_pawn_pushes<const TYPE: u8>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_pushes<const TYPE: u8>(
+        &self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard, target: Bitboard,
+    ) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
@@ -142,16 +144,16 @@ impl super::Board {
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
-            for to in single_pushes {
+            for to in single_pushes & target {
                 list.push(to.shift(-up), to, MoveKind::Normal);
             }
 
-            for to in double_pushes {
+            for to in double_pushes & target {
                 list.push(to.shift(-up * 2), to, MoveKind::DoublePush);
             }
         }
 
-        let promotions = (pawns & seventh_rank).shift(up) & empty;
+        let promotions = (pawns & seventh_rank).shift(up) & empty & target;
         for to in promotions {
             let from = to.shift(-up);
 
@@ -168,7 +170,7 @@ impl super::Board {
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
-    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard, target: Bitboard) {
         fn add_promotions(list: &mut MoveList, from: Square, to: Square) {
             list.push(from, to, MoveKind::PromotionCaptureQ);
             list.push(from, to, MoveKind::PromotionCaptureR);
@@ -182,8 +184,8 @@ impl super::Board {
         };
 
         let promotions = pawns & seventh_rank;
-        let right = (promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left = (promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right = (promotions & !Bitboard::file(File::H)).shift(up_right) & self.them() & target;
+        let left = (promotions & !Bitboard::file(File::A)).shift(up_left) & self.them() & target;
 
         for to in right {
             add_promotions(list, to.shift(-up_right), to);
@@ -193,8 +195,8 @@ impl super::Board {
         }
 
         let non_promotions = pawns & !seventh_rank;
-        let right_captures = (non_promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left_captures = (non_promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right_captures = (non_promotions & !Bitboard::file(File::H)).shift(up_right) & self.them() & target;
+        let left_captures = (non_promotions & !Bitboard::file(File::A)).shift(up_left) & self.them() & target;
 
         for to in right_captures {
             list.push(to.shift(-up_right), to, MoveKind::Capture);
