@@ -1,11 +1,20 @@
-use crate::types::PieceType;
+use std::sync::Once;
 
 use super::Board;
+use crate::{lookup, types::PieceType};
+
+static LUT_INITIALIZED: Once = Once::new();
+
+fn prepare_lut() {
+    LUT_INITIALIZED.call_once(|| lookup::init());
+}
 
 macro_rules! assert_perft {
     ($($name:ident: $fen:tt, [$($nodes:expr),*],)*) => {$(
         #[test]
         fn $name() {
+            prepare_lut();
+
             let mut board = Board::new($fen).unwrap();
             for (depth, &nodes) in [$($nodes),*].iter().enumerate() {
                 assert_eq!(perft(&mut board, depth + 1), nodes);
