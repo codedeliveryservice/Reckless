@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
     types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
@@ -36,15 +36,25 @@ impl super::Board {
 
     /// Generates pseudo legal moves for the current position.
     fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
+        self.collect_for::<TYPE, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
+
+        if self.checkers().multiple() {
+            return;
+        }
+
         let occupancies = self.occupancies();
+        let target = if self.in_check() {
+            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
+        } else {
+            Bitboard::ALL
+        };
 
         self.collect_pawn_moves::<TYPE>(list);
 
-        self.collect_for::<TYPE, _>(list, PieceType::Knight, knight_attacks);
-        self.collect_for::<TYPE, _>(list, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, PieceType::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, PieceType::Queen, |square| queen_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, PieceType::King, king_attacks);
+        self.collect_for::<TYPE, _>(list, target, PieceType::Knight, knight_attacks);
+        self.collect_for::<TYPE, _>(list, target, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<TYPE, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
 
         if TYPE == QUIET {
             self.collect_castling(list);
@@ -52,19 +62,19 @@ impl super::Board {
     }
 
     /// Adds move for the piece type using the specified move generator function.
-    fn collect_for<const TYPE: u8, T>(&self, list: &mut MoveList, piece: PieceType, gen: T)
+    fn collect_for<const TYPE: u8, T>(&self, list: &mut MoveList, target: Bitboard, piece: PieceType, gen: T)
     where
         T: Fn(Square) -> Bitboard,
     {
         for from in self.our(piece) {
             if TYPE == NOISY {
-                for to in gen(from) & self.them() {
+                for to in gen(from) & target & self.them() {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
             if TYPE == QUIET {
-                for to in gen(from) & !self.occupancies() {
+                for to in gen(from) & target & !self.occupancies() {
                     list.push(from, to, MoveKind::Normal);
                 }
             }
