@@ -46,10 +46,12 @@ pub fn message_loop() {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
-            ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
-            ["perft", depth] => {
-                tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board);
+            ["bench", v @ ..] => {
+                tools::bench::<true>(v.first().and_then(|v| v.parse().ok()));
             },
+            ["perft", depth] => {
+                tools::perft::<true>(depth.parse().unwrap(), &mut threads.main_thread().board);
+            }
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
