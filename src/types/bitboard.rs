@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, Not};
 
-use super::{Rank, Square};
+use super::{File, Rank, Square};
 
 /// Represents a 64-bit unsigned integer with each bit indicating square occupancy.
 ///
@@ -13,6 +13,10 @@ impl Bitboard {
     /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {
         Self(0xFF << (rank as usize * 8))
+    }
+
+    pub const fn file(file: File) -> Self {
+        Self(0x0101010101010101u64 << (file as usize))
     }
 
     /// Checks if the bitboard has zero bits set.

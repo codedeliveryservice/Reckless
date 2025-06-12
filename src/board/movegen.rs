@@ -1,6 +1,6 @@
 use crate::{
     lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, MoveKind, MoveList, PieceType, Rank, Square},
+    types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
 const QUIET: u8 = 0;
@@ -113,8 +113,9 @@ impl super::Board {
         };
 
         self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank);
+
         if TYPE == NOISY {
-            self.collect_pawn_captures::<NOISY>(list, pawns, seventh_rank);
+            self.collect_pawn_captures(list, pawns, seventh_rank);
             self.collect_en_passant_moves(list, pawns);
         }
     }
@@ -159,24 +160,39 @@ impl super::Board {
     }
 
     /// Adds regular pawn captures and promotion captures to the move list.
-    fn collect_pawn_captures<const TYPE: u8>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+        fn add_promotions(list: &mut MoveList, from: Square, to: Square) {
+            list.push(from, to, MoveKind::PromotionCaptureQ);
+            list.push(from, to, MoveKind::PromotionCaptureR);
+            list.push(from, to, MoveKind::PromotionCaptureB);
+            list.push(from, to, MoveKind::PromotionCaptureN);
+        }
+
+        let (up_right, up_left) = match self.side_to_move {
+            Color::White => (9, 7),
+            Color::Black => (-7, -9),
+        };
+
         let promotions = pawns & seventh_rank;
-        for from in promotions {
-            let captures = self.them() & pawn_attacks(from, self.side_to_move);
-            for to in captures {
-                list.push(from, to, MoveKind::PromotionCaptureQ);
-                list.push(from, to, MoveKind::PromotionCaptureR);
-                list.push(from, to, MoveKind::PromotionCaptureB);
-                list.push(from, to, MoveKind::PromotionCaptureN);
-            }
+        let right = (promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
+        let left = (promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
+
+        for to in right {
+            add_promotions(list, to.shift(-up_right), to);
+        }
+        for to in left {
+            add_promotions(list, to.shift(-up_left), to);
         }
 
         let non_promotions = pawns & !seventh_rank;
-        for from in non_promotions {
-            let targets = self.them() & pawn_attacks(from, self.side_to_move);
-            for to in targets {
-                list.push(from, to, MoveKind::Capture);
-            }
+        let right_captures = (non_promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
+        let left_captures = (non_promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
+
+        for to in right_captures {
+            list.push(to.shift(-up_right), to, MoveKind::Capture);
+        }
+        for to in left_captures {
+            list.push(to.shift(-up_left), to, MoveKind::Capture);
         }
     }
 
