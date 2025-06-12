@@ -1,6 +1,14 @@
-use crate::types::PieceType;
+use std::sync::Once;
+
+use crate::{lookup, types::PieceType};
 
 use super::Board;
+
+static LUT_INITIALIZED: Once = Once::new();
+
+fn prepare_lut() {
+    LUT_INITIALIZED.call_once(|| lookup::init());
+}
 
 macro_rules! assert_perft {
     ($($name:ident: $fen:tt, [$($nodes:expr),*],)*) => {$(
@@ -15,6 +23,8 @@ macro_rules! assert_perft {
 }
 
 fn perft(board: &mut Board, depth: usize) -> u32 {
+    prepare_lut();
+
     let mut nodes = 0;
     for entry in board.generate_all_moves().iter() {
         let mv = entry.mv;
