@@ -57,16 +57,14 @@ impl super::Board {
         T: Fn(Square) -> Bitboard,
     {
         for from in self.our(piece) {
-            let targets = gen(from) & !self.us();
-
             if TYPE == NOISY {
-                for to in targets & self.them() {
+                for to in gen(from) & self.them() {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
             if TYPE == QUIET {
-                for to in targets & !self.them() {
+                for to in gen(from) & !self.occupancies() {
                     list.push(from, to, MoveKind::Normal);
                 }
             }
