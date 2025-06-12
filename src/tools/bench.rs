@@ -17,6 +17,7 @@ use crate::{
     search::{self, Report},
     thread::ThreadData,
     time::{Limits, TimeManager},
+    tools,
     transposition::TranspositionTable,
 };
 
@@ -97,6 +98,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
         search::start(&mut td, Report::None);
+        tools::perft(4, &mut td.board);
 
         nodes += td.counter.local();
         index += 1;
