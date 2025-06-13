@@ -26,6 +26,7 @@ fn main() {
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(None),
+        Some("warmup") => tools::warmup(),
         _ => uci::message_loop(),
     }
 }

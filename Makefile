@@ -32,7 +32,7 @@ endif
 
 rule:
 	cargo pgo instrument
-	cargo pgo run -- bench
+	cargo pgo run -- warmup
 	cargo pgo optimize
 	$(PGO_MOVE)
 
