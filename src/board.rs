@@ -197,6 +197,15 @@ impl Board {
         self.pieces[piece.piece_type()].clear(square);
     }
 
+    pub fn move_piece(&mut self, piece: Piece, from: Square, to: Square) {
+        let delta = from.to_bb() ^ to.to_bb();
+
+        self.colors[piece.piece_color()] ^= delta;
+        self.pieces[piece.piece_type()] ^= delta;
+        self.mailbox[from] = Piece::None;
+        self.mailbox[to] = piece;
+    }
+
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
         self.state.key ^= ZOBRIST.pieces[piece][square];
 
