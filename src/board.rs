@@ -204,6 +204,8 @@ impl Board {
 
         self.colors[piece.piece_color()] ^= delta;
         self.pieces[piece.piece_type()] ^= delta;
+        self.occupancies ^= delta;
+
         self.mailbox[from] = Piece::None;
         self.mailbox[to] = piece;
     }
