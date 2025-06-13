@@ -171,6 +171,7 @@ impl MovePicker {
     fn score_quiet(&mut self, td: &ThreadData) {
         let threats = td.board.threats();
         let side = td.board.side_to_move();
+        let pawn_key = td.board.pawn_key();
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
@@ -181,6 +182,7 @@ impl MovePicker {
             }
 
             entry.score = (1188 * td.quiet_history.get(threats, side, mv)
+                + 512 * td.pawn_history.get(pawn_key, td.board.moved_piece(mv), mv.to())
                 + 1028 * td.conthist(1, mv)
                 + 868 * td.conthist(2, mv)
                 + 868 * td.conthist(4, mv)

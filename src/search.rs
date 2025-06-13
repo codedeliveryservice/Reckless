@@ -546,6 +546,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                + td.pawn_history.get(td.board.pawn_key(), td.board.moved_piece(mv), mv.to())
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
@@ -780,6 +781,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let bonus_quiet = (148 * depth - 71).min(1458);
         let malus_quiet = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1);
 
+        let bonus_pawn = (148 * depth - 71).min(1458);
+        let malus_pawn = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1);
+
         let bonus_cont = (114 * depth - 53).min(1318);
         let malus_cont = (244 * initial_depth - 51).min(907) - 15 * (move_count - 1);
 
@@ -793,10 +797,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             );
         } else if !quiet_moves.is_empty() || depth > 3 {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
+            td.pawn_history.update(td.board.pawn_key(), td.board.moved_piece(best_move), best_move.to(), bonus_pawn);
+
             update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                td.pawn_history.update(td.board.pawn_key(), td.board.moved_piece(mv), mv.to(), -malus_pawn);
+
                 update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }
