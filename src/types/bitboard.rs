@@ -10,8 +10,6 @@ use super::{File, Rank, Square};
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
-    pub const ALL: Self = Self(0xFFFFFFFFFFFFFFFF);
-
     /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {
         Self(0xFF << (rank as usize * 8))

@@ -36,18 +36,25 @@ impl super::Board {
 
     /// Generates pseudo legal moves for the current position.
     fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
-        self.collect_for::<TYPE, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
+        let king = self.king_square(self.side_to_move);
+        let checkers = self.checkers();
 
-        if self.checkers().multiple() {
+        self.collect_king_moves::<TYPE>(list, king);
+
+        if checkers.multiple() {
             return;
         }
 
         let occupancies = self.occupancies();
-        let target = if self.in_check() {
-            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
-        } else {
-            Bitboard::ALL
+        let mut target = match TYPE {
+            NOISY => self.them(),
+            QUIET => !self.occupancies(),
+            _ => unreachable!(),
         };
+
+        if self.in_check() {
+            target &= between(king, checkers.lsb()) | checkers.lsb().to_bb();
+        }
 
         self.collect_pawn_moves::<TYPE>(list);
 
@@ -56,7 +63,7 @@ impl super::Board {
         self.collect_for::<TYPE, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
         self.collect_for::<TYPE, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
 
-        if TYPE == QUIET {
+        if TYPE == QUIET && checkers.is_empty() {
             self.collect_castling(list);
         }
     }
@@ -68,15 +75,29 @@ impl super::Board {
     {
         for from in self.our(piece) {
             if TYPE == NOISY {
-                for to in gen(from) & target & self.them() {
+                for to in gen(from) & target {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
             if TYPE == QUIET {
-                for to in gen(from) & target & !self.occupancies() {
+                for to in gen(from) & target {
                     list.push(from, to, MoveKind::Normal);
                 }
+            }
+        }
+    }
+
+    fn collect_king_moves<const TYPE: u8>(&self, list: &mut MoveList, king: Square) {
+        if TYPE == NOISY {
+            for to in king_attacks(king) & self.them() {
+                list.push(king, to, MoveKind::Capture);
+            }
+        }
+
+        if TYPE == QUIET {
+            for to in king_attacks(king) & !self.occupancies() {
+                list.push(king, to, MoveKind::Normal);
             }
         }
     }
