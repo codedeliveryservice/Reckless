@@ -422,7 +422,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 556 * correction_value.abs() / 1024
                 + 24
     {
-        return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
+        return (beta + (eval - beta) / 3).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
     }
 
     // Null Move Pruning (NMP)
