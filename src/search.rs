@@ -362,12 +362,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
+    let potential_singularity =
+        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+
     // Hindsight LMR
     if !NODE::ROOT
         && !in_check
         && !excluded
         && td.stack[td.ply - 1].reduction >= 2691
-        && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && (static_eval + td.stack[td.ply - 1].static_eval < 0 || potential_singularity)
     {
         depth += 1;
     }
@@ -383,9 +386,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         depth -= 1;
     }
-
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     // Hindsight Late TT-Cut
     if cut_node
