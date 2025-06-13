@@ -406,6 +406,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let improving =
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
+    let oppening_worsening = !NODE::ROOT
+        && !in_check
+        && td.stack[td.ply - 1].mv.is_some()
+        && static_eval > -td.stack[td.ply - 1].static_eval;
+
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 303 - 260 * depth * depth {
         return qsearch::<NonPV>(td, alpha, beta);
@@ -418,7 +423,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && depth <= 7
         && eval >= beta
         && eval
-            >= beta + 80 * depth - (72 * improving as i32) - (25 * cut_node as i32)
+            >= beta + 80 * depth - (72 * improving as i32) - (25 * cut_node as i32) - (32 * oppening_worsening as i32)
                 + 556 * correction_value.abs() / 1024
                 + 24
     {
