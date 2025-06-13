@@ -26,6 +26,12 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         unsafe { &*self.data.get_unchecked(index).as_ptr() }
     }
 
+    pub fn get_mut(&mut self, index: usize) -> &mut T {
+        debug_assert!(index < self.len);
+
+        unsafe { &mut *self.data.get_unchecked_mut(index).as_mut_ptr() }
+    }
+
     pub fn push(&mut self, value: T) {
         debug_assert!(self.len < N);
 
@@ -55,10 +61,6 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
 
     pub fn iter(&self) -> std::slice::Iter<T> {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<T> {
-        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
 }
 

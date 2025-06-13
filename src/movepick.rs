@@ -91,10 +91,6 @@ impl MovePicker {
                 }
 
                 let entry = &self.list.remove(index);
-                if entry.mv == self.tt_move {
-                    continue;
-                }
-
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
@@ -139,11 +135,9 @@ impl MovePicker {
                     }
 
                     let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move || entry.mv == self.killer {
-                        continue;
+                    if entry.mv != self.killer {
+                        return Some(entry.mv);
                     }
-
-                    return Some(entry.mv);
                 }
             }
 
@@ -154,11 +148,6 @@ impl MovePicker {
         while self.bad_noisy_idx < self.bad_noisy.len() {
             let mv = self.bad_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
-
-            if mv == self.tt_move {
-                continue;
-            }
-
             return Some(mv);
         }
 
@@ -168,19 +157,22 @@ impl MovePicker {
     fn score_noisy(&mut self, td: &ThreadData) {
         let threats = td.board.threats();
 
-        for entry in self.list.iter_mut() {
-            let mv = entry.mv;
+        let mut index = 0;
+        while index < self.list.len() {
+            let mv = self.list[index].mv;
 
             if mv == self.tt_move {
-                entry.score = -32768;
+                self.list.remove(index);
                 continue;
             }
 
-            let captured =
-                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
+            let captured = if mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 2238 * PIECE_VALUES[captured] / 128
-                + 909 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024
+            self.list[index].score = (2238 * PIECE_VALUES[captured]
+                + 114 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured))
+                / 128;
+
+            index += 1;
         }
     }
 
@@ -188,20 +180,23 @@ impl MovePicker {
         let threats = td.board.threats();
         let side = td.board.side_to_move();
 
-        for entry in self.list.iter_mut() {
-            let mv = entry.mv;
+        let mut index = 0;
+        while index < self.list.len() {
+            let mv = self.list[index].mv;
 
             if mv == self.tt_move {
-                entry.score = -32768;
+                self.list.remove(index);
                 continue;
             }
 
-            entry.score = (1188 * td.quiet_history.get(threats, side, mv)
+            self.list[index].score = (1188 * td.quiet_history.get(threats, side, mv)
                 + 1028 * td.conthist(1, mv)
                 + 868 * td.conthist(2, mv)
                 + 868 * td.conthist(4, mv)
                 + 868 * td.conthist(6, mv))
                 / 1024;
+
+            index += 1;
         }
     }
 }
