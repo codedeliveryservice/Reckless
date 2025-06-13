@@ -45,6 +45,7 @@ struct InternalState {
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
+    occupancies: Bitboard,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
@@ -117,6 +118,10 @@ impl Board {
         self.state.castling
     }
 
+    pub const fn occupancies(&self) -> Bitboard {
+        self.occupancies
+    }
+
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]
@@ -125,11 +130,6 @@ impl Board {
     /// Returns a `Bitboard` for the specified `Piece` type.
     pub fn pieces(&self, piece_type: PieceType) -> Bitboard {
         self.pieces[piece_type]
-    }
-
-    /// Returns a `Bitboard` for all pieces on the board.
-    pub fn occupancies(&self) -> Bitboard {
-        self.colors(Color::White) | self.colors(Color::Black)
     }
 
     /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
@@ -188,6 +188,7 @@ impl Board {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
+        self.occupancies.set(square);
     }
 
     /// Removes a piece of the specified type and color from the square.
@@ -195,6 +196,7 @@ impl Board {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
+        self.occupancies.clear(square);
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
@@ -506,6 +508,7 @@ impl Default for Board {
     fn default() -> Self {
         Self {
             side_to_move: Color::White,
+            occupancies: Bitboard::default(),
             state: InternalState::default(),
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
