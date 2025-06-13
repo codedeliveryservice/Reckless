@@ -37,7 +37,7 @@ struct InternalState {
     repetition: i32,
     captured: Option<Piece>,
     threats: Bitboard,
-    pinners: Bitboard,
+    pinned: Bitboard,
     checkers: Bitboard,
 }
 
@@ -93,8 +93,8 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
-    pub const fn pinners(&self) -> Bitboard {
-        self.state.pinners
+    pub const fn pinned(&self) -> Bitboard {
+        self.state.pinned
     }
 
     pub const fn checkers(&self) -> Bitboard {
@@ -318,7 +318,7 @@ impl Board {
             return attackers.is_empty();
         }
 
-        if self.pinners().contains(from) {
+        if self.pinned().contains(from) {
             let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
             return self.checkers().is_empty() && along_pin;
         }
@@ -443,7 +443,7 @@ impl Board {
     pub fn update_king_threats(&mut self) {
         let king = self.our(PieceType::King).lsb();
 
-        self.state.pinners = Bitboard::default();
+        self.state.pinned = Bitboard::default();
         self.state.checkers = Bitboard::default();
 
         self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
@@ -459,7 +459,7 @@ impl Board {
             let blockers = between(king, square) & self.us();
             match blockers.len() {
                 0 => self.state.checkers.set(square),
-                1 => self.state.pinners |= blockers,
+                1 => self.state.pinned |= blockers,
                 _ => (),
             }
         }
