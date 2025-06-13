@@ -58,8 +58,7 @@ impl Board {
             self.state.captured = Some(captured);
         }
 
-        self.remove_piece(piece, from);
-        self.add_piece(piece, to);
+        self.move_piece(piece, from, to);
 
         self.update_hash(piece, from);
         self.update_hash(piece, to);
@@ -136,8 +135,7 @@ impl Board {
         let piece = self.piece_on(to);
         let stm = self.side_to_move;
 
-        self.add_piece(piece, from);
-        self.remove_piece(piece, to);
+        self.move_piece(piece, to, from);
 
         if let Some(piece) = self.state.captured {
             self.add_piece(piece, to);
