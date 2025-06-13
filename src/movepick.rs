@@ -166,31 +166,42 @@ impl MovePicker {
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
+        let threats = td.board.threats();
+
         for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+
+            if mv == self.tt_move {
+                entry.score = -32768;
+                continue;
+            }
+
             let captured =
-                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(entry.mv.to()).piece_type() };
+                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 2238 * PIECE_VALUES[captured] / 128;
-
-            entry.score +=
-                909 * td.noisy_history.get(
-                    td.board.threats(),
-                    td.board.moved_piece(entry.mv),
-                    entry.mv.to(),
-                    td.board.piece_on(entry.mv.to()).piece_type(),
-                ) / 1024
+            entry.score = 2238 * PIECE_VALUES[captured] / 128
+                + 909 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024
         }
     }
 
     fn score_quiet(&mut self, td: &ThreadData) {
+        let threats = td.board.threats();
+        let side = td.board.side_to_move();
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
 
-            entry.score += 1188 * td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) / 1024
-                + 1028 * td.conthist(1, mv) / 1024
-                + 868 * td.conthist(2, mv) / 1024
-                + 868 * td.conthist(4, mv) / 1024
-                + 868 * td.conthist(6, mv) / 1024;
+            if mv == self.tt_move {
+                entry.score = -32768;
+                continue;
+            }
+
+            entry.score = (1188 * td.quiet_history.get(threats, side, mv)
+                + 1028 * td.conthist(1, mv)
+                + 868 * td.conthist(2, mv)
+                + 868 * td.conthist(4, mv)
+                + 868 * td.conthist(6, mv))
+                / 1024;
         }
     }
 }
