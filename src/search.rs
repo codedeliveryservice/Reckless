@@ -182,7 +182,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
-        alpha = Score::ZERO;
+        alpha = randomized_draw(td.counter.local());
         if alpha >= beta {
             return alpha;
         }
@@ -206,11 +206,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if !NODE::ROOT {
         if td.board.is_draw(td.ply) {
-            return Score::DRAW;
+            return randomized_draw(td.counter.local());
         }
 
         if td.ply >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { evaluate(td) };
+            return if in_check { randomized_draw(td.counter.local()) } else { evaluate(td) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -1070,6 +1070,10 @@ fn correction_value(td: &ThreadData) -> i32 {
     }
 
     correction / 1024
+}
+
+const fn randomized_draw(nodes: u64) -> i32 {
+    Score::DRAW - 1 + (nodes & 0x2) as i32
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
