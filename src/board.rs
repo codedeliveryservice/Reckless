@@ -198,20 +198,22 @@ impl Board {
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
-        self.state.key ^= ZOBRIST.pieces[piece][square];
+        let key = ZOBRIST.pieces[piece][square];
+
+        self.state.key ^= key;
 
         if piece.piece_type() == PieceType::Pawn {
-            self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+            self.state.pawn_key ^= key;
         } else {
-            self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
+            self.state.non_pawn_keys[piece.piece_color()] ^= key;
 
-            if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
-                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
-            } else if [PieceType::Rook, PieceType::Queen].contains(&piece.piece_type()) {
-                self.state.major_key ^= ZOBRIST.pieces[piece][square];
-            } else {
-                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
-                self.state.major_key ^= ZOBRIST.pieces[piece][square];
+            match piece.piece_type() {
+                PieceType::Knight | PieceType::Bishop => self.state.minor_key ^= key,
+                PieceType::Rook | PieceType::Queen => self.state.major_key ^= key,
+                _ => {
+                    self.state.minor_key ^= key;
+                    self.state.major_key ^= key;
+                }
             }
         }
     }
