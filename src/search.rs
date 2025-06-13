@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use crate::{
     evaluate::evaluate,
+    misc::dbg_hit,
     movepick::{MovePicker, Stage},
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
@@ -579,7 +580,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Bad Noisy Futility Pruning (BNFP)
             let capt_futility_value = static_eval + 111 * lmr_depth + 396 * move_count / 128;
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < 6
+                && move_picker.stage() == Stage::BadNoisy
+                && capt_futility_value <= alpha
+                && skip_quiets
+            {
                 if !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
                 }
