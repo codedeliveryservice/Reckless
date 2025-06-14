@@ -116,7 +116,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
                     reduction += 1;
                 }
                 _ => {
-                    window_expansion /= 2;
+                    window_expansion = (window_expansion * 4) / 5;
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
                     break;
                 }
