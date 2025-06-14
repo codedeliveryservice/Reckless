@@ -515,7 +515,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(td.board.hash(), depth / 2, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
                 if is_decisive(score) {
                     return score;
