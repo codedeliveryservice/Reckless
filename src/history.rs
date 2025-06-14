@@ -192,7 +192,18 @@ impl PawnHistory {
 
 impl Default for PawnHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        let mut entries: Box<[[[[i16; 64]; 13]; 1024]; 2]> = zeroed_box();
+        for entry in entries.iter_mut() {
+            for sub_entry in entry.iter_mut() {
+                for bucket in sub_entry.iter_mut() {
+                    for value in bucket.iter_mut() {
+                        *value = -1024;
+                    }
+                }
+            }
+        }
+
+        Self { entries }
     }
 }
 
