@@ -244,6 +244,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_depth = entry.depth;
         tt_bound = entry.bound;
 
+        if NODE::ROOT {
+            tt_move = td.pv.best_move();
+        }
+
         if !NODE::PV
             && !excluded
             && tt_depth >= depth
