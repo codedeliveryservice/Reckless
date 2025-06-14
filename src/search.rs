@@ -1002,7 +1002,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 continue;
             }
 
-            if !td.board.see(mv, -75) {
+            let history = if !mv.is_quiet() {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            } else {
+                0
+            };
+
+            if !td.board.see(mv, -48 - 12 * history / 1024) {
                 continue;
             }
         }
