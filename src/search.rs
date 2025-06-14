@@ -659,7 +659,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
             }
 
-            if cut_node {
+            if cut_node && !(is_valid(tt_score) && tt_depth > depth) {
                 reduction += 1141;
             }
 
