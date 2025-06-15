@@ -1,4 +1,4 @@
-use super::{simd, Aligned, HIDDEN_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, HIDDEN_SIZE, INPUT_SIZE, PARAMETERS};
 use crate::{
     board::Board,
     types::{Color, Move, Piece, PieceType, Square},
@@ -158,8 +158,9 @@ fn index(color: Color, piece: PieceType, square: Square, wking: Square, bking: S
     let wsquare = if wking.file() >= 4 { square ^ 7 } else { square };
     let bsquare = if bking.file() >= 4 { square ^ 7 } else { square };
 
-    let white = 384 * color as usize + 64 * piece as usize + wsquare as usize;
-    let black = 384 * !color as usize + 64 * piece as usize + (bsquare ^ 56) as usize;
+    let white = BUCKETS[wking] * INPUT_SIZE + 384 * color as usize + 64 * piece as usize + wsquare as usize;
+    let black =
+        BUCKETS[bking ^ 56] * INPUT_SIZE + 384 * !color as usize + 64 * piece as usize + (bsquare ^ 56) as usize;
 
     [white, black]
 }

@@ -21,12 +21,25 @@ mod fallback;
 #[cfg(all(not(target_feature = "avx2"), not(target_arch = "aarch64")))]
 mod ssse3;
 
+const INPUT_BUCKETS: usize = 4;
 const INPUT_SIZE: usize = 768;
 const HIDDEN_SIZE: usize = 1024;
 
 const NETWORK_SCALE: i32 = 400;
-const NETWORK_QA: i32 = 384;
+const NETWORK_QA: i32 = 255;
 const NETWORK_QB: i32 = 64;
+
+#[rustfmt::skip]
+const BUCKETS: [usize; 64] = [
+    0, 0, 1, 1, 1, 1, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+];
 
 #[derive(Clone)]
 pub struct Network {
@@ -84,8 +97,13 @@ impl Network {
         for i in (0..=self.index).rev() {
             let delta = self.stack[i].delta;
 
+            let (from, to) = match delta.piece.piece_color() {
+                Color::White => (delta.mv.from(), delta.mv.to()),
+                Color::Black => (delta.mv.from() ^ 56, delta.mv.to() ^ 56),
+            };
+
             if delta.piece.piece_type() == PieceType::King
-                && ((delta.mv.from()).file() >= 4) != ((delta.mv.to()).file() >= 4)
+                && ((from.file() >= 4) != (to.file() >= 4) || BUCKETS[from] != BUCKETS[to])
             {
                 return false;
             }
@@ -135,7 +153,7 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
+    ft_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_BUCKETS * INPUT_SIZE]>,
     ft_biases: Aligned<[i16; HIDDEN_SIZE]>,
     output_weights: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
     output_bias: i16,
