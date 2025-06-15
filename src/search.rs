@@ -350,6 +350,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
+    let mut static_eval_pcm_bonus = 0;
     if !NODE::ROOT
         && !in_check
         && !excluded
@@ -357,9 +358,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 674 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-61, 144);
-
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+        static_eval_pcm_bonus = value.clamp(-144, 144);
+        td.quiet_history.update(
+            td.board.prior_threats(),
+            !td.board.side_to_move(),
+            td.stack[td.ply - 1].mv,
+            static_eval_pcm_bonus,
+        );
     }
 
     // Hindsight LMR
@@ -835,7 +840,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 101)
                     as i32;
 
-            let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
+            let scaled_bonus: i32 = factor * (137 * depth - 43).min(1563) / 128
+                + (static_eval_pcm_bonus < 0) as i32 * (-static_eval_pcm_bonus);
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
