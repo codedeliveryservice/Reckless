@@ -1,8 +1,30 @@
-use super::{simd, Aligned, BUCKETS, HIDDEN_SIZE, INPUT_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, HIDDEN_SIZE, INPUT_BUCKETS, INPUT_SIZE, PARAMETERS};
 use crate::{
     board::Board,
-    types::{Color, Move, Piece, PieceType, Square},
+    types::{Bitboard, Color, Move, Piece, PieceType, Square},
 };
+
+#[derive(Clone, Default)]
+pub struct AccumulatorCache {
+    entries: Box<[[[CacheEntry; INPUT_BUCKETS]; 2]; 2]>,
+}
+
+#[derive(Clone)]
+pub struct CacheEntry {
+    accumulator: Aligned<[i16; HIDDEN_SIZE]>,
+    pieces: [Bitboard; PieceType::NUM],
+    colors: [Bitboard; Color::NUM],
+}
+
+impl Default for CacheEntry {
+    fn default() -> Self {
+        Self {
+            accumulator: PARAMETERS.ft_biases,
+            pieces: [Bitboard::default(); PieceType::NUM],
+            colors: [Bitboard::default(); Color::NUM],
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Delta {
@@ -27,22 +49,47 @@ impl Accumulator {
         }
     }
 
-    pub fn refresh(&mut self, board: &Board, pov: Color) {
+    pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
 
-        for i in 0..HIDDEN_SIZE {
-            self.values[pov][i] = PARAMETERS.ft_biases[i];
-        }
+        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
+            [BUCKETS[if pov == Color::White { king } else { king ^ 56 }]];
 
-        for square in board.occupancies() {
-            let piece = board.piece_on(square);
-            let feature = index(piece.piece_color(), piece.piece_type(), square, king, pov);
+        for color in [Color::White, Color::Black] {
+            for piece_type in [
+                PieceType::Pawn,
+                PieceType::Knight,
+                PieceType::Bishop,
+                PieceType::Rook,
+                PieceType::Queen,
+                PieceType::King,
+            ] {
+                let pieces = board.of(piece_type, color);
+                let adds = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
+                let subs = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
-            for i in 0..HIDDEN_SIZE {
-                self.values[pov][i] += PARAMETERS.ft_weights[feature][i];
+                for square in adds {
+                    let feature = index(color, piece_type, square, king, pov);
+
+                    for i in 0..HIDDEN_SIZE {
+                        entry.accumulator[i] += PARAMETERS.ft_weights[feature][i];
+                    }
+                }
+
+                for square in subs {
+                    let feature = index(color, piece_type, square, king, pov);
+
+                    for i in 0..HIDDEN_SIZE {
+                        entry.accumulator[i] -= PARAMETERS.ft_weights[feature][i];
+                    }
+                }
             }
         }
 
+        entry.pieces = board.pieces_bbs();
+        entry.colors = board.colors_bbs();
+
+        self.values[pov] = *entry.accumulator;
         self.accurate[pov] = true;
     }
 
