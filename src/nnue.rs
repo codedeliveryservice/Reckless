@@ -111,6 +111,7 @@ impl Network {
             };
 
             if delta.piece.piece_type() == PieceType::King
+                && delta.piece.piece_color() == pov
                 && ((from.file() >= 4) != (to.file() >= 4) || BUCKETS[from] != BUCKETS[to])
             {
                 return false;
