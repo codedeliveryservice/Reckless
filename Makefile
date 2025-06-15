@@ -30,11 +30,20 @@ else
 	PGO_MOVE := move /Y "target\$(TARGET_TUPLE)\release\reckless.exe" "$(NAME)"
 endif
 
+# Detects whether cargo-pgo is installed
+HAS_PGO := $(shell cargo --list | grep -q "pgo" && echo "yes" || echo "no")
+
 rule:
+ifeq ($(HAS_PGO),yes)
+	@echo cargo-pgo detected, building with PGO
 	cargo pgo instrument
 	cargo pgo run -- bench
 	cargo pgo optimize
 	$(PGO_MOVE)
+else
+	@echo cargo-pgo not found, building normally
+	cargo rustc --release -- -C target-cpu=native --emit link=$(EXE)
+endif
 
 release:
 	cargo rustc --release -- -C target-cpu=x86-64 --emit link=$(V1NAME)
