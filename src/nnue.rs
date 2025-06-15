@@ -3,7 +3,7 @@ use crate::{
     types::{Color, Move, PieceType, MAX_PLY},
 };
 
-use accumulator::Accumulator;
+use accumulator::{Accumulator, AccumulatorCache};
 
 #[cfg(all(target_feature = "avx2", not(target_arch = "aarch64")))]
 use avx2 as simd;
@@ -45,6 +45,7 @@ const BUCKETS: [usize; 64] = [
 pub struct Network {
     index: usize,
     stack: Box<[Accumulator]>,
+    cache: AccumulatorCache,
 }
 
 impl Network {
@@ -63,8 +64,8 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.stack[self.index].refresh(board, Color::White);
-        self.stack[self.index].refresh(board, Color::Black);
+        self.stack[self.index].refresh(board, Color::White, &mut self.cache);
+        self.stack[self.index].refresh(board, Color::Black, &mut self.cache);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
@@ -87,7 +88,7 @@ impl Network {
     }
 
     fn refresh(&mut self, board: &Board, pov: Color) {
-        self.stack[self.index].refresh(board, pov);
+        self.stack[self.index].refresh(board, pov, &mut self.cache);
     }
 
     fn update_accumulator(&mut self, board: &Board, pov: Color) {
@@ -156,6 +157,7 @@ impl Default for Network {
         Self {
             index: 0,
             stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
+            cache: AccumulatorCache::default(),
         }
     }
 }
