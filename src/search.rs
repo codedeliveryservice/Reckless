@@ -58,7 +58,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     td.counter.clear();
     td.tb_hits.clear();
 
-    td.nnue.refresh(&td.board);
+    td.nnue.full_refresh(&td.board);
 
     let now = Instant::now();
 

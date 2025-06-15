@@ -1,4 +1,4 @@
-use std::ops::{Add, BitXor, Div, Index, IndexMut};
+use std::ops::{Add, BitXor, BitXorAssign, Div, Index, IndexMut};
 
 use super::Bitboard;
 
@@ -92,6 +92,12 @@ impl BitXor<u8> for Square {
 
     fn bitxor(self, rhs: u8) -> Self::Output {
         Self::new(self as u8 ^ rhs)
+    }
+}
+
+impl BitXorAssign<u8> for Square {
+    fn bitxor_assign(&mut self, rhs: u8) {
+        *self = Self::new(*self as u8 ^ rhs);
     }
 }
 
