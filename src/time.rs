@@ -69,14 +69,14 @@ impl TimeManager {
             _ => {
                 let mut limit = self.soft_bound.as_secs_f32();
 
-                if td.completed_depth >= 7 {
-                    let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
-                    limit *= 2.15 - 1.5 * fraction;
+                // if td.completed_depth >= 7 {
+                //     let fraction = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
+                //     limit *= 2.15 - 1.5 * fraction;
 
-                    limit *= 1.25 - 0.05 * pv_stability as f32;
+                //     limit *= 1.25 - 0.05 * pv_stability as f32;
 
-                    limit *= 1.2 - 0.04 * eval_stability as f32;
-                }
+                //     limit *= 1.2 - 0.04 * eval_stability as f32;
+                // }
 
                 self.start_time.elapsed() >= Duration::from_secs_f32(limit)
             }
