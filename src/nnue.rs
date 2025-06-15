@@ -52,7 +52,7 @@ impl Network {
         debug_assert!(mv.is_some());
 
         self.index += 1;
-        self.stack[self.index].accurate = false;
+        self.stack[self.index].accurate = [false; 2];
         self.stack[self.index].delta.mv = mv;
         self.stack[self.index].delta.piece = board.piece_on(mv.from());
         self.stack[self.index].delta.captured = board.piece_on(mv.to());
@@ -62,18 +62,23 @@ impl Network {
         self.index -= 1;
     }
 
-    pub fn refresh(&mut self, board: &Board) {
-        self.stack[self.index].refresh(board);
+    pub fn full_refresh(&mut self, board: &Board) {
+        self.stack[self.index].refresh(board, Color::White);
+        self.stack[self.index].refresh(board, Color::Black);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
-        debug_assert!(self.stack[0].accurate);
+        debug_assert!(self.stack[0].accurate == [true; 2]);
 
-        if !self.stack[self.index].accurate {
-            if self.can_update() {
-                self.update_accumulators(board);
+        for pov in [Color::White, Color::Black] {
+            if self.stack[self.index].accurate[pov] {
+                continue;
+            }
+
+            if self.can_update(pov) {
+                self.update_accumulator(board, pov);
             } else {
-                self.refresh(board);
+                self.refresh(board, pov);
             }
         }
 
@@ -81,19 +86,22 @@ impl Network {
         output * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
     }
 
-    fn update_accumulators(&mut self, board: &Board) {
-        let wking = board.king_square(Color::White);
-        let bking = board.king_square(Color::Black);
-        let index = (0..self.index).rfind(|&i| self.stack[i].accurate).unwrap();
+    fn refresh(&mut self, board: &Board, pov: Color) {
+        self.stack[self.index].refresh(board, pov);
+    }
+
+    fn update_accumulator(&mut self, board: &Board, pov: Color) {
+        let king = board.king_square(pov);
+        let index = (0..self.index).rfind(|&i| self.stack[i].accurate[pov]).unwrap();
 
         for i in index..self.index {
             if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
-                current.update(&prev[i], wking, bking);
+                current.update(&prev[i], king, pov);
             }
         }
     }
 
-    fn can_update(&self) -> bool {
+    fn can_update(&self, pov: Color) -> bool {
         for i in (0..=self.index).rev() {
             let delta = self.stack[i].delta;
 
@@ -108,7 +116,7 @@ impl Network {
                 return false;
             }
 
-            if self.stack[i].accurate {
+            if self.stack[i].accurate[pov] {
                 return true;
             }
         }

@@ -20,7 +20,7 @@ pub fn message_loop() {
 
     let mut threads = ThreadPool::new(&tt, &stop, &counter, &tb_hits);
     for thread in threads.iter_mut() {
-        thread.nnue.refresh(&thread.board);
+        thread.nnue.full_refresh(&thread.board);
     }
 
     let mut move_overhead = 0;
@@ -190,7 +190,7 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
 
     for thread in threads.iter_mut() {
         thread.board = board.clone();
-        thread.nnue.refresh(&thread.board);
+        thread.nnue.full_refresh(&thread.board);
     }
 }
 
