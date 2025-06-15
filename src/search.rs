@@ -63,11 +63,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let now = Instant::now();
 
     let mut average = Score::NONE;
-    let mut last_move = Move::NULL;
-
-    let mut eval_stability = 0;
-    let mut pv_stability = 0;
-
     let mut window_expansion = 0;
 
     // Iterative Deepening
@@ -133,20 +128,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
-        if last_move == td.pv.best_move() {
-            pv_stability = (pv_stability + 1).min(8);
-        } else {
-            pv_stability = 0;
-            last_move = td.pv.best_move();
-        }
-
-        if (td.best_score - average).abs() < 12 {
-            eval_stability = (eval_stability + 1).min(8);
-        } else {
-            eval_stability = 0;
-        }
-
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        if td.time_manager.soft_limit(td) {
             break;
         }
 
