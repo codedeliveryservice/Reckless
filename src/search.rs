@@ -128,7 +128,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
-        let multiplier = || (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+        let multiplier = || (800 + 20 * (td.previous_best_score - average)).clamp(750, 1500) as f32 / 1000.0;
 
         if td.time_manager.soft_limit(td, multiplier) {
             break;
