@@ -139,9 +139,23 @@ pub fn start(td: &mut ThreadData, report: Report) {
             eval_stability = 0;
         }
 
-        let multiplier = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+        let multiplier = || {
+            if td.completed_depth < 7 {
+                return 1.0;
+            }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability, multiplier) {
+            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32);
+
+            let pv_stability = 1.25 - 0.05 * pv_stability as f32;
+
+            let eval_stability = 1.2 - 0.04 * eval_stability as f32;
+
+            let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+
+            nodes_factor * pv_stability * eval_stability * score_trend
+        };
+
+        if td.time_manager.soft_limit(td, multiplier) {
             break;
         }
 
