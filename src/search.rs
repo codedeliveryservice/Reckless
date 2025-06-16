@@ -69,6 +69,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let mut pv_stability = 0;
 
     let mut window_expansion = 0;
+    let mut best_move_changes = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -95,6 +96,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         loop {
             td.stack = Default::default();
             td.root_delta = beta - alpha;
+
+            best_move_changes /= 2;
 
             // Root Search
             let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
@@ -133,6 +136,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
+        best_move_changes += td.best_move_changes;
+
         if last_move == td.pv.best_move() {
             pv_stability = (pv_stability + 1).min(8);
         } else {
@@ -146,9 +151,10 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        let multiplier = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+        let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+        let best_move_instability = (1.0 + 0.1 * best_move_changes as f32).min(2.0);
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability, multiplier) {
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, score_trend * best_move_instability) {
             break;
         }
 
@@ -162,6 +168,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     }
 
     td.previous_best_score = td.best_score;
+    td.best_move_changes = 0;
 
     SearchResult {
         best_move: td.pv.best_move(),
@@ -754,10 +761,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if NODE::PV {
                     td.pv.update(td.ply, mv);
+                }
 
-                    if NODE::ROOT {
-                        td.best_score = score;
-                    }
+                if NODE::ROOT {
+                    td.best_score = score;
+                    td.best_move_changes += (move_count > 1) as usize;
                 }
 
                 if score >= beta {
