@@ -152,7 +152,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         }
 
         let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
-        let best_move_instability = (1.0 + 0.1 * best_move_changes as f32).min(2.0);
+        let best_move_instability = 0.9 + 0.1 * best_move_changes.min(8) as f32;
 
         if td.time_manager.soft_limit(td, pv_stability, eval_stability, score_trend * best_move_instability) {
             break;
