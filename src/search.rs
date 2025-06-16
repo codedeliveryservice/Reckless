@@ -63,8 +63,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let now = Instant::now();
 
     let mut average = Score::NONE;
-    let mut window_expansion = 0;
+    let mut last_move = Move::NULL;
+
+    let mut pv_stability = 0;
     let mut best_move_changes = 0;
+    let mut window_expansion = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -131,6 +134,13 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
+        if last_move == td.pv.best_move() {
+            pv_stability += 1;
+        } else {
+            pv_stability = 0;
+        }
+
+        last_move = td.pv.best_move();
         best_move_changes += td.best_move_changes;
 
         let multiplier = || {
@@ -138,9 +148,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             let score_factor = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
 
+            let pv_stability_factor = 1.4 - 0.05 * pv_stability.min(10) as f32;
+
             let best_move_instability = (1.0 + 0.1 * best_move_changes as f32).min(2.0);
 
-            node_factor * score_factor * best_move_instability
+            node_factor * score_factor * pv_stability_factor * best_move_instability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
