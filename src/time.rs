@@ -12,7 +12,7 @@ pub enum Limits {
     Cyclic(u64, u64, u64),
 }
 
-const TIME_OVERHEAD_MS: u64 = 15;
+const SAFETY_MARGIN_MS: u64 = 15;
 
 pub struct TimeManager {
     limits: Limits,
@@ -32,11 +32,15 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
+                const MOVES_TO_GO: u64 = 50;
+
                 let main = main.saturating_sub(move_overhead);
-                let soft_scale = 0.025 + 0.05 * (1.0 - (-0.034 * fullmove_number as f64).exp());
+                let estimate = (main + inc * (MOVES_TO_GO - 1) - SAFETY_MARGIN_MS * (2 + MOVES_TO_GO)).max(1);
+
+                let soft_scale = (0.20 * main as f64 / estimate as f64).min(0.025);
                 let hard_scale = 0.135 + 0.21 * (1.0 - (-0.030 * fullmove_number as f64).exp());
 
-                soft = (soft_scale * main as f64 + 0.75 * inc as f64) as u64;
+                soft = (soft_scale * estimate as f64) as u64;
                 hard = (hard_scale * main as f64 + 0.75 * inc as f64) as u64;
             }
             Limits::Cyclic(main, inc, moves) => {
@@ -55,8 +59,8 @@ impl TimeManager {
         Self {
             limits,
             start_time: Instant::now(),
-            soft_bound: Duration::from_millis(soft.saturating_sub(TIME_OVERHEAD_MS)),
-            hard_bound: Duration::from_millis(hard.saturating_sub(TIME_OVERHEAD_MS)),
+            soft_bound: Duration::from_millis(soft.saturating_sub(SAFETY_MARGIN_MS)),
+            hard_bound: Duration::from_millis(hard.saturating_sub(SAFETY_MARGIN_MS)),
         }
     }
 
