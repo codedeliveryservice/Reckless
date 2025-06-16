@@ -1,4 +1,5 @@
 use std::{
+    ops::Index,
     sync::atomic::{AtomicBool, AtomicU64, Ordering},
     time::Instant,
 };
@@ -45,6 +46,10 @@ impl<'a> ThreadPool<'a> {
         self.vector.len()
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &ThreadData<'a>> {
+        self.vector.iter()
+    }
+
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData<'a>> {
         self.vector.iter_mut()
     }
@@ -53,6 +58,14 @@ impl<'a> ThreadPool<'a> {
         for thread in &mut self.vector {
             *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, thread.tb_hits.global);
         }
+    }
+}
+
+impl<'a> Index<usize> for ThreadPool<'a> {
+    type Output = ThreadData<'a>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.vector[index]
     }
 }
 
@@ -123,10 +136,6 @@ impl<'a> ThreadData<'a> {
             nmp_min_ply: 0,
             previous_best_score: 0,
         }
-    }
-
-    pub fn set_stop(&self, value: bool) {
-        self.stop.store(value, Ordering::Relaxed);
     }
 
     pub fn get_stop(&self) -> bool {
