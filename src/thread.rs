@@ -121,7 +121,7 @@ impl<'a> ThreadData<'a> {
             completed_depth: 0,
             ply: 0,
             nmp_min_ply: 0,
-            previous_best_score: Score::NONE,
+            previous_best_score: Score::ZERO,
         }
     }
 
