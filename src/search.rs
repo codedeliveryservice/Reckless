@@ -146,7 +146,9 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
             eval_stability = 0;
         }
 
-        if td.time_manager.soft_limit(td, pv_stability, eval_stability) {
+        let multiplier = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+
+        if td.time_manager.soft_limit(td, pv_stability, eval_stability, multiplier) {
             break;
         }
 
@@ -158,6 +160,8 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     if report != Report::None {
         td.print_uci_info(td.root_depth, td.best_score, now);
     }
+
+    td.previous_best_score = td.best_score;
 
     SearchResult {
         best_move: td.pv.best_move(),
