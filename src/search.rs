@@ -63,6 +63,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     let now = Instant::now();
 
     let mut average = Score::NONE;
+    let mut score_history = vec![td.previous_best_score; MAX_PLY];
     let mut window_expansion = 0;
 
     // Iterative Deepening
@@ -128,11 +129,19 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
-        let multiplier = || (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+        let multiplier = || {
+            let v = 800
+                + 100 * (score_history[(depth as usize).saturating_sub(4)] - td.best_score)
+                + 200 * (td.previous_best_score - td.best_score);
+
+            v.clamp(750, 1500) as f32 / 1000.0
+        };
 
         if td.time_manager.soft_limit(td, multiplier) {
             break;
         }
+
+        score_history[depth as usize] = td.best_score;
 
         if report == Report::Full {
             td.print_uci_info(depth, td.best_score, now);
