@@ -134,6 +134,10 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
         best_move_changes += td.best_move_changes;
 
         let multiplier = || {
+            if depth < 8 {
+                return 1.0;
+            }
+
             let node_factor = 2.1 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32);
 
             let score_factor = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
