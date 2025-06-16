@@ -32,12 +32,14 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let main = main.saturating_sub(move_overhead);
+                let moves_left = (50 - fullmove_number.max(40)) as u64;
+                let time_left = (main + (inc * moves_left)).saturating_sub(move_overhead);
+
                 let soft_scale = 0.025 + 0.05 * (1.0 - (-0.034 * fullmove_number as f64).exp());
                 let hard_scale = 0.135 + 0.21 * (1.0 - (-0.030 * fullmove_number as f64).exp());
 
-                soft = (soft_scale * main as f64 + 0.75 * inc as f64) as u64;
-                hard = (hard_scale * main as f64 + 0.75 * inc as f64) as u64;
+                soft = (soft_scale * time_left as f64) as u64;
+                hard = (hard_scale * time_left as f64) as u64;
             }
             Limits::Cyclic(main, inc, moves) => {
                 let main = main.saturating_sub(move_overhead);
