@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use crate::{
     board::Board,
     evaluate::evaluate,
-    search::{self, Report, SearchResult},
+    search::{self, Report},
     tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
@@ -13,12 +13,13 @@ use crate::{
 };
 
 pub fn message_loop() {
+    static STOP: AtomicBool = AtomicBool::new(false);
+
     let tt = TranspositionTable::default();
-    let stop = AtomicBool::new(false);
     let counter = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut threads = ThreadPool::new(&tt, &stop, &counter, &tb_hits);
+    let mut threads = ThreadPool::new(&tt, &STOP, &counter, &tb_hits);
     for thread in threads.iter_mut() {
         thread.nnue.full_refresh(&thread.board);
     }
@@ -34,12 +35,12 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &stop, report, move_overhead, tokens),
+            ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
             ["ucinewgame"] => reset(&mut threads, &tt),
 
-            ["stop"] => stop.store(true, Ordering::Relaxed),
+            ["stop"] => STOP.store(true, Ordering::Relaxed),
             ["quit"] => break,
 
             // Non-UCI commands
@@ -83,28 +84,29 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 }
 
 fn go(
-    threads: &mut ThreadPool, stop: &AtomicBool, report: Report, move_overhead: u64, tokens: &[&str],
+    threads: &mut ThreadPool, stop: &'static AtomicBool, report: Report, move_overhead: u64, tokens: &[&str],
 ) -> Option<String> {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
-    threads.main_thread().set_stop(false);
+    threads.main_thread().tt.increment_age();
 
-    let next_command = std::thread::scope(|scope| {
+    stop.store(false, Ordering::Relaxed);
+
+    let listener = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
-                let result = search::start(td, if id == 0 { report } else { Report::None });
-                td.set_stop(true);
-                result
+                search::start(td, if id == 0 { report } else { Report::None });
+                stop.store(true, Ordering::Relaxed);
             });
 
             handlers.push(handler);
         }
 
-        let next_command = scope.spawn(|| loop {
+        let listener = std::thread::spawn(|| loop {
             let command = read_stdin();
             match command.as_str().trim() {
                 "isready" => println!("readyok"),
@@ -112,53 +114,55 @@ fn go(
                     stop.store(true, Ordering::Relaxed);
                     return None;
                 }
-                _ => {
-                    return Some(command);
-                }
+                _ => return Some(command),
             }
         });
 
-        let results = handlers.into_iter().map(|h| h.join().unwrap()).collect::<Vec<_>>();
-
-        let min_score = results.iter().map(|v| v.score).min().unwrap();
-        let vote_value = |result: &SearchResult| (result.score - min_score + 10) * result.depth;
-
-        let mut votes = vec![0; 4096];
-        for result in &results {
-            votes[result.best_move.encoded()] += vote_value(result);
+        for handler in handlers {
+            handler.join().unwrap();
         }
-
-        let mut best = results[0];
-        for current in &results[1..] {
-            let is_better_candidate = || -> bool {
-                if is_decisive(best.score) {
-                    return current.score > best.score;
-                }
-                if is_win(current.score) {
-                    return true;
-                }
-
-                let best_vote = votes[best.best_move.encoded()];
-                let current_vote = votes[current.best_move.encoded()];
-
-                !is_loss(current.score)
-                    && (current_vote > best_vote
-                        || (current_vote == best_vote && vote_value(current) > vote_value(&best)))
-            };
-
-            if is_better_candidate() {
-                best = *current;
-            }
-        }
-
-        println!("bestmove {}", best.best_move);
-        crate::misc::dbg_print();
-
-        next_command.join().unwrap()
+        listener
     });
 
-    threads.main_thread().tt.increment_age();
-    next_command
+    let min_score = threads.iter().map(|v| v.best_score).min().unwrap();
+    let vote_value = |td: &ThreadData| (td.best_score - min_score + 10) * td.completed_depth;
+
+    let mut votes = vec![0; 4096];
+    for result in threads.iter() {
+        votes[result.pv.best_move().encoded()] += vote_value(result);
+    }
+
+    let mut best = 0;
+
+    for current in 1..threads.len() {
+        let is_better_candidate = || -> bool {
+            let best = &threads[best];
+            let current = &threads[current];
+
+            if is_decisive(best.best_score) {
+                return current.best_score > best.best_score;
+            }
+
+            if is_win(current.best_score) {
+                return true;
+            }
+
+            let best_vote = votes[best.pv.best_move().encoded()];
+            let current_vote = votes[current.pv.best_move().encoded()];
+
+            !is_loss(current.best_score)
+                && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(best)))
+        };
+
+        if is_better_candidate() {
+            best = current;
+        }
+    }
+
+    println!("bestmove {}", threads[best].pv.best_move());
+    crate::misc::dbg_print();
+
+    listener.join().unwrap()
 }
 
 fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {

@@ -19,13 +19,6 @@ pub enum Report {
     Full,
 }
 
-#[derive(Copy, Clone)]
-pub struct SearchResult {
-    pub best_move: Move,
-    pub depth: i32,
-    pub score: i32,
-}
-
 trait NodeType {
     const PV: bool;
     const ROOT: bool;
@@ -49,7 +42,7 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
+pub fn start(td: &mut ThreadData, report: Report) {
     td.completed_depth = 0;
     td.stopped = false;
 
@@ -162,12 +155,6 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
     }
 
     td.previous_best_score = td.best_score;
-
-    SearchResult {
-        best_move: td.pv.best_move(),
-        depth: td.completed_depth,
-        score: td.best_score,
-    }
 }
 
 fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
