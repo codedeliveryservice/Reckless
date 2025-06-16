@@ -12,7 +12,7 @@ pub enum Limits {
     Cyclic(u64, u64, u64),
 }
 
-const TIME_OVERHEAD_MS: u64 = 15;
+const SATEFY_MARGIN_MS: u64 = 15;
 
 pub struct TimeManager {
     limits: Limits,
@@ -32,12 +32,14 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let main = main.saturating_sub(move_overhead);
+                let moves_to_go = 50 - (fullmove_number as u64).min(40);
+                let time_left = main.saturating_sub(move_overhead).saturating_sub(SATEFY_MARGIN_MS * moves_to_go);
+
                 let soft_scale = 0.025 + 0.05 * (1.0 - (-0.034 * fullmove_number as f64).exp());
                 let hard_scale = 0.135 + 0.21 * (1.0 - (-0.030 * fullmove_number as f64).exp());
 
-                soft = (soft_scale * main as f64 + 0.75 * inc as f64) as u64;
-                hard = (hard_scale * main as f64 + 0.75 * inc as f64) as u64;
+                soft = (soft_scale * time_left as f64 + 0.75 * inc as f64) as u64;
+                hard = (hard_scale * time_left as f64 + 0.75 * inc as f64) as u64;
             }
             Limits::Cyclic(main, inc, moves) => {
                 let main = main.saturating_sub(move_overhead);
@@ -55,8 +57,8 @@ impl TimeManager {
         Self {
             limits,
             start_time: Instant::now(),
-            soft_bound: Duration::from_millis(soft.saturating_sub(TIME_OVERHEAD_MS)),
-            hard_bound: Duration::from_millis(hard.saturating_sub(TIME_OVERHEAD_MS)),
+            soft_bound: Duration::from_millis(soft.saturating_sub(SATEFY_MARGIN_MS)),
+            hard_bound: Duration::from_millis(hard.saturating_sub(SATEFY_MARGIN_MS)),
         }
     }
 
