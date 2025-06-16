@@ -148,11 +148,11 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             let score_factor = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
 
-            let pv_stability_factor = 1.25 - 0.05 * pv_stability.min(10) as f32;
-
             let best_move_instability = (1.0 + 0.1 * best_move_changes as f32).min(2.0);
 
-            node_factor * score_factor * pv_stability_factor * best_move_instability
+            let pv_stability_factor = if depth > 5 { 1.2 - 0.05 * pv_stability.min(10) as f32 } else { 1.0 };
+
+            node_factor * score_factor * best_move_instability * pv_stability_factor
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
