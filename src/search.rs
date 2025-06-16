@@ -148,7 +148,7 @@ pub fn start(td: &mut ThreadData, report: Report) -> SearchResult {
 
             let score_factor = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
 
-            let pv_stability_factor = 1.4 - 0.05 * pv_stability.min(10) as f32;
+            let pv_stability_factor = 1.25 - 0.05 * pv_stability.min(10) as f32;
 
             let best_move_instability = (1.0 + 0.1 * best_move_changes as f32).min(2.0);
 
