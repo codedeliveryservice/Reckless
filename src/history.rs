@@ -8,6 +8,7 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+#[derive(Clone)]
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -39,6 +40,7 @@ impl QuietHistoryEntry {
     }
 }
 
+#[derive(Clone)]
 pub struct QuietHistory {
     entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
 }
@@ -63,6 +65,7 @@ impl Default for QuietHistory {
     }
 }
 
+#[derive(Clone)]
 struct NoisyHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 7],
@@ -89,6 +92,7 @@ impl NoisyHistoryEntry {
     }
 }
 
+#[derive(Clone)]
 pub struct NoisyHistory {
     // [piece][to][captured_piece_type][to_threated]
     entries: Box<PieceToHistory<NoisyHistoryEntry>>,
@@ -114,6 +118,7 @@ impl Default for NoisyHistory {
     }
 }
 
+#[derive(Clone)]
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i16; Self::SIZE]; 2]>,
@@ -141,6 +146,7 @@ impl Default for CorrectionHistory {
     }
 }
 
+#[derive(Clone)]
 pub struct ContinuationHistory {
     // [piece][to][continuation_piece][continuation_to]
     entries: Box<[[PieceToHistory<i16>; 64]; 13]>,

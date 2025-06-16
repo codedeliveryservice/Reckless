@@ -159,6 +159,28 @@ fn go(
         }
     }
 
+    let best_noisy_history = threads[best].noisy_history.clone();
+    let best_quiet_history = threads[best].quiet_history.clone();
+    let best_continuation_history = threads[best].continuation_history.clone();
+    let pawn_corrhist = threads[best].pawn_corrhist.clone();
+    let minor_corrhist = threads[best].minor_corrhist.clone();
+    let major_corrhist = threads[best].major_corrhist.clone();
+    let non_pawn_corrhist = threads[best].non_pawn_corrhist.clone();
+    let prior_moves_corrhist = threads[best].prior_moves_corrhist.clone();
+
+    for (i, thread) in threads.iter_mut().enumerate() {
+        if i != best {
+            thread.noisy_history = best_noisy_history.clone();
+            thread.quiet_history = best_quiet_history.clone();
+            thread.continuation_history = best_continuation_history.clone();
+            thread.pawn_corrhist = pawn_corrhist.clone();
+            thread.minor_corrhist = minor_corrhist.clone();
+            thread.major_corrhist = major_corrhist.clone();
+            thread.non_pawn_corrhist = non_pawn_corrhist.clone();
+            thread.prior_moves_corrhist = prior_moves_corrhist.clone();
+        }
+    }
+
     println!("bestmove {}", threads[best].pv.best_move());
     crate::misc::dbg_print();
 
