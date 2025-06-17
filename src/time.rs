@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::atomic::Ordering,
+    time::{Duration, Instant},
+};
 
 use crate::thread::ThreadData;
 
@@ -66,7 +69,14 @@ impl TimeManager {
             Limits::Depth(maximum) => td.completed_depth >= maximum,
             Limits::Nodes(maximum) => td.counter.global() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
-            _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()),
+            _ => {
+                let elapsed = self.start_time.elapsed().as_secs_f32();
+                let limit = self.soft_bound.as_secs_f32() * multiplier();
+
+                td.repeat_depth.store(elapsed >= 0.7 * limit, Ordering::Relaxed);
+
+                elapsed >= limit
+            }
         }
     }
 

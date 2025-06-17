@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{sync::atomic::Ordering, time::Instant};
 
 use crate::{
     evaluate::evaluate,
@@ -63,6 +63,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut repeat_depth_counter = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -86,12 +87,17 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
 
+        if td.repeat_depth.load(Ordering::Relaxed) {
+            repeat_depth_counter += 1;
+        }
+
         loop {
             td.stack = Default::default();
             td.root_delta = beta - alpha;
 
             // Root Search
-            let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
+            let adjusted_depth = depth - reduction - 3 * (repeat_depth_counter + 1) / 4;
+            let score = search::<Root>(td, alpha, beta, adjusted_depth.max(1), false);
 
             if td.stopped {
                 break;

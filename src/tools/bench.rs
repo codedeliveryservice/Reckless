@@ -89,10 +89,11 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
         let tt = TranspositionTable::default();
         let stop = AtomicBool::new(false);
+        let repeat_depth = AtomicBool::new(false);
         let counter = AtomicU64::new(0);
         let tb_hits = AtomicU64::new(0);
 
-        let mut td = ThreadData::new(&tt, &stop, &counter, &tb_hits);
+        let mut td = ThreadData::new(&tt, &stop, &repeat_depth, &counter, &tb_hits);
         td.board = Board::new(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 

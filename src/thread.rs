@@ -20,18 +20,22 @@ pub struct ThreadPool<'a> {
 
 impl<'a> ThreadPool<'a> {
     pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, repeat_depth: &'a AtomicBool, counter: &'a AtomicU64,
+        tb_hits: &'a AtomicU64,
     ) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter, tb_hits)] }
+        Self {
+            vector: vec![ThreadData::new(tt, stop, repeat_depth, counter, tb_hits)],
+        }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
+        let repeat_depth = self.vector[0].repeat_depth;
         let counter = self.vector[0].counter.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter, tb_hits));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, repeat_depth, counter, tb_hits));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -56,7 +60,13 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, thread.tb_hits.global);
+            *thread = ThreadData::new(
+                thread.tt,
+                thread.stop,
+                thread.repeat_depth,
+                thread.counter.global,
+                thread.tb_hits.global,
+            );
         }
     }
 }
@@ -72,6 +82,7 @@ impl<'a> Index<usize> for ThreadPool<'a> {
 pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
+    pub repeat_depth: &'a AtomicBool,
     pub counter: AtomicCounter<'a>,
     pub tb_hits: AtomicCounter<'a>,
     pub board: Board,
@@ -103,11 +114,13 @@ pub struct ThreadData<'a> {
 
 impl<'a> ThreadData<'a> {
     pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, repeat_depth: &'a AtomicBool, counter: &'a AtomicU64,
+        tb_hits: &'a AtomicU64,
     ) -> Self {
         Self {
             tt,
             stop,
+            repeat_depth,
             counter: AtomicCounter::new(counter),
             tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
