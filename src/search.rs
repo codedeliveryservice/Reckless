@@ -140,10 +140,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            if td.completed_depth < 7 {
-                return 1.0;
-            }
-
             let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability as f32;
