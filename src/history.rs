@@ -55,6 +55,11 @@ impl QuietHistory {
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, mv, bonus);
     }
+
+    pub fn update_factorizer(&mut self, stm: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[stm][mv.from()][mv.to()];
+        entry.update_factorizer(bonus);
+    }
 }
 
 impl Default for QuietHistory {
