@@ -98,7 +98,7 @@ pub struct ThreadData<'a> {
     pub completed_depth: i32,
     pub ply: usize,
     pub nmp_min_ply: i32,
-    pub previous_best_score: i32,
+    pub previous_average_score: i32,
 }
 
 impl<'a> ThreadData<'a> {
@@ -134,7 +134,7 @@ impl<'a> ThreadData<'a> {
             completed_depth: 0,
             ply: 0,
             nmp_min_ply: 0,
-            previous_best_score: 0,
+            previous_average_score: 0,
         }
     }
 
