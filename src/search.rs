@@ -54,6 +54,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.nnue.full_refresh(&td.board);
 
     let now = Instant::now();
+    td.now = now;
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;

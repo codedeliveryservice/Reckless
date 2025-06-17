@@ -159,6 +159,9 @@ fn go(
         }
     }
 
+    if best != 0 {
+        threads[best].print_uci_info(threads[best].completed_depth, threads[best].best_score, threads[best].now);
+    }
     println!("bestmove {}", threads[best].pv.best_move());
     crate::misc::dbg_print();
 
