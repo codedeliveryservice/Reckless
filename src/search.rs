@@ -133,7 +133,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             last_move = td.pv.best_move();
         }
 
-        if (td.best_score - average).abs() < 12 {
+        if (td.best_score - average).abs() < 8 {
             eval_stability = (eval_stability + 1).min(8);
         } else {
             eval_stability = 0;
