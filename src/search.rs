@@ -263,6 +263,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
+            if tt_move.is_quiet() && tt_score < alpha {
+                let quiet_malus = (128 * depth - 64).min(1300);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -quiet_malus);
+            }
+
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
                 return tt_score;
