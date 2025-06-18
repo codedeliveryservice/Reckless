@@ -532,6 +532,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let mut singular = false;
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -619,6 +620,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 if score < singular_beta {
+                    singular = true;
                     extension = 1;
                     extension += (!NODE::PV && score < singular_beta - 2) as i32;
                     extension += (!NODE::PV && is_quiet && score < singular_beta - 64) as i32;
@@ -678,6 +680,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.stack[td.ply - 1].killer == mv {
                 reduction -= 955;
+            }
+
+            if singular && tt_move.is_quiet() {
+                reduction -= 1024;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(
