@@ -772,7 +772,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if mv != best_move && move_count < 32 {
             if mv.is_noisy() {
                 noisy_moves.push(mv);
-            } else {
+            } else if bound != Bound::Exact {
                 quiet_moves.push(mv);
             }
         }
