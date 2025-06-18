@@ -114,6 +114,31 @@ impl Default for NoisyHistory {
     }
 }
 
+pub struct LowPlyHistory {
+    // [piece][to]
+    entries: Box<[FromToHistory<i16>; Self::PLIES]>,
+}
+
+impl LowPlyHistory {
+    const PLIES: usize = 4;
+    const MAX_HISTORY: i32 = 16384;
+
+    pub fn get(&self, ply: usize, mv: Move) -> i32 {
+        self.entries[ply][mv.from()][mv.to()] as i32
+    }
+
+    pub fn update(&mut self, ply: usize, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[ply][mv.from()][mv.to()];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for LowPlyHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i16; Self::SIZE]; 2]>,

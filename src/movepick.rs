@@ -202,6 +202,10 @@ impl MovePicker {
                 + 868 * td.conthist(4, mv)
                 + 868 * td.conthist(6, mv))
                 / 1024;
+
+            if td.ply < 4 {
+                entry.score += 4096 * td.low_ply_history.get(td.ply, mv) / (1 + td.ply as i32);
+            }
         }
     }
 }

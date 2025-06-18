@@ -808,10 +808,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply].killer = best_move;
 
             if !quiet_moves.is_empty() || depth > 3 {
+                if td.ply < 4 {
+                    td.low_ply_history.update(td.ply, best_move, bonus_quiet);
+                }
+
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
                 update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
                 for &mv in quiet_moves.iter() {
+                    if td.ply < 4 {
+                        td.low_ply_history.update(td.ply, mv, -malus_quiet);
+                    }
+
                     td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
                     update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
                 }
