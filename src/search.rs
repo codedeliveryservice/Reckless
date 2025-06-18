@@ -437,7 +437,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.has_non_pawns()
         && !potential_singularity
     {
-        let r = 4 + depth / 3 + ((eval - beta) / 225).min(3) + (tt_move.is_null() || tt_move.is_noisy()) as i32;
+        let r = 5 + depth / 3 + ((eval - beta) / 225).min(3);
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
         td.stack[td.ply].piece = Piece::None;
