@@ -151,12 +151,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         if report == Report::Full {
-            td.print_uci_info(depth, td.best_score, now);
+            td.print_uci_info(depth, td.score_to_print, now);
         }
     }
 
     if report != Report::None {
-        td.print_uci_info(td.root_depth, td.best_score, now);
+        td.print_uci_info(td.root_depth, td.score_to_print, now);
     }
 
     td.previous_best_score = td.best_score;
@@ -728,6 +728,25 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if NODE::ROOT {
             td.node_table.add(mv, td.counter.local() - initial_nodes);
+
+            if move_count == 1 || score > alpha {
+                td.best_score = score;
+
+                td.is_lower_bound = false;
+                td.is_upper_bound = false;
+
+                td.score_to_print = score;
+                if score >= beta {
+                    td.is_lower_bound = true;
+                    td.score_to_print = beta;
+                }
+                if score <= alpha {
+                    td.is_upper_bound = true;
+                    td.score_to_print = alpha;
+                }
+
+                td.pv.update(td.ply, mv);
+            }
         }
 
         if score > best_score {
@@ -738,12 +757,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 alpha = score;
                 best_move = mv;
 
-                if NODE::PV {
+                if !NODE::ROOT && NODE::PV {
                     td.pv.update(td.ply, mv);
-
-                    if NODE::ROOT {
-                        td.best_score = score;
-                    }
                 }
 
                 if score >= beta {
