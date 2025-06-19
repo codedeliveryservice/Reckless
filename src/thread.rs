@@ -99,6 +99,9 @@ pub struct ThreadData<'a> {
     pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
+    pub is_upper_bound: bool,
+    pub is_lower_bound: bool,
+    pub score_to_print: i32,
 }
 
 impl<'a> ThreadData<'a> {
@@ -135,6 +138,9 @@ impl<'a> ThreadData<'a> {
             ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
+            is_upper_bound: false,
+            is_lower_bound: false,
+            score_to_print: -Score::INFINITE,
         }
     }
 
@@ -156,7 +162,7 @@ impl<'a> ThreadData<'a> {
         let nps = self.counter.global() as f64 / now.elapsed().as_secs_f64();
         let ms = now.elapsed().as_millis();
 
-        let score = if score.abs() < Score::TB_WIN_IN_MAX {
+        let mut score_str = if score.abs() < Score::TB_WIN_IN_MAX {
             format!("cp {}", normalize_to_cp(score, &self.board))
         } else if score.abs() <= Score::TB_WIN {
             let ply = Score::TB_WIN - score.abs();
@@ -167,8 +173,14 @@ impl<'a> ThreadData<'a> {
             format!("mate {}", if score.is_positive() { mate } else { -mate })
         };
 
+        if self.is_upper_bound {
+            score_str.push_str(" upperbound");
+        } else if self.is_lower_bound {
+            score_str.push_str(" lowerbound");
+        }
+
         print!(
-            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
+            "info depth {depth} seldepth {} score {score_str} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             self.sel_depth,
             self.counter.global(),
             self.tt.hashfull(),
