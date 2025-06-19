@@ -1101,38 +1101,14 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 }
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
-    if td.ply >= 1 {
-        let entry = &td.stack[td.ply - 1];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 1523 * bonus / 1024);
-        }
-    }
+    const BONUSES: [(usize, i32); 5] = [(1, 1523), (2, 1144), (3, 957), (4, 1024), (6, 1024)];
 
-    if td.ply >= 2 {
-        let entry = &td.stack[td.ply - 2];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 1144 * bonus / 1024);
-        }
-    }
-
-    if td.ply >= 3 {
-        let entry = &td.stack[td.ply - 3];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 957 * bonus / 1024);
-        }
-    }
-
-    if td.ply >= 4 {
-        let entry = &td.stack[td.ply - 4];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 1024 * bonus / 1024);
-        }
-    }
-
-    if td.ply >= 6 {
-        let entry = &td.stack[td.ply - 6];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, 1024 * bonus / 1024);
+    for (offset, scale) in BONUSES {
+        if td.ply >= offset {
+            let entry = &td.stack[td.ply - offset];
+            if entry.mv.is_some() {
+                td.continuation_history.update(entry.conthist, piece, sq, scale * bonus / 1024);
+            }
         }
     }
 }
