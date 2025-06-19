@@ -8,52 +8,26 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
-struct QuietHistoryEntry {
-    factorizer: i16,
-    buckets: [[i16; 2]; 2],
-}
-
-impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 2048;
-    const MAX_BUCKET: i32 = 6144;
-
-    pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
-        let from_threated = threats.contains(mv.from()) as usize;
-        let to_threated = threats.contains(mv.to()) as usize;
-
-        self.buckets[from_threated][to_threated]
-    }
-
-    pub fn update_factorizer(&mut self, bonus: i32) {
-        let entry = &mut self.factorizer;
-        let bonus = bonus.clamp(-Self::MAX_FACTORIZER, Self::MAX_FACTORIZER);
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
-    }
-
-    pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
-        let from_threated = threats.contains(mv.from()) as usize;
-        let to_threated = threats.contains(mv.to()) as usize;
-
-        let entry = &mut self.buckets[from_threated][to_threated];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
-    }
-}
-
 pub struct QuietHistory {
-    entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
+    entries: Box<[[[FromToHistory<i16>; 2]; 2]; 2]>,
 }
 
 impl QuietHistory {
+    const MAX_HISTORY: i32 = 12288;
+
     pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
-        let entry = &self.entries[stm][mv.from()][mv.to()];
-        (entry.factorizer + entry.bucket(threats, mv)) as i32
+        let from_threated = threats.contains(mv.from()) as usize;
+        let to_threated = threats.contains(mv.to()) as usize;
+
+        self.entries[stm][from_threated][to_threated][mv.from()][mv.to()] as i32
     }
 
     pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[stm][mv.from()][mv.to()];
+        let from_threated = threats.contains(mv.from()) as usize;
+        let to_threated = threats.contains(mv.to()) as usize;
 
-        entry.update_factorizer(bonus);
-        entry.update_bucket(threats, mv, bonus);
+        let entry = &mut self.entries[stm][from_threated][to_threated][mv.from()][mv.to()];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
 
