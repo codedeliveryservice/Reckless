@@ -61,8 +61,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
 
-    let mut window_expansion = 0;
-
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -71,12 +69,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 10;
+        let mut delta = 12;
         let mut reduction = 0;
 
         // Aspiration Windows
         if depth >= 4 {
-            delta += window_expansion + average * average / 26411;
+            delta += average * average / 26411;
 
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
@@ -98,18 +96,15 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             match score {
                 s if s <= alpha => {
-                    window_expansion += 1;
                     beta = (alpha + beta) / 2;
                     alpha = (score - delta).max(-Score::INFINITE);
                     reduction = 0;
                 }
                 s if s >= beta => {
-                    window_expansion += 1;
                     beta = (score + delta).min(Score::INFINITE);
                     reduction += 1;
                 }
                 _ => {
-                    window_expansion /= 2;
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
                     break;
                 }
