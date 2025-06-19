@@ -1,4 +1,4 @@
-export RUSTFLAGS := -Ctarget-cpu=native
+export RUSTFLAGS := -Ctarget-cpu=native -Ctarget-feature=-bmi2
 
 EXE := reckless
 TARGET_TUPLE := $(shell rustc --print host-tuple)
