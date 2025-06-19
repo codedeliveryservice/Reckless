@@ -666,7 +666,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
+                reduction += 1196;
             }
 
             let reduced_depth =
