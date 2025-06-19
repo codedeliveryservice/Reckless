@@ -9,7 +9,6 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
-    Killer,
     GenerateQuiet,
     Quiet,
     BadNoisy,
@@ -18,7 +17,6 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
-    killer: Move,
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
@@ -26,11 +24,10 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new(killer: Move, tt_move: Move) -> Self {
+    pub const fn new(tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
-            killer,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
@@ -42,7 +39,6 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            killer: Move::NULL,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -54,7 +50,6 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            killer: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -104,18 +99,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = Stage::Killer;
-        }
-
-        if self.stage == Stage::Killer {
-            if !skip_quiets {
-                self.stage = Stage::GenerateQuiet;
-                if self.killer != self.tt_move && td.board.is_pseudo_legal(self.killer) {
-                    return Some(self.killer);
-                }
-            } else {
-                self.stage = Stage::BadNoisy;
-            }
+            self.stage = Stage::GenerateQuiet;
         }
 
         if self.stage == Stage::GenerateQuiet {
@@ -139,7 +123,7 @@ impl MovePicker {
                     }
 
                     let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move || entry.mv == self.killer {
+                    if entry.mv == self.tt_move {
                         continue;
                     }
 

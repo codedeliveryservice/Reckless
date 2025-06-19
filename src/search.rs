@@ -341,8 +341,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
-
-    td.stack[td.ply + 1].killer = Move::NULL;
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
@@ -534,7 +532,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(td.stack[td.ply].killer, tt_move);
+    let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
@@ -671,10 +669,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 732 + 55 * td.stack[td.ply].cutoff_count.max(7);
             }
 
-            if td.stack[td.ply - 1].killer == mv {
-                reduction -= 955;
-            }
-
             let reduced_depth = (new_depth - reduction / 1024).clamp(
                 (NODE::PV && tt_move.is_some() && best_move.is_null()) as i32,
                 new_depth + (NODE::PV || cut_node) as i32,
@@ -799,17 +793,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.board.piece_on(best_move.to()).piece_type(),
                 bonus_noisy,
             );
-        } else {
-            td.stack[td.ply].killer = best_move;
+        } else if !quiet_moves.is_empty() || depth > 3 {
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
+            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
-            if !quiet_moves.is_empty() || depth > 3 {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-                update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
-
-                for &mv in quiet_moves.iter() {
-                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                    update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
-                }
+            for &mv in quiet_moves.iter() {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }
 
