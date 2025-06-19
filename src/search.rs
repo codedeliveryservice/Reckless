@@ -381,22 +381,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
-    // Hindsight Late TT-Cut
-    if cut_node
-        && !excluded
-        && tt_depth >= depth
-        && td.board.halfmove_clock() < 90
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => false,
-            _ => tt_score >= beta,
-        }
-        && !potential_singularity
-    {
-        debug_assert!(is_valid(tt_score));
-        return tt_score;
-    }
-
     let improving =
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
