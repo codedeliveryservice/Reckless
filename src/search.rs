@@ -592,6 +592,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
+        if NODE::ROOT && tt_move.is_null() && move_count == 1 {
+            tt_move = mv;
+        }
+
         // Singular Extensions (SE)
         let mut extension = 0;
 
@@ -729,7 +733,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if NODE::ROOT {
             td.node_table.add(mv, td.counter.local() - initial_nodes);
 
-            if move_count == 1 || score > alpha {
+            if score > alpha {
                 td.best_score = score;
 
                 td.is_lower_bound = false;
@@ -739,13 +743,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if score >= beta {
                     td.is_lower_bound = true;
                     td.score_to_print = beta;
+                    td.pv.update(td.ply, mv);
                 }
-                if score <= alpha {
-                    td.is_upper_bound = true;
-                    td.score_to_print = alpha;
-                }
-
-                td.pv.update(td.ply, mv);
             }
         }
 
@@ -844,6 +843,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if NODE::PV {
         best_score = best_score.min(max_score);
+    }
+
+    if NODE::ROOT {
+        if best_score <= alpha {
+            td.is_upper_bound = true;
+            td.score_to_print = alpha;
+            td.pv.update(td.ply, tt_move);
+        }
     }
 
     if !excluded {
