@@ -546,7 +546,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.pawn_history.get(td.board.pawn_key(), td.board.moved_piece(mv), mv.to())
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
