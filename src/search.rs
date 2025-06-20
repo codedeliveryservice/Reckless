@@ -240,17 +240,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_depth = entry.depth;
         tt_bound = entry.bound;
 
-        if !NODE::PV
-            && !excluded
-            && tt_depth >= depth
-            && is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
-                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+        if !NODE::PV && !excluded && tt_depth >= depth && is_valid(tt_score) {
+            if match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
                 _ => true,
-            }
-        {
-            if tt_move.is_quiet() && tt_score >= beta {
+            } && tt_move.is_quiet()
+                && tt_score >= beta
+            {
                 let quiet_bonus = (137 * depth - 73).min(1405);
                 let conthist_bonus = (105 * depth - 63).min(1435);
 
@@ -258,8 +255,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
-            if td.board.halfmove_clock() < 90 {
-                debug_assert!(is_valid(tt_score));
+            if match tt_bound {
+                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
+                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+                _ => true,
+            } && td.board.halfmove_clock() < 90
+            {
                 return tt_score;
             }
         }
