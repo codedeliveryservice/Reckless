@@ -182,7 +182,7 @@ impl MovePicker {
             }
 
             entry.score = (1188 * td.quiet_history.get(threats, side, mv)
-                + 512 * td.pawn_history.get(pawn_key, td.board.moved_piece(mv), mv.to())
+                + 1024 * td.pawn_history.get(pawn_key, td.board.moved_piece(mv), mv.to())
                 + 1028 * td.conthist(1, mv)
                 + 868 * td.conthist(2, mv)
                 + 868 * td.conthist(4, mv)
