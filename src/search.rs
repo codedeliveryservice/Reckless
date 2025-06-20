@@ -329,7 +329,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         {
             debug_assert!(is_valid(tt_score));
-            eval = tt_score;
+            eval = (eval + tt_score) / 2;
         }
     } else {
         raw_eval = evaluate(td);
