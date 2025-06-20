@@ -370,7 +370,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !tt_pv
         && !in_check
         && !excluded
-        && depth >= 2
+        && depth >= 4
         && td.stack[td.ply - 1].reduction >= 905
         && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 69
