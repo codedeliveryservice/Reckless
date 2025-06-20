@@ -171,7 +171,7 @@ impl Default for ContinuationHistory {
 
 pub struct PawnHistory {
     // [pawn_key][piece][to]
-    entries: Box<[FromToHistory<i16>; Self::SIZE]>,
+    entries: Box<[[FromToHistory<i16>; Self::SIZE]; 2]>,
 }
 
 impl PawnHistory {
@@ -180,12 +180,12 @@ impl PawnHistory {
     const SIZE: usize = 8192;
     const MASK: usize = Self::SIZE - 1;
 
-    pub fn get(&self, key: u64, mv: Move) -> i32 {
-        self.entries[key as usize & Self::MASK][mv.from()][mv.to()] as i32
+    pub fn get(&self, key: u64, stm: Color, mv: Move) -> i32 {
+        self.entries[stm][key as usize & Self::MASK][mv.from()][mv.to()] as i32
     }
 
-    pub fn update(&mut self, key: u64, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[key as usize & Self::MASK][mv.from()][mv.to()];
+    pub fn update(&mut self, key: u64, stm: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[stm][key as usize & Self::MASK][mv.from()][mv.to()];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
