@@ -189,8 +189,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return qsearch::<NODE>(td, alpha, beta);
     }
 
-    td.counter.increment();
-
     if NODE::PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
@@ -856,8 +854,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         td.pv.clear(td.ply);
     }
 
-    td.counter.increment();
-
     if NODE::PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
@@ -1099,6 +1095,7 @@ fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].mv = mv;
     td.ply += 1;
 
+    td.counter.increment();
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
     td.tt.prefetch(td.board.hash());
