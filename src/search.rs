@@ -418,6 +418,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let r = 5 + depth / 3 + ((eval - beta) / 225).min(3);
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
+        td.stack[td.ply].contcorrhist = std::ptr::null_mut();
         td.stack[td.ply].piece = Piece::None;
         td.stack[td.ply].mv = Move::NULL;
         td.ply += 1;
@@ -1034,6 +1035,15 @@ fn correction_value(td: &ThreadData) -> i32 {
 
     if td.ply >= 2 {
         correction += 661 * td.prior_moves_corrhist[1].get(stm, td.stack[td.ply - 2].mv.encoded() as u64);
+
+        if td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
+            correction += 1024
+                * td.continuation_corrhist.get(
+                    td.stack[td.ply - 2].contcorrhist,
+                    td.stack[td.ply - 1].piece,
+                    td.stack[td.ply - 1].mv.to(),
+                );
+        }
     }
 
     correction / 1024
@@ -1060,6 +1070,15 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     if td.ply >= 2 && td.stack[td.ply - 2].mv.is_some() {
         td.prior_moves_corrhist[1].update(stm, td.stack[td.ply - 2].mv.encoded() as u64, 986 * bonus / 1024);
+
+        if td.stack[td.ply - 1].mv.is_some() {
+            td.continuation_corrhist.update(
+                td.stack[td.ply - 2].contcorrhist,
+                td.stack[td.ply - 1].piece,
+                td.stack[td.ply - 1].mv.to(),
+                1024 * bonus / 1024,
+            );
+        }
     }
 }
 
@@ -1078,6 +1097,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
 
 fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].conthist = td.continuation_history.subtable_ptr(td.board.moved_piece(mv), mv.to());
+    td.stack[td.ply].contcorrhist = td.continuation_corrhist.subtable_ptr(td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
     td.ply += 1;
