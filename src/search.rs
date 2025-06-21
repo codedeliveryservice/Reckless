@@ -737,7 +737,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 if depth > 2 && depth < 15 && !is_decisive(score) {
-                    depth -= 1;
+                    depth -= 1 + (static_eval < score) as i32;
                 }
             }
         }
