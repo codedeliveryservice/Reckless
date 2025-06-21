@@ -13,6 +13,10 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
     let material = material(&td.board);
     eval = (eval * (21682 + material) + td.optimism[td.board.side_to_move()] * (1923 + material)) / 28993;
 
+    if eval == 0 {
+        eval = -1 + ((td.counter.global() & 0x2) as i32);
+    }
+
     eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
