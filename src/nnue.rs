@@ -76,15 +76,10 @@ impl Network {
                 continue;
             }
 
-            if self.can_update(pov) {
-                self.update_accumulator(board, pov);
-            } else {
-                self.refresh(board, pov);
-            }
+            self.refresh(board, pov);
         }
 
-        let output = self.output_transformer(board) / NETWORK_QA + PARAMETERS.output_bias as i32;
-        output * NETWORK_SCALE / (NETWORK_QA * NETWORK_QB)
+        self.output_transformer(board)
     }
 
     fn refresh(&mut self, board: &Board, pov: Color) {
@@ -129,26 +124,19 @@ impl Network {
     fn output_transformer(&self, board: &Board) -> i32 {
         let accumulators = &self.stack[self.index];
 
-        let min = simd::zero();
-        let max = simd::splat(NETWORK_QA as i16);
-
-        let mut vector = simd::zero();
+        let mut output = PARAMETERS.output_bias;
 
         for flip in [0, 1] {
             let accumulator = &accumulators.values[board.side_to_move() as usize ^ flip];
             let weights = &PARAMETERS.output_weights[flip];
 
-            for i in (0..HIDDEN_SIZE).step_by(simd::VECTOR_WIDTH) {
-                let input = unsafe { *(accumulator[i..].as_ptr().cast()) };
-                let weights = unsafe { *(weights[i..].as_ptr().cast()) };
-
-                let v = simd::min(simd::max(input, min), max);
-                let w = simd::mullo(v, weights);
-                vector = simd::add_i32(vector, simd::dot(w, v));
+            for i in 0..HIDDEN_SIZE {
+                let activated = accumulator[i].clamp(0.0, 1.0).powi(2);
+                output += weights[i] * activated;
             }
         }
 
-        simd::horizontal_sum(vector)
+        (output * NETWORK_SCALE as f32) as i32
     }
 }
 
@@ -164,10 +152,10 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_weights: Aligned<[[i16; HIDDEN_SIZE]; INPUT_BUCKETS * INPUT_SIZE]>,
-    ft_biases: Aligned<[i16; HIDDEN_SIZE]>,
-    output_weights: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
-    output_bias: i16,
+    ft_weights: Aligned<[[f32; HIDDEN_SIZE]; INPUT_BUCKETS * INPUT_SIZE]>,
+    ft_biases: Aligned<[f32; HIDDEN_SIZE]>,
+    output_weights: Aligned<[[f32; HIDDEN_SIZE]; 2]>,
+    output_bias: f32,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
