@@ -454,8 +454,10 @@ impl Board {
         self.state.pinned = Bitboard::default();
         self.state.checkers = Bitboard::default();
 
-        self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
+        if self.threats().contains(king) {
+            self.state.checkers |= pawn_attacks(king, self.side_to_move) & self.their(PieceType::Pawn);
+            self.state.checkers |= knight_attacks(king) & self.their(PieceType::Knight);
+        }
 
         let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
         let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
