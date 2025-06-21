@@ -22,6 +22,7 @@ pub struct StackEntry {
     pub cutoff_count: i32,
     pub reduction: i32,
     pub conthist: *mut [[i16; 64]; 13],
+    pub contcorrhist: *mut [[i16; 64]; 13],
 }
 
 unsafe impl Send for StackEntry {}
@@ -37,6 +38,7 @@ impl Default for StackEntry {
             cutoff_count: 0,
             reduction: 0,
             conthist: std::ptr::null_mut(),
+            contcorrhist: std::ptr::null_mut(),
         }
     }
 }

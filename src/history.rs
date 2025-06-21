@@ -141,6 +141,34 @@ impl Default for CorrectionHistory {
     }
 }
 
+pub struct ContinuationCorrectionHistory {
+    // [piece][to][continuation_piece][continuation_to]
+    entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
+}
+
+impl ContinuationCorrectionHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
+        self.entries[piece][sq].as_mut_ptr().cast()
+    }
+
+    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
+        (unsafe { &*subtable_ptr }[piece][sq] / 108) as i32
+    }
+
+    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
+        let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for ContinuationCorrectionHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct ContinuationHistory {
     // [piece][to][continuation_piece][continuation_to]
     entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
