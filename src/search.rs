@@ -805,7 +805,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += 277
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 101)
                     as i32;
-            factor += (-td.stack[td.ply - 1].history / 128).clamp(-96, 320);
+            factor += (-td.stack[td.ply - 1].history / 80).clamp(-96, 320);
 
             if factor > 0 {
                 let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
