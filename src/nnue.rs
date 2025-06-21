@@ -22,12 +22,13 @@ mod fallback;
 mod ssse3;
 
 const INPUT_BUCKETS: usize = 4;
-const INPUT_SIZE: usize = 768;
-const HIDDEN_SIZE: usize = 1024;
+
+const FT_SIZE: usize = 768;
+const L1_SIZE: usize = 1024;
+const L2_SIZE: usize = 16;
+const L3_SIZE: usize = 32;
 
 const NETWORK_SCALE: i32 = 400;
-const NETWORK_QA: i32 = 255;
-const NETWORK_QB: i32 = 64;
 
 #[rustfmt::skip]
 const BUCKETS: [usize; 64] = [
@@ -122,18 +123,50 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
-        let accumulators = &self.stack[self.index];
+        let accumulators = &self.stack[self.index].values.data;
 
-        let mut output = PARAMETERS.output_bias;
+        let mut hl1 = [0.0; L1_SIZE];
 
         for flip in [0, 1] {
-            let accumulator = &accumulators.values[board.side_to_move() as usize ^ flip];
-            let weights = &PARAMETERS.output_weights[flip];
+            let accumulator = &accumulators[board.side_to_move() as usize ^ flip];
 
-            for i in 0..HIDDEN_SIZE {
-                let activated = accumulator[i].clamp(0.0, 1.0).powi(2);
-                output += weights[i] * activated;
+            for i in 0..L1_SIZE / 2 {
+                let left = accumulator[i].clamp(0.0, 1.0);
+                let right = accumulator[i + L1_SIZE / 2].clamp(0.0, 1.0);
+
+                hl1[i + flip * L1_SIZE / 2] = left * right;
             }
+        }
+
+        let mut hl2 = [0.0; L2_SIZE];
+
+        for i in 0..L1_SIZE {
+            for j in 0..L2_SIZE {
+                hl2[j] += PARAMETERS.l1_weights[i][j] * hl1[i];
+            }
+        }
+
+        for j in 0..L2_SIZE {
+            hl2[j] += PARAMETERS.l1_biases[j];
+            hl2[j] = hl2[j].clamp(0.0, 1.0);
+        }
+
+        let mut hl3 = [0.0; L3_SIZE];
+
+        for i in 0..L2_SIZE {
+            for j in 0..L3_SIZE {
+                hl3[j] += PARAMETERS.l2_weights[i][j] * hl2[i];
+            }
+        }
+
+        for j in 0..L3_SIZE {
+            hl3[j] += PARAMETERS.l2_biases[j];
+            hl3[j] = hl3[j].clamp(0.0, 1.0);
+        }
+
+        let mut output = PARAMETERS.l3_biases;
+        for i in 0..L3_SIZE {
+            output += PARAMETERS.l3_weights[i] * hl3[i];
         }
 
         (output * NETWORK_SCALE as f32) as i32
@@ -152,10 +185,14 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_weights: Aligned<[[f32; HIDDEN_SIZE]; INPUT_BUCKETS * INPUT_SIZE]>,
-    ft_biases: Aligned<[f32; HIDDEN_SIZE]>,
-    output_weights: Aligned<[[f32; HIDDEN_SIZE]; 2]>,
-    output_bias: f32,
+    ft_weights: Aligned<[[f32; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
+    ft_biases: Aligned<[f32; L1_SIZE]>,
+    l1_weights: Aligned<[[f32; L2_SIZE]; L1_SIZE]>,
+    l1_biases: Aligned<[f32; L2_SIZE]>,
+    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
+    l2_biases: Aligned<[f32; L3_SIZE]>,
+    l3_weights: Aligned<[f32; L3_SIZE]>,
+    l3_biases: f32,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };

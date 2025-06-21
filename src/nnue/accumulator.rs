@@ -1,4 +1,4 @@
-use super::{simd, Aligned, BUCKETS, HIDDEN_SIZE, INPUT_BUCKETS, INPUT_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, L1_SIZE, INPUT_BUCKETS, FT_SIZE, PARAMETERS};
 use crate::{
     board::Board,
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
@@ -11,7 +11,7 @@ pub struct AccumulatorCache {
 
 #[derive(Clone)]
 pub struct CacheEntry {
-    accumulator: Aligned<[f32; HIDDEN_SIZE]>,
+    accumulator: Aligned<[f32; L1_SIZE]>,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
 }
@@ -35,7 +35,7 @@ pub struct Delta {
 
 #[derive(Copy, Clone)]
 pub struct Accumulator {
-    pub values: Aligned<[[f32; HIDDEN_SIZE]; 2]>,
+    pub values: Aligned<[[f32; L1_SIZE]; 2]>,
     pub delta: Delta,
     pub accurate: [bool; 2],
 }
@@ -71,7 +71,7 @@ impl Accumulator {
                 for square in adds {
                     let feature = index(color, piece_type, square, king, pov);
 
-                    for i in 0..HIDDEN_SIZE {
+                    for i in 0..L1_SIZE {
                         entry.accumulator[i] += PARAMETERS.ft_weights[feature][i];
                     }
                 }
@@ -79,7 +79,7 @@ impl Accumulator {
                 for square in subs {
                     let feature = index(color, piece_type, square, king, pov);
 
-                    for i in 0..HIDDEN_SIZE {
+                    for i in 0..L1_SIZE {
                         entry.accumulator[i] -= PARAMETERS.ft_weights[feature][i];
                     }
                 }
@@ -130,7 +130,7 @@ impl Accumulator {
         let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
         let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
             unsafe {
                 let mut v = *vprev.add(i);
                 v = simd::add(v, *vadd1.add(i));
@@ -149,7 +149,7 @@ impl Accumulator {
         let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
         let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
             unsafe {
                 let mut v = *vprev.add(i);
                 v = simd::add(v, *vadd1.add(i));
@@ -170,7 +170,7 @@ impl Accumulator {
         let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
         let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
             unsafe {
                 let mut v = *vprev.add(i);
                 v = simd::add(v, *vadd1.add(i));
@@ -195,5 +195,5 @@ fn index(color: Color, piece: PieceType, mut square: Square, mut king: Square, p
         king ^= 56;
     }
 
-    BUCKETS[king] * INPUT_SIZE + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
+    BUCKETS[king] * FT_SIZE + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
 }
