@@ -154,7 +154,7 @@ impl ContinuationCorrectionHistory {
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][sq] / 108) as i32
+        (unsafe { &*subtable_ptr }[piece][sq] / 128) as i32
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
