@@ -446,6 +446,8 @@ impl Board {
         }
 
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+
+        self.state.threats &= !self.them();
     }
 
     pub fn update_king_threats(&mut self) {
