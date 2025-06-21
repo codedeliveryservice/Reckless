@@ -807,9 +807,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     as i32;
             factor += (-td.stack[td.ply - 1].history / 128).clamp(-96, 320);
 
-            let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
-
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            if factor > 0 {
+                let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
+                td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            }
         }
     }
 
