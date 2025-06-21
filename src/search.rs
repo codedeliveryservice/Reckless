@@ -1029,6 +1029,10 @@ fn correction_value(td: &ThreadData) -> i32 {
         + 1058 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + 1058 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
 
+    if td.ply >= 1 {
+        correction += 1024 * td.prior_move_corrhist.get(stm, td.stack[td.ply - 1].mv.encoded() as u64);
+    }
+
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
         correction += 1024
             * td.continuation_corrhist.get(
@@ -1055,6 +1059,10 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), 1129 * bonus / 1024);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), 1056 * bonus / 1024);
+
+    if td.ply >= 1 && td.stack[td.ply - 1].mv.is_some() {
+        td.prior_move_corrhist.update(stm, td.stack[td.ply - 1].mv.encoded() as u64, 1024 * bonus / 1024);
+    }
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
