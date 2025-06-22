@@ -80,7 +80,11 @@ impl Network {
                 continue;
             }
 
-            self.refresh(board, pov);
+            if self.can_update(pov) {
+                self.update_accumulator(board, pov);
+            } else {
+                self.refresh(board, pov);
+            }
         }
 
         self.output_transformer(board)
