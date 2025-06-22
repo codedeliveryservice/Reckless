@@ -132,77 +132,63 @@ impl Network {
         false
     }
 
-    unsafe fn activate_ft(&self, board: &Board) -> Aligned<[u8; L1_SIZE]> {
-        const VECTOR_WIDTH: usize = 16;
-
-        let mut output = Aligned { data: [0u8; L1_SIZE] };
-
-        let zero = _mm256_setzero_si256();
-        let one = _mm256_set1_epi16(FT_QUANT as i16);
-
-        for flip in [0, 1] {
-            let acc = &self.stack[self.index].values[board.side_to_move() as usize ^ flip];
-
-            for i in (0..L1_SIZE / 2).step_by(2 * VECTOR_WIDTH) {
-                let lhs1 = _mm256_load_si256(acc.as_ptr().add(i).cast());
-                let lhs2 = _mm256_load_si256(acc.as_ptr().add(i + VECTOR_WIDTH).cast());
-
-                let rhs1 = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2).cast());
-                let rhs2 = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2 + VECTOR_WIDTH).cast());
-
-                let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
-                let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
-
-                let rhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs1, zero), one);
-                let rhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs2, zero), one);
-
-                let product1 = _mm256_mullo_epi16(lhs1_clipped, rhs1_clipped);
-                let product2 = _mm256_mullo_epi16(lhs2_clipped, rhs2_clipped);
-
-                let shifted1 = _mm256_srli_epi16::<FT_SHIFT>(product1);
-                let shifted2 = _mm256_srli_epi16::<FT_SHIFT>(product2);
-
-                let packed = _mm256_packus_epi16(shifted1, shifted2);
-                let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
-
-                *output.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
-            }
-        }
-
-        output
-    }
-
     fn output_transformer(&self, board: &Board) -> i32 {
-        let ft_out = unsafe { self.activate_ft(board) };
-        let l1_out = unsafe { propagate_l1(ft_out) };
+        unsafe {
+            let ft_out = activate_ft(&self.stack[self.index], board.side_to_move());
+            let l1_out = propagate_l1(ft_out);
+            let l2_out = propagate_l2(l1_out);
+            let l3_out = propagate_l3(l2_out);
 
-        let mut hl3 = [0.0; L3_SIZE];
-
-        for i in 0..L2_SIZE {
-            for j in 0..L3_SIZE {
-                hl3[j] += PARAMETERS.l2_weights[i][j] * l1_out[i];
-            }
+            (l3_out * NETWORK_SCALE as f32) as i32
         }
-
-        for j in 0..L3_SIZE {
-            hl3[j] += PARAMETERS.l2_biases[j];
-            hl3[j] = hl3[j].clamp(0.0, 1.0);
-        }
-
-        let mut output = PARAMETERS.l3_biases;
-        for i in 0..L3_SIZE {
-            output += PARAMETERS.l3_weights[i] * hl3[i];
-        }
-
-        (output * NETWORK_SCALE as f32) as i32
     }
+}
+
+unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
+    const VECTOR_WIDTH: usize = 16;
+
+    let mut output = Aligned::new([0u8; L1_SIZE]);
+
+    let zero = _mm256_setzero_si256();
+    let one = _mm256_set1_epi16(FT_QUANT as i16);
+
+    for flip in [0, 1] {
+        let input = &accumulator.values[stm as usize ^ flip];
+
+        for i in (0..L1_SIZE / 2).step_by(2 * VECTOR_WIDTH) {
+            let lhs1 = _mm256_load_si256(input.as_ptr().add(i).cast());
+            let lhs2 = _mm256_load_si256(input.as_ptr().add(i + VECTOR_WIDTH).cast());
+
+            let rhs1 = _mm256_load_si256(input.as_ptr().add(i + L1_SIZE / 2).cast());
+            let rhs2 = _mm256_load_si256(input.as_ptr().add(i + L1_SIZE / 2 + VECTOR_WIDTH).cast());
+
+            let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
+            let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
+
+            let rhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs1, zero), one);
+            let rhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs2, zero), one);
+
+            let product1 = _mm256_mullo_epi16(lhs1_clipped, rhs1_clipped);
+            let product2 = _mm256_mullo_epi16(lhs2_clipped, rhs2_clipped);
+
+            let shifted1 = _mm256_srli_epi16::<FT_SHIFT>(product1);
+            let shifted2 = _mm256_srli_epi16::<FT_SHIFT>(product2);
+
+            let packed = _mm256_packus_epi16(shifted1, shifted2);
+            let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
+
+            *output.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
+        }
+    }
+
+    output
 }
 
 unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]> {
     const VECTOR_WIDTH: usize = 8;
     const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
-    let mut pre_activations = Aligned { data: [_mm256_setzero_si256(); L2_SIZE / VECTOR_WIDTH] };
+    let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / VECTOR_WIDTH]);
 
     for in_index in 0..L1_SIZE {
         let ft_value = _mm256_set1_epi32(ft_out[in_index] as i32);
@@ -216,7 +202,7 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]
         }
     }
 
-    let mut output = Aligned { data: [0.0; L2_SIZE] };
+    let mut output = Aligned::new([0.0; L2_SIZE]);
 
     let zero = _mm256_setzero_ps();
     let one = _mm256_set1_ps(1.0);
@@ -230,6 +216,31 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]
         *output.as_mut_ptr().add(i * 8).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
     }
 
+    output
+}
+
+fn propagate_l2(l1_out: Aligned<[f32; 16]>) -> Aligned<[f32; 32]> {
+    let mut output = Aligned::new([0.0; L3_SIZE]);
+
+    for i in 0..L2_SIZE {
+        for j in 0..L3_SIZE {
+            output[j] += PARAMETERS.l2_weights[i][j] * l1_out[i];
+        }
+    }
+
+    for j in 0..L3_SIZE {
+        output[j] += PARAMETERS.l2_biases[j];
+        output[j] = output[j].clamp(0.0, 1.0);
+    }
+
+    output
+}
+
+fn propagate_l3(l2_out: Aligned<[f32; 32]>) -> f32 {
+    let mut output = PARAMETERS.l3_biases;
+    for i in 0..L3_SIZE {
+        output += PARAMETERS.l3_weights[i] * l2_out[i];
+    }
     output
 }
 
@@ -261,6 +272,12 @@ static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env
 #[derive(Copy, Clone)]
 struct Aligned<T> {
     data: T,
+}
+
+impl<T> Aligned<T> {
+    pub const fn new(data: T) -> Self {
+        Self { data }
+    }
 }
 
 impl<T> std::ops::Deref for Aligned<T> {
