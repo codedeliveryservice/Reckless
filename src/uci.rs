@@ -159,6 +159,16 @@ fn go(
         }
     }
 
+    let best_td = &threads[best];
+
+    let quiet_history = best_td.quiet_history.clone();
+
+    for (i, td) in threads.iter_mut().enumerate() {
+        if i == best {
+            continue;
+        }
+        td.quiet_history.clone_from(&quiet_history);
+    }
     println!("bestmove {}", threads[best].pv.best_move());
     crate::misc::dbg_print();
 

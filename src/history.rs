@@ -8,6 +8,7 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+#[derive(Clone)]
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -39,6 +40,7 @@ impl QuietHistoryEntry {
     }
 }
 
+#[derive(Clone)]
 pub struct QuietHistory {
     entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
 }
