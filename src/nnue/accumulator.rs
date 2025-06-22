@@ -11,7 +11,7 @@ pub struct AccumulatorCache {
 
 #[derive(Clone)]
 pub struct CacheEntry {
-    accumulator: Aligned<[f32; L1_SIZE]>,
+    accumulator: Aligned<[i16; L1_SIZE]>,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
 }
@@ -35,7 +35,7 @@ pub struct Delta {
 
 #[derive(Copy, Clone)]
 pub struct Accumulator {
-    pub values: Aligned<[[f32; L1_SIZE]; 2]>,
+    pub values: Aligned<[[i16; L1_SIZE]; 2]>,
     pub delta: Delta,
     pub accurate: [bool; 2],
 }

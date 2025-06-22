@@ -28,6 +28,9 @@ const L1_SIZE: usize = 1024;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
+const FT_QUANT: i32 = 255;
+const L1_QUANT: i32 = 64;
+
 const NETWORK_SCALE: i32 = 400;
 
 #[rustfmt::skip]
@@ -123,32 +126,36 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
+        const FT_SHIFT: usize = 8;
+        const QUANT_FACTOR: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+
         let accumulators = &self.stack[self.index].values.data;
 
-        let mut hl1 = [0.0; L1_SIZE];
+        let mut hl1 = [0; L1_SIZE];
 
         for flip in [0, 1] {
             let accumulator = &accumulators[board.side_to_move() as usize ^ flip];
 
             for i in 0..L1_SIZE / 2 {
-                let left = accumulator[i].clamp(0.0, 1.0);
-                let right = accumulator[i + L1_SIZE / 2].clamp(0.0, 1.0);
+                let left = accumulator[i].clamp(0, FT_QUANT as i16);
+                let right = accumulator[i + L1_SIZE / 2].clamp(0, FT_QUANT as i16);
 
-                hl1[i + flip * L1_SIZE / 2] = left * right;
+                hl1[i + flip * L1_SIZE / 2] = ((left as i32 * right as i32) >> FT_SHIFT) as u8;
+            }
+        }
+
+        let mut sums = [0; L2_SIZE];
+
+        for i in 0..L1_SIZE {
+            for j in 0..L2_SIZE {
+                sums[j] += PARAMETERS.l1_weights[i][j] as i32 * hl1[i] as i32;
             }
         }
 
         let mut hl2 = [0.0; L2_SIZE];
 
-        for i in 0..L1_SIZE {
-            for j in 0..L2_SIZE {
-                hl2[j] += PARAMETERS.l1_weights[i][j] * hl1[i];
-            }
-        }
-
-        for j in 0..L2_SIZE {
-            hl2[j] += PARAMETERS.l1_biases[j];
-            hl2[j] = hl2[j].clamp(0.0, 1.0);
+        for i in 0..L2_SIZE {
+            hl2[i] = (sums[i] as f32 * QUANT_FACTOR + PARAMETERS.l1_biases[i] as f32).clamp(0.0, 1.0);
         }
 
         let mut hl3 = [0.0; L3_SIZE];
@@ -185,9 +192,9 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_weights: Aligned<[[f32; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
-    ft_biases: Aligned<[f32; L1_SIZE]>,
-    l1_weights: Aligned<[[f32; L2_SIZE]; L1_SIZE]>,
+    ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
+    ft_biases: Aligned<[i16; L1_SIZE]>,
+    l1_weights: Aligned<[[i8; L2_SIZE]; L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,
     l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
     l2_biases: Aligned<[f32; L3_SIZE]>,
