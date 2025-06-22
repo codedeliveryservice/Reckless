@@ -143,20 +143,29 @@ impl Network {
         for flip in [0, 1] {
             let acc = &self.stack[self.index].values[board.side_to_move() as usize ^ flip];
 
-            for i in (0..L1_SIZE / 2).step_by(VECTOR_WIDTH) {
-                let lhs = _mm256_load_si256(acc.as_ptr().add(i).cast());
-                let rhs = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2).cast());
+            for i in (0..L1_SIZE / 2).step_by(2 * VECTOR_WIDTH) {
+                let lhs1 = _mm256_load_si256(acc.as_ptr().add(i).cast());
+                let lhs2 = _mm256_load_si256(acc.as_ptr().add(i + VECTOR_WIDTH).cast());
 
-                let lhs_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs, zero), one);
-                let rhs_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs, zero), one);
+                let rhs1 = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2).cast());
+                let rhs2 = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2 + VECTOR_WIDTH).cast());
 
-                let scaled = _mm256_mullo_epi16(lhs_clipped, rhs_clipped);
-                let shifted = _mm256_srli_epi16::<FT_SHIFT>(scaled);
+                let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
+                let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
 
-                let packed = _mm256_packus_epi16(shifted, _mm256_setzero_si256());
+                let rhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs1, zero), one);
+                let rhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs2, zero), one);
+
+                let product1 = _mm256_mullo_epi16(lhs1_clipped, rhs1_clipped);
+                let product2 = _mm256_mullo_epi16(lhs2_clipped, rhs2_clipped);
+
+                let shifted1 = _mm256_srli_epi16::<FT_SHIFT>(product1);
+                let shifted2 = _mm256_srli_epi16::<FT_SHIFT>(product2);
+
+                let packed = _mm256_packus_epi16(shifted1, shifted2);
                 let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
 
-                *output.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = _mm256_castsi256_si128(unpacked);
+                *output.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
             }
         }
 
