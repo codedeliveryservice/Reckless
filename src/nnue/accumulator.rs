@@ -43,7 +43,7 @@ pub struct Accumulator {
 impl Accumulator {
     pub fn new() -> Self {
         Self {
-            values: Aligned { data: [PARAMETERS.ft_biases.data; 2] },
+            values: Aligned::new([PARAMETERS.ft_biases.data; 2]),
             delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
             accurate: [false; 2],
         }
