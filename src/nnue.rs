@@ -32,6 +32,7 @@ const L3_SIZE: usize = 32;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
+const FT_SHIFT: i32 = 8;
 
 const NETWORK_SCALE: i32 = 400;
 
@@ -89,7 +90,7 @@ impl Network {
             }
         }
 
-        unsafe { self.output_transformer(board) }
+        self.output_transformer(board)
     }
 
     fn refresh(&mut self, board: &Board, pov: Color) {
@@ -131,11 +132,10 @@ impl Network {
         false
     }
 
-    unsafe fn output_transformer(&self, board: &Board) -> i32 {
-        const FT_SHIFT: i32 = 8;
-        const QUANT_FACTOR: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+    unsafe fn activate_ft(&self, board: &Board) -> Aligned<[u8; L1_SIZE]> {
+        const VECTOR_WIDTH: usize = 16;
 
-        let mut hl1 = Aligned { data: [0u8; L1_SIZE] };
+        let mut output = Aligned { data: [0u8; L1_SIZE] };
 
         let zero = _mm256_setzero_si256();
         let one = _mm256_set1_epi16(FT_QUANT as i16);
@@ -143,7 +143,7 @@ impl Network {
         for flip in [0, 1] {
             let acc = &self.stack[self.index].values[board.side_to_move() as usize ^ flip];
 
-            for i in (0..L1_SIZE / 2).step_by(16) {
+            for i in (0..L1_SIZE / 2).step_by(VECTOR_WIDTH) {
                 let lhs = _mm256_load_si256(acc.as_ptr().add(i).cast());
                 let rhs = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2).cast());
 
@@ -156,9 +156,17 @@ impl Network {
                 let packed = _mm256_packus_epi16(shifted, _mm256_setzero_si256());
                 let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
 
-                *hl1.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = _mm256_castsi256_si128(unpacked);
+                *output.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = _mm256_castsi256_si128(unpacked);
             }
         }
+
+        output
+    }
+
+    fn output_transformer(&self, board: &Board) -> i32 {
+        const QUANT_FACTOR: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+
+        let hl1 = unsafe { self.activate_ft(board) };
 
         let mut sums = [0; L2_SIZE];
 
