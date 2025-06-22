@@ -173,29 +173,14 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
-        const QUANT_FACTOR: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
-
-        let hl1 = unsafe { self.activate_ft(board) };
-
-        let mut sums = [0; L2_SIZE];
-
-        for i in 0..L1_SIZE {
-            for j in 0..L2_SIZE {
-                sums[j] += PARAMETERS.l1_weights[i][j] as i32 * hl1[i] as i32;
-            }
-        }
-
-        let mut hl2 = [0.0; L2_SIZE];
-
-        for i in 0..L2_SIZE {
-            hl2[i] = (sums[i] as f32 * QUANT_FACTOR + PARAMETERS.l1_biases[i] as f32).clamp(0.0, 1.0);
-        }
+        let ft_out = unsafe { self.activate_ft(board) };
+        let l1_out = unsafe { propagate_l1(ft_out) };
 
         let mut hl3 = [0.0; L3_SIZE];
 
         for i in 0..L2_SIZE {
             for j in 0..L3_SIZE {
-                hl3[j] += PARAMETERS.l2_weights[i][j] * hl2[i];
+                hl3[j] += PARAMETERS.l2_weights[i][j] * l1_out[i];
             }
         }
 
@@ -211,6 +196,41 @@ impl Network {
 
         (output * NETWORK_SCALE as f32) as i32
     }
+}
+
+unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]> {
+    const VECTOR_WIDTH: usize = 8;
+    const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+
+    let mut pre_activations = Aligned { data: [_mm256_setzero_si256(); L2_SIZE / VECTOR_WIDTH] };
+
+    for in_index in 0..L1_SIZE {
+        let ft_value = _mm256_set1_epi32(ft_out[in_index] as i32);
+
+        for out_index in 0..L2_SIZE / VECTOR_WIDTH {
+            let weights = PARAMETERS.l1_weights[in_index].as_ptr().add(out_index * VECTOR_WIDTH).cast();
+            let weights = _mm256_cvtepi8_epi32(*weights);
+            let product = _mm256_mullo_epi32(ft_value, weights);
+
+            pre_activations[out_index] = _mm256_add_epi32(pre_activations[out_index], product);
+        }
+    }
+
+    let mut output = Aligned { data: [0.0; L2_SIZE] };
+
+    let zero = _mm256_setzero_ps();
+    let one = _mm256_set1_ps(1.0);
+
+    let dequant = _mm256_set1_ps(DEQUANT_MULTIPLIER);
+
+    for i in 0..L2_SIZE / 8 {
+        let biases = _mm256_load_ps(PARAMETERS.l1_biases.as_ptr().add(i * 8).cast());
+        let vector = _mm256_fmadd_ps(_mm256_cvtepi32_ps(pre_activations[i]), dequant, biases);
+
+        *output.as_mut_ptr().add(i * 8).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
+    }
+
+    output
 }
 
 impl Default for Network {
