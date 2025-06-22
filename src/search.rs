@@ -808,6 +808,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let scaled_bonus = factor * (137 * depth - 43).min(1563) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+
+            let conthist_bonus = (200 * depth - 100).min(1435);
+
+            td.ply -= 1;
+            update_continuation_histories(td, td.board.moved_piece(pcm_move), pcm_move.to(), conthist_bonus);
+            td.ply += 1;
         }
     }
 
