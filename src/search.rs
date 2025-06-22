@@ -809,7 +809,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-            let conthist_bonus = (137 * depth - 43).min(1435);
+            let conthist_bonus = (102 + 141 * (depth > 5) as i32) * (137 * depth - 43).min(1435) / 128;
 
             td.ply -= 1;
             update_continuation_histories(td, td.stack[td.ply].piece, pcm_move.to(), conthist_bonus);
