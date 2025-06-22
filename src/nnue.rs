@@ -1,3 +1,5 @@
+use std::arch::x86_64::*;
+
 use crate::{
     board::Board,
     types::{Color, Move, PieceType, MAX_PLY},
@@ -87,7 +89,7 @@ impl Network {
             }
         }
 
-        self.output_transformer(board)
+        unsafe { self.output_transformer(board) }
     }
 
     fn refresh(&mut self, board: &Board, pov: Color) {
@@ -129,22 +131,32 @@ impl Network {
         false
     }
 
-    fn output_transformer(&self, board: &Board) -> i32 {
-        const FT_SHIFT: usize = 8;
+    unsafe fn output_transformer(&self, board: &Board) -> i32 {
+        const FT_SHIFT: i32 = 8;
         const QUANT_FACTOR: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
-        let accumulators = &self.stack[self.index].values.data;
+        let mut hl1 = Aligned { data: [0u8; L1_SIZE] };
 
-        let mut hl1 = [0; L1_SIZE];
+        let zero = _mm256_setzero_si256();
+        let one = _mm256_set1_epi16(FT_QUANT as i16);
 
         for flip in [0, 1] {
-            let accumulator = &accumulators[board.side_to_move() as usize ^ flip];
+            let acc = &self.stack[self.index].values[board.side_to_move() as usize ^ flip];
 
-            for i in 0..L1_SIZE / 2 {
-                let left = accumulator[i].clamp(0, FT_QUANT as i16);
-                let right = accumulator[i + L1_SIZE / 2].clamp(0, FT_QUANT as i16);
+            for i in (0..L1_SIZE / 2).step_by(16) {
+                let lhs = _mm256_load_si256(acc.as_ptr().add(i).cast());
+                let rhs = _mm256_load_si256(acc.as_ptr().add(i + L1_SIZE / 2).cast());
 
-                hl1[i + flip * L1_SIZE / 2] = ((left as i32 * right as i32) >> FT_SHIFT) as u8;
+                let lhs_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs, zero), one);
+                let rhs_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs, zero), one);
+
+                let scaled = _mm256_mullo_epi16(lhs_clipped, rhs_clipped);
+                let shifted = _mm256_srli_epi16::<FT_SHIFT>(scaled);
+
+                let packed = _mm256_packus_epi16(shifted, _mm256_setzero_si256());
+                let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
+
+                *hl1.data.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = _mm256_castsi256_si128(unpacked);
             }
         }
 
