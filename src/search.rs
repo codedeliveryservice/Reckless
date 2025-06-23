@@ -630,7 +630,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if is_quiet {
                 reduction -= 98 * (history - 568) / 1024;
             } else {
-                reduction -= 98 * (history - 1568) / 1024;
+                reduction -= 98 * (history + 568) / 1024;
             }
 
             if tt_pv {
