@@ -178,6 +178,10 @@ impl Board {
         self.mailbox[mv.from()]
     }
 
+    pub fn captured_piece(&self) -> PieceType {
+        self.state.captured.unwrap_or(Piece::None).piece_type()
+    }
+
     /// Returns `true` if the current side to move has non-pawn material.
     ///
     /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
