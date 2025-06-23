@@ -184,21 +184,28 @@ unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_
     output
 }
 
+unsafe fn dpbusd(acc: __m256i, u: __m256i, i: __m256i) -> __m256i {
+    let p = _mm256_maddubs_epi16(u, i);
+    let w = _mm256_madd_epi16(p, _mm256_set1_epi16(1));
+    _mm256_add_epi32(acc, w)
+}
+
 unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]> {
-    const VECTOR_WIDTH: usize = 8;
     const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+    const BYTES_PER_INPUT: usize = 4;
+    const VECTOR_WIDTH: usize = 8;
 
     let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / VECTOR_WIDTH]);
 
-    for in_index in 0..L1_SIZE {
-        let ft_value = _mm256_set1_epi32(ft_out[in_index] as i32);
+    let packed = std::slice::from_raw_parts(ft_out.data.as_ptr().cast::<i32>(), L1_SIZE / BYTES_PER_INPUT);
 
-        for out_index in 0..L2_SIZE / VECTOR_WIDTH {
-            let weights = PARAMETERS.l1_weights[in_index].as_ptr().add(out_index * VECTOR_WIDTH).cast();
-            let weights = _mm256_cvtepi8_epi32(*weights);
-            let product = _mm256_mullo_epi32(ft_value, weights);
+    for i in 0..L1_SIZE / BYTES_PER_INPUT {
+        let input = _mm256_set1_epi32(packed[i]);
+        let weights = PARAMETERS.l1_weights.as_ptr().add(i * BYTES_PER_INPUT * L2_SIZE);
 
-            pre_activations[out_index] = _mm256_add_epi32(pre_activations[out_index], product);
+        for output in 0..L2_SIZE / VECTOR_WIDTH {
+            let vector = *weights.add(output * BYTES_PER_INPUT * VECTOR_WIDTH).cast();
+            pre_activations[output] = dpbusd(pre_activations[output], input, vector);
         }
     }
 
@@ -258,7 +265,7 @@ impl Default for Network {
 struct Parameters {
     ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
-    l1_weights: Aligned<[[i8; L2_SIZE]; L1_SIZE]>,
+    l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,
     l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
     l2_biases: Aligned<[f32; L3_SIZE]>,
