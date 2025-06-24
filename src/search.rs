@@ -819,12 +819,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
+    let correction_eval = (raw_eval + static_eval) / 2;
+
     if !(in_check
         || best_move.is_noisy()
-        || (bound == Bound::Upper && best_score >= static_eval)
-        || (bound == Bound::Lower && best_score <= static_eval))
+        || (bound == Bound::Upper && best_score >= correction_eval)
+        || (bound == Bound::Lower && best_score <= correction_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, depth, best_score - correction_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
