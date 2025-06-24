@@ -1,4 +1,4 @@
-use super::{simd, Aligned, BUCKETS, L1_SIZE, INPUT_BUCKETS, FT_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
@@ -124,61 +124,61 @@ impl Accumulator {
     }
 
     fn add1_sub1(&mut self, prev: &Self, add1: usize, sub1: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
 
-        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::sub(v, *vsub1.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
 
     fn add1_sub2(&mut self, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
 
-        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::sub(v, *vsub1.add(i));
-                v = simd::sub(v, *vsub2.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
+                v = simd::sub_i16(v, *vsub2.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
 
     fn add2_sub2(&mut self, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
 
-        for i in 0..L1_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::add(v, *vadd2.add(i));
-                v = simd::sub(v, *vsub1.add(i));
-                v = simd::sub(v, *vsub2.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::add_i16(v, *vadd2.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
+                v = simd::sub_i16(v, *vsub2.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
