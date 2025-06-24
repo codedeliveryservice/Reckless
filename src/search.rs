@@ -647,7 +647,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 820;
             }
 
-            if !improving {
+            if !improving && static_eval < beta + 18 {
                 reduction += 800;
             }
 
