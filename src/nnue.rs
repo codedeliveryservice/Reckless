@@ -226,29 +226,60 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]
     output
 }
 
-fn propagate_l2(l1_out: Aligned<[f32; 16]>) -> Aligned<[f32; 32]> {
-    let mut output = Aligned::new([0.0; L3_SIZE]);
+unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+    const VECTOR_WIDTH: usize = 8;
+
+    let mut output = PARAMETERS.l2_biases;
 
     for i in 0..L2_SIZE {
-        for j in 0..L3_SIZE {
-            output[j] += PARAMETERS.l2_weights[i][j] * l1_out[i];
+        let input = _mm256_set1_ps(l1_out[i]);
+        let weights = PARAMETERS.l2_weights[i].as_ptr();
+
+        for j in (0..L3_SIZE).step_by(VECTOR_WIDTH) {
+            let w = _mm256_load_ps(weights.add(j));
+            let vector = _mm256_load_ps(output.as_mut_ptr().add(j));
+            let product = _mm256_fmadd_ps(w, input, vector);
+            _mm256_store_ps(output.as_mut_ptr().add(j), product);
         }
     }
 
-    for j in 0..L3_SIZE {
-        output[j] += PARAMETERS.l2_biases[j];
-        output[j] = output[j].clamp(0.0, 1.0);
+    let zero = _mm256_set1_ps(0.0);
+    let one = _mm256_set1_ps(1.0);
+
+    for i in (0..L3_SIZE).step_by(VECTOR_WIDTH) {
+        let vector = _mm256_load_ps(output.as_mut_ptr().add(i));
+        let activated = _mm256_min_ps(_mm256_max_ps(vector, zero), one);
+        _mm256_store_ps(output.as_mut_ptr().add(i), activated);
     }
 
     output
 }
 
-fn propagate_l3(l2_out: Aligned<[f32; 32]>) -> f32 {
-    let mut output = PARAMETERS.l3_biases;
-    for i in 0..L3_SIZE {
-        output += PARAMETERS.l3_weights[i] * l2_out[i];
+unsafe fn sum_f32x8(vec: __m256) -> f32 {
+    let pairwise = _mm256_hadd_ps(vec, vec);
+    let quad = _mm256_hadd_ps(pairwise, pairwise);
+
+    let lo = _mm256_castps256_ps128(quad);
+    let hi = _mm256_extractf128_ps::<1>(quad);
+
+    _mm_cvtss_f32(_mm_add_ss(lo, hi))
+}
+
+unsafe fn propagate_l3(l2_out: Aligned<[f32; 32]>) -> f32 {
+    const VECTOR_WIDTH: usize = 8;
+
+    let weights_ptr = PARAMETERS.l3_weights.as_ptr();
+    let inputs_ptr = l2_out.data.as_ptr();
+
+    let mut output = _mm256_setzero_ps();
+
+    for i in (0..L3_SIZE).step_by(VECTOR_WIDTH) {
+        let w = _mm256_load_ps(weights_ptr.add(i));
+        let x = _mm256_load_ps(inputs_ptr.add(i));
+        output = _mm256_fmadd_ps(w, x, output);
     }
-    output
+
+    sum_f32x8(output) + PARAMETERS.l3_biases
 }
 
 impl Default for Network {
