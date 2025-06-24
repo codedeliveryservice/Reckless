@@ -551,7 +551,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let futility_value = static_eval + 122 * lmr_depth + 78;
             if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= futility_value {
-                    best_score = futility_value;
+                    best_score = (best_score + futility_value * 3) / 4;
                 }
                 skip_quiets = true;
                 continue;
