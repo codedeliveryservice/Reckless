@@ -932,7 +932,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             alpha = best_score;
         }
 
-        futility_score = static_eval + 129;
+        futility_score = best_score + 129;
     }
 
     let mut best_move = Move::NULL;
