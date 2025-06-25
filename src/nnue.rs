@@ -124,8 +124,8 @@ impl Network {
 
     fn output_transformer(&self, board: &Board) -> i32 {
         unsafe {
-            let ft_out = activate_ft(&self.stack[self.index], board.side_to_move());
-            let l1_out = propagate_l1(ft_out);
+            let (ft_out, nnz_indexes, nnz_count) = activate_ft(&self.stack[self.index], board.side_to_move());
+            let l1_out = propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
             let l2_out = propagate_l2(l1_out);
             let l3_out = propagate_l3(l2_out);
 
@@ -134,8 +134,15 @@ impl Network {
     }
 }
 
-unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
+unsafe fn activate_ft(
+    accumulator: &Accumulator, stm: Color,
+) -> (Aligned<[u8; L1_SIZE]>, Aligned<[u16; L1_SIZE / 4]>, usize) {
     let mut output = Aligned::new([0; L1_SIZE]);
+
+    let nnz_increment = _mm_set1_epi16(8);
+    let mut nnz_base = _mm_setzero_si128();
+    let mut nnz_indexes = Aligned::new([0; L1_SIZE / 4]);
+    let mut nnz_count = 0;
 
     let zero = _mm256_setzero_si256();
     let one = _mm256_set1_epi16(FT_QUANT as i16);
@@ -166,22 +173,32 @@ unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_
             let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
+
+            let mask = nnz_bitmask(unpacked);
+            let entry = NNZ_TABLE.get_unchecked(mask as usize).as_ptr();
+
+            let store = nnz_indexes.as_mut_ptr().add(nnz_count).cast();
+            _mm_storeu_si128(store, _mm_add_epi16(nnz_base, *entry.cast()));
+
+            nnz_count += mask.count_ones() as usize;
+            nnz_base = _mm_add_epi16(nnz_base, nnz_increment);
         }
     }
 
-    output
+    (output, nnz_indexes, nnz_count)
 }
 
-unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]> {
+unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
     const BYTES_PER_INPUT: usize = 4;
 
     let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / simd::F32_LANES]);
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / BYTES_PER_INPUT);
 
-    for i in 0..L1_SIZE / BYTES_PER_INPUT {
-        let input = _mm256_set1_epi32(packed[i]);
-        let weights = PARAMETERS.l1_weights.as_ptr().add(i * L2_SIZE * BYTES_PER_INPUT);
+    for i in 0..nnz.len() {
+        let index = *nnz.get_unchecked(i) as usize;
+        let input = _mm256_set1_epi32(*packed.get_unchecked(index));
+        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * BYTES_PER_INPUT);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j * BYTES_PER_INPUT).cast();
@@ -294,3 +311,30 @@ impl<T> std::ops::DerefMut for Aligned<T> {
         &mut self.data
     }
 }
+
+unsafe fn nnz_bitmask(x: __m256i) -> u8 {
+    let zero = _mm256_setzero_si256();
+    let is_zero = _mm256_cmpeq_epi32(x, zero);
+    let is_nonzero = _mm256_xor_si256(is_zero, _mm256_set1_epi32(-1));
+
+    _mm256_movemask_ps(_mm256_castsi256_ps(is_nonzero)) as u8
+}
+
+const NNZ_TABLE: Aligned<[[u16; 8]; 256]> = {
+    let mut table = Aligned::new([[0u16; 8]; 256]);
+    let mut byte = 0;
+
+    while byte < 256 {
+        let mut i = 0;
+        let mut bits = byte;
+
+        while bits != 0 {
+            table.data[byte][i] = bits.trailing_zeros() as u16;
+            bits &= bits - 1;
+            i += 1;
+        }
+        byte += 1;
+    }
+
+    table
+};
