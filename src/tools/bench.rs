@@ -79,6 +79,13 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
     let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
+    let tt = TranspositionTable::default();
+    let stop = AtomicBool::new(false);
+    let counter = AtomicU64::new(0);
+    let tb_hits = AtomicU64::new(0);
+
+    let mut td = ThreadData::new(&tt, &stop, &counter, &tb_hits);
+
     let time = Instant::now();
 
     let mut nodes = 0;
@@ -87,12 +94,6 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     for position in POSITIONS {
         let now = Instant::now();
 
-        let tt = TranspositionTable::default();
-        let stop = AtomicBool::new(false);
-        let counter = AtomicU64::new(0);
-        let tb_hits = AtomicU64::new(0);
-
-        let mut td = ThreadData::new(&tt, &stop, &counter, &tb_hits);
         td.board = Board::new(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
@@ -102,19 +103,19 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let knps = td.counter.local() as f64 / seconds / 1000.0;
+        let nps = td.counter.local() as f64 / seconds;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {knps:>15.3} kN/s", td.counter.local());
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.counter.local());
         }
     }
 
     let seconds = time.elapsed().as_secs_f64();
-    let knps = nodes as f64 / seconds / 1000.0;
+    let nps = nodes as f64 / seconds;
 
     if PRETTY {
         println!("{}", "-".repeat(50));
-        println!("{nodes:>15} {seconds:>12.3}s {knps:>15.3} kN/s");
+        println!("{nodes:>15} {seconds:>12.3}s {nps:>15.0} N/s");
         println!("{}", "-".repeat(50));
     } else {
         let nps = nodes as f64 / seconds;
