@@ -174,7 +174,7 @@ unsafe fn activate_ft(
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
 
-            let mask = nnz_bitmask(unpacked);
+            let mask = simd::nnz_bitmask(unpacked);
             let entry = NNZ_TABLE.get_unchecked(mask as usize).as_ptr();
 
             let store = nnz_indexes.as_mut_ptr().add(nnz_count).cast();
@@ -286,6 +286,25 @@ struct Parameters {
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
 
+const NNZ_TABLE: Aligned<[[u16; 8]; 256]> = {
+    let mut table = Aligned::new([[0; 8]; 256]);
+    let mut byte = 0;
+
+    while byte < 256 {
+        let mut i = 0;
+        let mut bits = byte;
+
+        while bits != 0 {
+            table.data[byte][i] = bits.trailing_zeros() as u16;
+            bits &= bits - 1;
+            i += 1;
+        }
+        byte += 1;
+    }
+
+    table
+};
+
 #[repr(align(64))]
 #[derive(Copy, Clone)]
 struct Aligned<T> {
@@ -311,30 +330,3 @@ impl<T> std::ops::DerefMut for Aligned<T> {
         &mut self.data
     }
 }
-
-unsafe fn nnz_bitmask(x: __m256i) -> u8 {
-    let zero = _mm256_setzero_si256();
-    let is_zero = _mm256_cmpeq_epi32(x, zero);
-    let is_nonzero = _mm256_xor_si256(is_zero, _mm256_set1_epi32(-1));
-
-    _mm256_movemask_ps(_mm256_castsi256_ps(is_nonzero)) as u8
-}
-
-const NNZ_TABLE: Aligned<[[u16; 8]; 256]> = {
-    let mut table = Aligned::new([[0u16; 8]; 256]);
-    let mut byte = 0;
-
-    while byte < 256 {
-        let mut i = 0;
-        let mut bits = byte;
-
-        while bits != 0 {
-            table.data[byte][i] = bits.trailing_zeros() as u16;
-            bits &= bits - 1;
-            i += 1;
-        }
-        byte += 1;
-    }
-
-    table
-};

@@ -26,3 +26,11 @@ pub unsafe fn horizontal_sum(vec: __m256) -> f32 {
 
     _mm_cvtss_f32(_mm_add_ss(lo, hi))
 }
+
+pub unsafe fn nnz_bitmask(x: __m256i) -> u8 {
+    let zero = _mm256_setzero_si256();
+    let is_zero = _mm256_cmpeq_epi32(x, zero);
+    let is_nonzero = _mm256_xor_si256(is_zero, _mm256_set1_epi32(-1));
+
+    _mm256_movemask_ps(_mm256_castsi256_ps(is_nonzero)) as u8
+}
