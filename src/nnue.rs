@@ -22,7 +22,7 @@ const L3_SIZE: usize = 32;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
-const FT_SHIFT: i32 = 8;
+const FT_SHIFT: i32 = 9;
 
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
@@ -153,16 +153,16 @@ unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_
             let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
             let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
 
-            let rhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs1, zero), one);
-            let rhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(rhs2, zero), one);
+            let rhs1_clipped = _mm256_min_epi16(rhs1, one);
+            let rhs2_clipped = _mm256_min_epi16(rhs2, one);
 
-            let product1 = _mm256_mullo_epi16(lhs1_clipped, rhs1_clipped);
-            let product2 = _mm256_mullo_epi16(lhs2_clipped, rhs2_clipped);
+            let shifted1 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
+            let shifted2 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
 
-            let shifted1 = _mm256_srli_epi16::<FT_SHIFT>(product1);
-            let shifted2 = _mm256_srli_epi16::<FT_SHIFT>(product2);
+            let product1 = _mm256_mulhi_epi16(shifted1, rhs1_clipped);
+            let product2 = _mm256_mulhi_epi16(shifted2, rhs2_clipped);
 
-            let packed = _mm256_packus_epi16(shifted1, shifted2);
+            let packed = _mm256_packus_epi16(product1, product2);
             let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
