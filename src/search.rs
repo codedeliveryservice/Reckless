@@ -189,7 +189,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Qsearch Dive
     if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta);
+        return qsearch::<NODE>(td, alpha, beta, cut_node);
     }
 
     if NODE::PV {
@@ -387,7 +387,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 303 - 260 * depth * depth {
-        return qsearch::<NonPV>(td, alpha, beta);
+        return qsearch::<NonPV>(td, alpha, beta, cut_node);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -480,7 +480,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             make_move(td, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
+            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, !NODE::PV && !cut_node);
 
             if score >= probcut_beta && probcut_depth > 0 {
                 td.stack[td.ply].reduction = 1024 * (initial_depth - 1 - probcut_depth);
@@ -832,7 +832,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, cut_node: bool) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
@@ -872,8 +872,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         if is_valid(tt_score)
             && match tt_bound {
-                Bound::Upper => tt_score <= alpha,
-                Bound::Lower => tt_score >= beta,
+                Bound::Upper => tt_score <= alpha && !cut_node,
+                Bound::Lower => tt_score >= beta && cut_node,
                 _ => true,
             }
         {
@@ -977,7 +977,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         make_move(td, mv);
 
-        let score = -qsearch::<NODE>(td, -beta, -alpha);
+        let score = -qsearch::<NODE>(td, -beta, -alpha, !NODE::PV && !cut_node);
 
         undo_move(td, mv);
 
