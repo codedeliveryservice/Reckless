@@ -712,6 +712,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.node_table.add(mv, td.counter.local() - initial_nodes);
         }
 
+        if score == best_score && best_move.is_noisy() {
+            best_move = mv;
+        }
+
         if score > best_score {
             best_score = score;
 
