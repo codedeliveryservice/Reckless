@@ -343,6 +343,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     td.stack[td.ply].static_eval = static_eval;
     td.stack[td.ply].tt_pv = tt_pv;
+    td.stack[td.ply].move_count = 0;
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
@@ -528,6 +529,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         move_count += 1;
+        td.stack[td.ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
 
@@ -658,6 +660,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.stack[td.ply].cutoff_count > 2 {
                 reduction += 1196;
+            }
+
+            if td.ply >= 2 {
+                reduction -= 16 * td.stack[td.ply - 2].move_count;
             }
 
             let reduced_depth =
