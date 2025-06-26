@@ -785,9 +785,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        for &mv in noisy_moves.iter() {
-            let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+        if !quiet_moves.is_empty() || depth > 3 {
+            for &mv in noisy_moves.iter() {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+            }
         }
     }
 
