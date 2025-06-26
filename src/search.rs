@@ -320,7 +320,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         eval = static_eval;
     } else if let Some(entry) = entry {
         raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
-        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        static_eval = if !tt_move.is_noisy() {
+            corrected_eval(raw_eval, correction_value, td.board.halfmove_clock())
+        } else {
+            raw_eval
+        };
         eval = static_eval;
 
         if is_valid(tt_score)
