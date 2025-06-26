@@ -769,10 +769,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let malus_noisy = (145 * initial_depth - 75).min(1403) - 14 * (move_count - 1);
 
         let bonus_quiet = (148 * depth - 71).min(1458);
-        let malus_quiet = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1);
+        let malus_quiet = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1) + 196 * skip_quiets as i32;
 
         let bonus_cont = (114 * depth - 53).min(1318);
-        let malus_cont = (244 * initial_depth - 51).min(907) - 15 * (move_count - 1);
+        let malus_cont = (244 * initial_depth - 51).min(907) - 15 * (move_count - 1) + 128 * skip_quiets as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
