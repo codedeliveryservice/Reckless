@@ -221,6 +221,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let mut best_score = -Score::INFINITE;
+
     let mut max_score = Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
@@ -513,6 +514,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let mut best_move = Move::NULL;
+    let mut best_quiet_move = false;
+
     let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
@@ -719,8 +722,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 bound = Bound::Exact;
                 alpha = score;
                 best_move = mv;
-
                 if NODE::PV {
+                    if is_quiet {
+                        best_quiet_move = true;
+                    }
+
                     td.pv.update(td.ply, mv);
 
                     if NODE::ROOT {
@@ -818,7 +824,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !(in_check
-        || best_move.is_noisy()
+        || (best_move.is_noisy() && !best_quiet_move)
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
