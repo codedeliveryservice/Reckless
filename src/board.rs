@@ -117,6 +117,10 @@ impl Board {
         self.state.castling
     }
 
+    pub const fn captured_piece(&self) -> Option<Piece> {
+        self.state.captured
+    }
+
     /// Returns a `Bitboard` for the specified `Color`.
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]
