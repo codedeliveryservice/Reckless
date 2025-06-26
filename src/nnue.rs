@@ -76,7 +76,7 @@ impl Network {
                 continue;
             }
 
-            if self.can_update(pov) {
+            if self.can_update(board, pov) {
                 self.update_accumulator(board, pov);
             } else {
                 self.refresh(board, pov);
@@ -102,7 +102,9 @@ impl Network {
         }
     }
 
-    fn can_update(&self, pov: Color) -> bool {
+    fn can_update(&self, board: &Board, pov: Color) -> bool {
+        let mut budget = board.occupancies().len() as i32;
+
         for i in (0..=self.index).rev() {
             let delta = self.stack[i].delta;
 
@@ -120,6 +122,11 @@ impl Network {
 
             if self.stack[i].accurate[pov] {
                 return true;
+            }
+
+            budget -= 2 + delta.mv.is_capture() as i32;
+            if budget < 0 {
+                return false;
             }
         }
 
