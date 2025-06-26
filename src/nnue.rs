@@ -14,6 +14,7 @@ mod avx2;
 const NETWORK_SCALE: i32 = 400;
 
 const INPUT_BUCKETS: usize = 4;
+const OUTPUT_BUCKETS: usize = 8;
 
 const FT_SIZE: usize = 768;
 const L1_SIZE: usize = 1024;
@@ -123,11 +124,13 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
+        let bucket = (board.occupancies().len() - 2) / 4;
+
         unsafe {
             let (ft_out, nnz_indexes, nnz_count) = activate_ft(&self.stack[self.index], board.side_to_move());
-            let l1_out = propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = propagate_l2(l1_out);
-            let l3_out = propagate_l3(l2_out);
+            let l1_out = propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
+            let l2_out = propagate_l2(l1_out, bucket);
+            let l3_out = propagate_l3(l2_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -188,7 +191,7 @@ unsafe fn activate_ft(
     (output, nnz_indexes, nnz_count)
 }
 
-unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
     const BYTES_PER_INPUT: usize = 4;
 
     let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / simd::F32_LANES]);
@@ -198,7 +201,7 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
     for i in 0..nnz.len() {
         let index = *nnz.get_unchecked(i) as usize;
         let input = _mm256_set1_epi32(*packed.get_unchecked(index));
-        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * BYTES_PER_INPUT);
+        let weights = PARAMETERS.l1_weights[bucket].as_ptr().add(index * L2_SIZE * BYTES_PER_INPUT);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j * BYTES_PER_INPUT).cast();
@@ -214,7 +217,7 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
     let dequant = _mm256_set1_ps(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
-        let biases = _mm256_load_ps(PARAMETERS.l1_biases.as_ptr().add(i).cast());
+        let biases = _mm256_load_ps(PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast());
         let vector = _mm256_fmadd_ps(_mm256_cvtepi32_ps(pre_activations[i / simd::F32_LANES]), dequant, biases);
         *output.as_mut_ptr().add(i).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
     }
@@ -222,12 +225,12 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
     output
 }
 
-unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = PARAMETERS.l2_biases;
+unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
+    let mut output = Aligned::new(PARAMETERS.l2_biases[bucket]);
 
     for i in 0..L2_SIZE {
         let input = _mm256_set1_ps(l1_out[i]);
-        let weights = PARAMETERS.l2_weights[i].as_ptr();
+        let weights = PARAMETERS.l2_weights[bucket][i].as_ptr();
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j).cast();
@@ -247,9 +250,9 @@ unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE
     output
 }
 
-unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
     let input = l2_out.as_ptr();
-    let weights = PARAMETERS.l3_weights.as_ptr();
+    let weights = PARAMETERS.l3_weights[bucket].as_ptr();
 
     let mut output = _mm256_setzero_ps();
 
@@ -259,7 +262,7 @@ unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
         output = _mm256_fmadd_ps(*a, *b, output);
     }
 
-    simd::horizontal_sum(output) + PARAMETERS.l3_biases
+    simd::horizontal_sum(output) + PARAMETERS.l3_biases[bucket]
 }
 
 impl Default for Network {
@@ -276,12 +279,12 @@ impl Default for Network {
 struct Parameters {
     ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
-    l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
-    l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
-    l2_biases: Aligned<[f32; L3_SIZE]>,
-    l3_weights: Aligned<[f32; L3_SIZE]>,
-    l3_biases: f32,
+    l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
+    l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
