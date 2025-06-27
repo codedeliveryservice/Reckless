@@ -565,11 +565,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 12
                 + 80 * (history + 500) / 1024;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
+            if !in_check && !is_quiet && lmr_depth < 6 && capt_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
                 }
-                break;
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
