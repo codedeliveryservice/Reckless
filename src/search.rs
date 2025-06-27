@@ -633,6 +633,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 3295 * correction_value.abs() / 1024;
             reduction -= 54 * move_count;
             reduction += 295;
+            reduction += 16 * td.root_depth;
 
             if tt_pv {
                 reduction -= 683;
