@@ -387,7 +387,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && static_eval > td.stack[td.ply - 2].static_eval;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 303 - 260 * depth * depth {
+    if !NODE::PV && !in_check && eval < alpha - 303 - 260 * depth * depth && (tt_score < beta || !is_valid(tt_score)) {
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
