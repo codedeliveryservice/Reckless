@@ -34,3 +34,32 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 v1_base: 21682;
+    i32 v2_base: 21682;
+    i32 v3_base: 21682;
+    i32 v4_base: 21682;
+    i32 v5_base: 21682;
+    i32 v6_base: 21682;
+    i32 v7_base: 21682;
+    i32 v8_base: 21682;
+
+    i32 v1_mult: 1923;
+    i32 v2_mult: 1923;
+    i32 v3_mult: 1923;
+    i32 v4_mult: 1923;
+    i32 v5_mult: 1923;
+    i32 v6_mult: 1923;
+    i32 v7_mult: 1923;
+    i32 v8_mult: 1923;
+
+    i32 v1_div: 28993;
+    i32 v2_div: 28993;
+    i32 v3_div: 28993;
+    i32 v4_div: 28993;
+    i32 v5_div: 28993;
+    i32 v6_div: 28993;
+    i32 v7_div: 28993;
+    i32 v8_div: 28993;
+);
