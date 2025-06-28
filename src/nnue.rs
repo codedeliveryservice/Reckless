@@ -280,17 +280,17 @@ impl Default for Network {
     fn default() -> Self {
         let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
 
-        for byte in 0..256 {
+        for (byte, entry) in nnz_table.iter_mut().enumerate() {
             let mut count = 0;
 
             for bit in 0..8 {
                 if (byte & (1 << bit)) != 0 {
-                    nnz_table[byte].indexes[count] = bit as u16;
+                    entry.indexes[count] = bit as u16;
                     count += 1;
                 }
             }
 
-            nnz_table[byte].count = count;
+            entry.count = count;
         }
 
         Self {
