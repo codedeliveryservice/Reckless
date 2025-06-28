@@ -548,6 +548,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += 800;
         }
 
+        if tt_pv {
+            reduction -= 683;
+        }
+
         if !NODE::ROOT && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657).max(0);
 
@@ -641,7 +645,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += 295;
 
             if tt_pv {
-                reduction -= 683;
                 reduction -= 647 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 791 * (is_valid(tt_score) && tt_depth >= depth) as i32;
                 reduction -= 768 * cut_node as i32;
