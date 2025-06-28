@@ -1,4 +1,4 @@
-use super::{simd, Aligned, BUCKETS, HIDDEN_SIZE, INPUT_BUCKETS, INPUT_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
@@ -11,7 +11,7 @@ pub struct AccumulatorCache {
 
 #[derive(Clone)]
 pub struct CacheEntry {
-    accumulator: Aligned<[i16; HIDDEN_SIZE]>,
+    accumulator: Aligned<[i16; L1_SIZE]>,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
 }
@@ -35,7 +35,7 @@ pub struct Delta {
 
 #[derive(Copy, Clone)]
 pub struct Accumulator {
-    pub values: Aligned<[[i16; HIDDEN_SIZE]; 2]>,
+    pub values: Aligned<[[i16; L1_SIZE]; 2]>,
     pub delta: Delta,
     pub accurate: [bool; 2],
 }
@@ -43,7 +43,7 @@ pub struct Accumulator {
 impl Accumulator {
     pub fn new() -> Self {
         Self {
-            values: Aligned { data: [PARAMETERS.ft_biases.data; 2] },
+            values: Aligned::new([PARAMETERS.ft_biases.data; 2]),
             delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
             accurate: [false; 2],
         }
@@ -71,7 +71,7 @@ impl Accumulator {
                 for square in adds {
                     let feature = index(color, piece_type, square, king, pov);
 
-                    for i in 0..HIDDEN_SIZE {
+                    for i in 0..L1_SIZE {
                         entry.accumulator[i] += PARAMETERS.ft_weights[feature][i];
                     }
                 }
@@ -79,7 +79,7 @@ impl Accumulator {
                 for square in subs {
                     let feature = index(color, piece_type, square, king, pov);
 
-                    for i in 0..HIDDEN_SIZE {
+                    for i in 0..L1_SIZE {
                         entry.accumulator[i] -= PARAMETERS.ft_weights[feature][i];
                     }
                 }
@@ -124,61 +124,61 @@ impl Accumulator {
     }
 
     fn add1_sub1(&mut self, prev: &Self, add1: usize, sub1: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::sub(v, *vsub1.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
 
     fn add1_sub2(&mut self, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::sub(v, *vsub1.add(i));
-                v = simd::sub(v, *vsub2.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
+                v = simd::sub_i16(v, *vsub2.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
 
     fn add2_sub2(&mut self, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize, pov: Color) {
-        let vacc = self.values[pov].as_mut_ptr().cast::<simd::Vector>();
-        let vprev = prev.values[pov].as_ptr().cast::<simd::Vector>();
+        let vacc = self.values[pov].as_mut_ptr();
+        let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr().cast::<simd::Vector>();
-        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr().cast::<simd::Vector>();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr().cast::<simd::Vector>();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr().cast::<simd::Vector>();
+        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
+        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr();
+        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
 
-        for i in 0..HIDDEN_SIZE / simd::VECTOR_WIDTH {
+        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
-                let mut v = *vprev.add(i);
-                v = simd::add(v, *vadd1.add(i));
-                v = simd::add(v, *vadd2.add(i));
-                v = simd::sub(v, *vsub1.add(i));
-                v = simd::sub(v, *vsub2.add(i));
+                let mut v = *vprev.add(i).cast();
+                v = simd::add_i16(v, *vadd1.add(i).cast());
+                v = simd::add_i16(v, *vadd2.add(i).cast());
+                v = simd::sub_i16(v, *vsub1.add(i).cast());
+                v = simd::sub_i16(v, *vsub2.add(i).cast());
 
-                *vacc.add(i) = v;
+                *vacc.add(i).cast() = v;
             }
         }
     }
@@ -195,5 +195,5 @@ fn index(color: Color, piece: PieceType, mut square: Square, mut king: Square, p
         king ^= 56;
     }
 
-    BUCKETS[king] * INPUT_SIZE + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
+    BUCKETS[king] * FT_SIZE + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
 }
