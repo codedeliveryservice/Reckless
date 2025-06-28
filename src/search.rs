@@ -655,7 +655,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1141;
             }
 
-            if td.board.in_check() {
+            if td.board.in_check() && history > 0 {
                 reduction -= 820;
             }
 
