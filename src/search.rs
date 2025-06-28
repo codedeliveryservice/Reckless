@@ -543,6 +543,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !improving {
             reduction += 800;
+            reduction += 600 * (reduction > 3500) as i32;
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
