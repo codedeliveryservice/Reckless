@@ -548,6 +548,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += 800;
         }
 
+        if cut_node {
+            reduction += 1141;
+        }
+
         if !NODE::ROOT && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657).max(0);
 
@@ -649,10 +653,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
-            }
-
-            if cut_node {
-                reduction += 1141;
             }
 
             if td.board.in_check() {
