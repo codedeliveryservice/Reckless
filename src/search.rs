@@ -401,8 +401,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             >= beta + 80 * depth - (72 * improving as i32) - (25 * cut_node as i32)
                 + 556 * correction_value.abs() / 1024
                 + 24
+        && !is_loss(beta)
+        && !is_win(eval)
     {
-        return ((eval + beta) / 2).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1);
+        return (eval + beta) / 2;
     }
 
     // Null Move Pruning (NMP)
@@ -415,6 +417,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity
+        && !is_loss(beta)
     {
         let r = 5 + depth / 3 + ((eval - beta) / 225).min(3);
 
@@ -427,7 +430,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_null_move();
 
         td.stack[td.ply].reduction = 1024 * (r - 1);
-        let mut score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
+        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
         td.stack[td.ply].reduction = 0;
 
         td.board.undo_null_move();
@@ -437,11 +440,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if score >= beta {
-            if is_win(score) {
-                score = beta;
-            }
-
+        if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
@@ -498,11 +497,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if score >= probcut_beta {
                 td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
-                if is_decisive(score) {
-                    return score;
+                if !is_decisive(score) {
+                    return score - (probcut_beta - beta);
                 }
-
-                return score - (probcut_beta - beta);
             }
         }
     }
@@ -616,7 +613,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     if extension > 1 && depth < 14 {
                         depth += 1;
                     }
-                } else if score >= beta {
+                } else if score >= beta && !is_decisive(score) {
                     return score;
                 } else if tt_score >= beta {
                     extension = -2;
@@ -880,6 +877,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 Bound::Lower => tt_score >= beta,
                 _ => true,
             }
+            && (!NODE::PV || !is_decisive(tt_score))
         {
             debug_assert!(is_valid(tt_score));
             return tt_score;
