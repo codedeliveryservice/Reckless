@@ -38,11 +38,19 @@ const BUCKETS: [usize; 64] = [
     3, 3, 3, 3, 3, 3, 3, 3,
 ];
 
+#[repr(align(16))]
+#[derive(Clone, Copy)]
+struct SparseEntry {
+    indexes: [u16; 8],
+    count: usize,
+}
+
 #[derive(Clone)]
 pub struct Network {
     index: usize,
     stack: Box<[Accumulator]>,
     cache: AccumulatorCache,
+    nnz_table: Box<[SparseEntry]>,
 }
 
 impl Network {
@@ -124,7 +132,9 @@ impl Network {
 
     fn output_transformer(&self, board: &Board) -> i32 {
         unsafe {
-            let (ft_out, nnz_indexes, nnz_count) = activate_ft(&self.stack[self.index], board.side_to_move());
+            let (ft_out, nnz_indexes, nnz_count) =
+                activate_ft(&self.stack[self.index], &self.nnz_table, board.side_to_move());
+
             let l1_out = propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
             let l2_out = propagate_l2(l1_out);
             let l3_out = propagate_l3(l2_out);
@@ -135,7 +145,7 @@ impl Network {
 }
 
 unsafe fn activate_ft(
-    accumulator: &Accumulator, stm: Color,
+    accumulator: &Accumulator, nnz_table: &[SparseEntry], stm: Color,
 ) -> (Aligned<[u8; L1_SIZE]>, Aligned<[u16; L1_SIZE / 4]>, usize) {
     let mut output = Aligned::new([0; L1_SIZE]);
 
@@ -175,12 +185,12 @@ unsafe fn activate_ft(
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
 
             let mask = simd::nnz_bitmask(unpacked);
-            let entry = NNZ_TABLE.get_unchecked(mask as usize).as_ptr();
+            let entry = nnz_table.get_unchecked(mask as usize);
 
             let store = nnz_indexes.as_mut_ptr().add(nnz_count).cast();
-            _mm_storeu_si128(store, _mm_add_epi16(nnz_base, *entry.cast()));
+            _mm_storeu_si128(store, _mm_add_epi16(nnz_base, *entry.indexes.as_ptr().cast()));
 
-            nnz_count += mask.count_ones() as usize;
+            nnz_count += entry.count;
             nnz_base = _mm_add_epi16(nnz_base, nnz_increment);
         }
     }
@@ -189,19 +199,19 @@ unsafe fn activate_ft(
 }
 
 unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
-    const BYTES_PER_INPUT: usize = 4;
+    const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / simd::F32_LANES]);
 
-    let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / BYTES_PER_INPUT);
+    let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
     for i in 0..nnz.len() {
         let index = *nnz.get_unchecked(i) as usize;
         let input = _mm256_set1_epi32(*packed.get_unchecked(index));
-        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * BYTES_PER_INPUT);
+        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
-            let weights = weights.add(j * BYTES_PER_INPUT).cast();
+            let weights = weights.add(j * CHUNKS).cast();
             let vector = &mut pre_activations[j / simd::F32_LANES];
             *vector = simd::dpbusd(*vector, input, *weights);
         }
@@ -264,10 +274,26 @@ unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
 
 impl Default for Network {
     fn default() -> Self {
+        let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
+
+        for byte in 0..256 {
+            let mut count = 0;
+
+            for bit in 0..8 {
+                if (byte & (1 << bit)) != 0 {
+                    nnz_table[byte].indexes[count] = bit as u16;
+                    count += 1;
+                }
+            }
+
+            nnz_table[byte].count = count;
+        }
+
         Self {
             index: 0,
             stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
+            nnz_table: nnz_table.into_boxed_slice(),
         }
     }
 }
@@ -285,25 +311,6 @@ struct Parameters {
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
-
-const NNZ_TABLE: Aligned<[[u16; 8]; 256]> = {
-    let mut table = Aligned::new([[0; 8]; 256]);
-    let mut byte = 0;
-
-    while byte < 256 {
-        let mut i = 0;
-        let mut bits = byte;
-
-        while bits != 0 {
-            table.data[byte][i] = bits.trailing_zeros() as u16;
-            bits &= bits - 1;
-            i += 1;
-        }
-        byte += 1;
-    }
-
-    table
-};
 
 #[repr(align(64))]
 #[derive(Copy, Clone)]
