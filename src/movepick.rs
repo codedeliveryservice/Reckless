@@ -186,6 +186,10 @@ impl MovePicker {
                 + 868 * td.conthist(4, mv)
                 + 868 * td.conthist(6, mv))
                 / 1024;
+
+            if td.ply == 0 {
+                entry.score += td.root_history.get(mv);
+            }
         }
     }
 }

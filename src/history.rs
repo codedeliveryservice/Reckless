@@ -114,6 +114,34 @@ impl Default for NoisyHistory {
     }
 }
 
+pub struct RootHistory {
+    // [piece][to]
+    entries: Box<FromToHistory<i16>>,
+}
+
+impl RootHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    pub fn get(&self, mv: Move) -> i32 {
+        self.entries[mv.from()][mv.to()] as i32
+    }
+
+    pub fn update(&mut self, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[mv.from()][mv.to()];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+
+    pub fn clear(&mut self) {
+        self.entries.iter_mut().for_each(|entry| entry.fill(0));
+    }
+}
+
+impl Default for RootHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i16; Self::SIZE]; 2]>,
