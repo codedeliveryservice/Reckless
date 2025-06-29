@@ -595,7 +595,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if potential_singularity {
                 debug_assert!(is_valid(tt_score));
-                let singular_beta = tt_score - depth;
+                let singular_beta = tt_score - (1 + (tt_pv && !NODE::PV) as i32) * depth;
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
