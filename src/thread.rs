@@ -1,7 +1,6 @@
 use std::{
     ops::Index,
     sync::atomic::{AtomicBool, AtomicU64, Ordering},
-    time::Instant,
 };
 
 use crate::{
@@ -152,9 +151,10 @@ impl<'a> ThreadData<'a> {
         self.continuation_history.get(self.stack[self.ply - index].conthist, piece, sq)
     }
 
-    pub fn print_uci_info(&self, depth: i32, score: i32, now: Instant) {
-        let nps = self.counter.global() as f64 / now.elapsed().as_secs_f64();
-        let ms = now.elapsed().as_millis();
+    pub fn print_uci_info(&self, depth: i32, score: i32) {
+        let elapsed = self.time_manager.elapsed();
+        let nps = self.counter.global() as f64 / elapsed.as_secs_f64();
+        let ms = elapsed.as_millis();
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
             format!("cp {}", normalize_to_cp(score, &self.board))

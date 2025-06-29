@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
@@ -56,8 +54,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.tb_hits.clear();
 
     td.nnue.full_refresh(&td.board);
-
-    let now = Instant::now();
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
@@ -155,12 +151,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         if report == Report::Full {
-            td.print_uci_info(depth, td.best_score, now);
+            td.print_uci_info(depth, td.best_score);
         }
     }
 
     if report != Report::None {
-        td.print_uci_info(td.root_depth, td.best_score, now);
+        td.print_uci_info(td.root_depth, td.best_score);
     }
 
     td.previous_best_score = td.best_score;

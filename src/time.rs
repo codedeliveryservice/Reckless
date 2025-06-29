@@ -62,6 +62,10 @@ impl TimeManager {
         }
     }
 
+    pub fn elapsed(&self) -> Duration {
+        self.start_time.elapsed()
+    }
+
     pub fn soft_limit(&self, td: &ThreadData, multiplier: impl Fn() -> f32) -> bool {
         match self.limits {
             Limits::Infinite => false,
