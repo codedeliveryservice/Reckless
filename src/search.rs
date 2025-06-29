@@ -553,7 +553,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 122 * lmr_depth + 78;
-            if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha {
+            if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha && td.board.captured_piece().is_some()
+            {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
