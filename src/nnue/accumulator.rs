@@ -1,7 +1,7 @@
 use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
-    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+    types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
 #[derive(Clone, Default)]
@@ -55,6 +55,9 @@ impl Accumulator {
         let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
             [BUCKETS[if pov == Color::White { king } else { king ^ 56 }]];
 
+        let mut adds = ArrayVec::<_, 32>::new();
+        let mut subs = ArrayVec::<_, 32>::new();
+
         for color in [Color::White, Color::Black] {
             for piece_type in [
                 PieceType::Pawn,
@@ -65,26 +68,18 @@ impl Accumulator {
                 PieceType::King,
             ] {
                 let pieces = board.of(piece_type, color);
-                let adds = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
-                let subs = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
-                for square in adds {
-                    let feature = index(color, piece_type, square, king, pov);
-
-                    for i in 0..L1_SIZE {
-                        entry.accumulator[i] += PARAMETERS.ft_weights[feature][i];
-                    }
+                for square in pieces & !(entry.pieces[piece_type] & entry.colors[color]) {
+                    adds.push(index(color, piece_type, square, king, pov));
                 }
 
-                for square in subs {
-                    let feature = index(color, piece_type, square, king, pov);
-
-                    for i in 0..L1_SIZE {
-                        entry.accumulator[i] -= PARAMETERS.ft_weights[feature][i];
-                    }
+                for square in !pieces & (entry.pieces[piece_type] & entry.colors[color]) {
+                    subs.push(index(color, piece_type, square, king, pov));
                 }
             }
         }
+
+        apply_changes(entry, adds, subs);
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
@@ -180,6 +175,38 @@ impl Accumulator {
 
                 *vacc.add(i).cast() = v;
             }
+        }
+    }
+}
+
+fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+    const REGISTERS: usize = 8;
+
+    let mut registers = [0; REGISTERS * simd::I16_LANES];
+
+    for i in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
+        for (register, &input) in registers.iter_mut().zip(entry.accumulator[i..].iter()) {
+            *register = input;
+        }
+
+        for &add in adds.iter() {
+            let weights = &PARAMETERS.ft_weights[add];
+
+            for (register, &weight) in registers.iter_mut().zip(weights[i..].iter()) {
+                *register += weight;
+            }
+        }
+
+        for &sub in subs.iter() {
+            let weights = &PARAMETERS.ft_weights[sub];
+
+            for (register, &weight) in registers.iter_mut().zip(weights[i..].iter()) {
+                *register -= weight;
+            }
+        }
+
+        for (output, &register) in entry.accumulator[i..].iter_mut().zip(registers.iter()) {
+            *output = register;
         }
     }
 }
