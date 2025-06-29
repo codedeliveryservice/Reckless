@@ -417,7 +417,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval >= static_eval
-        && static_eval >= beta - 15 * depth + 159 * tt_pv as i32 + 203 - improvement / 15
+        && static_eval >= beta - 15 * depth + 159 * tt_pv as i32 - improvement / 10 + 185
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity
