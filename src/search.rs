@@ -542,7 +542,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !improving {
-            reduction += 800;
+            reduction += 800 - improvement;
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
