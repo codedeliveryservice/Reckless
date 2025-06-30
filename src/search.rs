@@ -660,6 +660,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1196;
             }
 
+            if mv.is_capture() {
+                reduction -= PIECE_VALUES[td.board.captured_piece().unwrap_or(Piece::None).piece_type()];
+            }
+
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(NODE::PV as i32, new_depth + (NODE::PV || cut_node) as i32);
 
