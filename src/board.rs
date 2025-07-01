@@ -36,8 +36,9 @@ struct InternalState {
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
-    threats: Bitboard,
     pinned: Bitboard,
+    all_threats: Bitboard,
+    threats: [Bitboard; PieceType::NUM],
     checkers: Bitboard,
 }
 
@@ -101,12 +102,12 @@ impl Board {
         self.state.checkers
     }
 
-    pub const fn threats(&self) -> Bitboard {
-        self.state.threats
+    pub const fn threats(&self) -> &[Bitboard] {
+        &self.state.threats
     }
 
-    pub fn prior_threats(&self) -> Bitboard {
-        self.state_stack[self.state_stack.len() - 1].threats
+    pub fn prior_threats(&self) -> &[Bitboard] {
+        &self.state_stack[self.state_stack.len() - 1].threats
     }
 
     pub const fn en_passant(&self) -> Square {
@@ -248,7 +249,7 @@ impl Board {
     }
 
     pub const fn is_threatened(&self, square: Square) -> bool {
-        self.state.threats.contains(square)
+        self.state.all_threats.contains(square)
     }
 
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
@@ -427,25 +428,53 @@ impl Board {
 
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
-        let mut threats = Bitboard::default();
+        let mut all_threats = Bitboard::default();
+        let mut threats = [Bitboard::default(); PieceType::NUM];
 
         for square in self.their(PieceType::Pawn) {
-            threats |= pawn_attacks(square, !self.side_to_move);
+            let attacks = pawn_attacks(square, !self.side_to_move);
+
+            all_threats |= attacks;
+            threats[PieceType::Pawn] |= attacks;
         }
 
         for square in self.their(PieceType::Knight) {
-            threats |= knight_attacks(square);
+            let attacks = knight_attacks(square);
+
+            all_threats |= attacks;
+            threats[PieceType::Knight] |= attacks;
         }
 
-        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
-            threats |= bishop_attacks(square, occupancies);
+        for square in self.their(PieceType::Bishop) {
+            let attacks = bishop_attacks(square, occupancies);
+
+            all_threats |= attacks;
+            threats[PieceType::Bishop] |= attacks;
         }
 
-        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
-            threats |= rook_attacks(square, occupancies);
+        for square in self.their(PieceType::Rook) {
+            let attacks = rook_attacks(square, occupancies);
+
+            all_threats |= attacks;
+            threats[PieceType::Rook] |= attacks;
         }
 
-        self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+        for square in self.their(PieceType::Queen) {
+            let attacks = queen_attacks(square, occupancies);
+
+            all_threats |= attacks;
+            threats[PieceType::Queen] |= attacks;
+        }
+
+        {
+            let attacks = king_attacks(self.their(PieceType::King).lsb());
+
+            all_threats |= attacks;
+            threats[PieceType::King] |= attacks;
+        }
+
+        self.state.all_threats = all_threats;
+        self.state.threats = threats;
     }
 
     pub fn update_king_threats(&mut self) {
