@@ -77,8 +77,21 @@ impl Board {
         self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
     }
 
-    pub const fn pawn_key(&self) -> u64 {
-        self.state.pawn_key
+    pub fn pawn_key(&self) -> u64 {
+        #[rustfmt::skip]
+        const BUCKETS: [usize; Square::NUM] = [
+            0, 0, 1, 1, 1, 1, 0, 0,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3,
+        ];
+
+        let bucket = BUCKETS[self.king_square(self.side_to_move)];
+        self.state.pawn_key ^ ZOBRIST.buckets[bucket]
     }
 
     pub const fn minor_key(&self) -> u64 {
