@@ -681,6 +681,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     if mv.is_quiet() && score >= beta {
                         let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
                             * (152 * depth - 50).min(973);
+
+                        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), mv, bonus / 2);
+
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
