@@ -590,7 +590,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
+        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move && !in_check {
             let entry = &entry.unwrap();
 
             if potential_singularity {
