@@ -683,11 +683,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                             * (152 * depth - 50).min(973);
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
-                        td.ply += 1;
-
-                        if !(in_check || mv.is_quiet() || score <= static_eval) {
-                            update_correction_histories(td, new_depth, score - static_eval);
+                        if !(in_check || mv.is_noisy() || score <= static_eval) {
+                            let bonus = (new_depth * (score - static_eval)).clamp(-3927, 3373);
+                            update_continuation_corrhist(td, bonus);
                         }
+                        td.ply += 1;
                     }
                 }
             } else if score > alpha && score < best_score + 15 {
@@ -1051,6 +1051,17 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
 }
 
+fn update_continuation_corrhist(td: &mut ThreadData, bonus: i32) {
+    if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
+        td.continuation_corrhist.update(
+            td.stack[td.ply - 2].contcorrhist,
+            td.stack[td.ply - 1].piece,
+            td.stack[td.ply - 1].mv.to(),
+            bonus,
+        );
+    }
+}
+
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
     let bonus = (depth * diff).clamp(-3927, 3373);
@@ -1062,14 +1073,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), 1129 * bonus / 1024);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), 1056 * bonus / 1024);
 
-    if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        td.continuation_corrhist.update(
-            td.stack[td.ply - 2].contcorrhist,
-            td.stack[td.ply - 1].piece,
-            td.stack[td.ply - 1].mv.to(),
-            1024 * bonus / 1024,
-        );
-    }
+    update_continuation_corrhist(td, 1024 * bonus / 1024);
 }
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
