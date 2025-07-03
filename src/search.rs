@@ -684,6 +684,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
+
+                        if !(in_check || mv.is_quiet() || score <= static_eval) {
+                            update_correction_histories(td, new_depth, score - static_eval);
+                        }
                     }
                 }
             } else if score > alpha && score < best_score + 15 {
