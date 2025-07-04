@@ -561,6 +561,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            // History Pruning (HP)
+            if !in_check
+                && !skip_quiets
+                && is_quiet
+                && lmr_depth < 3
+                && td.conthist(1, mv) < 0
+                && td.conthist(2, mv) < 0
+            {
+                continue;
+            }
+
             // Bad Noisy Futility Pruning (BNFP)
             let capt_futility_value = static_eval
                 + 111 * lmr_depth
@@ -573,11 +584,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     best_score = capt_futility_value;
                 }
                 break;
-            }
-
-            // History Pruning (HP)
-            if !in_check && is_quiet && depth < 3 && history < 0 {
-                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
