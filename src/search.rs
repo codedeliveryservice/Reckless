@@ -561,6 +561,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            if is_quiet && td.conthist(1, mv) + td.conthist(2, mv) < -400 * depth * depth {
+                continue;
+            }
+
             // Bad Noisy Futility Pruning (BNFP)
             let capt_futility_value = static_eval
                 + 111 * lmr_depth
