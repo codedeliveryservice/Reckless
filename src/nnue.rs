@@ -1,7 +1,8 @@
-use std::arch::x86_64::*;
+use std::{arch::x86_64::*, fs::File, io::Write};
 
 use crate::{
     board::Board,
+    misc::dbg_stats,
     types::{Color, Move, PieceType, MAX_PLY},
 };
 
@@ -54,6 +55,7 @@ pub struct Network {
     stack: Box<[Accumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
+    matrix: Vec<Vec<u32>>,
 }
 
 impl Network {
@@ -133,10 +135,20 @@ impl Network {
         false
     }
 
-    fn output_transformer(&self, board: &Board) -> i32 {
+    fn output_transformer(&mut self, board: &Board) -> i32 {
         unsafe {
             let (ft_out, nnz_indexes, nnz_count) =
                 activate_ft(&self.stack[self.index], &self.nnz_table, board.side_to_move());
+
+            dbg_stats(nnz_count as i32, 0);
+
+            for i in 0..L1_SIZE / 2 {
+                if ft_out[i] != 0 {
+                    for j in 0..L1_SIZE / 2 {
+                        self.matrix[i][j] += (ft_out[j] != 0) as u32;
+                    }
+                }
+            }
 
             let l1_out = propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
             let l2_out = propagate_l2(l1_out);
@@ -298,6 +310,7 @@ impl Default for Network {
             stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
+            matrix: vec![vec![0; L1_SIZE / 2]; L1_SIZE / 2],
         }
     }
 }
@@ -339,5 +352,14 @@ impl<T> std::ops::Deref for Aligned<T> {
 impl<T> std::ops::DerefMut for Aligned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
+    }
+}
+
+impl Drop for Network {
+    fn drop(&mut self) {
+        if self.matrix[0][0] != 0 {
+            let mut file = File::create("../cosmo-tools/permuter/correlations.json").unwrap();
+            write!(file, "{:?}", self.matrix).unwrap();
+        }
     }
 }
