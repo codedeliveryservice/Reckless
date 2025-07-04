@@ -562,13 +562,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if history < 0
-                && !in_check
-                && !skip_quiets
+                && lmr_depth < 3
                 && is_quiet
-                && lmr_depth < 4
+                && !skip_quiets
                 && td.conthist(1, mv) < -600
                 && td.conthist(2, mv) < -600
                 && td.conthist(4, mv) < -600
+                && !in_check
             {
                 continue;
             }
