@@ -568,6 +568,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 && lmr_depth < 3
                 && td.conthist(1, mv) < 0
                 && td.conthist(2, mv) < 0
+                && td.conthist(4, mv) < 0
             {
                 continue;
             }
