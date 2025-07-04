@@ -23,7 +23,7 @@ const L3_SIZE: usize = 32;
 const LHS_FT_QUANT: i32 = 255;
 const RHS_FT_QUANT: i32 = 510;
 
-const L1_QUANT: i32 = 64;
+const L1_QUANT: i32 = 32;
 
 const FT_SHIFT: i32 = 9;
 
