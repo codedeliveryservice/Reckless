@@ -100,7 +100,9 @@ fn go(
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
                 search::start(td, if id == 0 { report } else { Report::None });
-                stop.store(true, Ordering::Relaxed);
+                if id == 0 {
+                    stop.store(true, Ordering::Relaxed);
+                }
             });
 
             handlers.push(handler);
