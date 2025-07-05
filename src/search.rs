@@ -7,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        Score, Square, MAX_PLY, ZOBRIST,
     },
 };
 
@@ -259,6 +259,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
                 return tt_score;
+            }
+        }
+    } else {
+        let null_move_key = td.board.hash() ^ ZOBRIST.side;
+        if let Some(entry) = &td.tt.read(null_move_key, td.board.halfmove_clock(), td.ply) {
+            if entry.bound == Bound::Lower && is_valid(entry.score) && -entry.score >= beta {
+                depth += 1;
+            }
+            if depth >= 2 && entry.bound == Bound::Upper && is_valid(entry.score) && -entry.score <= alpha {
+                depth -= 1;
             }
         }
     }
