@@ -616,7 +616,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 } else if score >= beta && !is_decisive(score) {
                     return score;
                 } else if tt_score >= beta {
-                    extension = -2;
+                    extension = -2 + NODE::PV as i32;
                 } else if cut_node {
                     extension = -2;
                 }
