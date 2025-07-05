@@ -550,9 +550,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Late Move Pruning (LMP)
             if improving || static_eval >= beta + 18 {
-                skip_quiets |= move_count >= (4 + depth * depth);
+                skip_quiets |= move_count >= (3 + depth * depth);
             } else {
-                skip_quiets |= move_count >= (4 + depth * lmr_depth) / 2;
+                skip_quiets |= move_count >= (4 + depth * depth) / 2;
             }
 
             // Futility Pruning (FP)
