@@ -106,7 +106,12 @@ impl MovePicker {
             if !skip_quiets {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
-                self.score_quiet(td);
+
+                if td.board.in_check() {
+                    self.score_quiet_evasions(td);
+                } else {
+                    self.score_quiet(td);
+                }
             } else {
                 self.stage = Stage::BadNoisy;
             }
@@ -186,6 +191,22 @@ impl MovePicker {
                 + 868 * td.conthist(4, mv)
                 + 868 * td.conthist(6, mv))
                 / 1024;
+        }
+    }
+
+    fn score_quiet_evasions(&mut self, td: &ThreadData) {
+        let threats = td.board.threats();
+        let side = td.board.side_to_move();
+
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+
+            if mv == self.tt_move {
+                entry.score = -32768;
+                continue;
+            }
+
+            entry.score = (1188 * td.quiet_history.get(threats, side, mv) + 1028 * td.conthist(1, mv)) / 1024;
         }
     }
 }
