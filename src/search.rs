@@ -582,7 +582,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 -94 * depth + 48 - 42 * history / 1024
             };
 
-            if !td.board.see(mv, threshold) {
+            let predict = || {
+                let v = (depth * 625 + threshold * 54 - 13649 * is_quiet as i32 + 16898) as f32 / 8192.0;
+                1.0 / (1.0 + (-v).exp())
+            };
+
+            if predict() > 0.05 && !td.board.see(mv, threshold) {
                 continue;
             }
         }
