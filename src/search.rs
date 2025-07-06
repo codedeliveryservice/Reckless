@@ -413,7 +413,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval >= static_eval
-        && static_eval >= beta - 15 * depth + 159 * tt_pv as i32 - improvement / 10 + 185
+        && static_eval
+            >= beta - 15 * depth + 159 * tt_pv as i32 - improvement / 10 + 185 - 6 * td.stack[td.ply - 1].cutoff_count
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity
