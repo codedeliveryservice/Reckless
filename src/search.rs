@@ -549,7 +549,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - reduction / 1024 + is_quiet as i32 * history / 7657).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 18) as i32);
+            if move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 18) as i32) {
+                if skip_quiets {
+                    break;
+                }
+                skip_quiets = true;
+            }
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 122 * lmr_depth + 78;
