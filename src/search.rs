@@ -166,31 +166,21 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    let in_check = td.board.in_check();
-    let excluded = td.stack[td.ply].excluded.is_some();
-
-    if NODE::PV {
-        td.pv.clear(td.ply);
-    }
-
-    if td.stopped {
-        return Score::ZERO;
-    }
-
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
-        alpha = Score::ZERO;
-        if alpha >= beta {
-            return alpha;
-        }
-    }
-
     // Qsearch Dive
     if depth <= 0 {
         return qsearch::<NODE>(td, alpha, beta);
     }
 
+    let in_check = td.board.in_check();
+    let excluded = td.stack[td.ply].excluded.is_some();
+
     if NODE::PV {
+        td.pv.clear(td.ply);
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+    }
+
+    if td.stopped {
+        return Score::ZERO;
     }
 
     if td.time_manager.check_time(td) {
@@ -205,6 +195,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if td.ply >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { evaluate(td) };
+        }
+
+        // Upcoming Repetition Detection
+        if alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
+            alpha = Score::ZERO;
+            if alpha >= beta {
+                return alpha;
+            }
         }
 
         // Mate Distance Pruning (MDP)
