@@ -81,6 +81,27 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             td.optimism[td.board.side_to_move()] = 114 * average / (average.abs() + 240);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+
+            let mut evals = Vec::new();
+            for &entry in td.board.generate_all_moves().iter() {
+                if !td.board.is_legal(entry.mv) {
+                    continue;
+                }
+
+                td.nnue.push(entry.mv, &td.board);
+                td.board.make_move(entry.mv);
+
+                evals.push(td.nnue.evaluate(&td.board));
+
+                td.nnue.pop();
+                td.board.undo_move(entry.mv);
+            }
+
+            let mean = evals.iter().sum::<i32>() / evals.len() as i32;
+            let variance = evals.iter().map(|&v| (v - mean).pow(2)).sum::<i32>() / evals.len() as i32;
+            let std_dev = (variance as f32).sqrt();
+
+            delta += std_dev as i32 / 16;
         }
 
         loop {
