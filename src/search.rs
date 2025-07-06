@@ -354,12 +354,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
-    // Hindsight LMR
+    // Hindsight reductions
     if !NODE::ROOT
         && !in_check
         && !excluded
         && td.stack[td.ply - 1].reduction >= 2691
-        && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && static_eval + td.stack[td.ply - 1].static_eval < -12
     {
         depth += 1;
     }
