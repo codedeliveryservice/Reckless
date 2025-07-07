@@ -841,9 +841,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     if NODE::PV {
         td.pv.clear(td.ply);
-    }
-
-    if NODE::PV {
         td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
     }
 

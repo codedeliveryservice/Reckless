@@ -19,21 +19,21 @@ pub struct CacheEntry {
 impl Default for CacheEntry {
     fn default() -> Self {
         Self {
-            accumulator: PARAMETERS.ft_biases,
+            accumulator: PARAMETERS.ft_biases.clone(),
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
         }
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Delta {
     pub mv: Move,
     pub piece: Piece,
     pub captured: Piece,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Accumulator {
     pub values: Aligned<[[i16; L1_SIZE]; 2]>,
     pub delta: Delta,

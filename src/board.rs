@@ -127,11 +127,11 @@ impl Board {
         self.pieces[piece_type]
     }
 
-    pub fn colors_bbs(&self) -> [Bitboard; Color::NUM] {
+    pub const fn colors_bbs(&self) -> [Bitboard; Color::NUM] {
         self.colors
     }
 
-    pub fn pieces_bbs(&self) -> [Bitboard; PieceType::NUM] {
+    pub const fn pieces_bbs(&self) -> [Bitboard; PieceType::NUM] {
         self.pieces
     }
 

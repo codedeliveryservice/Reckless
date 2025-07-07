@@ -111,7 +111,7 @@ impl Network {
 
     fn can_update(&self, pov: Color) -> bool {
         for i in (0..=self.index).rev() {
-            let delta = self.stack[i].delta;
+            let delta = &self.stack[i].delta;
 
             let (from, to) = match delta.piece.piece_color() {
                 Color::White => (delta.mv.from(), delta.mv.to()),
@@ -237,7 +237,7 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
 }
 
 unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = PARAMETERS.l2_biases;
+    let mut output = PARAMETERS.l2_biases.clone();
 
     for i in 0..L2_SIZE {
         let input = _mm256_set1_ps(l1_out[i]);
@@ -317,7 +317,7 @@ struct Parameters {
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
 
 #[repr(align(64))]
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 struct Aligned<T> {
     data: T,
 }
