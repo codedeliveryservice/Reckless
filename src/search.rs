@@ -266,7 +266,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             && !excluded
             && depth >= 2
             && td.ply >= 2
-            && (tt_score - td.stack[td.ply - 2].static_eval).abs() < 8
+            && (tt_score - td.stack[td.ply - 2].static_eval).abs() <= 16
         {
             depth -= 1;
         }
