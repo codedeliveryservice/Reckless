@@ -224,13 +224,12 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     let zero = _mm256_setzero_ps();
-    let one = _mm256_set1_ps(1.0);
     let dequant = _mm256_set1_ps(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = _mm256_load_ps(PARAMETERS.l1_biases.as_ptr().add(i).cast());
         let vector = _mm256_fmadd_ps(_mm256_cvtepi32_ps(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
+        *output.as_mut_ptr().add(i).cast() = _mm256_max_ps(vector, zero);
     }
 
     output
@@ -251,11 +250,10 @@ unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE
     }
 
     let zero = _mm256_setzero_ps();
-    let one = _mm256_set1_ps(1.0);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = output.as_mut_ptr().add(i).cast();
-        *vector = _mm256_min_ps(_mm256_max_ps(*vector, zero), one);
+        *vector = _mm256_max_ps(*vector, zero);
     }
 
     output
