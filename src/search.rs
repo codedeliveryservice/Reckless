@@ -261,6 +261,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return tt_score;
             }
         }
+
+        if !NODE::PV
+            && !excluded
+            && depth >= 2
+            && td.ply >= 2
+            && (tt_score - td.stack[td.ply - 2].static_eval).abs() < 8
+        {
+            depth -= 1;
+        }
     }
 
     // Tablebases Probe
