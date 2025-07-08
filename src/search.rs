@@ -400,6 +400,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval
             >= beta + 80 * depth - (72 * improving as i32) - (25 * cut_node as i32)
                 + 556 * correction_value.abs() / 1024
+                - td.quiet_history.get(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv) / 32
                 + 24
         && !is_loss(beta)
         && !is_win(eval)
