@@ -4,6 +4,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
+    misc::dbg_hit,
     types::{
         ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType,
         Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
@@ -323,7 +324,15 @@ impl Board {
 
         if self.piece_on(from).piece_type() == PieceType::King {
             let attackers = self.attackers_to(to, self.occupancies() ^ from.to_bb()) & self.them();
-            return attackers.is_empty();
+            if mv.is_capture() {
+                // Hit #0: Total 73664, Hits 73211, Hit Rate (%) 99.39
+                dbg_hit(!self.threats().contains(to) == attackers.is_empty(), 0);
+            } else {
+                // Hit #1: Total 416458, Hits 403825, Hit Rate (%) 96.97
+                dbg_hit(!self.threats().contains(to) == attackers.is_empty(), 1);
+                // return !self.threats().contains(to);
+                return attackers.is_empty();
+            }
         }
 
         if self.pinned().contains(from) {
