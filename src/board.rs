@@ -322,8 +322,7 @@ impl Board {
         }
 
         if self.piece_on(from).piece_type() == PieceType::King {
-            let attackers = self.attackers_to(to, self.occupancies() ^ from.to_bb()) & self.them();
-            return attackers.is_empty();
+            return !self.threats().contains(to);
         }
 
         if self.pinned().contains(from) {
@@ -440,7 +439,7 @@ impl Board {
     }
 
     pub fn update_threats(&mut self) {
-        let occupancies = self.occupancies();
+        let occupancies = self.occupancies() ^ self.our(PieceType::King);
         let mut threats = Bitboard::default();
 
         for square in self.their(PieceType::Pawn) {
