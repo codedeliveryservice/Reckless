@@ -425,6 +425,20 @@ impl Board {
         attacks.contains(to)
     }
 
+    pub fn might_give_check_if_you_squint(&mut self, mv: Move) -> bool {
+        let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
+        let direct_attacks = match self.moved_piece(mv).piece_type() {
+            PieceType::Pawn => pawn_attacks(mv.to(), self.side_to_move),
+            PieceType::Knight => knight_attacks(mv.to()),
+            PieceType::Bishop => bishop_attacks(mv.to(), occupancies),
+            PieceType::Rook => rook_attacks(mv.to(), occupancies),
+            PieceType::Queen => queen_attacks(mv.to(), occupancies),
+            _ => Bitboard::default(),
+        };
+
+        direct_attacks.contains(self.their(PieceType::King).lsb())
+    }
+
     pub fn update_threats(&mut self) {
         let occupancies = self.occupancies();
         let mut threats = Bitboard::default();
