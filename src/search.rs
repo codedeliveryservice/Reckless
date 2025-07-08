@@ -552,7 +552,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 18) as i32);
 
             // Futility Pruning (FP)
-            let futility_value = static_eval + 122 * lmr_depth + 78 + history / 32;
+            let futility_value =
+                static_eval + 122 * lmr_depth + history / 32 + 556 * correction_value.abs() / 1024 + 50;
             if !in_check && is_quiet && lmr_depth < 9 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
