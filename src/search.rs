@@ -640,6 +640,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 98 * (history - 568) / 1024;
             reduction -= 3295 * correction_value.abs() / 1024;
             reduction -= 54 * move_count;
+
+            reduction += 400 * tt_move.is_null() as i32;
             reduction += 295;
 
             if tt_pv {
