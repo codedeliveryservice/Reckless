@@ -43,7 +43,7 @@ fn generate_syzygy_binding() {
         .header("./deps/Fathom/tbprobe.h")
         .layout_tests(false)
         .generate()
-        .unwrap()
+        .expect("Failed to generate Fathom bindings")
         .write_to_file("src/bindings.rs")
         .unwrap();
 }
@@ -89,10 +89,10 @@ fn write(mut buf: BufWriter<File>) -> Result<(), std::io::Error> {
 
 fn download_network() {
     let response = Command::new("curl")
-        .arg("-sL")
+        .arg("-sfL")
         .arg(format!("{BASE_URL}/{NETWORK_NAME}"))
         .output()
-        .expect("Failed to execute `curl`");
+        .expect("Failed to execute `curl` to download network");
 
     if response.status.success() {
         std::fs::create_dir_all("networks").unwrap();
