@@ -637,19 +637,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 54 * move_count;
             reduction += 295;
 
+            reduction += match (tt_pv, cut_node) {
+                (true, true) => -768,
+                (true, false) => -1024,
+                (false, true) => 1024,
+                (false, false) => 0,
+            };
+
             if tt_pv {
-                reduction -= 683;
                 reduction -= 647 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 791 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-                reduction -= 768 * cut_node as i32;
             }
 
             if NODE::PV {
                 reduction -= 614 + 576 * (beta - alpha > 34 * td.root_delta / 128) as i32;
-            }
-
-            if cut_node {
-                reduction += 1141;
             }
 
             if td.board.in_check() {
@@ -659,6 +660,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if td.stack[td.ply].cutoff_count > 2 {
                 reduction += 1196;
             }
+
+            dbg_stats(reduction, 0);
 
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(NODE::PV as i32, new_depth + (NODE::PV || cut_node) as i32);
