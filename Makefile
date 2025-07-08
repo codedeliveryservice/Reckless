@@ -35,9 +35,3 @@ rule:
 	cargo pgo run -- bench
 	cargo pgo optimize
 	$(PGO_MOVE)
-
-release:
-	cargo rustc --release -- -C target-cpu=x86-64 --emit link=$(V1NAME)
-	cargo rustc --release -- -C target-cpu=x86-64-v2 --emit link=$(V2NAME)
-	cargo rustc --release -- -C target-cpu=x86-64-v3 --emit link=$(V3NAME)
-	cargo rustc --release -- -C target-cpu=x86-64-v4 --emit link=$(V4NAME)
