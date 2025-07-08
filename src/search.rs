@@ -679,8 +679,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.stack[td.ply - 1].reduction = 0;
 
                     if mv.is_quiet() && score >= beta {
-                        let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
+                        let mut bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
                             * (152 * depth - 50).min(973);
+
+                        if !is_decisive(score) {
+                            bonus += score - beta;
+                        }
+
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
