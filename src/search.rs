@@ -478,7 +478,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            make_move(td, mv);
+            make_move(td, mv, in_check);
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -630,7 +630,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.counter.local();
 
-        make_move(td, mv);
+        make_move(td, mv, in_check);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -979,7 +979,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        make_move(td, mv);
+        make_move(td, mv, in_check);
 
         let score = -qsearch::<NODE>(td, -beta, -alpha);
 
@@ -1083,8 +1083,8 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     }
 }
 
-fn make_move(td: &mut ThreadData, mv: Move) {
-    td.stack[td.ply].conthist = td.continuation_history.subtable_ptr(td.board.moved_piece(mv), mv.to());
+fn make_move(td: &mut ThreadData, mv: Move, in_check: bool) {
+    td.stack[td.ply].conthist = td.continuation_history.subtable_ptr(in_check, td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].contcorrhist = td.continuation_corrhist.subtable_ptr(td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
