@@ -1,7 +1,7 @@
 use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
-    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+    types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
 #[derive(Clone, Default)]
@@ -55,6 +55,9 @@ impl Accumulator {
         let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
             [BUCKETS[if pov == Color::White { king } else { king ^ 56 }]];
 
+        let mut adds = ArrayVec::<_, 32>::new();
+        let mut subs = ArrayVec::<_, 32>::new();
+
         for color in [Color::White, Color::Black] {
             for piece_type in [
                 PieceType::Pawn,
@@ -65,26 +68,20 @@ impl Accumulator {
                 PieceType::King,
             ] {
                 let pieces = board.of(piece_type, color);
-                let adds = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
-                let subs = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
+                let to_add = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
+                let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
-                for square in adds {
-                    let feature = index(color, piece_type, square, king, pov);
-
-                    for i in 0..L1_SIZE {
-                        entry.accumulator[i] += PARAMETERS.ft_weights[feature][i];
-                    }
+                for square in to_add {
+                    adds.push(index(color, piece_type, square, king, pov));
                 }
 
-                for square in subs {
-                    let feature = index(color, piece_type, square, king, pov);
-
-                    for i in 0..L1_SIZE {
-                        entry.accumulator[i] -= PARAMETERS.ft_weights[feature][i];
-                    }
+                for square in to_sub {
+                    subs.push(index(color, piece_type, square, king, pov));
                 }
             }
         }
+
+        unsafe { apply_changes(entry, adds, subs) };
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
@@ -180,6 +177,42 @@ impl Accumulator {
 
                 *vacc.add(i).cast() = v;
             }
+        }
+    }
+}
+
+unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+    use std::arch::x86_64::*;
+
+    const REGISTERS: usize = 16;
+
+    let mut registers: [__m256i; REGISTERS] = std::mem::zeroed();
+
+    for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
+        let output = entry.accumulator.as_mut_ptr().add(offset).cast::<__m256i>();
+
+        for (i, register) in registers.iter_mut().enumerate() {
+            *register = *output.add(i);
+        }
+
+        for &add in adds.iter() {
+            let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset).cast::<__m256i>();
+
+            for (i, register) in registers.iter_mut().enumerate() {
+                *register = _mm256_add_epi16(*register, *weights.add(i).cast());
+            }
+        }
+
+        for &sub in subs.iter() {
+            let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset).cast::<__m256i>();
+
+            for (i, register) in registers.iter_mut().enumerate() {
+                *register = _mm256_sub_epi16(*register, *weights.add(i).cast());
+            }
+        }
+
+        for (i, register) in registers.into_iter().enumerate() {
+            *output.add(i) = register;
         }
     }
 }
