@@ -1059,19 +1059,19 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let stm = td.board.side_to_move();
     let bonus = (depth * diff).clamp(-3927, 3373);
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), 1026 * bonus / 1024);
-    td.minor_corrhist.update(stm, td.board.minor_key(), 1159 * bonus / 1024);
-    td.major_corrhist.update(stm, td.board.major_key(), 929 * bonus / 1024);
+    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
+    td.major_corrhist.update(stm, td.board.major_key(), bonus);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), 1129 * bonus / 1024);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), 1056 * bonus / 1024);
+    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
-            1024 * bonus / 1024,
+            bonus,
         );
     }
 }
