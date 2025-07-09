@@ -177,7 +177,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
+    if !NODE::ROOT && td.stack[td.ply - 1].mv.is_some() && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
