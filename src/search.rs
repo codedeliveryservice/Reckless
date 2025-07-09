@@ -57,6 +57,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
+    let mut previous_nodes_factor = 1.0;
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
@@ -135,7 +136,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32);
+            let current_nodes_factor = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
+
+            let nodes_factor = 2.15 - 1.5 * current_nodes_factor;
+
+            let nodes_trend = 1.0 + 0.25 * ((nodes_factor / previous_nodes_factor) - 1.0);
 
             let pv_stability = 1.25 - 0.05 * pv_stability as f32;
 
@@ -143,7 +148,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend
+            nodes_factor * pv_stability * eval_stability * score_trend * nodes_trend
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
@@ -153,6 +158,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
         if report == Report::Full {
             td.print_uci_info(depth, td.best_score);
         }
+
+        previous_nodes_factor = td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32;
     }
 
     if report != Report::None {
