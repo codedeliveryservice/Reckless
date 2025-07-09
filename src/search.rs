@@ -1033,22 +1033,21 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = 1074 * td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + 919 * td.minor_corrhist.get(stm, td.board.minor_key())
-        + 724 * td.major_corrhist.get(stm, td.board.major_key())
-        + 1058 * td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1058 * td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+    let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
+        + td.minor_corrhist.get(stm, td.board.minor_key())
+        + td.major_corrhist.get(stm, td.board.major_key())
+        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        correction += 1024
-            * td.continuation_corrhist.get(
-                td.stack[td.ply - 2].contcorrhist,
-                td.stack[td.ply - 1].piece,
-                td.stack[td.ply - 1].mv.to(),
-            );
+        correction += td.continuation_corrhist.get(
+            td.stack[td.ply - 2].contcorrhist,
+            td.stack[td.ply - 1].piece,
+            td.stack[td.ply - 1].mv.to(),
+        );
     }
 
-    correction / 1024
+    correction
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
