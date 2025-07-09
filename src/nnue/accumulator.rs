@@ -191,28 +191,28 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
         let output = entry.accumulator.as_mut_ptr().add(offset).cast::<__m256i>();
 
-        for i in 0..REGISTERS {
-            registers[i] = *output.add(i);
+        for (i, register) in registers.iter_mut().enumerate() {
+            *register = *output.add(i);
         }
 
         for &add in adds.iter() {
             let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset).cast::<__m256i>();
 
-            for i in 0..REGISTERS {
-                registers[i] = _mm256_add_epi16(registers[i], *weights.add(i).cast());
+            for (i, register) in registers.iter_mut().enumerate() {
+                *register = _mm256_add_epi16(*register, *weights.add(i).cast());
             }
         }
 
         for &sub in subs.iter() {
             let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset).cast::<__m256i>();
 
-            for i in 0..REGISTERS {
-                registers[i] = _mm256_sub_epi16(registers[i], *weights.add(i).cast());
+            for (i, register) in registers.iter_mut().enumerate() {
+                *register = _mm256_sub_epi16(*register, *weights.add(i).cast());
             }
         }
 
-        for i in 0..REGISTERS {
-            *output.add(i) = registers[i];
+        for (i, register) in registers.into_iter().enumerate() {
+            *output.add(i) = register;
         }
     }
 }
