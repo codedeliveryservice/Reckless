@@ -171,14 +171,14 @@ impl Default for ContinuationCorrectionHistory {
 
 pub struct ContinuationHistory {
     // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[PieceToHistory<i16>; 64]; 13]>,
+    entries: Box<[[[PieceToHistory<i16>; 64]; 13]; 2]>,
 }
 
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 16384;
 
-    pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
-        self.entries[piece][sq].as_mut_ptr().cast()
+    pub fn subtable_ptr(&mut self, capture: bool, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
+        self.entries[capture as usize][piece][sq].as_mut_ptr().cast()
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {

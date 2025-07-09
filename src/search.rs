@@ -1090,7 +1090,8 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
 }
 
 fn make_move(td: &mut ThreadData, mv: Move) {
-    td.stack[td.ply].conthist = td.continuation_history.subtable_ptr(td.board.moved_piece(mv), mv.to());
+    td.stack[td.ply].conthist =
+        td.continuation_history.subtable_ptr(td.board.captured_piece().is_some(), td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].contcorrhist = td.continuation_corrhist.subtable_ptr(td.board.moved_piece(mv), mv.to());
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].mv = mv;
