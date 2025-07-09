@@ -684,7 +684,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 new_depth += (score > best_score + 46 + 512 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
-                if new_depth > reduced_depth {
+                if new_depth - (reduced_depth == new_depth - 1 && td.lmr_accuracy.accuracy() >= 90) as i32
+                    > reduced_depth
+                {
                     td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
                     td.stack[td.ply - 1].reduction = 0;
@@ -696,6 +698,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
                     }
+                }
+
+                if reduced_depth == new_depth - 1 {
+                    td.lmr_accuracy.update(score > alpha);
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;

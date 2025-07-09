@@ -98,6 +98,7 @@ pub struct ThreadData<'a> {
     pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
+    pub lmr_accuracy: LMRaccuracy,
 }
 
 impl<'a> ThreadData<'a> {
@@ -134,6 +135,7 @@ impl<'a> ThreadData<'a> {
             ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
+            lmr_accuracy: LMRaccuracy::default(),
         }
     }
 
@@ -312,5 +314,28 @@ impl<'a> AtomicCounter<'a> {
         self.local += self.buffer;
         self.global.fetch_add(self.buffer, Ordering::Relaxed);
         self.buffer = 0;
+    }
+}
+
+#[derive(Default)]
+pub struct LMRaccuracy {
+    alignment_count: i32,
+    total_count: i32,
+}
+
+impl LMRaccuracy {
+    pub fn update(&mut self, is_aligned: bool) {
+        self.total_count += 1;
+        if is_aligned {
+            self.alignment_count += 1;
+        }
+    }
+
+    pub fn accuracy(&self) -> i32 {
+        if self.total_count > 0 {
+            (self.alignment_count * 100) / self.total_count
+        } else {
+            0
+        }
     }
 }
