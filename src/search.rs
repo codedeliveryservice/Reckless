@@ -429,9 +429,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        td.stack[td.ply].reduction = 1024 * (r - 1);
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
-        td.stack[td.ply].reduction = 0;
+        let score = if (depth - r) <= 0 {
+            -qsearch::<NonPV>(td, -beta, -beta + 1)
+        } else {
+            td.stack[td.ply].reduction = 1024 * (r - 1);
+            let value = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
+            td.stack[td.ply].reduction = 0;
+            value
+        };
 
         td.board.undo_null_move();
         td.ply -= 1;
