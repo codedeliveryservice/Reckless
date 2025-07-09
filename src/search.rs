@@ -645,7 +645,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
             reduction -= 98 * (history - 568) / 1024;
             reduction -= 3295 * correction_value.abs() / 1024;
-            reduction -= 54 * move_count;
+            reduction -= 140 * noisy_moves.len() as i32;
+            reduction -= 70 * quiet_moves.len() as i32;
             reduction += 295;
 
             if tt_pv {
