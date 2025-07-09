@@ -1072,7 +1072,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 }
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
-    const BONUSES: [(usize, i32); 5] = [(1, 1523), (2, 1144), (3, 957), (4, 1024), (6, 1024)];
+    const BONUSES: [(usize, i32); 5] = [(1, 1536), (2, 1024), (3, 1024), (4, 1024), (6, 1024)];
 
     for (offset, scale) in BONUSES {
         if td.ply >= offset {
