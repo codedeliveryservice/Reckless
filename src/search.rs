@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::{Bound, TtDepth},
@@ -781,8 +781,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let bonus_cont = (114 * depth - 53).min(1318) - 64 * cut_node as i32;
         let malus_cont = (244 * initial_depth - 51).min(907) - 15 * (move_count - 1) + 128 * skip_quiets as i32;
 
-        let bonus_pawn = (148 * depth - 71).min(1458) - 64 * cut_node as i32;
-        let malus_pawn = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1) + 196 * skip_quiets as i32;
+        let bonus_pawn = (v1() * depth - v2()).min(v3()) - v4() * cut_node as i32;
+        let malus_pawn = (v5() * initial_depth - v6()).min(v7()) - v8() * (move_count - 1) + v9() * skip_quiets as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(

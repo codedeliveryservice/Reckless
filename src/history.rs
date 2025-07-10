@@ -203,8 +203,6 @@ pub struct PawnHistory {
 }
 
 impl PawnHistory {
-    const MAX_HISTORY: i32 = 16384;
-
     const SIZE: usize = 1024;
     const MASK: usize = Self::SIZE - 1;
 
@@ -213,8 +211,11 @@ impl PawnHistory {
     }
 
     pub fn update(&mut self, key: u64, piece: Piece, sq: Square, bonus: i32) {
+        let max_history = crate::parameters::v10();
+
         let entry = &mut self.entries[key as usize & Self::MASK][piece][sq];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        let bonus = bonus.clamp(-max_history, max_history);
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / max_history) as i16;
     }
 }
 
