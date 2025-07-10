@@ -11,7 +11,7 @@ use avx2 as simd;
 mod accumulator;
 mod avx2;
 
-const NETWORK_SCALE: i32 = 400;
+const NETWORK_SCALE: i32 = 450;
 
 const INPUT_BUCKETS: usize = 4;
 
