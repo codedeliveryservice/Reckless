@@ -203,7 +203,7 @@ pub struct PawnHistory {
 }
 
 impl PawnHistory {
-    const MAX_HISTORY: i32 = 16384;
+    const MAX_HISTORY: i32 = 16492;
 
     const SIZE: usize = 1024;
     const MASK: usize = Self::SIZE - 1;

@@ -781,8 +781,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let bonus_cont = (114 * depth - 53).min(1318) - 64 * cut_node as i32;
         let malus_cont = (244 * initial_depth - 51).min(907) - 15 * (move_count - 1) + 128 * skip_quiets as i32;
 
-        let bonus_pawn = (148 * depth - 71).min(1458) - 64 * cut_node as i32;
-        let malus_pawn = (125 * initial_depth - 52).min(1263) - 17 * (move_count - 1) + 196 * skip_quiets as i32;
+        let bonus_pawn = (158 * depth - 74).min(1507) - 66 * cut_node as i32;
+        let malus_pawn = (136 * initial_depth - 50).min(1350) - 17 * (move_count - 1) + 191 * skip_quiets as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
