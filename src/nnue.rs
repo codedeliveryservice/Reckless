@@ -72,8 +72,8 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.stack[self.index].refresh(board, Color::White, &mut self.cache);
-        self.stack[self.index].refresh(board, Color::Black, &mut self.cache);
+        self.refresh(board, Color::White);
+        self.refresh(board, Color::Black);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
