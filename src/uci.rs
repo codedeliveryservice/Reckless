@@ -177,7 +177,7 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
                 tokens = rest;
             }
             ["fen", rest @ ..] => {
-                match Board::new(&rest.join(" ")) {
+                match Board::from_fen(&rest.join(" ")) {
                     Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
@@ -204,7 +204,7 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
     if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_string() == uci_move) {
         board.make_move(mv);
-        board.increment_game_ply();
+        board.advance_fullmove_counter();
     }
 }
 

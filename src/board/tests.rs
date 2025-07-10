@@ -1,7 +1,7 @@
 use std::sync::Once;
 
 use super::Board;
-use crate::{lookup, types::PieceType};
+use crate::lookup;
 
 static LUT_INITIALIZED: Once = Once::new();
 
@@ -15,7 +15,7 @@ macro_rules! assert_perft {
         fn $name() {
             prepare_lut();
 
-            let mut board = Board::new($fen).unwrap();
+            let mut board = Board::from_fen($fen).unwrap();
             for (depth, &nodes) in [$($nodes),*].iter().enumerate() {
                 assert_eq!(perft(&mut board, depth + 1), nodes);
             }
@@ -27,16 +27,12 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
     for entry in board.generate_all_moves().iter() {
         let mv = entry.mv;
-        board.make_move(mv);
 
-        let attackers = board.attackers_to(board.their(PieceType::King).lsb(), board.occupancies());
-        if !(attackers & board.us()).is_empty() {
+        if board.is_legal(mv) {
+            board.make_move(mv);
+            nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
             board.undo_move(mv);
-            continue;
         }
-
-        nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
-        board.undo_move(mv);
     }
     nodes
 }
