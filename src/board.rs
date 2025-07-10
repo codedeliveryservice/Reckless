@@ -247,10 +247,6 @@ impl Board {
         !self.state.checkers.is_empty()
     }
 
-    pub const fn is_threatened(&self, square: Square) -> bool {
-        self.state.threats.contains(square)
-    }
-
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
@@ -371,9 +367,9 @@ impl Board {
         if mv.is_castling() {
             macro_rules! check_castling {
                 ($kind:tt) => {
-                    ($kind::PATH_MASK & self.occupancies()).is_empty()
-                        && self.state.castling.is_allowed::<$kind>()
-                        && $kind::CHECK_SQUARES.iter().all(|&square| !self.is_threatened(square))
+                    self.castling().is_allowed::<$kind>()
+                        && ($kind::PATH_MASK & self.occupancies()).is_empty()
+                        && ($kind::THREAT_MASK & self.threats()).is_empty()
                 };
             }
 

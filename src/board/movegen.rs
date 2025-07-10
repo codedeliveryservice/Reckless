@@ -96,18 +96,11 @@ impl super::Board {
         }
     }
 
-    /// Adds the castling move to the move list if it's allowed.
-    ///
-    /// This method does not check if the king is in check after the castling,
-    /// as this will be checked by the `make_move` method.
     fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
-        if (KIND::PATH_MASK & self.occupancies()).is_empty() && self.state.castling.is_allowed::<KIND>() {
-            for square in KIND::CHECK_SQUARES {
-                if self.is_threatened(square) {
-                    return;
-                }
-            }
-
+        if self.castling().is_allowed::<KIND>()
+            && (KIND::PATH_MASK & self.occupancies()).is_empty()
+            && (KIND::THREAT_MASK & self.threats()).is_empty()
+        {
             list.push_move(KIND::CASTLING_MOVE);
         }
     }
