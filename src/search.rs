@@ -583,7 +583,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if !is_decisive(best_score) && best_score <= capt_futility_value {
                     best_score = capt_futility_value;
                 }
-                break;
+
+                if td.stack[td.ply].cutoff_count > 0 {
+                    break;
+                }
+
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
