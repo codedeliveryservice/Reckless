@@ -5,9 +5,11 @@ use crate::{
 };
 
 impl super::Board {
-    /// Checks if the static exchange evaluation (SEE) of a move meets the `threshold`,
+    /// Checks if the static exchange evaluation (SEE) of a move meets the given `threshold`,
     /// indicating that the sequence of captures on a single square, starting with the move,
-    /// results in a non-negative balance for the side to move.
+    /// results in a value greater than or equal to the threshold for the side to move.
+    ///
+    /// Promotions and castling always pass this check.
     pub fn see(&self, mv: Move, threshold: i32) -> bool {
         if mv.is_promotion() || mv.is_castling() {
             return true;

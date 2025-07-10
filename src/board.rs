@@ -1,4 +1,3 @@
-use self::parser::ParseFenError;
 use crate::{
     lookup::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
@@ -18,9 +17,8 @@ mod movegen;
 mod parser;
 mod see;
 
-/// Contains the same information as a FEN string, used to describe a chess position,
-/// along with extra fields for internal use. It's designed to be used as a stack entry,
-/// suitable for copying when making/undoing moves.
+/// Captures essential information needed to efficiently revert the board to
+/// a previous position after making a move.
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
@@ -41,7 +39,6 @@ struct InternalState {
     checkers: Bitboard,
 }
 
-/// A wrapper around the `InternalState` with historical tracking.
 #[derive(Clone)]
 pub struct Board {
     side_to_move: Color,
@@ -54,14 +51,8 @@ pub struct Board {
 }
 
 impl Board {
-    /// Returns the board corresponding to the specified Forsyth–Edwards notation.
-    pub fn new(fen: &str) -> Result<Self, ParseFenError> {
-        fen.parse()
-    }
-
-    /// Returns the board corresponding to the starting position.
     pub fn starting_position() -> Self {
-        Self::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
     pub const fn side_to_move(&self) -> Color {

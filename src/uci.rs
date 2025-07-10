@@ -177,7 +177,7 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
                 tokens = rest;
             }
             ["fen", rest @ ..] => {
-                match Board::new(&rest.join(" ")) {
+                match Board::from_fen(&rest.join(" ")) {
                     Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }

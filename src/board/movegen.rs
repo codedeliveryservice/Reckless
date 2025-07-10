@@ -13,7 +13,6 @@ impl super::Board {
         list.iter().any(|entry| self.is_legal(entry.mv))
     }
 
-    /// Generates all possible pseudo legal moves for the current position.
     pub fn generate_all_moves(&self) -> MoveList {
         let mut list = MoveList::new();
         self.append_all_moves(&mut list);
@@ -21,20 +20,18 @@ impl super::Board {
     }
 
     pub fn append_all_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<QUIET>(list);
-        self.generate_moves::<NOISY>(list);
+        self.append_noisy_moves(list);
+        self.append_quiet_moves(list);
     }
 
     pub fn append_quiet_moves(&self, list: &mut MoveList) {
         self.generate_moves::<QUIET>(list);
     }
 
-    /// Generates only pseudo legal capture moves for the current position.
     pub fn append_noisy_moves(&self, list: &mut MoveList) {
         self.generate_moves::<NOISY>(list);
     }
 
-    /// Generates pseudo legal moves for the current position.
     fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
         self.collect_for::<TYPE, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
 
@@ -61,7 +58,6 @@ impl super::Board {
         }
     }
 
-    /// Adds move for the piece type using the specified move generator function.
     fn collect_for<const TYPE: u8, T>(&self, list: &mut MoveList, target: Bitboard, piece: PieceType, gen: T)
     where
         T: Fn(Square) -> Bitboard,
@@ -105,7 +101,6 @@ impl super::Board {
         }
     }
 
-    /// Adds all pawn moves to the move list.
     fn collect_pawn_moves<const TYPE: u8>(&self, list: &mut MoveList) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
@@ -121,7 +116,6 @@ impl super::Board {
         }
     }
 
-    /// Adds single, double and promotion pawn pushes to the move list.
     fn collect_pawn_pushes<const TYPE: u8>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
@@ -160,7 +154,6 @@ impl super::Board {
         }
     }
 
-    /// Adds regular pawn captures and promotion captures to the move list.
     fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
         fn add_promotions(list: &mut MoveList, from: Square, to: Square) {
             list.push(from, to, MoveKind::PromotionCaptureQ);

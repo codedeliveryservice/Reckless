@@ -25,6 +25,9 @@ impl Board {
         self.state = self.state_stack.pop().unwrap();
     }
 
+    /// Plays a move on the board and pushes the previous state onto the stack.
+    ///
+    /// The move is assumed to have passed `Board::is_pseudo_legal` and `Board::is_legal`.
     pub fn make_move(&mut self, mv: Move) {
         let from = mv.from();
         let to = mv.to();
