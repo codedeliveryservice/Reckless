@@ -963,21 +963,23 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != previous_square {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
+            if !td.board.might_give_check_if_you_squint(mv) {
+                if move_picker.stage() == Stage::BadNoisy {
+                    break;
+                }
 
-            if move_count >= 3 {
-                break;
-            }
+                if move_count >= 3 {
+                    break;
+                }
 
-            if in_check && mv.is_quiet() {
-                break;
-            }
+                if in_check && mv.is_quiet() {
+                    break;
+                }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                best_score = best_score.max(futility_score);
-                continue;
+                if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+                    best_score = best_score.max(futility_score);
+                    continue;
+                }
             }
 
             if !td.board.see(mv, -75) {
