@@ -3,8 +3,25 @@ use crate::{
     types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
-const QUIET: u8 = 0;
-const NOISY: u8 = 1;
+#[derive(Eq, PartialEq)]
+enum Kind {
+    Quiet,
+    Noisy,
+}
+
+trait MoveGenerator {
+    const KIND: Kind;
+}
+
+struct Quiet;
+impl MoveGenerator for Quiet {
+    const KIND: Kind = Kind::Quiet;
+}
+
+struct Noisy;
+impl MoveGenerator for Noisy {
+    const KIND: Kind = Kind::Noisy;
+}
 
 impl super::Board {
     pub fn has_legal_moves(&self) -> bool {
@@ -25,15 +42,15 @@ impl super::Board {
     }
 
     pub fn append_quiet_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<QUIET>(list);
+        self.generate_moves::<Quiet>(list);
     }
 
     pub fn append_noisy_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<NOISY>(list);
+        self.generate_moves::<Noisy>(list);
     }
 
-    fn generate_moves<const TYPE: u8>(&self, list: &mut MoveList) {
-        self.collect_for::<TYPE, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
+    fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
+        self.collect_for::<T, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
 
         if self.checkers().multiple() {
             return;
@@ -46,31 +63,30 @@ impl super::Board {
             Bitboard::ALL
         };
 
-        self.collect_pawn_moves::<TYPE>(list);
+        self.collect_pawn_moves::<T>(list);
 
-        self.collect_for::<TYPE, _>(list, target, PieceType::Knight, knight_attacks);
-        self.collect_for::<TYPE, _>(list, target, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<TYPE, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_for::<T, _>(list, target, PieceType::Knight, knight_attacks);
+        self.collect_for::<T, _>(list, target, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
+        self.collect_for::<T, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
+        self.collect_for::<T, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
 
-        if TYPE == QUIET {
+        if T::KIND == Kind::Quiet {
             self.collect_castling(list);
         }
     }
 
-    fn collect_for<const TYPE: u8, T>(&self, list: &mut MoveList, target: Bitboard, piece: PieceType, gen: T)
-    where
-        T: Fn(Square) -> Bitboard,
-    {
+    fn collect_for<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
+        &self, list: &mut MoveList, target: Bitboard, piece: PieceType, attacks: F,
+    ) {
         for from in self.our(piece) {
-            if TYPE == NOISY {
-                for to in gen(from) & target & self.them() {
+            if T::KIND == Kind::Noisy {
+                for to in attacks(from) & target & self.them() {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
-            if TYPE == QUIET {
-                for to in gen(from) & target & !self.occupancies() {
+            if T::KIND == Kind::Quiet {
+                for to in attacks(from) & target & !self.occupancies() {
                     list.push(from, to, MoveKind::Normal);
                 }
             }
@@ -101,22 +117,22 @@ impl super::Board {
         }
     }
 
-    fn collect_pawn_moves<const TYPE: u8>(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = match self.side_to_move {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
 
-        self.collect_pawn_pushes::<TYPE>(list, pawns, seventh_rank);
+        self.collect_pawn_pushes::<T>(list, pawns, seventh_rank);
 
-        if TYPE == NOISY {
+        if T::KIND == Kind::Noisy {
             self.collect_pawn_captures(list, pawns, seventh_rank);
             self.collect_en_passant_moves(list, pawns);
         }
     }
 
-    fn collect_pawn_pushes<const TYPE: u8>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_pushes<T: MoveGenerator>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
         let (up, third_rank) = match self.side_to_move {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
@@ -124,7 +140,7 @@ impl super::Board {
 
         let empty = !self.occupancies();
 
-        if TYPE == QUIET {
+        if T::KIND == Kind::Quiet {
             let non_promotions = pawns & !seventh_rank;
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
@@ -142,11 +158,11 @@ impl super::Board {
         for to in promotions {
             let from = to.shift(-up);
 
-            if TYPE == NOISY {
+            if T::KIND == Kind::Noisy {
                 list.push(from, to, MoveKind::PromotionQ);
             }
 
-            if TYPE == QUIET {
+            if T::KIND == Kind::Quiet {
                 list.push(from, to, MoveKind::PromotionR);
                 list.push(from, to, MoveKind::PromotionB);
                 list.push(from, to, MoveKind::PromotionN);
