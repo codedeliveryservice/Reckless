@@ -14,44 +14,52 @@ pub enum Stage {
     BadNoisy,
 }
 
+#[derive(Eq, PartialEq)]
+pub enum MovePickerKind {
+    Normal,
+    Probcut,
+    QSearch,
+}
+
+pub trait MovePickerStrategy {
+    const KIND: MovePickerKind;
+}
+
+pub struct NormalPicker;
+impl MovePickerStrategy for NormalPicker {
+    const KIND: MovePickerKind = MovePickerKind::Normal;
+}
+
+pub struct ProbcutPicker;
+impl MovePickerStrategy for ProbcutPicker {
+    const KIND: MovePickerKind = MovePickerKind::Probcut;
+}
+
+pub struct QSearchPicker;
+impl MovePickerStrategy for QSearchPicker {
+    const KIND: MovePickerKind = MovePickerKind::QSearch;
+}
+
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
-    threshold: Option<i32>,
+    threshold: i32,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub fn new<T: MovePickerStrategy>(tt_move: Move, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
-            threshold: None,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_probcut(threshold: i32) -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_qsearch() -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            threshold: None,
-            stage: Stage::GenerateNoisy,
+            threshold,
+            stage: if T::KIND == MovePickerKind::Normal && tt_move.is_some() {
+                Stage::HashMove
+            } else {
+                Stage::GenerateNoisy
+            },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -61,8 +69,8 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
-        if self.stage == Stage::HashMove {
+    pub fn next<T: MovePickerStrategy>(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
+        if T::KIND == MovePickerKind::Normal && self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
             if td.board.is_pseudo_legal(self.tt_move) {
@@ -90,9 +98,16 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 34 + 107);
+                let threshold = match T::KIND {
+                    MovePickerKind::Probcut => self.threshold,
+                    _ => -entry.score / 34 + 107,
+                };
+
                 if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                    if T::KIND != MovePickerKind::Probcut {
+                        self.bad_noisy.push(entry.mv);
+                    }
+
                     continue;
                 }
 

@@ -1,6 +1,6 @@
 use crate::{
     evaluate::evaluate,
-    movepick::{MovePicker, Stage},
+    movepick::{MovePicker, NormalPicker, ProbcutPicker, QSearchPicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
@@ -470,11 +470,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let probcut_beta = beta + 280 - 63 * improving as i32;
 
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
-        let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new::<ProbcutPicker>(Move::NULL, probcut_beta - static_eval);
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some(mv) = move_picker.next(td, true) {
+        while let Some(mv) = move_picker.next::<ProbcutPicker>(td, true) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -523,10 +523,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new::<NormalPicker>(tt_move, 0);
     let mut skip_quiets = false;
 
-    while let Some(mv) = move_picker.next(td, skip_quiets) {
+    while let Some(mv) = move_picker.next::<NormalPicker>(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
@@ -948,14 +948,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch();
+    let mut move_picker = MovePicker::new::<QSearchPicker>(Move::NULL, 0);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
         _ => td.stack[td.ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check) {
+    while let Some(mv) = move_picker.next::<QSearchPicker>(td, !in_check) {
         if !td.board.is_legal(mv) {
             continue;
         }
