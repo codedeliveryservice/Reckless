@@ -233,7 +233,7 @@ impl Board {
     /// This method uses a cuckoo hashing algorithm as described in M. N. J. van Kervinck's
     /// paper to detect cycles one ply before they appear in the search of a game tree.
     ///
-    /// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+    /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
@@ -419,7 +419,7 @@ impl Board {
     ///
     /// Roughly 90–95% accurate. Does not account for discovered checks, promotions,
     /// en passant, or checks delivered via castling.
-    pub fn might_give_check_if_you_squint(&mut self, mv: Move) -> bool {
+    pub fn might_give_check_if_you_squint(&self, mv: Move) -> bool {
         let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
         let direct_attacks = match self.moved_piece(mv).piece_type() {
             PieceType::Pawn => pawn_attacks(mv.to(), self.side_to_move),
