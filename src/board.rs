@@ -63,8 +63,10 @@ impl Board {
         self.fullmove_number
     }
 
-    /// Returns the Zobrist hash key for the current position.
     pub fn hash(&self) -> u64 {
+        // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
+        // every 8 plies to distinguish between positions that would otherwise appear
+        // identical to the transposition table.
         self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
     }
 
@@ -108,12 +110,18 @@ impl Board {
         self.state.castling
     }
 
-    /// Returns a `Bitboard` for the specified `Color`.
+    pub const fn halfmove_clock(&self) -> u8 {
+        self.state.halfmove_clock
+    }
+
+    pub const fn in_check(&self) -> bool {
+        !self.state.checkers.is_empty()
+    }
+
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]
     }
 
-    /// Returns a `Bitboard` for the specified `Piece` type.
     pub fn pieces(&self, piece_type: PieceType) -> Bitboard {
         self.pieces[piece_type]
     }
@@ -126,32 +134,26 @@ impl Board {
         self.pieces
     }
 
-    /// Returns a `Bitboard` for all pieces on the board.
     pub fn occupancies(&self) -> Bitboard {
         self.colors(Color::White) | self.colors(Color::Black)
     }
 
-    /// Returns a `Bitboard` for the specified `Piece` type and `Color`.
     pub fn of(&self, piece_type: PieceType, color: Color) -> Bitboard {
         self.pieces(piece_type) & self.colors(color)
     }
 
-    /// Returns a `Bitboard` with friendly pieces for the current state.
     pub fn us(&self) -> Bitboard {
         self.colors(self.side_to_move)
     }
 
-    /// Returns a `Bitboard` with enemy pieces for the current state.
     pub fn them(&self) -> Bitboard {
         self.colors(!self.side_to_move)
     }
 
-    /// Returns a `Bitboard` with friendly pieces of the specified `Piece` type.
     pub fn our(&self, piece_type: PieceType) -> Bitboard {
         self.pieces(piece_type) & self.us()
     }
 
-    /// Returns a `Bitboard` with enemy pieces of the specified `Piece` type.
     pub fn their(&self, piece_type: PieceType) -> Bitboard {
         self.pieces(piece_type) & self.them()
     }
@@ -160,7 +162,6 @@ impl Board {
         self.of(PieceType::King, color).lsb()
     }
 
-    /// Finds a piece on the specified square, if found; otherwise, `Piece::None`.
     pub fn piece_on(&self, square: Square) -> Piece {
         self.mailbox[square]
     }
@@ -169,27 +170,22 @@ impl Board {
         self.mailbox[mv.from()]
     }
 
-    /// Returns `true` if the current side to move has non-pawn material.
-    ///
-    /// This method is used to minimize the risk of zugzwang when considering the Null Move Heuristic.
     pub fn has_non_pawns(&self) -> bool {
         self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
     }
 
-    pub fn increment_game_ply(&mut self) {
+    pub fn advance_fullmove_counter(&mut self) {
         if self.side_to_move == Color::Black {
             self.fullmove_number += 1;
         }
     }
 
-    /// Places a piece of the specified type and color on the square.
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
     }
 
-    /// Removes a piece of the specified type and color from the square.
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
@@ -197,31 +193,33 @@ impl Board {
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
-        self.state.key ^= ZOBRIST.pieces[piece][square];
+        let key = ZOBRIST.pieces[piece][square];
+
+        self.state.key ^= key;
 
         if piece.piece_type() == PieceType::Pawn {
-            self.state.pawn_key ^= ZOBRIST.pieces[piece][square];
+            self.state.pawn_key ^= key;
         } else {
-            self.state.non_pawn_keys[piece.piece_color()] ^= ZOBRIST.pieces[piece][square];
+            self.state.non_pawn_keys[piece.piece_color()] ^= key;
 
             if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
-                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
+                self.state.minor_key ^= key;
             } else if [PieceType::Rook, PieceType::Queen].contains(&piece.piece_type()) {
-                self.state.major_key ^= ZOBRIST.pieces[piece][square];
+                self.state.major_key ^= key;
             } else {
-                self.state.minor_key ^= ZOBRIST.pieces[piece][square];
-                self.state.major_key ^= ZOBRIST.pieces[piece][square];
+                self.state.minor_key ^= key;
+                self.state.major_key ^= key;
             }
         }
     }
 
-    /// Returns `true` if the current position is a known draw by the fifty-move rule or repetition.
+    /// Checks if the position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self, ply: usize) -> bool {
         self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
     }
 
-    /// Return a draw score if a position repeats once earlier but strictly
-    /// after the root, or repeats twice before or at the root.
+    /// Checks if the position has repeated once earlier but strictly
+    /// after the root, or repeated twice before or at the root.
     pub const fn draw_by_repetition(&self, ply: i32) -> bool {
         self.state.repetition != 0 && self.state.repetition < ply
     }
@@ -230,14 +228,12 @@ impl Board {
         self.state.halfmove_clock >= 100 && (!self.in_check() || self.has_legal_moves())
     }
 
-    pub const fn halfmove_clock(&self) -> u8 {
-        self.state.halfmove_clock
-    }
-
-    pub const fn in_check(&self) -> bool {
-        !self.state.checkers.is_empty()
-    }
-
+    /// Checks if the current position has a move that leads to a draw by repetition.
+    ///
+    /// This method uses a cuckoo hashing algorithm as described in M. N. J. van Kervinck's
+    /// paper to detect cycles one ply before they appear in the search of a game tree.
+    ///
+    /// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
@@ -290,6 +286,10 @@ impl Board {
             | king_attacks(square) & self.pieces(PieceType::King)
     }
 
+    /// Checks if the given move is legal in the current position.
+    ///
+    /// This method assumes the move has been validated as pseudo-legal
+    /// per `Board::is_pseudo_legal`.
     pub fn is_legal(&self, mv: Move) -> bool {
         let from = mv.from();
         let to = mv.to();
@@ -328,6 +328,10 @@ impl Board {
         (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
+    /// Checks if a move is pseudo-legal in the current position.
+    ///
+    /// A pseudo-legal move follows the piece's movement rules but does not verify
+    /// whether the king is left in check, so it does not guarantee full legality.
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         if mv.is_null() {
             return false;
@@ -411,6 +415,10 @@ impl Board {
         attacks.contains(to)
     }
 
+    /// Quickly checks if the move *might* give check to the opponent's king.
+    ///
+    /// Roughly 90–95% accurate. Does not account for discovered checks, promotions,
+    /// en passant, or checks delivered via castling.
     pub fn might_give_check_if_you_squint(&mut self, mv: Move) -> bool {
         let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
         let direct_attacks = match self.moved_piece(mv).piece_type() {
@@ -426,7 +434,16 @@ impl Board {
     }
 
     pub fn update_threats(&mut self) {
+        // The king is excluded from the occupancy bitboard when computing threats,
+        // letting sliders "see through" it as if the king weren't blocking their path.
+        //
+        // Although this changes the resulting threat bitboard, it has no impact on
+        // engine behavior, since such squares are not legal move targets, so threat
+        // history remains unaffected by this change.
+        //
+        // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let occupancies = self.occupancies() ^ self.our(PieceType::King);
+
         let mut threats = Bitboard::default();
 
         for square in self.their(PieceType::Pawn) {
@@ -448,6 +465,8 @@ impl Board {
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
     }
 
+    /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
+    /// and our pinned pieces that cannot move without leaving the king in check.
     pub fn update_king_threats(&mut self) {
         let king = self.our(PieceType::King).lsb();
 

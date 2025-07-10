@@ -1,5 +1,5 @@
-//! Perft used for testing, debugging and benchmarking the move generator.
-//! This is achieved by enumerating the number of leaf nodes for a given depth.
+//! Perft is used for testing, debugging, and benchmarking the move generator.
+//! This is achieved by enumerating the number of leaf nodes at a given depth.
 //!
 //! See [Perft](https://www.chessprogramming.org/Perft) for more information.
 
@@ -7,7 +7,6 @@ use std::time::Instant;
 
 use crate::board::Board;
 
-/// Runs a performance test on the `Board` with the specified depth.
 pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
     println!("{:>12} {:>12} {:>13} {:>15}", "Move", "Nodes", "Elapsed", "NPS");
