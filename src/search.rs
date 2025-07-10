@@ -577,6 +577,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 111 * lmr_depth
                 + 396 * move_count / 128
                 + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 12
+                + 92 * (best_score > static_eval) as i32
                 + 80 * (history + 500) / 1024;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
