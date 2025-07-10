@@ -433,9 +433,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             -qsearch::<NonPV>(td, -beta, -beta + 1)
         } else {
             td.stack[td.ply].reduction = 1024 * (r - 1);
-            let value = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
+            let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
             td.stack[td.ply].reduction = 0;
-            value
+            score
         };
 
         td.board.undo_null_move();
@@ -573,15 +573,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let capt_futility_value = static_eval
+            let noisy_futility_value = static_eval
                 + 111 * lmr_depth
                 + 396 * move_count / 128
-                + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 12
-                + 80 * (history + 500) / 1024;
+                + 80 * (history + 500) / 1024
+                + PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 12;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && capt_futility_value <= alpha {
-                if !is_decisive(best_score) && best_score <= capt_futility_value {
-                    best_score = capt_futility_value;
+            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+                if !is_decisive(best_score) && best_score <= noisy_futility_value {
+                    best_score = noisy_futility_value;
                 }
                 break;
             }
