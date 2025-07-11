@@ -355,7 +355,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
-    // Hindsight LMR
+    // Hindsight reductions
     if !NODE::ROOT
         && !in_check
         && !excluded
