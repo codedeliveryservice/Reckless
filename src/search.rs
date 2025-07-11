@@ -258,6 +258,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
+
+                if !is_decisive(tt_score) {
+                    return match tt_bound {
+                        Bound::Lower => (3 * tt_score + alpha) / 4,
+                        Bound::Upper => (3 * tt_score + beta) / 4,
+                        _ => tt_score,
+                    };
+                }
+
                 return tt_score;
             }
         }
