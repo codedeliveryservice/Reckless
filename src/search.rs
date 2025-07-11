@@ -299,10 +299,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction_value(td);
+    let mut correction_value = correction(td);
 
     let raw_eval;
-    let static_eval;
+    let mut static_eval;
     let mut eval;
 
     // Evaluation
@@ -328,6 +328,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         {
             debug_assert!(is_valid(tt_score));
             eval = tt_score;
+
+            if !(in_check
+                || !tt_move.is_noisy()
+                || (eval <= alpha && eval >= static_eval)
+                || (eval >= beta && eval <= static_eval))
+            {
+                update_correction_histories(td, 1, eval - static_eval);
+                correction_value = correction(td);
+                static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+            }
         }
     } else {
         raw_eval = evaluate(td);
@@ -903,7 +913,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -1030,7 +1040,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
