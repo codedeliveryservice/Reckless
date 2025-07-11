@@ -1,11 +1,14 @@
-use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
+use crate::{
+    parameters::*,
+    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+};
 
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 
-fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
-    let bonus = bonus.clamp(-MAX, MAX);
-    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+fn apply_bonus(entry: &mut i16, bonus: i32, max: i32) {
+    let bonus = bonus.clamp(-max, max);
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / max) as i16;
 }
 
 struct QuietHistoryEntry {
@@ -14,9 +17,6 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 2048;
-    const MAX_BUCKET: i32 = 6144;
-
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
         let from_threated = threats.contains(mv.from()) as usize;
         let to_threated = threats.contains(mv.to()) as usize;
@@ -25,17 +25,19 @@ impl QuietHistoryEntry {
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
+        let max = max1();
         let entry = &mut self.factorizer;
-        let bonus = bonus.clamp(-Self::MAX_FACTORIZER, Self::MAX_FACTORIZER);
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        let bonus = bonus.clamp(-max, max);
+        apply_bonus(entry, bonus, max);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
+        let max = max2();
         let from_threated = threats.contains(mv.from()) as usize;
         let to_threated = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threated][to_threated];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        apply_bonus(entry, bonus, max);
     }
 }
 
@@ -69,23 +71,22 @@ struct NoisyHistoryEntry {
 }
 
 impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4096;
-    const MAX_BUCKET: i32 = 8192;
-
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
         let threated = threats.contains(sq) as usize;
         self.buckets[captured][threated]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
+        let max = max3();
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus(entry, bonus, max);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
+        let max = max4();
         let threated = threats.contains(sq) as usize;
         let entry = &mut self.buckets[captured][threated];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        apply_bonus(entry, bonus, max);
     }
 }
 
@@ -120,18 +121,16 @@ pub struct CorrectionHistory {
 }
 
 impl CorrectionHistory {
-    const MAX_HISTORY: i32 = 16384;
-
     const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] / 108) as i32
+        (self.entries[stm][key as usize & Self::MASK] as i32) / corr4()
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        *entry += (bonus - bonus.abs() * (*entry) as i32 / max5()) as i16;
     }
 }
 
@@ -147,19 +146,18 @@ pub struct ContinuationCorrectionHistory {
 }
 
 impl ContinuationCorrectionHistory {
-    const MAX_HISTORY: i32 = 16384;
-
     pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
         self.entries[piece][sq].as_mut_ptr().cast()
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][sq] / 108) as i32
+        (unsafe { &*subtable_ptr }[piece][sq] as i32) / corr5()
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
+        let max = max6();
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus(entry, bonus, max);
     }
 }
 
@@ -175,8 +173,6 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 16384;
-
     pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
         self.entries[piece][sq].as_mut_ptr().cast()
     }
@@ -186,8 +182,9 @@ impl ContinuationHistory {
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
+        let max = max7();
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus(entry, bonus, max);
     }
 }
 
