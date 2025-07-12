@@ -14,8 +14,8 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 2048;
-    const MAX_BUCKET: i32 = 6144;
+    const MAX_FACTORIZER: i32 = 1940;
+    const MAX_BUCKET: i32 = 6029;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
         let from_threated = threats.contains(mv.from()) as usize;
@@ -69,8 +69,8 @@ struct NoisyHistoryEntry {
 }
 
 impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4096;
-    const MAX_BUCKET: i32 = 8192;
+    const MAX_FACTORIZER: i32 = 4449;
+    const MAX_BUCKET: i32 = 8148;
 
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
         let threated = threats.contains(sq) as usize;
@@ -120,13 +120,13 @@ pub struct CorrectionHistory {
 }
 
 impl CorrectionHistory {
-    const MAX_HISTORY: i32 = 16384;
+    const MAX_HISTORY: i32 = 14734;
 
     const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] / 108) as i32
+        (self.entries[stm][key as usize & Self::MASK] as i32) / 82
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
@@ -147,14 +147,14 @@ pub struct ContinuationCorrectionHistory {
 }
 
 impl ContinuationCorrectionHistory {
-    const MAX_HISTORY: i32 = 16384;
+    const MAX_HISTORY: i32 = 16222;
 
     pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
         self.entries[piece][sq].as_mut_ptr().cast()
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][sq] / 108) as i32
+        (unsafe { &*subtable_ptr }[piece][sq] as i32) / 100
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
@@ -175,7 +175,7 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 16384;
+    const MAX_HISTORY: i32 = 15324;
 
     pub fn subtable_ptr(&mut self, piece: Piece, sq: Square) -> *mut PieceToHistory<i16> {
         self.entries[piece][sq].as_mut_ptr().cast()
