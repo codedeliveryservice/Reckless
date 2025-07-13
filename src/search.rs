@@ -356,7 +356,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if bonus < 0 {
             td.ply -= 1;
-            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), bonus);
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), bonus / 2);
             td.ply += 1;
         }
     }
