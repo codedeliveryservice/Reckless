@@ -354,7 +354,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
 
-        if bonus < 0 {
+        if bonus > 0 {
             td.ply -= 1;
             update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), bonus / 2);
             td.ply += 1;
