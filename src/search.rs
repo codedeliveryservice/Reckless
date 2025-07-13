@@ -867,12 +867,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut tt_move = Move::NULL;
 
     // QS Early TT-Cut
     if let Some(entry) = entry {
         tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_move = entry.mv;
 
         if is_valid(tt_score)
             && match tt_bound {
@@ -943,7 +945,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch();
+    let mut move_picker = MovePicker::new_qsearch(tt_move);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,
@@ -977,6 +979,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if !is_loss(best_score) && !td.board.see(mv, -73) {
+            continue;
+        }
+
+        if !is_loss(best_score) && mv == tt_move && mv.is_quiet() && td.conthist(1, mv) < 0 && td.conthist(2, mv) < 0 {
             continue;
         }
 
