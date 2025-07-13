@@ -875,11 +875,12 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         tt_bound = entry.bound;
 
         if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score <= alpha,
-                Bound::Lower => tt_score >= beta,
-                _ => true,
-            }
+            && (entry.mv.is_some()
+                || match tt_bound {
+                    Bound::Upper => tt_score <= alpha,
+                    Bound::Lower => tt_score >= beta,
+                    _ => true,
+                })
             && (!NODE::PV || !is_decisive(tt_score))
         {
             debug_assert!(is_valid(tt_score));
