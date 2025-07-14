@@ -20,14 +20,12 @@ const L1_SIZE: usize = 1024;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
-const LHS_FT_QUANT: i32 = 255;
-const RHS_FT_QUANT: i32 = 510;
-
+const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
 
 const FT_SHIFT: i32 = 9;
 
-const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (LHS_FT_QUANT * RHS_FT_QUANT * L1_QUANT) as f32;
+const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
 #[rustfmt::skip]
 const BUCKETS: [usize; 64] = [
@@ -158,8 +156,7 @@ unsafe fn activate_ft(
     let mut nnz_count = 0;
 
     let zero = _mm256_setzero_si256();
-    let one = _mm256_set1_epi16(LHS_FT_QUANT as i16);
-    let two = _mm256_set1_epi16(RHS_FT_QUANT as i16);
+    let one = _mm256_set1_epi16(FT_QUANT as i16);
 
     for flip in [0, 1] {
         let input = &accumulator.values[stm as usize ^ flip];
@@ -174,8 +171,8 @@ unsafe fn activate_ft(
             let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
             let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
 
-            let rhs1_clipped = _mm256_min_epi16(rhs1, two);
-            let rhs2_clipped = _mm256_min_epi16(rhs2, two);
+            let rhs1_clipped = _mm256_min_epi16(rhs1, one);
+            let rhs2_clipped = _mm256_min_epi16(rhs2, one);
 
             let shifted1 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
             let shifted2 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
@@ -202,7 +199,7 @@ unsafe fn activate_ft(
     (output, nnz_indexes, nnz_count)
 }
 
-unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE * 2]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / simd::F32_LANES]);
@@ -221,7 +218,7 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0.0; L2_SIZE * 2]);
 
     let zero = _mm256_setzero_ps();
     let one = _mm256_set1_ps(1.0);
@@ -230,16 +227,21 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = _mm256_load_ps(PARAMETERS.l1_biases.as_ptr().add(i).cast());
         let vector = _mm256_fmadd_ps(_mm256_cvtepi32_ps(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
+
+        let crelu = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
+        let squared = _mm256_min_ps(_mm256_mul_ps(vector, vector), one);
+
+        *output.as_mut_ptr().add(i).cast() = crelu;
+        *output.as_mut_ptr().add(i + L2_SIZE).cast() = squared;
     }
 
     output
 }
 
-unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE * 2]>) -> Aligned<[f32; L3_SIZE]> {
     let mut output = PARAMETERS.l2_biases.clone();
 
-    for i in 0..L2_SIZE {
+    for i in 0..L2_SIZE * 2 {
         let input = _mm256_set1_ps(l1_out[i]);
         let weights = PARAMETERS.l2_weights[i].as_ptr();
 
@@ -308,7 +310,7 @@ struct Parameters {
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
+    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE * 2]>,
     l2_biases: Aligned<[f32; L3_SIZE]>,
     l3_weights: Aligned<[f32; L3_SIZE]>,
     l3_biases: f32,
