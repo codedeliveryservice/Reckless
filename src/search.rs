@@ -256,6 +256,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
+            if tt_move.is_noisy() && tt_score >= beta {
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(tt_move),
+                    tt_move.to(),
+                    td.board.piece_on(tt_move.to()).piece_type(),
+                    (96 * depth - 60).min(1150),
+                );
+            }
+
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
                 return tt_score;
