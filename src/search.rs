@@ -957,7 +957,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != previous_square {
+        if !is_loss(best_score) && mv.to() != previous_square && !td.board.might_give_check_if_you_squint(mv) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
