@@ -690,6 +690,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
+
+                        if !quiet_moves.is_empty() || new_depth > 3 {
+                            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), mv, bonus);
+                        }
                     }
                 }
             } else if score > alpha && score < best_score + 15 {
