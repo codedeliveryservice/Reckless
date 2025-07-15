@@ -647,7 +647,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 55 * move_count;
             reduction += 303;
 
-            if tt_pv {
+            if td.stack[td.ply - 1].tt_pv {
                 reduction -= 663;
                 reduction -= 652 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 783 * (is_valid(tt_score) && tt_depth >= depth) as i32;
