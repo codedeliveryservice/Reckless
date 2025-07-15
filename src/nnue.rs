@@ -21,7 +21,7 @@ const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
 const FT_QUANT: i32 = 255;
-const L1_QUANT: i32 = 64;
+const L1_QUANT: i32 = 128;
 
 const FT_SHIFT: i32 = 9;
 
