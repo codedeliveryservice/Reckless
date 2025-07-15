@@ -901,15 +901,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
-        if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score < static_eval,
-                Bound::Lower => tt_score > static_eval,
-                _ => true,
-            }
-        {
-            debug_assert!(is_valid(tt_score));
-            best_score = tt_score;
+        if is_valid(tt_score) {
+            best_score = match tt_bound {
+                Bound::Exact => tt_score,
+                Bound::Upper if tt_score < static_eval => tt_score,
+                Bound::Lower if tt_score > static_eval => (3 * tt_score + static_eval) / 4,
+                _ => best_score,
+            };
         }
 
         if best_score >= beta {
