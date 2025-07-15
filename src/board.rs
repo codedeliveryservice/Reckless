@@ -102,6 +102,10 @@ impl Board {
         self.state_stack[self.state_stack.len() - 1].threats
     }
 
+    pub fn prior_in_check(&self) -> bool {
+        !self.state_stack[self.state_stack.len() - 1].checkers.is_empty()
+    }
+
     pub const fn en_passant(&self) -> Square {
         self.state.en_passant
     }

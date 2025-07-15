@@ -169,6 +169,7 @@ impl MovePicker {
     }
 
     fn score_quiet(&mut self, td: &ThreadData) {
+        let in_check = td.board.in_check();
         let threats = td.board.threats();
         let side = td.board.side_to_move();
 
@@ -180,7 +181,7 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = td.quiet_history.get(threats, side, mv)
+            entry.score = td.quiet_history.get(in_check, threats, side, mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
