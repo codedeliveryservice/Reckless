@@ -1,5 +1,8 @@
 use super::Board;
-use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::{
+    lookup::pawn_attacks,
+    types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST},
+};
 
 impl Board {
     pub fn make_null_move(&mut self) {
@@ -70,8 +73,12 @@ impl Board {
 
         match mv.kind() {
             MoveKind::DoublePush => {
-                self.state.en_passant = Square::new((from as u8 + to as u8) / 2);
-                self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
+                let ep_square = Square::new(to as u8 ^ 8);
+
+                if !(self.their(PieceType::Pawn) & pawn_attacks(ep_square, stm)).is_empty() {
+                    self.state.en_passant = ep_square;
+                    self.state.key ^= ZOBRIST.en_passant[ep_square];
+                }
             }
             MoveKind::EnPassant => {
                 let captured = Piece::new(!stm, PieceType::Pawn);
