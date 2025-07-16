@@ -389,7 +389,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 294 - 264 * depth * depth {
-        return qsearch::<NonPV>(td, alpha, beta);
+        return qsearch::<NonPV>(td, alpha - 1, alpha);
     }
 
     // Reverse Futility Pruning (RFP)
