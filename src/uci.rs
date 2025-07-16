@@ -12,21 +12,20 @@ use crate::{
     types::{is_decisive, is_loss, is_win, Color},
 };
 
-pub fn message_loop() {
+pub fn message_loop(mut next_command: Option<String>) {
     static STOP: AtomicBool = AtomicBool::new(false);
 
     let tt = TranspositionTable::default();
-    let counter = AtomicU64::new(0);
+    let nodes = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut threads = ThreadPool::new(&tt, &STOP, &counter, &tb_hits);
+    let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
     for thread in threads.iter_mut() {
         thread.nnue.full_refresh(&thread.board);
     }
 
     let mut move_overhead = 0;
     let mut report = Report::Full;
-    let mut next_command = None;
 
     loop {
         let command = next_command.take().unwrap_or_else(read_stdin);

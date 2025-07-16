@@ -50,10 +50,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     td.pv.clear(0);
     td.node_table.clear();
-    td.counter.clear();
+    td.nodes.clear();
     td.tb_hits.clear();
-
-    td.nnue.full_refresh(&td.board);
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
@@ -94,6 +92,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 break;
             }
 
+            if report == Report::Full && (score <= alpha || score >= beta) && td.nodes.local() > 10000000 {
+                td.print_uci_info(depth, td.best_score);
+            }
+
             match score {
                 s if s <= alpha => {
                     beta = (alpha + beta) / 2;
@@ -117,7 +119,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             break;
         }
 
-        td.counter.flush();
+        td.nodes.flush();
         td.tb_hits.flush();
         td.completed_depth = depth;
 
@@ -135,7 +137,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.counter.local() as f32);
+            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability as f32;
 
@@ -628,7 +630,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        let initial_nodes = td.counter.local();
+        let initial_nodes = td.nodes.local();
 
         make_move(td, mv);
 
@@ -719,7 +721,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if NODE::ROOT {
-            td.node_table.add(mv, td.counter.local() - initial_nodes);
+            td.node_table.add(mv, td.nodes.local() - initial_nodes);
         }
 
         if score > best_score {
@@ -1094,7 +1096,7 @@ fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].mv = mv;
     td.ply += 1;
 
-    td.counter.increment();
+    td.nodes.increment();
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
     td.tt.prefetch(td.board.hash());
