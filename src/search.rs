@@ -670,6 +670,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1232;
             }
 
+            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+                reduction += 768;
+            }
+
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(NODE::PV as i32, new_depth + (NODE::PV || cut_node) as i32);
 
