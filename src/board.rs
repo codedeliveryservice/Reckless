@@ -48,9 +48,9 @@ pub struct Board {
     state: InternalState,
     state_stack: Box<ArrayVec<InternalState, 2048>>,
     fullmove_number: usize,
-    updates: [u8; Square::NUM],
-    path: [Bitboard; 16],
-    threat_mask: [Bitboard; 16],
+    castling_rights: [u8; Square::NUM],
+    castling_path: [Bitboard; 16],
+    castling_threat: [Bitboard; 16],
 }
 
 impl Board {
@@ -366,8 +366,8 @@ impl Board {
             macro_rules! check_castling {
                 ($kind:tt) => {
                     self.castling().is_allowed::<$kind>()
-                        && (self.path[$kind::MASK as usize] & self.occupancies()).is_empty()
-                        && (self.threat_mask[$kind::MASK as usize] & self.threats()).is_empty()
+                        && (self.castling_path[$kind::MASK as usize] & self.occupancies()).is_empty()
+                        && (self.castling_threat[$kind::MASK as usize] & self.threats()).is_empty()
                 };
             }
 
@@ -542,9 +542,9 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
-            updates: [0; Square::NUM],
-            path: [Bitboard::default(); 16],
-            threat_mask: [Bitboard::default(); 16],
+            castling_rights: [0; Square::NUM],
+            castling_path: [Bitboard::default(); 16],
+            castling_threat: [Bitboard::default(); 16],
         }
     }
 }

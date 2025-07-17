@@ -102,9 +102,9 @@ impl Board {
 
         self.side_to_move = !self.side_to_move;
 
-        if self.updates[from] != self.updates[to] {
+        if self.castling_rights[from] != self.castling_rights[to] {
             self.state.key ^= ZOBRIST.castling[self.state.castling];
-            self.state.castling.raw &= !(self.updates[from] | self.updates[to]);
+            self.state.castling.raw &= !(self.castling_rights[from] | self.castling_rights[to]);
             self.state.key ^= ZOBRIST.castling[self.state.castling];
         }
 

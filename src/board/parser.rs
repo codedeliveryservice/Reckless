@@ -88,13 +88,13 @@ impl Board {
     ) {
         self.state.castling.raw |= KIND::MASK;
 
-        self.updates[king_from] ^= KIND::MASK;
-        self.updates[rook_from] ^= KIND::MASK;
+        self.castling_rights[king_from] ^= KIND::MASK;
+        self.castling_rights[rook_from] ^= KIND::MASK;
 
-        self.path[KIND::MASK as usize] |= between(king_from, king_to);
-        self.path[KIND::MASK as usize] |= between(rook_from, rook_to);
+        self.castling_path[KIND::MASK as usize] |= between(king_from, king_to);
+        self.castling_path[KIND::MASK as usize] |= between(rook_from, rook_to);
 
-        self.threat_mask[KIND::MASK as usize] |= between(king_from, king_to) | king_from.to_bb();
+        self.castling_threat[KIND::MASK as usize] |= between(king_from, king_to) | king_from.to_bb();
     }
 
     pub fn to_fen(&self) -> String {
