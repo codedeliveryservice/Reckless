@@ -39,7 +39,6 @@ impl Board {
         self.state_stack.push(self.state);
 
         self.state.key ^= ZOBRIST.side;
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
@@ -103,8 +102,11 @@ impl Board {
 
         self.side_to_move = !self.side_to_move;
 
-        self.state.castling.raw &= self.updates[from] & self.updates[to];
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        if self.updates[from] != self.updates[to] {
+            self.state.key ^= ZOBRIST.castling[self.state.castling];
+            self.state.castling.raw &= !(self.updates[from] | self.updates[to]);
+            self.state.key ^= ZOBRIST.castling[self.state.castling];
+        }
 
         self.update_threats();
         self.update_king_threats();

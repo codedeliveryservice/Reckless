@@ -540,7 +540,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
-            updates: [0b1111; Square::NUM],
+            updates: [0; Square::NUM],
         }
     }
 }
