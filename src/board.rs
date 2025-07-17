@@ -374,8 +374,8 @@ impl Board {
             };
 
             return self.castling().is_allowed(kind)
-                && (self.castling_path[kind as usize] & self.occupancies()).is_empty()
-                && (self.castling_threat[kind as usize] & self.threats()).is_empty();
+                && (self.castling_path[kind] & self.occupancies()).is_empty()
+                && (self.castling_threat[kind] & self.threats()).is_empty();
         }
 
         if piece == PieceType::Pawn {
@@ -520,10 +520,10 @@ impl Board {
 
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingSide as usize], Square::F1),
-            Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenSide as usize], Square::D1),
-            Square::G8 => (self.castling_rooks[CastlingKind::BlackKingSide as usize], Square::F8),
-            Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenSide as usize], Square::D8),
+            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingSide], Square::F1),
+            Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenSide], Square::D1),
+            Square::G8 => (self.castling_rooks[CastlingKind::BlackKingSide], Square::F8),
+            Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenSide], Square::D8),
             _ => unreachable!(),
         }
     }
@@ -540,7 +540,7 @@ impl Default for Board {
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
             castling_rights: [0; Square::NUM],
-            castling_path: [Bitboard::default(); 16],            
+            castling_path: [Bitboard::default(); 16],
             castling_threat: [Bitboard::default(); 16],
             castling_rooks: [Square::None; 16],
         }

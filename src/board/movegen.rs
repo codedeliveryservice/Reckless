@@ -108,8 +108,8 @@ impl super::Board {
 
     fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
         if self.castling().is_allowed(kind)
-            && (self.castling_path[kind as usize] & self.occupancies()).is_empty()
-            && (self.castling_threat[kind as usize] & self.threats()).is_empty()
+            && (self.castling_path[kind] & self.occupancies()).is_empty()
+            && (self.castling_threat[kind] & self.threats()).is_empty()
         {
             let king = self.king_square(self.side_to_move);
             list.push(king, kind.landing_square(), MoveKind::Castling);

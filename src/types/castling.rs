@@ -1,4 +1,7 @@
-use std::{fmt::Display, ops::Index};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
 use super::Square;
 
@@ -18,6 +21,20 @@ impl CastlingKind {
             CastlingKind::BlackKingSide => Square::G8,
             CastlingKind::BlackQueenSide => Square::C8,
         }
+    }
+}
+
+impl<T> Index<CastlingKind> for [T] {
+    type Output = T;
+
+    fn index(&self, index: CastlingKind) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> IndexMut<CastlingKind> for [T] {
+    fn index_mut(&mut self, index: CastlingKind) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 

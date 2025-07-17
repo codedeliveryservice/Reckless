@@ -115,12 +115,12 @@ impl Board {
         self.castling_rights[king_from] ^= kind as u8;
         self.castling_rights[rook_from] ^= kind as u8;
 
-        self.castling_path[kind as usize] |= between(king_from, king_to);
-        self.castling_path[kind as usize] |= between(rook_from, rook_to);
+        self.castling_path[kind] |= between(king_from, king_to);
+        self.castling_path[kind] |= between(rook_from, rook_to);
 
-        self.castling_threat[kind as usize] |= between(king_from, king_to) | king_from.to_bb();
+        self.castling_threat[kind] |= between(king_from, king_to) | king_from.to_bb();
 
-        self.castling_rooks[kind as usize] = rook_from;
+        self.castling_rooks[kind] = rook_from;
     }
 
     pub fn to_fen(&self) -> String {
