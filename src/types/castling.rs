@@ -1,32 +1,31 @@
 use std::{fmt::Display, ops::Index};
 
-use super::{ Move, MoveKind, Square};
+use super::Square;
 
 pub trait CastlingKind {
     /// The raw bitmask representing this castling kind.
     const MASK: u8;
-    /// The castling move associated with this castling kind.
-    const CASTLING_MOVE: Move;
+    const LANDING_SQUARE: Square;
 }
 
 macro_rules! impl_castling_kind {
-    ($($kind:ident => $raw:expr, $from:expr, $to:expr;)*)  => {
+    ($($kind:ident => $raw:expr, $to:expr;)*)  => {
         $(
             pub struct $kind;
 
             impl CastlingKind for $kind {
                 const MASK: u8 = $raw;
-                const CASTLING_MOVE: Move = Move::new($from, $to, MoveKind::Castling);
+                const LANDING_SQUARE: Square = $to;
             }
         )*
     };
 }
 
 impl_castling_kind! {
-    WhiteKingSide  => 1, Square::E1, Square::G1;
-    WhiteQueenSide => 2, Square::E1, Square::C1;
-    BlackKingSide  => 4, Square::E8, Square::G8;
-    BlackQueenSide => 8, Square::E8, Square::C8;
+    WhiteKingSide  => 1, Square::G1;
+    WhiteQueenSide => 2, Square::C1;
+    BlackKingSide  => 4, Square::G8;
+    BlackQueenSide => 8, Square::C8;
 }
 
 #[derive(Copy, Clone, Default)]

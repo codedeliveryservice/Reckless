@@ -29,10 +29,6 @@ impl MoveList {
         self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
     }
 
-    pub fn push_move(&mut self, mv: Move) {
-        self.inner.push(MoveEntry { mv, score: 0 });
-    }
-
     pub fn iter(&self) -> std::slice::Iter<MoveEntry> {
         self.inner.iter()
     }

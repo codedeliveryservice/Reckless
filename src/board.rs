@@ -372,11 +372,11 @@ impl Board {
             }
 
             return piece == PieceType::King
-                && match mv {
-                    WhiteKingSide::CASTLING_MOVE => check_castling!(WhiteKingSide),
-                    WhiteQueenSide::CASTLING_MOVE => check_castling!(WhiteQueenSide),
-                    BlackKingSide::CASTLING_MOVE => check_castling!(BlackKingSide),
-                    BlackQueenSide::CASTLING_MOVE => check_castling!(BlackQueenSide),
+                && match to {
+                    Square::G1 => check_castling!(WhiteKingSide),
+                    Square::C1 => check_castling!(WhiteQueenSide),
+                    Square::G8 => check_castling!(BlackKingSide),
+                    Square::C8 => check_castling!(BlackQueenSide),
                     _ => unreachable!(),
                 };
         }

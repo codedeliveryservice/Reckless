@@ -113,7 +113,8 @@ impl super::Board {
             && (self.castling_path[KIND::MASK as usize] & self.occupancies()).is_empty()
             && (self.castling_threat[KIND::MASK as usize] & self.threats()).is_empty()
         {
-            list.push_move(KIND::CASTLING_MOVE);
+            let king = self.king_square(self.side_to_move);
+            list.push(king, KIND::LANDING_SQUARE, MoveKind::Castling);
         }
     }
 

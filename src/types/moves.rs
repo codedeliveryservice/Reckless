@@ -89,10 +89,6 @@ impl Move {
         (self.0 >> 15) != 0
     }
 
-    pub const fn is_normal(self) -> bool {
-        matches!(self.kind(), MoveKind::Normal)
-    }
-
     pub const fn is_en_passant(self) -> bool {
         matches!(self.kind(), MoveKind::EnPassant)
     }
