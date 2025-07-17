@@ -1,7 +1,7 @@
 use super::Board;
 use crate::{
     lookup::between,
-    types::{BlackKingSide, BlackQueenSide, CastlingKind, Color, Piece, Square, WhiteKingSide, WhiteQueenSide},
+    types::{CastlingKind, Color, Piece, Square},
 };
 
 #[derive(Debug)]
@@ -67,34 +67,58 @@ impl Board {
         for right in rights.chars() {
             match right {
                 'K' => {
-                    self.set_castling_for_kind::<WhiteKingSide>(Square::E1, Square::G1, Square::H1, Square::F1);
+                    self.set_castling_for_kind(
+                        CastlingKind::WhiteKingSide,
+                        Square::E1,
+                        Square::G1,
+                        Square::H1,
+                        Square::F1,
+                    );
                 }
                 'Q' => {
-                    self.set_castling_for_kind::<WhiteQueenSide>(Square::E1, Square::C1, Square::A1, Square::D1);
+                    self.set_castling_for_kind(
+                        CastlingKind::WhiteQueenSide,
+                        Square::E1,
+                        Square::C1,
+                        Square::A1,
+                        Square::D1,
+                    );
                 }
                 'k' => {
-                    self.set_castling_for_kind::<BlackKingSide>(Square::E8, Square::G8, Square::H8, Square::F8);
+                    self.set_castling_for_kind(
+                        CastlingKind::BlackKingSide,
+                        Square::E8,
+                        Square::G8,
+                        Square::H8,
+                        Square::F8,
+                    );
                 }
                 'q' => {
-                    self.set_castling_for_kind::<BlackQueenSide>(Square::E8, Square::C8, Square::A8, Square::D8);
+                    self.set_castling_for_kind(
+                        CastlingKind::BlackQueenSide,
+                        Square::E8,
+                        Square::C8,
+                        Square::A8,
+                        Square::D8,
+                    );
                 }
                 _ => continue,
             }
         }
     }
 
-    fn set_castling_for_kind<KIND: CastlingKind>(
-        &mut self, king_from: Square, king_to: Square, rook_from: Square, rook_to: Square,
+    fn set_castling_for_kind(
+        &mut self, kind: CastlingKind, king_from: Square, king_to: Square, rook_from: Square, rook_to: Square,
     ) {
-        self.state.castling.raw |= KIND::MASK;
+        self.state.castling.raw |= kind as u8;
 
-        self.castling_rights[king_from] ^= KIND::MASK;
-        self.castling_rights[rook_from] ^= KIND::MASK;
+        self.castling_rights[king_from] ^= kind as u8;
+        self.castling_rights[rook_from] ^= kind as u8;
 
-        self.castling_path[KIND::MASK as usize] |= between(king_from, king_to);
-        self.castling_path[KIND::MASK as usize] |= between(rook_from, rook_to);
+        self.castling_path[kind as usize] |= between(king_from, king_to);
+        self.castling_path[kind as usize] |= between(rook_from, rook_to);
 
-        self.castling_threat[KIND::MASK as usize] |= between(king_from, king_to) | king_from.to_bb();
+        self.castling_threat[kind as usize] |= between(king_from, king_to) | king_from.to_bb();
     }
 
     pub fn to_fen(&self) -> String {

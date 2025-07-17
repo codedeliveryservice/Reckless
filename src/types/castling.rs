@@ -2,30 +2,23 @@ use std::{fmt::Display, ops::Index};
 
 use super::Square;
 
-pub trait CastlingKind {
-    /// The raw bitmask representing this castling kind.
-    const MASK: u8;
-    const LANDING_SQUARE: Square;
+#[derive(Copy, Clone)]
+pub enum CastlingKind {
+    WhiteKingSide = 0b0001,
+    WhiteQueenSide = 0b0010,
+    BlackKingSide = 0b0100,
+    BlackQueenSide = 0b1000,
 }
 
-macro_rules! impl_castling_kind {
-    ($($kind:ident => $raw:expr, $to:expr;)*)  => {
-        $(
-            pub struct $kind;
-
-            impl CastlingKind for $kind {
-                const MASK: u8 = $raw;
-                const LANDING_SQUARE: Square = $to;
-            }
-        )*
-    };
-}
-
-impl_castling_kind! {
-    WhiteKingSide  => 1, Square::G1;
-    WhiteQueenSide => 2, Square::C1;
-    BlackKingSide  => 4, Square::G8;
-    BlackQueenSide => 8, Square::C8;
+impl CastlingKind {
+    pub const fn landing_square(self) -> Square {
+        match self {
+            CastlingKind::WhiteKingSide => Square::G1,
+            CastlingKind::WhiteQueenSide => Square::C1,
+            CastlingKind::BlackKingSide => Square::G8,
+            CastlingKind::BlackQueenSide => Square::C8,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Default)]
@@ -34,13 +27,12 @@ pub struct Castling {
 }
 
 impl Castling {
-    /// Checks if a specific castling kind is allowed.
-    pub const fn is_allowed<KIND: CastlingKind>(self) -> bool {
-        (self.raw & KIND::MASK) != 0
-    }
-
     pub const fn raw(self) -> u8 {
         self.raw
+    }
+
+    pub const fn is_allowed(self, kind: CastlingKind) -> bool {
+        (self.raw & kind as u8) != 0
     }
 }
 
@@ -58,16 +50,16 @@ impl Display for Castling {
             return write!(f, "-");
         }
 
-        if self.is_allowed::<WhiteKingSide>() {
+        if self.is_allowed(CastlingKind::WhiteKingSide) {
             write!(f, "K")?;
         }
-        if self.is_allowed::<WhiteQueenSide>() {
+        if self.is_allowed(CastlingKind::WhiteQueenSide) {
             write!(f, "Q")?;
         }
-        if self.is_allowed::<BlackKingSide>() {
+        if self.is_allowed(CastlingKind::BlackKingSide) {
             write!(f, "k")?;
         }
-        if self.is_allowed::<BlackQueenSide>() {
+        if self.is_allowed(CastlingKind::BlackQueenSide) {
             write!(f, "q")?;
         }
         Ok(())

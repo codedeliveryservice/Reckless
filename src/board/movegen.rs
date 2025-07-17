@@ -94,27 +94,25 @@ impl super::Board {
     }
 
     fn collect_castling(&self, list: &mut MoveList) {
-        use crate::types::{BlackKingSide, BlackQueenSide, WhiteKingSide, WhiteQueenSide};
-
         match self.side_to_move {
             Color::White => {
-                self.collect_castling_kind::<WhiteKingSide>(list);
-                self.collect_castling_kind::<WhiteQueenSide>(list);
+                self.collect_castling_kind(list, CastlingKind::WhiteKingSide);
+                self.collect_castling_kind(list, CastlingKind::WhiteQueenSide);
             }
             Color::Black => {
-                self.collect_castling_kind::<BlackKingSide>(list);
-                self.collect_castling_kind::<BlackQueenSide>(list);
+                self.collect_castling_kind(list, CastlingKind::BlackKingSide);
+                self.collect_castling_kind(list, CastlingKind::BlackQueenSide);
             }
         }
     }
 
-    fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
-        if self.castling().is_allowed::<KIND>()
-            && (self.castling_path[KIND::MASK as usize] & self.occupancies()).is_empty()
-            && (self.castling_threat[KIND::MASK as usize] & self.threats()).is_empty()
+    fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
+        if self.castling().is_allowed(kind)
+            && (self.castling_path[kind as usize] & self.occupancies()).is_empty()
+            && (self.castling_threat[kind as usize] & self.threats()).is_empty()
         {
             let king = self.king_square(self.side_to_move);
-            list.push(king, KIND::LANDING_SQUARE, MoveKind::Castling);
+            list.push(king, kind.landing_square(), MoveKind::Castling);
         }
     }
 

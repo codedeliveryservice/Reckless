@@ -3,10 +3,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
-    types::{
-        ArrayVec, Bitboard, BlackKingSide, BlackQueenSide, Castling, CastlingKind, Color, Move, Piece, PieceType,
-        Square, WhiteKingSide, WhiteQueenSide, ZOBRIST,
-    },
+    types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -363,22 +360,21 @@ impl Board {
         }
 
         if mv.is_castling() {
-            macro_rules! check_castling {
-                ($kind:tt) => {
-                    self.castling().is_allowed::<$kind>()
-                        && (self.castling_path[$kind::MASK as usize] & self.occupancies()).is_empty()
-                        && (self.castling_threat[$kind::MASK as usize] & self.threats()).is_empty()
-                };
+            if piece != PieceType::King {
+                return false;
             }
 
-            return piece == PieceType::King
-                && match to {
-                    Square::G1 => check_castling!(WhiteKingSide),
-                    Square::C1 => check_castling!(WhiteQueenSide),
-                    Square::G8 => check_castling!(BlackKingSide),
-                    Square::C8 => check_castling!(BlackQueenSide),
-                    _ => unreachable!(),
-                };
+            let kind = match to {
+                Square::G1 => CastlingKind::WhiteKingSide,
+                Square::C1 => CastlingKind::WhiteQueenSide,
+                Square::G8 => CastlingKind::BlackKingSide,
+                Square::C8 => CastlingKind::BlackQueenSide,
+                _ => unreachable!(),
+            };
+
+            return self.castling().is_allowed(kind)
+                && (self.castling_path[kind as usize] & self.occupancies()).is_empty()
+                && (self.castling_threat[kind as usize] & self.threats()).is_empty();
         }
 
         if piece == PieceType::Pawn {
