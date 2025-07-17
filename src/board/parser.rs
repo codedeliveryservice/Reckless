@@ -93,6 +93,8 @@ impl Board {
 
         self.path[KIND::MASK as usize] |= between(king_from, king_to);
         self.path[KIND::MASK as usize] |= between(rook_from, rook_to);
+
+        self.threat_mask[KIND::MASK as usize] |= between(king_from, king_to) | king_from.to_bb();
     }
 
     pub fn to_fen(&self) -> String {

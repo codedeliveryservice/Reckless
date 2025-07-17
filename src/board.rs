@@ -50,6 +50,7 @@ pub struct Board {
     fullmove_number: usize,
     updates: [u8; Square::NUM],
     path: [Bitboard; 16],
+    threat_mask: [Bitboard; 16],
 }
 
 impl Board {
@@ -366,7 +367,7 @@ impl Board {
                 ($kind:tt) => {
                     self.castling().is_allowed::<$kind>()
                         && (self.path[$kind::MASK as usize] & self.occupancies()).is_empty()
-                        && ($kind::THREAT_MASK & self.threats()).is_empty()
+                        && (self.threat_mask[$kind::MASK as usize] & self.threats()).is_empty()
                 };
             }
 
@@ -543,6 +544,7 @@ impl Default for Board {
             fullmove_number: 0,
             updates: [0; Square::NUM],
             path: [Bitboard::default(); 16],
+            threat_mask: [Bitboard::default(); 16],
         }
     }
 }
