@@ -79,7 +79,7 @@ impl Board {
                 self.update_hash(captured, to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, rook_to) = Self::get_castling_rook(to);
+                let (rook_from, rook_to) = self.get_castling_rook(to);
                 let rook = Piece::new(stm, PieceType::Rook);
 
                 self.remove_piece(rook, rook_from);
@@ -154,7 +154,7 @@ impl Board {
                 self.add_piece(Piece::new(!stm, PieceType::Pawn), to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, root_to) = Self::get_castling_rook(to);
+                let (rook_from, root_to) = self.get_castling_rook(to);
                 self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
                 self.remove_piece(Piece::new(stm, PieceType::Rook), root_to);
             }

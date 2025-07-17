@@ -48,6 +48,7 @@ pub struct Board {
     castling_rights: [u8; Square::NUM],
     castling_path: [Bitboard; 16],
     castling_threat: [Bitboard; 16],
+    castling_rooks: [Square; 16],
 }
 
 impl Board {
@@ -517,12 +518,12 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
 
-    pub const fn get_castling_rook(king_to: Square) -> (Square, Square) {
+    pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (Square::H1, Square::F1),
-            Square::C1 => (Square::A1, Square::D1),
-            Square::G8 => (Square::H8, Square::F8),
-            Square::C8 => (Square::A8, Square::D8),
+            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingSide as usize], Square::F1),
+            Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenSide as usize], Square::D1),
+            Square::G8 => (self.castling_rooks[CastlingKind::BlackKingSide as usize], Square::F8),
+            Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenSide as usize], Square::D8),
             _ => unreachable!(),
         }
     }
@@ -539,8 +540,9 @@ impl Default for Board {
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
             castling_rights: [0; Square::NUM],
-            castling_path: [Bitboard::default(); 16],
+            castling_path: [Bitboard::default(); 16],            
             castling_threat: [Bitboard::default(); 16],
+            castling_rooks: [Square::None; 16],
         }
     }
 }

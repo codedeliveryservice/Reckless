@@ -90,7 +90,7 @@ impl Accumulator {
         self.accurate[pov] = true;
     }
 
-    pub fn update(&mut self, prev: &Self, king: Square, pov: Color) {
+    pub fn update(&mut self, prev: &Self, board: &Board, king: Square, pov: Color) {
         let Delta { mv, piece, captured } = self.delta;
 
         let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
@@ -99,7 +99,7 @@ impl Accumulator {
         let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
 
         if mv.is_castling() {
-            let (rook_from, root_to) = Board::get_castling_rook(mv.to());
+            let (rook_from, root_to) = board.get_castling_rook(mv.to());
 
             let add2 = index(piece.piece_color(), PieceType::Rook, root_to, king, pov);
             let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
