@@ -103,7 +103,7 @@ impl Board {
 
         self.side_to_move = !self.side_to_move;
 
-        self.state.castling.update(from, to);
+        self.state.castling.raw &= self.updates[from] & self.updates[to];
         self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         self.update_threats();

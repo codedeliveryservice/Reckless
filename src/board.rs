@@ -48,6 +48,7 @@ pub struct Board {
     state: InternalState,
     state_stack: Box<ArrayVec<InternalState, 2048>>,
     fullmove_number: usize,
+    updates: [u8; Square::NUM],
 }
 
 impl Board {
@@ -539,6 +540,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
+            updates: [0b1111; Square::NUM],
         }
     }
 }

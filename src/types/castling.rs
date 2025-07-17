@@ -37,39 +37,10 @@ impl_castling_kind! {
 
 #[derive(Copy, Clone, Default)]
 pub struct Castling {
-    raw: u8,
+    pub raw: u8,
 }
 
 impl Castling {
-    /// The update table contains masks for changing castling rights when moving
-    /// from the square or to the square for any piece and is set as follows:
-    /// ```md
-    /// BIN      DEC       DESCRIPTION
-    /// 0011       3       black both sides
-    /// 0111       7       black queen side
-    /// 1011      11       black king side
-    /// 1100      12       white both sides
-    /// 1101      13       white queen side
-    /// 1110      14       white king side
-    /// 1111      15       leave unchanged
-    /// ```
-    #[rustfmt::skip]
-    const UPDATES: [u8; Square::NUM] = [
-        13, 15, 15, 15, 12, 15, 15, 14,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-         7, 15, 15, 15,  3, 15, 15, 11,
-    ];
-
-    /// Updates the castling rights based on the movement of a piece.
-    pub fn update(&mut self, from: Square, to: Square) {
-        self.raw &= Self::UPDATES[from] & Self::UPDATES[to];
-    }
-
     /// Checks if a specific castling kind is allowed.
     pub const fn is_allowed<KIND: CastlingKind>(self) -> bool {
         (self.raw & KIND::MASK) != 0
@@ -77,22 +48,6 @@ impl Castling {
 
     pub const fn raw(self) -> u8 {
         self.raw
-    }
-}
-
-impl From<&str> for Castling {
-    fn from(text: &str) -> Self {
-        let mut castling = Self::default();
-        for right in text.chars() {
-            castling.raw |= match right {
-                'K' => WhiteKingSide::MASK,
-                'Q' => WhiteQueenSide::MASK,
-                'k' => BlackKingSide::MASK,
-                'q' => BlackQueenSide::MASK,
-                _ => continue,
-            };
-        }
-        castling
     }
 }
 

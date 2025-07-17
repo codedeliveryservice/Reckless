@@ -1,5 +1,5 @@
 use super::Board;
-use crate::types::{Color, Piece, Square};
+use crate::types::{BlackKingSide, BlackQueenSide, CastlingKind, Color, Piece, Square, WhiteKingSide, WhiteQueenSide};
 
 #[derive(Debug)]
 pub enum ParseFenError {
@@ -47,7 +47,8 @@ impl Board {
             _ => return Err(ParseFenError::InvalidActiveColor),
         };
 
-        board.state.castling = parts.next().unwrap_or_default().into();
+        board.set_castling(parts.next().unwrap());
+
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
@@ -57,6 +58,34 @@ impl Board {
         board.update_hash_keys();
 
         Ok(board)
+    }
+
+    fn set_castling(&mut self, rights: &str) {
+        for right in rights.chars() {
+            match right {
+                'K' => {
+                    self.state.castling.raw |= WhiteKingSide::MASK;
+                    self.updates[Square::E1] ^= WhiteKingSide::MASK;
+                    self.updates[Square::H1] ^= WhiteKingSide::MASK;
+                }
+                'Q' => {
+                    self.state.castling.raw |= WhiteQueenSide::MASK;
+                    self.updates[Square::E1] ^= WhiteQueenSide::MASK;
+                    self.updates[Square::A1] ^= WhiteQueenSide::MASK;
+                }
+                'k' => {
+                    self.state.castling.raw |= BlackKingSide::MASK;
+                    self.updates[Square::E8] ^= BlackKingSide::MASK;
+                    self.updates[Square::H8] ^= BlackKingSide::MASK;
+                }
+                'q' => {
+                    self.state.castling.raw |= BlackQueenSide::MASK;
+                    self.updates[Square::E8] ^= BlackQueenSide::MASK;
+                    self.updates[Square::A8] ^= BlackQueenSide::MASK;
+                }
+                _ => continue,
+            }
+        }
     }
 
     pub fn to_fen(&self) -> String {
