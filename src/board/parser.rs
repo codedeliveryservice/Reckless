@@ -1,5 +1,8 @@
 use super::Board;
-use crate::types::{BlackKingSide, BlackQueenSide, CastlingKind, Color, Piece, Square, WhiteKingSide, WhiteQueenSide};
+use crate::{
+    lookup::between,
+    types::{BlackKingSide, BlackQueenSide, CastlingKind, Color, Piece, Square, WhiteKingSide, WhiteQueenSide},
+};
 
 #[derive(Debug)]
 pub enum ParseFenError {
@@ -64,28 +67,32 @@ impl Board {
         for right in rights.chars() {
             match right {
                 'K' => {
-                    self.state.castling.raw |= WhiteKingSide::MASK;
-                    self.updates[Square::E1] ^= WhiteKingSide::MASK;
-                    self.updates[Square::H1] ^= WhiteKingSide::MASK;
+                    self.set_castling_for_kind::<WhiteKingSide>(Square::E1, Square::G1, Square::H1, Square::F1);
                 }
                 'Q' => {
-                    self.state.castling.raw |= WhiteQueenSide::MASK;
-                    self.updates[Square::E1] ^= WhiteQueenSide::MASK;
-                    self.updates[Square::A1] ^= WhiteQueenSide::MASK;
+                    self.set_castling_for_kind::<WhiteQueenSide>(Square::E1, Square::C1, Square::A1, Square::D1);
                 }
                 'k' => {
-                    self.state.castling.raw |= BlackKingSide::MASK;
-                    self.updates[Square::E8] ^= BlackKingSide::MASK;
-                    self.updates[Square::H8] ^= BlackKingSide::MASK;
+                    self.set_castling_for_kind::<BlackKingSide>(Square::E8, Square::G8, Square::H8, Square::F8);
                 }
                 'q' => {
-                    self.state.castling.raw |= BlackQueenSide::MASK;
-                    self.updates[Square::E8] ^= BlackQueenSide::MASK;
-                    self.updates[Square::A8] ^= BlackQueenSide::MASK;
+                    self.set_castling_for_kind::<BlackQueenSide>(Square::E8, Square::C8, Square::A8, Square::D8);
                 }
                 _ => continue,
             }
         }
+    }
+
+    fn set_castling_for_kind<KIND: CastlingKind>(
+        &mut self, king_from: Square, king_to: Square, rook_from: Square, rook_to: Square,
+    ) {
+        self.state.castling.raw |= KIND::MASK;
+
+        self.updates[king_from] ^= KIND::MASK;
+        self.updates[rook_from] ^= KIND::MASK;
+
+        self.path[KIND::MASK as usize] |= between(king_from, king_to);
+        self.path[KIND::MASK as usize] |= between(rook_from, rook_to);
     }
 
     pub fn to_fen(&self) -> String {

@@ -110,7 +110,7 @@ impl super::Board {
 
     fn collect_castling_kind<KIND: CastlingKind>(&self, list: &mut MoveList) {
         if self.castling().is_allowed::<KIND>()
-            && (KIND::PATH_MASK & self.occupancies()).is_empty()
+            && (self.path[KIND::MASK as usize] & self.occupancies()).is_empty()
             && (KIND::THREAT_MASK & self.threats()).is_empty()
         {
             list.push_move(KIND::CASTLING_MOVE);

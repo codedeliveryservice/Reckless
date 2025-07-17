@@ -49,6 +49,7 @@ pub struct Board {
     state_stack: Box<ArrayVec<InternalState, 2048>>,
     fullmove_number: usize,
     updates: [u8; Square::NUM],
+    path: [Bitboard; 16],
 }
 
 impl Board {
@@ -364,7 +365,7 @@ impl Board {
             macro_rules! check_castling {
                 ($kind:tt) => {
                     self.castling().is_allowed::<$kind>()
-                        && ($kind::PATH_MASK & self.occupancies()).is_empty()
+                        && (self.path[$kind::MASK as usize] & self.occupancies()).is_empty()
                         && ($kind::THREAT_MASK & self.threats()).is_empty()
                 };
             }
@@ -541,6 +542,7 @@ impl Default for Board {
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
             updates: [0; Square::NUM],
+            path: [Bitboard::default(); 16],
         }
     }
 }

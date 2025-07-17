@@ -5,8 +5,6 @@ use super::{Bitboard, Move, MoveKind, Square};
 pub trait CastlingKind {
     /// The raw bitmask representing this castling kind.
     const MASK: u8;
-    /// Squares the king must traverse when castling.
-    const PATH_MASK: Bitboard;
     /// Squares that must not be attacked for castling to be legal.
     const THREAT_MASK: Bitboard;
     /// The castling move associated with this castling kind.
@@ -14,13 +12,12 @@ pub trait CastlingKind {
 }
 
 macro_rules! impl_castling_kind {
-    ($($kind:ident => $raw:expr, $path_mask:expr, $threat_mask:expr, $from:expr, $to:expr;)*)  => {
+    ($($kind:ident => $raw:expr, $threat_mask:expr, $from:expr, $to:expr;)*)  => {
         $(
             pub struct $kind;
 
             impl CastlingKind for $kind {
                 const MASK: u8 = $raw;
-                const PATH_MASK: Bitboard = Bitboard($path_mask);
                 const THREAT_MASK: Bitboard = Bitboard($threat_mask);
                 const CASTLING_MOVE: Move = Move::new($from, $to, MoveKind::Castling);
             }
@@ -29,10 +26,10 @@ macro_rules! impl_castling_kind {
 }
 
 impl_castling_kind! {
-    WhiteKingSide   => 1, 0b0110_0000, 0b0011_0000, Square::E1, Square::G1;
-    WhiteQueenSide  => 2, 0b0000_1110, 0b0001_1000, Square::E1, Square::C1;
-    BlackKingSide   => 4, 0b0110_0000 << 56, 0b0011_0000 << 56, Square::E8, Square::G8;
-    BlackQueenSide  => 8, 0b0000_1110 << 56, 0b0001_1000 << 56, Square::E8, Square::C8;
+    WhiteKingSide   => 1, 0b0011_0000, Square::E1, Square::G1;
+    WhiteQueenSide  => 2, 0b0001_1000, Square::E1, Square::C1;
+    BlackKingSide   => 4, 0b0011_0000 << 56, Square::E8, Square::G8;
+    BlackQueenSide  => 8, 0b0001_1000 << 56, Square::E8, Square::C8;
 }
 
 #[derive(Copy, Clone, Default)]
