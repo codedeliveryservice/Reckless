@@ -49,3 +49,9 @@ impl Index<usize> for MoveList {
         self.inner.get(index)
     }
 }
+
+impl Default for MoveList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
