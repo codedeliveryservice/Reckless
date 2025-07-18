@@ -72,7 +72,8 @@ impl Board {
                         rook_from = rook_from.shift(-1);
                     }
 
-                    self.set_castling_for(CastlingKind::WhiteKinside, Square::E1, Square::G1, rook_from, Square::F1);
+                    let king_from = self.king_square(Color::White);
+                    self.set_castling_for(CastlingKind::WhiteKinside, king_from, Square::G1, rook_from, Square::F1);
                 }
                 'Q' => {
                     let mut rook_from = Square::A1;
@@ -80,7 +81,8 @@ impl Board {
                         rook_from = rook_from.shift(1);
                     }
 
-                    self.set_castling_for(CastlingKind::WhiteQueenside, Square::E1, Square::C1, rook_from, Square::D1);
+                    let king_from = self.king_square(Color::White);
+                    self.set_castling_for(CastlingKind::WhiteQueenside, king_from, Square::C1, rook_from, Square::D1);
                 }
                 'k' => {
                     let mut rook_from = Square::H8;
@@ -88,7 +90,8 @@ impl Board {
                         rook_from = rook_from.shift(-1);
                     }
 
-                    self.set_castling_for(CastlingKind::BlackKingside, Square::E8, Square::G8, rook_from, Square::F8);
+                    let king_from = self.king_square(Color::Black);
+                    self.set_castling_for(CastlingKind::BlackKingside, king_from, Square::G8, rook_from, Square::F8);
                 }
                 'q' => {
                     let mut rook_from = Square::A8;
@@ -96,7 +99,8 @@ impl Board {
                         rook_from = rook_from.shift(1);
                     }
 
-                    self.set_castling_for(CastlingKind::BlackQueenside, Square::E8, Square::C8, rook_from, Square::D8);
+                    let king_from = self.king_square(Color::Black);
+                    self.set_castling_for(CastlingKind::BlackQueenside, king_from, Square::C8, rook_from, Square::D8);
                 }
                 token @ 'A'..='H' => {
                     let king_from = self.king_square(Color::White);
