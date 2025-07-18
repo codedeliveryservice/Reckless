@@ -24,6 +24,7 @@ pub fn message_loop() {
         thread.nnue.full_refresh(&thread.board);
     }
 
+    let mut frc = false;
     let mut move_overhead = 0;
     let mut report = Report::Full;
     let mut next_command = None;
@@ -36,8 +37,10 @@ pub fn message_loop() {
             ["isready"] => println!("readyok"),
 
             ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
-            ["position", tokens @ ..] => position(&mut threads, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
+            ["position", tokens @ ..] => position(&mut threads, frc, tokens),
+            ["setoption", tokens @ ..] => {
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
+            }
             ["ucinewgame"] => reset(&mut threads, &tt),
 
             ["stop"] => STOP.store(true, Ordering::Relaxed),
@@ -168,9 +171,9 @@ fn go(
     listener.join().unwrap()
 }
 
-fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
+fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
     let mut board = Board::default();
-    board.set_frc(threads.main_thread().board.is_frc());
+    board.set_frc(frc);
 
     while !tokens.is_empty() {
         match tokens {
@@ -211,7 +214,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 }
 
 fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tt: &TranspositionTable, tokens: &[&str],
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, tt: &TranspositionTable,
+    tokens: &[&str],
 ) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -239,6 +243,10 @@ fn set_option(
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
+        ["name", "UCI_Chess960", "value", v] => {
+            *frc = v.parse().unwrap_or_default();
+            println!("info string set UCI_Chess960 to {v}");
+        }
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
