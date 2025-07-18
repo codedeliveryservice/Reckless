@@ -1,7 +1,7 @@
 use super::Board;
 use crate::{
     lookup::between,
-    types::{CastlingKind, Color, Piece, Square},
+    types::{CastlingKind, Color, Piece, PieceType, Square},
 };
 
 #[derive(Debug)]
@@ -67,40 +67,96 @@ impl Board {
         for right in rights.chars() {
             match right {
                 'K' => {
+                    let mut rook_from = Square::H1;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(-1);
+                    }
+
                     self.set_castling_for_kind(
                         CastlingKind::WhiteKingSide,
                         Square::E1,
                         Square::G1,
-                        Square::H1,
+                        rook_from,
                         Square::F1,
                     );
                 }
                 'Q' => {
+                    let mut rook_from = Square::A1;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(1);
+                    }
+
                     self.set_castling_for_kind(
                         CastlingKind::WhiteQueenSide,
                         Square::E1,
                         Square::C1,
-                        Square::A1,
+                        rook_from,
                         Square::D1,
                     );
                 }
                 'k' => {
+                    let mut rook_from = Square::H8;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(-1);
+                    }
+
                     self.set_castling_for_kind(
                         CastlingKind::BlackKingSide,
                         Square::E8,
                         Square::G8,
-                        Square::H8,
+                        rook_from,
                         Square::F8,
                     );
                 }
                 'q' => {
+                    let mut rook_from = Square::A8;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(1);
+                    }
+
                     self.set_castling_for_kind(
                         CastlingKind::BlackQueenSide,
                         Square::E8,
                         Square::C8,
-                        Square::A8,
+                        rook_from,
                         Square::D8,
                     );
+                }
+                token @ 'A'..='H' => {
+                    let king_from = self.king_square(Color::White);
+                    let rook_from = Square::from_rank_file(0, token as u8 - b'A');
+
+                    let kind = if king_from.file() < rook_from.file() {
+                        CastlingKind::WhiteKingSide
+                    } else {
+                        CastlingKind::WhiteQueenSide
+                    };
+
+                    let (king_to, rook_to) = match kind {
+                        CastlingKind::WhiteKingSide => (Square::G1, Square::F1),
+                        CastlingKind::WhiteQueenSide => (Square::C1, Square::D1),
+                        _ => unreachable!(),
+                    };
+
+                    self.set_castling_for_kind(kind, king_from, king_to, rook_from, rook_to);
+                }
+                token @ 'a'..='h' => {
+                    let king_from = self.king_square(Color::Black);
+                    let rook_from = Square::from_rank_file(7, token as u8 - b'a');
+
+                    let kind = if king_from.file() < rook_from.file() {
+                        CastlingKind::BlackKingSide
+                    } else {
+                        CastlingKind::BlackQueenSide
+                    };
+
+                    let (king_to, rook_to) = match kind {
+                        CastlingKind::BlackKingSide => (Square::G8, Square::F8),
+                        CastlingKind::BlackQueenSide => (Square::C8, Square::D8),
+                        _ => unreachable!(),
+                    };
+
+                    self.set_castling_for_kind(kind, king_from, king_to, rook_from, rook_to);
                 }
                 _ => continue,
             }
@@ -115,10 +171,13 @@ impl Board {
         self.castling_rights[king_from] ^= kind as u8;
         self.castling_rights[rook_from] ^= kind as u8;
 
-        self.castling_path[kind] |= between(king_from, king_to);
-        self.castling_path[kind] |= between(rook_from, rook_to);
+        self.castling_path[kind] |= between(king_from, king_to) | king_to.to_bb();
+        self.castling_path[kind] |= between(rook_from, rook_to) | rook_to.to_bb();
 
-        self.castling_threat[kind] |= between(king_from, king_to) | king_from.to_bb();
+        self.castling_path[kind] &= !king_from.to_bb();
+        self.castling_path[kind] &= !rook_from.to_bb();
+
+        self.castling_threat[kind] |= between(king_from, king_to) | king_from.to_bb() | king_to.to_bb();
 
         self.castling_rooks[kind] = rook_from;
     }

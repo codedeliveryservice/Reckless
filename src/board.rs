@@ -309,6 +309,18 @@ impl Board {
             return (orthogonal | diagonal).is_empty();
         }
 
+        if mv.is_castling() {
+            let kind = match to {
+                Square::G1 => CastlingKind::WhiteKingSide,
+                Square::C1 => CastlingKind::WhiteQueenSide,
+                Square::G8 => CastlingKind::BlackKingSide,
+                Square::C8 => CastlingKind::BlackQueenSide,
+                _ => unreachable!(),
+            };
+
+            return !self.threats().contains(to) && !self.pinned().contains(self.castling_rooks[kind]);
+        }
+
         if self.piece_on(from).piece_type() == PieceType::King {
             return !self.threats().contains(to);
         }
@@ -539,7 +551,7 @@ impl Default for Board {
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
             fullmove_number: 0,
-            castling_rights: [0; Square::NUM],
+            castling_rights: [0b1111; Square::NUM],
             castling_path: [Bitboard::default(); 16],
             castling_threat: [Bitboard::default(); 16],
             castling_rooks: [Square::None; 16],
