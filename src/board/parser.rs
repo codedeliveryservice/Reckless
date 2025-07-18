@@ -1,5 +1,8 @@
 use super::Board;
-use crate::types::{Color, Piece, Square};
+use crate::{
+    lookup::between,
+    types::{CastlingKind, Color, Piece, PieceType, Square},
+};
 
 #[derive(Debug)]
 pub enum ParseFenError {
@@ -47,7 +50,8 @@ impl Board {
             _ => return Err(ParseFenError::InvalidActiveColor),
         };
 
-        board.state.castling = parts.next().unwrap_or_default().into();
+        board.set_castling(parts.next().unwrap());
+
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
@@ -57,6 +61,101 @@ impl Board {
         board.update_hash_keys();
 
         Ok(board)
+    }
+
+    fn set_castling(&mut self, rights: &str) {
+        for right in rights.chars() {
+            match right {
+                'K' => {
+                    let mut rook_from = Square::H1;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(-1);
+                    }
+
+                    self.set_castling_for(CastlingKind::WhiteKinside, Square::E1, Square::G1, rook_from, Square::F1);
+                }
+                'Q' => {
+                    let mut rook_from = Square::A1;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(1);
+                    }
+
+                    self.set_castling_for(CastlingKind::WhiteQueenside, Square::E1, Square::C1, rook_from, Square::D1);
+                }
+                'k' => {
+                    let mut rook_from = Square::H8;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(-1);
+                    }
+
+                    self.set_castling_for(CastlingKind::BlackKingside, Square::E8, Square::G8, rook_from, Square::F8);
+                }
+                'q' => {
+                    let mut rook_from = Square::A8;
+                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
+                        rook_from = rook_from.shift(1);
+                    }
+
+                    self.set_castling_for(CastlingKind::BlackQueenside, Square::E8, Square::C8, rook_from, Square::D8);
+                }
+                token @ 'A'..='H' => {
+                    let king_from = self.king_square(Color::White);
+                    let rook_from = Square::from_rank_file(0, token as u8 - b'A');
+
+                    let kind = if king_from.file() < rook_from.file() {
+                        CastlingKind::WhiteKinside
+                    } else {
+                        CastlingKind::WhiteQueenside
+                    };
+
+                    let (king_to, rook_to) = match kind {
+                        CastlingKind::WhiteKinside => (Square::G1, Square::F1),
+                        CastlingKind::WhiteQueenside => (Square::C1, Square::D1),
+                        _ => unreachable!(),
+                    };
+
+                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
+                }
+                token @ 'a'..='h' => {
+                    let king_from = self.king_square(Color::Black);
+                    let rook_from = Square::from_rank_file(7, token as u8 - b'a');
+
+                    let kind = if king_from.file() < rook_from.file() {
+                        CastlingKind::BlackKingside
+                    } else {
+                        CastlingKind::BlackQueenside
+                    };
+
+                    let (king_to, rook_to) = match kind {
+                        CastlingKind::BlackKingside => (Square::G8, Square::F8),
+                        CastlingKind::BlackQueenside => (Square::C8, Square::D8),
+                        _ => unreachable!(),
+                    };
+
+                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
+                }
+                _ => continue,
+            }
+        }
+    }
+
+    fn set_castling_for(
+        &mut self, kind: CastlingKind, king_from: Square, king_to: Square, rook_from: Square, rook_to: Square,
+    ) {
+        self.state.castling.raw |= kind as u8;
+
+        self.castling_rights[king_from] ^= kind as u8;
+        self.castling_rights[rook_from] ^= kind as u8;
+
+        self.castling_path[kind] |= between(king_from, king_to) | king_to.to_bb();
+        self.castling_path[kind] |= between(rook_from, rook_to) | rook_to.to_bb();
+
+        self.castling_path[kind] &= !king_from.to_bb();
+        self.castling_path[kind] &= !rook_from.to_bb();
+
+        self.castling_threat[kind] |= between(king_from, king_to) | king_from.to_bb() | king_to.to_bb();
+
+        self.castling_rooks[kind] = rook_from;
     }
 
     pub fn to_fen(&self) -> String {

@@ -24,6 +24,7 @@ pub fn message_loop() {
         thread.nnue.full_refresh(&thread.board);
     }
 
+    let mut frc = false;
     let mut move_overhead = 0;
     let mut report = Report::Full;
     let mut next_command = None;
@@ -36,8 +37,10 @@ pub fn message_loop() {
             ["isready"] => println!("readyok"),
 
             ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
-            ["position", tokens @ ..] => position(&mut threads, tokens),
-            ["setoption", tokens @ ..] => set_option(&mut threads, &mut report, &mut move_overhead, &tt, tokens),
+            ["position", tokens @ ..] => position(&mut threads, frc, tokens),
+            ["setoption", tokens @ ..] => {
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
+            }
             ["ucinewgame"] => reset(&mut threads, &tt),
 
             ["stop"] => STOP.store(true, Ordering::Relaxed),
@@ -65,6 +68,7 @@ fn uci() {
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
+    println!("option name UCI_Chess960 type check default false");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -161,13 +165,13 @@ fn go(
         }
     }
 
-    println!("bestmove {}", threads[best].pv.best_move());
+    println!("bestmove {}", threads[best].pv.best_move().to_uci(&threads.main_thread().board));
     crate::misc::dbg_print();
 
     listener.join().unwrap()
 }
 
-fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
+fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
     let mut board = Board::default();
 
     while !tokens.is_empty() {
@@ -181,6 +185,7 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
                     Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
+                board.set_frc(frc);
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
@@ -202,14 +207,15 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
-    if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_string() == uci_move) {
+    if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == uci_move) {
         board.make_move(mv);
         board.advance_fullmove_counter();
     }
 }
 
 fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, tt: &TranspositionTable, tokens: &[&str],
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, tt: &TranspositionTable,
+    tokens: &[&str],
 ) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -237,6 +243,10 @@ fn set_option(
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
+        ["name", "UCI_Chess960", "value", v] => {
+            *frc = v.parse().unwrap_or_default();
+            println!("info string set UCI_Chess960 to {v}");
+        }
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
             crate::parameters::set_parameter(name, v);
