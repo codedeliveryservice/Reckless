@@ -96,12 +96,12 @@ impl super::Board {
     fn collect_castling(&self, list: &mut MoveList) {
         match self.side_to_move {
             Color::White => {
-                self.collect_castling_kind(list, CastlingKind::WhiteKingSide);
-                self.collect_castling_kind(list, CastlingKind::WhiteQueenSide);
+                self.collect_castling_kind(list, CastlingKind::WhiteKinside);
+                self.collect_castling_kind(list, CastlingKind::WhiteQueenside);
             }
             Color::Black => {
-                self.collect_castling_kind(list, CastlingKind::BlackKingSide);
-                self.collect_castling_kind(list, CastlingKind::BlackQueenSide);
+                self.collect_castling_kind(list, CastlingKind::BlackKingside);
+                self.collect_castling_kind(list, CastlingKind::BlackQueenside);
             }
         }
     }

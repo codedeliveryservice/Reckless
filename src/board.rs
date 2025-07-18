@@ -320,10 +320,10 @@ impl Board {
 
         if mv.is_castling() {
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingSide,
-                Square::C1 => CastlingKind::WhiteQueenSide,
-                Square::G8 => CastlingKind::BlackKingSide,
-                Square::C8 => CastlingKind::BlackQueenSide,
+                Square::G1 => CastlingKind::WhiteKinside,
+                Square::C1 => CastlingKind::WhiteQueenside,
+                Square::G8 => CastlingKind::BlackKingside,
+                Square::C8 => CastlingKind::BlackQueenside,
                 _ => unreachable!(),
             };
 
@@ -387,10 +387,10 @@ impl Board {
             }
 
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingSide,
-                Square::C1 => CastlingKind::WhiteQueenSide,
-                Square::G8 => CastlingKind::BlackKingSide,
-                Square::C8 => CastlingKind::BlackQueenSide,
+                Square::G1 => CastlingKind::WhiteKinside,
+                Square::C1 => CastlingKind::WhiteQueenside,
+                Square::G8 => CastlingKind::BlackKingside,
+                Square::C8 => CastlingKind::BlackQueenside,
                 _ => unreachable!(),
             };
 
@@ -541,10 +541,10 @@ impl Board {
 
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingSide], Square::F1),
-            Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenSide], Square::D1),
-            Square::G8 => (self.castling_rooks[CastlingKind::BlackKingSide], Square::F8),
-            Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenSide], Square::D8),
+            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKinside], Square::F1),
+            Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenside], Square::D1),
+            Square::G8 => (self.castling_rooks[CastlingKind::BlackKingside], Square::F8),
+            Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenside], Square::D8),
             _ => unreachable!(),
         }
     }

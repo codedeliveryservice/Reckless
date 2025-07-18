@@ -72,13 +72,7 @@ impl Board {
                         rook_from = rook_from.shift(-1);
                     }
 
-                    self.set_castling_for_kind(
-                        CastlingKind::WhiteKingSide,
-                        Square::E1,
-                        Square::G1,
-                        rook_from,
-                        Square::F1,
-                    );
+                    self.set_castling_for(CastlingKind::WhiteKinside, Square::E1, Square::G1, rook_from, Square::F1);
                 }
                 'Q' => {
                     let mut rook_from = Square::A1;
@@ -86,13 +80,7 @@ impl Board {
                         rook_from = rook_from.shift(1);
                     }
 
-                    self.set_castling_for_kind(
-                        CastlingKind::WhiteQueenSide,
-                        Square::E1,
-                        Square::C1,
-                        rook_from,
-                        Square::D1,
-                    );
+                    self.set_castling_for(CastlingKind::WhiteQueenside, Square::E1, Square::C1, rook_from, Square::D1);
                 }
                 'k' => {
                     let mut rook_from = Square::H8;
@@ -100,13 +88,7 @@ impl Board {
                         rook_from = rook_from.shift(-1);
                     }
 
-                    self.set_castling_for_kind(
-                        CastlingKind::BlackKingSide,
-                        Square::E8,
-                        Square::G8,
-                        rook_from,
-                        Square::F8,
-                    );
+                    self.set_castling_for(CastlingKind::BlackKingside, Square::E8, Square::G8, rook_from, Square::F8);
                 }
                 'q' => {
                     let mut rook_from = Square::A8;
@@ -114,56 +96,50 @@ impl Board {
                         rook_from = rook_from.shift(1);
                     }
 
-                    self.set_castling_for_kind(
-                        CastlingKind::BlackQueenSide,
-                        Square::E8,
-                        Square::C8,
-                        rook_from,
-                        Square::D8,
-                    );
+                    self.set_castling_for(CastlingKind::BlackQueenside, Square::E8, Square::C8, rook_from, Square::D8);
                 }
                 token @ 'A'..='H' => {
                     let king_from = self.king_square(Color::White);
                     let rook_from = Square::from_rank_file(0, token as u8 - b'A');
 
                     let kind = if king_from.file() < rook_from.file() {
-                        CastlingKind::WhiteKingSide
+                        CastlingKind::WhiteKinside
                     } else {
-                        CastlingKind::WhiteQueenSide
+                        CastlingKind::WhiteQueenside
                     };
 
                     let (king_to, rook_to) = match kind {
-                        CastlingKind::WhiteKingSide => (Square::G1, Square::F1),
-                        CastlingKind::WhiteQueenSide => (Square::C1, Square::D1),
+                        CastlingKind::WhiteKinside => (Square::G1, Square::F1),
+                        CastlingKind::WhiteQueenside => (Square::C1, Square::D1),
                         _ => unreachable!(),
                     };
 
-                    self.set_castling_for_kind(kind, king_from, king_to, rook_from, rook_to);
+                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
                 }
                 token @ 'a'..='h' => {
                     let king_from = self.king_square(Color::Black);
                     let rook_from = Square::from_rank_file(7, token as u8 - b'a');
 
                     let kind = if king_from.file() < rook_from.file() {
-                        CastlingKind::BlackKingSide
+                        CastlingKind::BlackKingside
                     } else {
-                        CastlingKind::BlackQueenSide
+                        CastlingKind::BlackQueenside
                     };
 
                     let (king_to, rook_to) = match kind {
-                        CastlingKind::BlackKingSide => (Square::G8, Square::F8),
-                        CastlingKind::BlackQueenSide => (Square::C8, Square::D8),
+                        CastlingKind::BlackKingside => (Square::G8, Square::F8),
+                        CastlingKind::BlackQueenside => (Square::C8, Square::D8),
                         _ => unreachable!(),
                     };
 
-                    self.set_castling_for_kind(kind, king_from, king_to, rook_from, rook_to);
+                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
                 }
                 _ => continue,
             }
         }
     }
 
-    fn set_castling_for_kind(
+    fn set_castling_for(
         &mut self, kind: CastlingKind, king_from: Square, king_to: Square, rook_from: Square, rook_to: Square,
     ) {
         self.state.castling.raw |= kind as u8;

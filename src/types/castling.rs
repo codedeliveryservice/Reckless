@@ -7,19 +7,19 @@ use super::Square;
 
 #[derive(Copy, Clone)]
 pub enum CastlingKind {
-    WhiteKingSide = 0b0001,
-    WhiteQueenSide = 0b0010,
-    BlackKingSide = 0b0100,
-    BlackQueenSide = 0b1000,
+    WhiteKinside = 0b0001,
+    WhiteQueenside = 0b0010,
+    BlackKingside = 0b0100,
+    BlackQueenside = 0b1000,
 }
 
 impl CastlingKind {
     pub const fn landing_square(self) -> Square {
         match self {
-            CastlingKind::WhiteKingSide => Square::G1,
-            CastlingKind::WhiteQueenSide => Square::C1,
-            CastlingKind::BlackKingSide => Square::G8,
-            CastlingKind::BlackQueenSide => Square::C8,
+            CastlingKind::WhiteKinside => Square::G1,
+            CastlingKind::WhiteQueenside => Square::C1,
+            CastlingKind::BlackKingside => Square::G8,
+            CastlingKind::BlackQueenside => Square::C8,
         }
     }
 }
@@ -67,16 +67,16 @@ impl Display for Castling {
             return write!(f, "-");
         }
 
-        if self.is_allowed(CastlingKind::WhiteKingSide) {
+        if self.is_allowed(CastlingKind::WhiteKinside) {
             write!(f, "K")?;
         }
-        if self.is_allowed(CastlingKind::WhiteQueenSide) {
+        if self.is_allowed(CastlingKind::WhiteQueenside) {
             write!(f, "Q")?;
         }
-        if self.is_allowed(CastlingKind::BlackKingSide) {
+        if self.is_allowed(CastlingKind::BlackKingside) {
             write!(f, "k")?;
         }
-        if self.is_allowed(CastlingKind::BlackQueenSide) {
+        if self.is_allowed(CastlingKind::BlackQueenside) {
             write!(f, "q")?;
         }
         Ok(())
