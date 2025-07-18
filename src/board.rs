@@ -49,11 +49,16 @@ pub struct Board {
     castling_path: [Bitboard; 16],
     castling_threat: [Bitboard; 16],
     castling_rooks: [Square; 16],
+    frc: bool,
 }
 
 impl Board {
     pub fn starting_position() -> Self {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+    }
+
+    pub const fn is_frc(&self) -> bool {
+        self.frc
     }
 
     pub const fn side_to_move(&self) -> Color {
@@ -179,6 +184,10 @@ impl Board {
         if self.side_to_move == Color::Black {
             self.fullmove_number += 1;
         }
+    }
+
+    pub fn set_frc(&mut self, frc: bool) {
+        self.frc = frc;
     }
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
@@ -555,6 +564,7 @@ impl Default for Board {
             castling_path: [Bitboard::default(); 16],
             castling_threat: [Bitboard::default(); 16],
             castling_rooks: [Square::None; 16],
+            frc: false,
         }
     }
 }

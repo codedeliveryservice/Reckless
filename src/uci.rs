@@ -65,6 +65,7 @@ fn uci() {
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
+    println!("option name UCI_Chess960 type check default false");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -161,7 +162,7 @@ fn go(
         }
     }
 
-    println!("bestmove {}", threads[best].pv.best_move());
+    println!("bestmove {}", threads[best].pv.best_move().to_uci(&threads.main_thread().board));
     crate::misc::dbg_print();
 
     listener.join().unwrap()
@@ -169,6 +170,7 @@ fn go(
 
 fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
     let mut board = Board::default();
+    board.set_frc(threads.main_thread().board.is_frc());
 
     while !tokens.is_empty() {
         match tokens {
@@ -202,7 +204,7 @@ fn position(threads: &mut ThreadPool, mut tokens: &[&str]) {
 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
-    if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_string() == uci_move) {
+    if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == uci_move) {
         board.make_move(mv);
         board.advance_fullmove_counter();
     }

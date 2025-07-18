@@ -1,6 +1,7 @@
 use std::mem;
 
 use super::{PieceType, Square};
+use crate::board::Board;
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
@@ -110,20 +111,27 @@ impl Move {
             _ => None,
         }
     }
-}
 
-impl std::fmt::Display for Move {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    pub fn to_uci(self, board: &Board) -> String {
+        // For FRC castling moves are encoded as king capturing rook
+        if board.is_frc() && self.is_castling() {
+            let king_from = self.from();
+            let (rook_from, _) = board.get_castling_rook(self.to());
+            return format!("{king_from}{rook_from}");
+        }
+
         let mut output = format!("{}{}", self.from(), self.to());
 
-        match self.promotion_piece() {
-            Some(PieceType::Knight) => output.push('n'),
-            Some(PieceType::Bishop) => output.push('b'),
-            Some(PieceType::Rook) => output.push('r'),
-            Some(PieceType::Queen) => output.push('q'),
-            _ => (),
-        };
+        if self.is_promotion() {
+            match self.promotion_piece() {
+                Some(PieceType::Knight) => output.push('n'),
+                Some(PieceType::Bishop) => output.push('b'),
+                Some(PieceType::Rook) => output.push('r'),
+                Some(PieceType::Queen) => output.push('q'),
+                _ => (),
+            }
+        }
 
-        f.pad(&output)
+        output
     }
 }
