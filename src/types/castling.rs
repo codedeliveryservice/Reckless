@@ -1,9 +1,7 @@
-use std::{
-    fmt::Display,
-    ops::{Index, IndexMut},
-};
+use std::ops::{Index, IndexMut};
 
 use super::Square;
+use crate::{board::Board, types::Color};
 
 #[derive(Copy, Clone)]
 pub enum CastlingKind {
@@ -51,6 +49,39 @@ impl Castling {
     pub const fn is_allowed(self, kind: CastlingKind) -> bool {
         (self.raw & kind as u8) != 0
     }
+
+    pub fn to_string(self, board: &Board) -> String {
+        if self.raw == 0 {
+            return "-".to_string();
+        }
+
+        let mut result = String::new();
+
+        let kinds = [
+            (CastlingKind::WhiteKinside, 'K', Color::White),
+            (CastlingKind::WhiteQueenside, 'Q', Color::White),
+            (CastlingKind::BlackKingside, 'k', Color::Black),
+            (CastlingKind::BlackQueenside, 'q', Color::Black),
+        ];
+
+        for (kind, mut symbol, color) in kinds {
+            if !self.is_allowed(kind) {
+                continue;
+            }
+
+            if board.is_frc() {
+                let (rook, _) = board.get_castling_rook(kind.landing_square());
+                let base = match color {
+                    Color::White => b'A',
+                    Color::Black => b'a',
+                };
+                symbol = (rook.file() + base) as char;
+            }
+            result.push(symbol);
+        }
+
+        result
+    }
 }
 
 impl<T> Index<Castling> for [T] {
@@ -58,27 +89,5 @@ impl<T> Index<Castling> for [T] {
 
     fn index(&self, index: Castling) -> &Self::Output {
         unsafe { self.get_unchecked(index.raw as usize) }
-    }
-}
-
-impl Display for Castling {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.raw() == 0 {
-            return write!(f, "-");
-        }
-
-        if self.is_allowed(CastlingKind::WhiteKinside) {
-            write!(f, "K")?;
-        }
-        if self.is_allowed(CastlingKind::WhiteQueenside) {
-            write!(f, "Q")?;
-        }
-        if self.is_allowed(CastlingKind::BlackKingside) {
-            write!(f, "k")?;
-        }
-        if self.is_allowed(CastlingKind::BlackQueenside) {
-            write!(f, "q")?;
-        }
-        Ok(())
     }
 }
