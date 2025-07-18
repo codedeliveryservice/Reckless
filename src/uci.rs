@@ -173,7 +173,6 @@ fn go(
 
 fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
     let mut board = Board::default();
-    board.set_frc(frc);
 
     while !tokens.is_empty() {
         match tokens {
@@ -186,6 +185,7 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
                     Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
+                board.set_frc(frc);
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
