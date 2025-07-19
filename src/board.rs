@@ -365,7 +365,11 @@ impl Board {
         let piece = self.piece_on(from).piece_type();
         let captured = self.piece_on(to).piece_type();
 
-        if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
+        if piece == PieceType::None
+            || !self.us().contains(from)
+            || (self.us().contains(to)
+                && !(mv.is_castling() && piece == PieceType::King && self.piece_on(to).piece_type() == PieceType::Rook))
+        {
             return false;
         }
 
