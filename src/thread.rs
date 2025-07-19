@@ -242,9 +242,9 @@ impl Default for LmrTable {
         for depth in 1..64 {
             for move_count in 1..64 {
                 let reduction = 768.0
-                    + 384.0 * (depth as f32).ln() * (move_count as f32).ln()
-                    + 128.0 * (depth as f32).ln()
-                    + 128.0 * (move_count as f32).ln();
+                    + 448.0 * (depth as f32).ln() * (move_count as f32).ln()
+                    + 96.0 * (depth as f32).ln()
+                    + 96.0 * (move_count as f32).ln();
 
                 table[depth][move_count] = reduction as i32;
             }
