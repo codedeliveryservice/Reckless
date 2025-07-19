@@ -24,8 +24,13 @@ mod bindings;
 fn main() {
     lookup::init();
 
-    match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(None),
-        _ => uci::message_loop(),
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    match args.first().map(String::as_str) {
+        Some("bench") if args.len() == 1 => tools::bench::<false>(None),
+        _ => {
+            let command = args.join(" ");
+            uci::message_loop(if command.is_empty() { None } else { Some(command) });
+        }
     }
 }
