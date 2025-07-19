@@ -177,16 +177,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return Score::ZERO;
     }
 
+    // Qsearch Dive
+    if depth <= 0 {
+        return qsearch::<NODE>(td, alpha, beta);
+    }
+
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
         }
-    }
-
-    // Qsearch Dive
-    if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta);
     }
 
     if NODE::PV {
@@ -846,6 +846,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+
+    if alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
+        alpha = Score::ZERO;
+        if alpha >= beta {
+            return alpha;
+        }
+    }
 
     let in_check = td.board.in_check();
 
