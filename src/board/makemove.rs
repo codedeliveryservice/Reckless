@@ -3,6 +3,8 @@ use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
+        println!("Making null move");
+
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
@@ -30,6 +32,8 @@ impl Board {
     /// This method assumes the move has been validated as pseudo-legal and legal
     /// per `Board::is_pseudo_legal` and `Board::is_legal`.
     pub fn make_move(&mut self, mv: Move) {
+        println!("Making move: {}", mv.to_uci(&self));
+
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
