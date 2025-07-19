@@ -397,7 +397,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !in_check
         && !excluded
         && depth <= 7
-        && eval >= beta
+        && eval >= beta + 10
         && eval
             >= beta + 72 * depth - (70 * improving as i32) - (23 * cut_node as i32)
                 + 559 * correction_value.abs() / 1024
