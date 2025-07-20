@@ -988,8 +988,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if !is_loss(best_score) && !td.board.see(mv, -73) {
-            if best_score + 1 < alpha && !is_decisive(best_score + 1) && (td.counter.local() & 1 == 0) {
-                best_score += 1;
+            if best_score < alpha && !is_decisive(best_score - 1) && (td.counter.local() & 1 == 0) {
+                best_score -= 1;
             }
             continue;
         }
