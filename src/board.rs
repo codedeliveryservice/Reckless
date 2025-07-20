@@ -365,24 +365,8 @@ impl Board {
         let piece = self.piece_on(from).piece_type();
         let captured = self.piece_on(to).piece_type();
 
-        if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
-            return false;
-        }
-
-        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
-            return false;
-        }
-
-        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
-            return false;
-        }
-
-        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
-            return false;
-        }
-
         if mv.is_castling() {
-            if piece != PieceType::King {
+            if !self.us().contains(from) || piece != PieceType::King {
                 return false;
             }
 
@@ -397,6 +381,22 @@ impl Board {
             return self.castling().is_allowed(kind)
                 && (self.castling_path[kind] & self.occupancies()).is_empty()
                 && (self.castling_threat[kind] & self.threats()).is_empty();
+        }
+
+        if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
+            return false;
+        }
+
+        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
+            return false;
+        }
+
+        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
+            return false;
+        }
+
+        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
+            return false;
         }
 
         if piece == PieceType::Pawn {
