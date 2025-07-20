@@ -885,7 +885,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         tt_score = entry.score;
         tt_bound = entry.bound;
 
-        if is_valid(tt_score)
+        if !in_check
+            && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha,
                 Bound::Lower => tt_score >= beta,
