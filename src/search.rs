@@ -662,7 +662,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1193;
             }
 
-            if td.board.in_check() {
+            if td.board.in_check() || !td.board.has_non_pawns() {
                 reduction -= 794;
             }
 
