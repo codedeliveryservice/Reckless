@@ -901,6 +901,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_score = -Score::INFINITE;
     let mut futility_score = Score::NONE;
     let mut raw_eval = Score::NONE;
+    let mut static_eval = Score::NONE;
 
     // Evaluation
     if !in_check {
@@ -909,45 +910,38 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
+    }
 
-        if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score < static_eval,
-                Bound::Lower => tt_score > static_eval,
-                _ => true,
-            }
-        {
-            debug_assert!(is_valid(tt_score));
-            best_score = tt_score;
+    if is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score < static_eval,
+            Bound::Lower => tt_score > static_eval,
+            _ => true,
+        }
+    {
+        debug_assert!(is_valid(tt_score));
+        best_score = tt_score;
+    }
+
+    if best_score >= beta {
+        if !is_decisive(best_score) && !is_decisive(beta) {
+            best_score = (best_score + beta) / 2;
         }
 
-        if best_score >= beta {
-            if !is_decisive(best_score) && !is_decisive(beta) {
-                best_score = (best_score + beta) / 2;
-            }
-
-            if entry.is_none() {
-                td.tt.write(
-                    td.board.hash(),
-                    TtDepth::SOME,
-                    raw_eval,
-                    best_score,
-                    Bound::Lower,
-                    Move::NULL,
-                    td.ply,
-                    tt_pv,
-                );
-            }
-
-            return best_score;
+        if entry.is_none() {
+            td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, td.ply, tt_pv);
         }
 
-        if best_score > alpha {
-            alpha = best_score;
-        }
+        return best_score;
+    }
 
+    if best_score > alpha {
+        alpha = best_score;
+    }
+
+    if !in_check {
         futility_score = static_eval + 123;
     }
 
