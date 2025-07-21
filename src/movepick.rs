@@ -61,6 +61,10 @@ impl MovePicker {
         self.stage
     }
 
+    pub fn list_len(&self) -> usize {
+        self.list.len()
+    }
+
     pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
