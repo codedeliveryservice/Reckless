@@ -809,14 +809,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
-            fn pcm_bonus(input: &[(bool, i32, i32)], depth: i32) -> i32 {
+            fn pcm_factor(input: &[(bool, i32, i32)], depth: i32) -> i32 {
+                let depth = depth.min(8);
+
                 let mut factor = 40 + 40 * depth;
                 for &(on, constant, linear) in input {
                     if on {
                         factor += constant + linear * depth;
                     }
                 }
-                factor * (148 * depth - 43) / 128
+                factor
             }
 
             let v1 = !in_check && best_score <= static_eval.min(raw_eval) - 135;
@@ -826,8 +828,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let v4 = cut_node;
             let v5 = had_best_noisy_move;
 
-            let bonus =
-                pcm_bonus(&[(v1, 200, 10), (v2, 200, 10), (v3, 20, 10), (v4, 20, 10), (v5, 20, 10)], depth.min(8));
+            let factor = pcm_factor(&[(v1, 200, 10), (v2, 200, 10), (v3, 20, 10), (v4, 20, 10), (v5, 20, 10)], depth);
+            let bonus = factor * (148 * depth - 43).min(1700) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
         }
