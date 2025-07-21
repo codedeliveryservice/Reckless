@@ -544,7 +544,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += (494 - 425 * improvement / 128).min(1205);
         }
 
-        if !NODE::ROOT && !is_loss(best_score) {
+        if !NODE::ROOT && !is_loss(best_score) && (tt_move.is_some() || mv.is_noisy() || move_picker.list_len() > 0) {
             let lmr_reduction = if is_quiet { reduction - 138 * history / 1024 } else { reduction };
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
