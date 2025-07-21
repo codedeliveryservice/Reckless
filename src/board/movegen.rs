@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
     types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Rank, Square},
 };
 
@@ -57,11 +57,7 @@ impl super::Board {
         }
 
         let occupancies = self.occupancies();
-        let target = if self.in_check() {
-            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
-        } else {
-            Bitboard::ALL
-        };
+        let target = Bitboard::ALL;
 
         self.collect_pawn_moves::<T>(list);
 
