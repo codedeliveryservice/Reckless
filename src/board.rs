@@ -362,12 +362,15 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
 
+        let piece = self.piece_on(from).piece_type();
+        let captured = self.piece_on(to).piece_type();
+
         if mv.is_castling() {
-            if self.piece_on(from) != Piece::new(self.side_to_move, PieceType::King) {
+            if piece != PieceType::King || !self.us().contains(from) {
                 return false;
             }
 
-            if self.piece_on(to) != Piece::None && to != from {
+            if ![PieceType::None, PieceType::King].contains(&captured) || self.them().contains(to) {
                 return false;
             }
 
@@ -383,9 +386,6 @@ impl Board {
                 && (self.castling_path[kind] & self.occupancies()).is_empty()
                 && (self.castling_threat[kind] & self.threats()).is_empty();
         }
-
-        let piece = self.piece_on(from).piece_type();
-        let captured = self.piece_on(to).piece_type();
 
         if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
             return false;
