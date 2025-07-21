@@ -223,6 +223,16 @@ impl Board {
         }
     }
 
+    pub fn threats_hash(&self) -> u64 {
+        let mut hash = (self.threats() & self.colors(self.side_to_move)).0;
+        hash ^= hash >> 33;
+        hash = hash.wrapping_mul(0xff51afd7ed558ccd_u64);
+        hash ^= hash >> 33;
+        hash = hash.wrapping_mul(0xc4ceb9fe1a85ec53_u64);
+        hash ^= hash >> 33;
+        hash
+    }
+
     /// Checks if the position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self, ply: usize) -> bool {
         self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
