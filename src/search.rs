@@ -809,16 +809,25 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 107;
-            factor += 141 * (depth > 5) as i32;
-            factor += 231 * (!in_check && best_score <= static_eval.min(raw_eval) - 135) as i32;
-            factor += 289
-                * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
-                    as i32;
+            let v1 = (!in_check && best_score <= static_eval.min(raw_eval) - 135) as i32;
+            let v2 = (is_valid(td.stack[td.ply - 1].static_eval)
+                && best_score <= -td.stack[td.ply - 1].static_eval - 102) as i32;
+            let v3 = NODE::PV as i32;
+            let v4 = cut_node as i32;
+            let v5 = had_best_noisy_move as i32;
 
-            let scaled_bonus = factor * (148 * depth - 43).min(1673) / 128;
+            let d = depth.min(8);
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            let mut factor = 40 + 40 * d;
+            factor += 200 * v1 + 10 * d * v1;
+            factor += 200 * v2 + 10 * d * v2;
+            factor += 20 * v3 + 10 * d * v3;
+            factor += 20 * v4 + 10 * d * v4;
+            factor += 20 * v5 + 10 * d * v5;
+
+            let bonus = factor * (148 * depth - 43) / 128;
+
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
         }
     }
 
