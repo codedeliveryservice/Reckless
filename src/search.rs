@@ -556,7 +556,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if !in_check
                 && is_quiet
                 && lmr_depth < 8
-                && futility_value <= alpha
+                && futility_value.max(static_eval) <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
                 if !is_decisive(best_score) && best_score <= futility_value {
