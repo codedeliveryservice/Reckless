@@ -370,7 +370,7 @@ impl Board {
                 return false;
             }
 
-            if ![PieceType::None, PieceType::King].contains(&captured) || self.them().contains(to) {
+            if ![PieceType::None, PieceType::Rook, PieceType::King].contains(&captured) || self.them().contains(to) {
                 return false;
             }
 
