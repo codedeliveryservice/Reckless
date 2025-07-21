@@ -405,7 +405,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_loss(beta)
         && !is_win(eval)
     {
-        return (eval + beta) / 2;
+        return beta + (eval - beta) / 3;
     }
 
     // Null Move Pruning (NMP)
