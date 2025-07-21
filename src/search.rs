@@ -670,6 +670,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1232;
             }
 
+            if td.ply >= 2 && td.stack[td.ply - 2].mv.is_null() {
+                reduction -= 512;
+            }
+
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 768;
             }
