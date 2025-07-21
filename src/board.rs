@@ -362,6 +362,28 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
 
+        if mv.is_castling() {
+            if self.piece_on(from) != Piece::new(self.side_to_move, PieceType::King) {
+                return false;
+            }
+
+            if self.piece_on(to) != Piece::None && to != from {
+                return false;
+            }
+
+            let kind = match to {
+                Square::G1 => CastlingKind::WhiteKinside,
+                Square::C1 => CastlingKind::WhiteQueenside,
+                Square::G8 => CastlingKind::BlackKingside,
+                Square::C8 => CastlingKind::BlackQueenside,
+                _ => unreachable!(),
+            };
+
+            return self.castling().is_allowed(kind)
+                && (self.castling_path[kind] & self.occupancies()).is_empty()
+                && (self.castling_threat[kind] & self.threats()).is_empty();
+        }
+
         let piece = self.piece_on(from).piece_type();
         let captured = self.piece_on(to).piece_type();
 
@@ -379,24 +401,6 @@ impl Board {
 
         if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
             return false;
-        }
-
-        if mv.is_castling() {
-            if piece != PieceType::King {
-                return false;
-            }
-
-            let kind = match to {
-                Square::G1 => CastlingKind::WhiteKinside,
-                Square::C1 => CastlingKind::WhiteQueenside,
-                Square::G8 => CastlingKind::BlackKingside,
-                Square::C8 => CastlingKind::BlackQueenside,
-                _ => unreachable!(),
-            };
-
-            return self.castling().is_allowed(kind)
-                && (self.castling_path[kind] & self.occupancies()).is_empty()
-                && (self.castling_threat[kind] & self.threats()).is_empty();
         }
 
         if piece == PieceType::Pawn {
