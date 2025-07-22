@@ -824,10 +824,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 && best_score <= -td.stack[td.ply - 1].static_eval - param2();
             let v3 = NODE::PV;
             let v4 = cut_node;
-            let v5 = had_best_noisy_move;
 
             let factor = pcm_factor(
-                &[(v1, v1c(), v1l()), (v2, v2c(), v2l()), (v3, v3c(), v3l()), (v4, v4c(), v4l()), (v5, v5c(), v5l())],
+                &[(v1, v1c(), v1l()), (v2, v2c(), v2l()), (v3, v3c(), v3l()), (v4, v4c(), v4l())],
                 depth.min(max_depth()),
             );
             let bonus = factor * (bonus1() * depth - bonus2()).min(bonus3()) / 128;

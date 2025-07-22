@@ -50,8 +50,6 @@ define!(
     i32 v3l: 10;
     i32 v4c: 20;
     i32 v4l: 10;
-    i32 v5c: 20;
-    i32 v5l: 10;
     i32 param1: 135;
     i32 param2: 102;
 );
