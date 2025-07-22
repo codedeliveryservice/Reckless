@@ -34,3 +34,24 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 basec: 40;
+    i32 basel: 40;
+    i32 bonus1: 148;
+    i32 bonus2: 43;
+    i32 bonus3: 1700;
+    i32 max_depth: 8;
+    i32 v1c: 200;
+    i32 v1l: 10;
+    i32 v2c: 200;
+    i32 v2l: 10;
+    i32 v3c: 20;
+    i32 v3l: 10;
+    i32 v4c: 20;
+    i32 v4l: 10;
+    i32 v5c: 20;
+    i32 v5l: 10;
+    i32 param1: 135;
+    i32 param2: 102;
+);
