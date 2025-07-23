@@ -1082,13 +1082,11 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 }
 
 fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, bonus: i32) {
-    const BONUSES: [(usize, i32); 5] = [(1, 1536), (2, 1024), (3, 1024), (4, 1024), (6, 1024)];
-
-    for (offset, scale) in BONUSES {
+    for offset in [1, 2, 3, 4, 6] {
         if td.ply >= offset {
             let entry = &td.stack[td.ply - offset];
             if entry.mv.is_some() {
-                td.continuation_history.update(entry.conthist, piece, sq, scale * bonus / 1024);
+                td.continuation_history.update(entry.conthist, piece, sq, bonus);
             }
         }
     }
