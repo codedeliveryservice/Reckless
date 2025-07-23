@@ -780,21 +780,23 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let bonus_cont = (97 * depth - 57).min(1250) - 69 * cut_node as i32;
         let malus_cont = (277 * initial_depth - 49).min(978) - 14 * (move_count - 1) + 126 * skip_quiets as i32;
 
-        if best_move.is_noisy() {
-            td.noisy_history.update(
-                td.board.threats(),
-                td.board.moved_piece(best_move),
-                best_move.to(),
-                td.board.piece_on(best_move.to()).piece_type(),
-                bonus_noisy,
-            );
-        } else if !quiet_moves.is_empty() || depth > 3 {
-            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-            update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
+        if move_count > 1 || depth > 3 {
+            if best_move.is_noisy() {
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(best_move),
+                    best_move.to(),
+                    td.board.piece_on(best_move.to()).piece_type(),
+                    bonus_noisy,
+                );
+            } else {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
+                update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
-            for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
+                for &mv in quiet_moves.iter() {
+                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                    update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
+                }
             }
         }
 
