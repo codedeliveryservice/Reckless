@@ -98,6 +98,7 @@ pub struct ThreadData<'a> {
     pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
+    pub rfp_model: RfpModel,
 }
 
 impl<'a> ThreadData<'a> {
@@ -134,6 +135,7 @@ impl<'a> ThreadData<'a> {
             ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
+            rfp_model: RfpModel::new(),
         }
     }
 
@@ -221,6 +223,27 @@ impl Default for PrincipalVariationTable {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RfpModel {
+    pub weight: i32,
+}
+
+impl RfpModel {
+    pub fn new() -> Self {
+        Self { weight: -70000 }
+    }
+
+    pub fn improving_factor(&self, improving: bool) -> i32 {
+        self.weight * improving as i32 / 1000
+    }
+
+    pub fn update(&mut self, predicted: bool) {
+        let sign = if predicted { -1 } else { 1 };
+        let delta = 1;
+        self.weight = self.weight.saturating_add(sign * delta);
     }
 }
 
