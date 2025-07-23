@@ -816,7 +816,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
                     as i32;
 
-            let scaled_bonus = factor * (148 * depth - 43).min(1673) / 128;
+            let scaled_bonus = factor.min(128 * 5) * (148 * depth - 43).min(1673) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
