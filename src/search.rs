@@ -355,6 +355,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
+    let mut improvement = 0;
+    if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
+        improvement = static_eval - td.stack[td.ply - 2].static_eval;
+    }
+
+    let improving = improvement > 0;
+
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check
@@ -371,6 +378,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && depth >= 2
         && td.stack[td.ply - 1].reduction >= 914
+        && improving
         && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 59
     {
@@ -379,13 +387,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
-
-    let mut improvement = 0;
-    if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
-        improvement = static_eval - td.stack[td.ply - 2].static_eval;
-    }
-
-    let improving = improvement > 0;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 294 - 264 * depth * depth {
