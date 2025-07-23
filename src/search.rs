@@ -385,7 +385,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         improvement = static_eval - td.stack[td.ply - 2].static_eval;
     }
 
-    let improving = improvement > 0;
+    let mut improving = improvement > 0;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 294 - 264 * depth * depth {
@@ -734,6 +734,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     had_best_noisy_move = true;
                 }
                 if NODE::PV {
+                    if !in_check
+                        && td.ply >= 2
+                        && td.stack[td.ply - 1].mv.is_some()
+                        && is_valid(td.stack[td.ply - 2].static_eval)
+                        && score > static_eval
+                    {
+                        improvement = best_score - td.stack[td.ply - 2].static_eval;
+                        improving = improvement > 0;
+                    }
+
                     td.pv.update(td.ply, mv);
 
                     if NODE::ROOT {
