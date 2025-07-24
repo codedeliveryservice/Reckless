@@ -235,27 +235,29 @@ pub struct NmpModel {
 
 impl NmpModel {
     pub fn output(&self, depth: i32, tt_pv: bool, improvement: i32) -> i32 {
-        self.weights[0] as i32 * depth
-            + self.weights[1] as i32 * tt_pv as i32
-            + self.weights[2] as i32 * improvement / 1024
-            + self.weights[3] as i32
+        let d = (depth as f32 - 4.75) / 2.48;
+        let t = (tt_pv as i32 as f32 - 0.04) / 0.21;
+        let i = (improvement as f32 / 1024.0 - 0.119941406) / 0.36786133;
+        let x = [d, t, i, 1.0];
+
+        self.weights.iter().zip(x).fold(0.0, |s, (&w, xi)| s + w * xi) as i32
     }
 
     pub fn update(&mut self, depth: i32, tt_pv: bool, improvement: i32, error: f32) {
-        const BETA_1: f32 = 0.9;
-        const BETA_2: f32 = 0.999;
-        const EPSILON: f32 = 1e-8;
+        // const BETA_1: f32 = 0.9;
+        // const BETA_2: f32 = 0.999;
+        // const EPSILON: f32 = 1e-8;
 
-        let x = [depth as f32, tt_pv as usize as f32, improvement as f32 / 1024.0, 1.0];
+        // let x = [depth as f32, tt_pv as usize as f32, improvement as f32 / 1024.0, 1.0];
 
-        for i in 0..self.weights.len() {
-            let g = error * x[i];
+        // for i in 0..self.weights.len() {
+        //     let g = error * x[i];
 
-            self.momentum[i] = BETA_1 * self.momentum[i] + (1.0 - BETA_1) * g;
-            self.velocity[i] = BETA_2 * self.velocity[i] + (1.0 - BETA_2) * g * g;
+        //     self.momentum[i] = BETA_1 * self.momentum[i] + (1.0 - BETA_1) * g;
+        //     self.velocity[i] = BETA_2 * self.velocity[i] + (1.0 - BETA_2) * g * g;
 
-            self.weights[i] -= self.lr * self.momentum[i] / (self.velocity[i].sqrt() + EPSILON);
-        }
+        //     self.weights[i] -= self.lr * self.momentum[i] / (self.velocity[i].sqrt() + EPSILON);
+        // }
     }
 }
 
