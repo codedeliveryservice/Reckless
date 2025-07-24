@@ -88,6 +88,7 @@ pub struct ThreadData<'a> {
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub node_table: NodeTable,
     pub lmr: LmrTable,
+    pub nmp_model: NmpModel,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub best_score: i32,
@@ -124,6 +125,7 @@ impl<'a> ThreadData<'a> {
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             node_table: NodeTable::default(),
             lmr: LmrTable::default(),
+            nmp_model: NmpModel::default(),
             optimism: [0; 2],
             stopped: false,
             best_score: -Score::INFINITE,
@@ -220,6 +222,50 @@ impl Default for PrincipalVariationTable {
         Self {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
+        }
+    }
+}
+
+pub struct NmpModel {
+    weights: [f32; 4],
+    momentum: [f32; 4],
+    velocity: [f32; 4],
+    lr: f32,
+}
+
+impl NmpModel {
+    pub fn output(&self, depth: i32, tt_pv: bool, improvement: i32) -> i32 {
+        self.weights[0] as i32 * depth
+            + self.weights[1] as i32 * tt_pv as i32
+            + self.weights[2] as i32 * improvement / 1024
+            + self.weights[3] as i32
+    }
+
+    pub fn update(&mut self, depth: i32, tt_pv: bool, improvement: i32, error: f32) {
+        const BETA_1: f32 = 0.9;
+        const BETA_2: f32 = 0.999;
+        const EPSILON: f32 = 1e-8;
+
+        let x = [depth as f32, tt_pv as usize as f32, improvement as f32 / 1024.0, 1.0];
+
+        for i in 0..self.weights.len() {
+            let g = error * x[i];
+
+            self.momentum[i] = BETA_1 * self.momentum[i] + (1.0 - BETA_1) * g;
+            self.velocity[i] = BETA_2 * self.velocity[i] + (1.0 - BETA_2) * g * g;
+
+            self.weights[i] -= self.lr * self.momentum[i] / (self.velocity[i].sqrt() + EPSILON);
+        }
+    }
+}
+
+impl Default for NmpModel {
+    fn default() -> Self {
+        Self {
+            weights: [-15.0, 147.0, -105.0, 187.0],
+            momentum: [0.0; 4],
+            velocity: [0.0; 4],
+            lr: 0.001,
         }
     }
 }
