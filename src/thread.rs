@@ -88,6 +88,7 @@ pub struct ThreadData<'a> {
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub node_table: NodeTable,
     pub lmr: LmrTable,
+    pub nmp_model: NmpModel,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub best_score: i32,
@@ -124,6 +125,7 @@ impl<'a> ThreadData<'a> {
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             node_table: NodeTable::default(),
             lmr: LmrTable::default(),
+            nmp_model: NmpModel::default(),
             optimism: [0; 2],
             stopped: false,
             best_score: -Score::INFINITE,
@@ -220,6 +222,56 @@ impl Default for PrincipalVariationTable {
         Self {
             table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
+        }
+    }
+}
+
+pub struct NmpModel {
+    weights: [f32; 4],
+    momentum: [f32; 4],
+    velocity: [f32; 4],
+    lr: f32,
+}
+
+impl NmpModel {
+    fn normalize(depth: i32, tt_pv: bool, improvement: i32) -> [f32; 4] {
+        const MU: [f32; 3] = [4.744, 0.039, 0.115];
+        const SIG: [f32; 3] = [2.491, 0.208, 0.378];
+
+        let d = (depth as f32 - MU[0]) / SIG[0];
+        let t = (tt_pv as u8 as f32 - MU[1]) / SIG[1];
+        let i = (improvement as f32 / 1024.0 - MU[2]) / SIG[2];
+
+        [d, t, i, 1.0]
+    }
+
+    pub fn output(&self, depth: i32, tt_pv: bool, improvement: i32) -> i32 {
+        let x = Self::normalize(depth, tt_pv, improvement);
+        self.weights.iter().zip(x).map(|(w, xi)| w * xi).sum::<f32>() as i32
+    }
+
+    pub fn update(&mut self, depth: i32, tt_pv: bool, improvement: i32, error: f32) {
+        const B1: f32 = 0.9;
+        const B2: f32 = 0.999;
+        const EPS: f32 = 1e-8;
+
+        let x = Self::normalize(depth, tt_pv, improvement);
+        for i in 0..4 {
+            let g = error * x[i];
+            self.momentum[i] = B1 * self.momentum[i] + (1.0 - B1) * g;
+            self.velocity[i] = B2 * self.velocity[i] + (1.0 - B2) * g * g;
+            self.weights[i] -= self.lr * self.momentum[i] / (self.velocity[i].sqrt() + EPS);
+        }
+    }
+}
+
+impl Default for NmpModel {
+    fn default() -> Self {
+        Self {
+            weights: [-38.055, 29.828, -39.900, 106.808],
+            momentum: [0.0; 4],
+            velocity: [0.0; 4],
+            lr: 0.0049,
         }
     }
 }
