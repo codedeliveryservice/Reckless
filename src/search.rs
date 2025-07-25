@@ -249,8 +249,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         {
             if tt_move.is_quiet() && tt_score >= beta {
-                let quiet_bonus = (134 * depth - 72).min(1380);
-                let conthist_bonus = (100 * depth - 62).min(1415);
+                let quiet_bonus = (134 * depth - 72).min(1380) + 69 * !cut_node as i32;
+                let conthist_bonus = (100 * depth - 62).min(1415) + 69 * !cut_node as i32;
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
