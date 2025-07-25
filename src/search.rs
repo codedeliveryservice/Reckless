@@ -689,8 +689,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
 
                     if mv.is_quiet() && score >= beta {
-                        let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
-                            * (162 * depth - 50).min(1037);
+                        let bonus = (depth / move_count).clamp(1, 5) * (162 * depth - 50).min(1037);
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
