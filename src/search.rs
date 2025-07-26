@@ -1060,7 +1060,7 @@ fn corrected_eval(raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
     let eval = if (raw_eval ^ correction_value).is_positive() || correction_value.abs() < raw_eval.abs() {
         raw_eval
     } else {
-        correction_value
+        (raw_eval + correction_value) / 2
     };
 
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
