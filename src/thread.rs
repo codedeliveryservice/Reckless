@@ -18,19 +18,17 @@ pub struct ThreadPool<'a> {
 }
 
 impl<'a> ThreadPool<'a> {
-    pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
-    ) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, counter, tb_hits)] }
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
+        Self { vector: vec![ThreadData::new(tt, stop, nodes, tb_hits)] }
     }
 
     pub fn set_count(&mut self, threads: usize) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
-        let counter = self.vector[0].counter.global;
+        let nodes = self.vector[0].nodes.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, counter, tb_hits));
+        self.vector.resize_with(threads, || ThreadData::new(tt, stop, nodes, tb_hits));
 
         for i in 1..self.vector.len() {
             self.vector[i].board = self.vector[0].board.clone();
@@ -55,7 +53,7 @@ impl<'a> ThreadPool<'a> {
 
     pub fn clear(&mut self) {
         for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.counter.global, thread.tb_hits.global);
+            *thread = ThreadData::new(thread.tt, thread.stop, thread.nodes.global, thread.tb_hits.global);
         }
     }
 }
@@ -71,7 +69,7 @@ impl<'a> Index<usize> for ThreadPool<'a> {
 pub struct ThreadData<'a> {
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
-    pub counter: AtomicCounter<'a>,
+    pub nodes: AtomicCounter<'a>,
     pub tb_hits: AtomicCounter<'a>,
     pub board: Board,
     pub time_manager: TimeManager,
@@ -101,13 +99,11 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(
-        tt: &'a TranspositionTable, stop: &'a AtomicBool, counter: &'a AtomicU64, tb_hits: &'a AtomicU64,
-    ) -> Self {
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
         Self {
             tt,
             stop,
-            counter: AtomicCounter::new(counter),
+            nodes: AtomicCounter::new(nodes),
             tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
@@ -153,7 +149,7 @@ impl<'a> ThreadData<'a> {
 
     pub fn print_uci_info(&self, depth: i32, score: i32) {
         let elapsed = self.time_manager.elapsed();
-        let nps = self.counter.global() as f64 / elapsed.as_secs_f64();
+        let nps = self.nodes.global() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
@@ -170,7 +166,7 @@ impl<'a> ThreadData<'a> {
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             self.sel_depth,
-            self.counter.global(),
+            self.nodes.global(),
             self.tt.hashfull(),
             self.tb_hits.global(),
         );

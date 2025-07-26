@@ -81,10 +81,10 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
     let tt = TranspositionTable::default();
     let stop = AtomicBool::new(false);
-    let counter = AtomicU64::new(0);
+    let nodes = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut td = ThreadData::new(&tt, &stop, &counter, &tb_hits);
+    let mut td = ThreadData::new(&tt, &stop, &nodes, &tb_hits);
 
     let time = Instant::now();
 
@@ -99,14 +99,14 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
         search::start(&mut td, Report::None);
 
-        nodes += td.counter.local();
+        nodes += td.nodes.local();
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let nps = td.counter.local() as f64 / seconds;
+        let nps = td.nodes.local() as f64 / seconds;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.counter.local());
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes.local());
         }
     }
 

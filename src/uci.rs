@@ -16,10 +16,10 @@ pub fn message_loop() {
     static STOP: AtomicBool = AtomicBool::new(false);
 
     let tt = TranspositionTable::default();
-    let counter = AtomicU64::new(0);
+    let nodes = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut threads = ThreadPool::new(&tt, &STOP, &counter, &tb_hits);
+    let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
     for thread in threads.iter_mut() {
         thread.nnue.full_refresh(&thread.board);
     }
