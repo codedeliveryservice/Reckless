@@ -1039,32 +1039,53 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut values = vec![
-        td.pawn_corrhist.get(stm, td.board.pawn_key()),
-        td.minor_corrhist.get(stm, td.board.minor_key()),
-        td.major_corrhist.get(stm, td.board.major_key()),
-        td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White)),
-        td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black)),
-    ];
+    // Use a stack-allocated array to avoid heap allocation.
+    let mut values = [0; 6];
+    values[0] = td.pawn_corrhist.get(stm, td.board.pawn_key());
+    values[1] = td.minor_corrhist.get(stm, td.board.minor_key());
+    values[2] = td.major_corrhist.get(stm, td.board.major_key());
+    values[3] = td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White));
+    values[4] = td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
 
-    if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        values.push(td.continuation_corrhist.get(
+    let len = if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
+        values[5] = td.continuation_corrhist.get(
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
-        ));
+        );
+        6
+    } else {
+        5
+    };
+
+    let data = &values[..len];
+    let len_i32 = len as i32;
+
+    // --- Calculations ---
+
+    // 1. First pass: Calculate the sum.
+    let sum: i32 = data.iter().sum();
+    let mean = sum / len_i32;
+
+    // 2. Second pass: Calculate the sum of squared differences to find the threshold.
+    let sum_sq_diff: i32 = data.iter().map(|&v| (v - mean).pow(2)).sum();
+    let threshold = 4 * sum_sq_diff / len_i32;
+
+    // 3. Third pass: Count outliers.
+    let mut outliers_count = 0;
+    let mut outlier_value = 0;
+    for &v in data {
+        if (v - mean).pow(2) > threshold {
+            outliers_count += 1;
+            outlier_value = v; // This will hold the correct value if outliers_count is 1
+        }
     }
 
-    let len = values.len() as i32;
-
-    let mean = values.iter().sum::<i32>() / len;
-    let threshold = 4 * values.iter().map(|&v| (v - mean).pow(2)).sum::<i32>() / len;
-    let outliers = values.iter().filter(|&&v| (v - mean).pow(2) > threshold).count();
-
-    if outliers == 1 {
-        values.iter().filter(|&&v| (v - mean).pow(2) <= threshold).sum()
+    // 4. Return the final value with simplified logic.
+    if outliers_count == 1 {
+        sum - outlier_value
     } else {
-        values.iter().sum()
+        sum
     }
 }
 
