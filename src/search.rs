@@ -1039,21 +1039,35 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + td.minor_corrhist.get(stm, td.board.minor_key())
-        + td.major_corrhist.get(stm, td.board.major_key())
-        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+    let mut values = vec![
+        td.pawn_corrhist.get(stm, td.board.pawn_key()),
+        td.minor_corrhist.get(stm, td.board.minor_key()),
+        td.major_corrhist.get(stm, td.board.major_key()),
+        td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White)),
+        td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black)),
+    ];
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        values.push(td.continuation_corrhist.get(
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
-        );
+        ));
     }
 
-    correction
+    let len = values.len() as i32;
+    let mean = values.iter().sum::<i32>() / len;
+
+    let variance = values.iter().map(|&v| (v - mean).pow(2)).sum::<i32>() / len;
+    let stddev = (variance as f64).sqrt() as i32;
+
+    values
+        .iter()
+        .map(|&v| {
+            let z = (v - mean) as f64 / stddev as f64;
+            mean + (z.clamp(-2.0, 2.0) * stddev as f64) as i32
+        })
+        .sum()
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
