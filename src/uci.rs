@@ -12,7 +12,7 @@ use crate::{
     types::{is_decisive, is_loss, is_win, Color},
 };
 
-pub fn message_loop() {
+pub fn message_loop(mut next_command: Option<String>) {
     static STOP: AtomicBool = AtomicBool::new(false);
 
     let tt = TranspositionTable::default();
@@ -27,7 +27,6 @@ pub fn message_loop() {
     let mut frc = false;
     let mut move_overhead = 0;
     let mut report = Report::Full;
-    let mut next_command = None;
 
     loop {
         let command = next_command.take().unwrap_or_else(read_stdin);

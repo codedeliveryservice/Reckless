@@ -53,8 +53,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.nodes.clear();
     td.tb_hits.clear();
 
-    td.nnue.full_refresh(&td.board);
-
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
@@ -92,6 +90,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             if td.stopped {
                 break;
+            }
+
+            if report == Report::Full && (score <= alpha || score >= beta) && td.nodes.local() > 10000000 {
+                td.print_uci_info(depth, td.best_score);
             }
 
             match score {
