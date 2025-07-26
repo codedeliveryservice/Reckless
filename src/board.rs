@@ -176,6 +176,10 @@ impl Board {
         self.mailbox[mv.from()]
     }
 
+    pub fn active_threats(&self) -> i32 {
+        (self.threats() & self.us()).len() as i32
+    }
+
     pub fn has_non_pawns(&self) -> bool {
         self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
     }
