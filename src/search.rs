@@ -1039,52 +1039,32 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut vals = [
+    let mut values = vec![
         td.pawn_corrhist.get(stm, td.board.pawn_key()),
         td.minor_corrhist.get(stm, td.board.minor_key()),
         td.major_corrhist.get(stm, td.board.major_key()),
         td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White)),
         td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black)),
-        0,
     ];
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        vals[5] = td.continuation_corrhist.get(
+        values.push(td.continuation_corrhist.get(
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
-        );
+        ));
     }
 
-    let total: i64 = vals.iter().map(|&v| v as i64).sum();
-    let mean = total / vals.len() as i64;
+    let len = values.len() as i32;
 
-    let variance_n: i64 = vals
-        .iter()
-        .map(|&v| {
-            let diff = v as i64 - mean;
-            diff * diff
-        })
-        .sum();
+    let mean = values.iter().sum::<i32>() / len;
+    let threshold = 4 * values.iter().map(|&v| (v - mean).pow(2)).sum::<i32>() / len;
+    let outliers = values.iter().filter(|&&v| (v - mean).pow(2) > threshold).count();
 
-    let threshold = 4 * variance_n / vals.len() as i64;
-
-    let mut count_outliers = 0;
-    let mut sum = 0;
-
-    for &v in &vals {
-        let diff = v as i64 - mean;
-        if diff * diff > threshold {
-            count_outliers += 1;
-        } else {
-            sum += v;
-        }
-    }
-
-    if count_outliers == 1 {
-        sum
+    if outliers == 1 {
+        values.iter().filter(|&&v| (v - mean).pow(2) <= threshold).sum()
     } else {
-        vals.iter().sum()
+        values.iter().sum()
     }
 }
 
