@@ -1057,7 +1057,7 @@ fn correction_value(td: &ThreadData) -> i32 {
 }
 
 fn corrected_eval(raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    let eval = if (raw_eval ^ correction_value).is_positive() || correction_value.abs() < 2 * raw_eval.abs() {
+    let eval = if (raw_eval ^ correction_value).is_positive() || correction_value.abs() < raw_eval.abs() {
         raw_eval
     } else {
         correction_value
