@@ -1086,7 +1086,7 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
         if td.ply >= offset {
             let entry = &td.stack[td.ply - offset];
             if entry.mv.is_some() {
-                td.continuation_history.update(entry.conthist, piece, sq, bonus);
+                td.continuation_history.update(entry.conthist, piece, sq, bonus + 20 * offset as i32 + 80);
             }
         }
     }
