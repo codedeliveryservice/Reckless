@@ -78,15 +78,7 @@ impl Network {
         debug_assert!(self.stack[0].accurate == [true; 2]);
 
         for pov in [Color::White, Color::Black] {
-            if self.stack[self.index].accurate[pov] {
-                continue;
-            }
-
-            if self.can_update(pov) {
-                self.update_accumulator(board, pov);
-            } else {
-                self.refresh(board, pov);
-            }
+            self.refresh(board, pov);
         }
 
         self.output_transformer(board)

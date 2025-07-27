@@ -73,7 +73,7 @@ impl Board {
                     }
 
                     let king_from = self.king_square(Color::White);
-                    self.set_castling_for(CastlingKind::WhiteKinside, king_from, Square::G1, rook_from, Square::F1);
+                    self.set_castling_for(CastlingKind::WhiteKingside, king_from, Square::G1, rook_from, Square::F1);
                 }
                 'Q' => {
                     let mut rook_from = Square::A1;
@@ -107,13 +107,13 @@ impl Board {
                     let rook_from = Square::from_rank_file(0, token as u8 - b'A');
 
                     let kind = if king_from.file() < rook_from.file() {
-                        CastlingKind::WhiteKinside
+                        CastlingKind::WhiteKingside
                     } else {
                         CastlingKind::WhiteQueenside
                     };
 
                     let (king_to, rook_to) = match kind {
-                        CastlingKind::WhiteKinside => (Square::G1, Square::F1),
+                        CastlingKind::WhiteKingside => (Square::G1, Square::F1),
                         CastlingKind::WhiteQueenside => (Square::C1, Square::D1),
                         _ => unreachable!(),
                     };

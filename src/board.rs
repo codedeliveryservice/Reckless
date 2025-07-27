@@ -19,37 +19,37 @@ mod see;
 ///
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
-struct InternalState {
-    key: u64,
-    pawn_key: u64,
-    minor_key: u64,
-    major_key: u64,
-    non_pawn_keys: [u64; Color::NUM],
-    en_passant: Square,
-    castling: Castling,
-    halfmove_clock: u8,
-    plies_from_null: i32,
-    repetition: i32,
-    captured: Option<Piece>,
-    threats: Bitboard,
-    pinned: Bitboard,
-    checkers: Bitboard,
+pub struct InternalState {
+    pub key: u64,
+    pub pawn_key: u64,
+    pub minor_key: u64,
+    pub major_key: u64,
+    pub non_pawn_keys: [u64; Color::NUM],
+    pub en_passant: Square,
+    pub castling: Castling,
+    pub halfmove_clock: u8,
+    pub plies_from_null: i32,
+    pub repetition: i32,
+    pub captured: Option<Piece>,
+    pub threats: Bitboard,
+    pub pinned: Bitboard,
+    pub checkers: Bitboard,
 }
 
 #[derive(Clone)]
 pub struct Board {
-    side_to_move: Color,
-    pieces: [Bitboard; PieceType::NUM],
-    colors: [Bitboard; Color::NUM],
-    mailbox: [Piece; Square::NUM],
-    state: InternalState,
-    state_stack: Box<ArrayVec<InternalState, 2048>>,
-    fullmove_number: usize,
-    castling_rights: [u8; Square::NUM],
-    castling_path: [Bitboard; 16],
-    castling_threat: [Bitboard; 16],
-    castling_rooks: [Square; 16],
-    frc: bool,
+    pub side_to_move: Color,
+    pub pieces: [Bitboard; PieceType::NUM],
+    pub colors: [Bitboard; Color::NUM],
+    pub mailbox: [Piece; Square::NUM],
+    pub state: InternalState,
+    pub state_stack: Box<ArrayVec<InternalState, 2048>>,
+    pub fullmove_number: usize,
+    pub castling_rights: [u8; Square::NUM],
+    pub castling_path: [Bitboard; 16],
+    pub castling_threat: [Bitboard; 16],
+    pub castling_rooks: [Square; 16],
+    pub frc: bool,
 }
 
 impl Board {
@@ -320,7 +320,7 @@ impl Board {
 
         if mv.is_castling() {
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKinside,
+                Square::G1 => CastlingKind::WhiteKingside,
                 Square::C1 => CastlingKind::WhiteQueenside,
                 Square::G8 => CastlingKind::BlackKingside,
                 Square::C8 => CastlingKind::BlackQueenside,
@@ -371,7 +371,7 @@ impl Board {
             }
 
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKinside,
+                Square::G1 => CastlingKind::WhiteKingside,
                 Square::C1 => CastlingKind::WhiteQueenside,
                 Square::G8 => CastlingKind::BlackKingside,
                 Square::C8 => CastlingKind::BlackQueenside,
@@ -541,7 +541,7 @@ impl Board {
 
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKinside], Square::F1),
+            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingside], Square::F1),
             Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenside], Square::D1),
             Square::G8 => (self.castling_rooks[CastlingKind::BlackKingside], Square::F8),
             Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenside], Square::D8),
