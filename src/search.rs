@@ -1039,21 +1039,49 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + td.minor_corrhist.get(stm, td.board.minor_key())
-        + td.major_corrhist.get(stm, td.board.major_key())
-        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+    let mut vals = [
+        td.pawn_corrhist.get(stm, td.board.pawn_key()),
+        td.minor_corrhist.get(stm, td.board.minor_key()),
+        td.major_corrhist.get(stm, td.board.major_key()),
+        td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White)),
+        td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black)),
+        0,
+    ];
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        vals[5] = td.continuation_corrhist.get(
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
         );
     }
 
-    correction
+    let mean = vals.iter().map(|&x| x as i64).sum::<i64>() / vals.len() as i64;
+    let variance_n: i64 = vals
+        .iter()
+        .map(|&x| {
+            let d = x as i64 - mean;
+            d * d
+        })
+        .sum();
+    let threshold = 4 * variance_n / vals.len() as i64;
+
+    let mut outlier = None;
+    let mut outlier_count = 0;
+
+    for &v in &vals {
+        let diff = v as i64 - mean;
+        if diff * diff > threshold {
+            outlier = Some(v);
+            outlier_count += 1;
+        }
+    }
+
+    if outlier_count == 1 {
+        outlier.unwrap()
+    } else {
+        vals.iter().sum()
+    }
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
