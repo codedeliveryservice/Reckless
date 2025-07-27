@@ -184,7 +184,8 @@ impl MovePicker {
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
-                + td.conthist(6, mv);
+                + td.conthist(6, mv)
+                - 1024 * td.board.threats().contains(mv.from()) as i32
         }
     }
 }
