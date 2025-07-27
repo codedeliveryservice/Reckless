@@ -22,7 +22,7 @@ mod see;
 struct InternalState {
     key: u64,
     pawn_key: u64,
-    pawn_rook_key: u64,
+    pawn_rook_king_key: u64,
     minor_key: u64,
     major_key: u64,
     non_pawn_keys: [u64; Color::NUM],
@@ -81,8 +81,8 @@ impl Board {
         self.state.pawn_key
     }
 
-    pub const fn pawn_rook_key(&self) -> u64 {
-        self.state.pawn_rook_key
+    pub const fn pawn_rook_king_key(&self) -> u64 {
+        self.state.pawn_rook_king_key
     }
 
     pub const fn minor_key(&self) -> u64 {
@@ -216,8 +216,11 @@ impl Board {
             self.state.pawn_key ^= key;
         }
 
-        if piece.piece_type() == PieceType::Pawn || piece.piece_type() == PieceType::Rook {
-            self.state.pawn_rook_key ^= key;
+        if piece.piece_type() == PieceType::Pawn
+            || piece.piece_type() == PieceType::Rook
+            || piece.piece_type() == PieceType::King
+        {
+            self.state.pawn_rook_king_key ^= key;
         }
 
         if piece.piece_type() != PieceType::Pawn {
@@ -527,7 +530,7 @@ impl Board {
     pub fn update_hash_keys(&mut self) {
         self.state.key = 0;
         self.state.pawn_key = 0;
-        self.state.pawn_rook_key = 0;
+        self.state.pawn_rook_king_key = 0;
         self.state.minor_key = 0;
         self.state.major_key = 0;
         self.state.non_pawn_keys = [0; Color::NUM];
