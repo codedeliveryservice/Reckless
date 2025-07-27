@@ -1081,7 +1081,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         }
     }
 
-    let alpha = 0.5; // pull strength toward the outlier (0.0 = no pull, 1.0 = full override)
+    let alpha = 0.1; // pull strength toward the outlier (0.0 = no pull, 1.0 = full override)
 
     if outlier_count == 1 {
         let o = outlier.unwrap();
