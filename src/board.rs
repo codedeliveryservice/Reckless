@@ -320,7 +320,7 @@ impl Board {
 
         if mv.is_castling() {
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKinside,
+                Square::G1 => CastlingKind::WhiteKingside,
                 Square::C1 => CastlingKind::WhiteQueenside,
                 Square::G8 => CastlingKind::BlackKingside,
                 Square::C8 => CastlingKind::BlackQueenside,
@@ -371,7 +371,7 @@ impl Board {
             }
 
             let kind = match to {
-                Square::G1 => CastlingKind::WhiteKinside,
+                Square::G1 => CastlingKind::WhiteKingside,
                 Square::C1 => CastlingKind::WhiteQueenside,
                 Square::G8 => CastlingKind::BlackKingside,
                 Square::C8 => CastlingKind::BlackQueenside,
@@ -541,7 +541,7 @@ impl Board {
 
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
-            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKinside], Square::F1),
+            Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingside], Square::F1),
             Square::C1 => (self.castling_rooks[CastlingKind::WhiteQueenside], Square::D1),
             Square::G8 => (self.castling_rooks[CastlingKind::BlackKingside], Square::F8),
             Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenside], Square::D8),

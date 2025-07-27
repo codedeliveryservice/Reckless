@@ -5,7 +5,7 @@ use crate::{board::Board, types::Color};
 
 #[derive(Copy, Clone)]
 pub enum CastlingKind {
-    WhiteKinside = 0b0001,
+    WhiteKingside = 0b0001,
     WhiteQueenside = 0b0010,
     BlackKingside = 0b0100,
     BlackQueenside = 0b1000,
@@ -14,7 +14,7 @@ pub enum CastlingKind {
 impl CastlingKind {
     pub const fn landing_square(self) -> Square {
         match self {
-            CastlingKind::WhiteKinside => Square::G1,
+            CastlingKind::WhiteKingside => Square::G1,
             CastlingKind::WhiteQueenside => Square::C1,
             CastlingKind::BlackKingside => Square::G8,
             CastlingKind::BlackQueenside => Square::C8,
@@ -58,7 +58,7 @@ impl Castling {
         let mut result = String::new();
 
         let kinds = [
-            (CastlingKind::WhiteKinside, 'K', Color::White),
+            (CastlingKind::WhiteKingside, 'K', Color::White),
             (CastlingKind::WhiteQueenside, 'Q', Color::White),
             (CastlingKind::BlackKingside, 'k', Color::Black),
             (CastlingKind::BlackQueenside, 'q', Color::Black),
