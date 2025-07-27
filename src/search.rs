@@ -1040,6 +1040,7 @@ fn correction_value(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
+        + td.pawn_rook_corrhist.get(stm, td.board.pawn_rook_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
@@ -1065,6 +1066,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
     let bonus = (138 * depth * diff / 128).clamp(-3964, 3303);
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    td.pawn_rook_corrhist.update(stm, td.board.pawn_rook_key(), bonus);
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
     td.major_corrhist.update(stm, td.board.major_key(), bonus);
 
