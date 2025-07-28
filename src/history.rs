@@ -44,6 +44,10 @@ pub struct QuietHistory {
 }
 
 impl QuietHistory {
+    pub fn get_factorizer(&self, stm: Color, mv: Move) -> i32 {
+        self.entries[stm][mv.from()][mv.to()].factorizer as i32
+    }
+
     pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
         let entry = &self.entries[stm][mv.from()][mv.to()];
         (entry.factorizer + entry.bucket(threats, mv)) as i32
