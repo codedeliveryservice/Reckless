@@ -70,7 +70,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let mut beta = Score::INFINITE;
 
         let mut delta = 12;
-        let mut reduction = 0;
 
         // Aspiration Windows
         if depth >= 2 {
@@ -83,12 +82,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
 
+        td.failed_high_count = 0;
+
         loop {
             td.stack = Default::default();
             td.root_delta = beta - alpha;
 
             // Root Search
-            let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
+            let score = search::<Root>(td, alpha, beta, (depth - td.failed_high_count).max(1), false);
 
             if td.stopped {
                 break;
@@ -98,11 +99,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 s if s <= alpha => {
                     beta = (alpha + beta) / 2;
                     alpha = (score - delta).max(-Score::INFINITE);
-                    reduction = 0;
+                    td.failed_high_count = 0;
                 }
                 s if s >= beta => {
                     beta = (score + delta).min(Score::INFINITE);
-                    reduction += 1;
+                    td.failed_high_count += 1;
                 }
                 _ => {
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
@@ -110,7 +111,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
-            delta += delta * (40 + 15 * reduction) / 128;
+            delta += delta * (40 + 15 * td.failed_high_count) / 128;
         }
 
         if td.stopped {
@@ -672,6 +673,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 768;
+            }
+
+            if NODE::ROOT {
+                reduction += 5 * move_count * td.failed_high_count * td.failed_high_count;
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
