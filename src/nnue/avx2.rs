@@ -17,6 +17,13 @@ pub unsafe fn dpbusd(i32s: __m256i, u8s: __m256i, i8s: __m256i) -> __m256i {
     _mm256_add_epi32(i32s, widened)
 }
 
+pub unsafe fn double_dpbusd(i32s: __m256i, u8s1: __m256i, i8s1: __m256i, u8s2: __m256i, i8s2: __m256i) -> __m256i {
+    let pairwise1 = _mm256_maddubs_epi16(u8s1, i8s1);
+    let pairwise2 = _mm256_maddubs_epi16(u8s2, i8s2);
+    let widened = _mm256_madd_epi16(_mm256_add_epi16(pairwise1, pairwise2), _mm256_set1_epi16(1));
+    _mm256_add_epi32(i32s, widened)
+}
+
 pub unsafe fn horizontal_sum(vec: __m256) -> f32 {
     let pairwise = _mm256_hadd_ps(vec, vec);
     let quad = _mm256_hadd_ps(pairwise, pairwise);

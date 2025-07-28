@@ -206,8 +206,29 @@ unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
-    for i in 0..nnz.len() {
-        let index = *nnz.get_unchecked(i) as usize;
+    let mut pairs = nnz.chunks_exact(2);
+
+    for pair in &mut pairs {
+        let index1 = *pair.get_unchecked(0) as usize;
+        let index2 = *pair.get_unchecked(1) as usize;
+
+        let input1 = _mm256_set1_epi32(*packed.get_unchecked(index1));
+        let input2 = _mm256_set1_epi32(*packed.get_unchecked(index2));
+
+        let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
+        let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
+
+        for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
+            let weights1 = weights1.add(j * CHUNKS).cast();
+            let weights2 = weights2.add(j * CHUNKS).cast();
+
+            let vector = &mut pre_activations[j / simd::F32_LANES];
+            *vector = simd::double_dpbusd(*vector, input1, *weights1, input2, *weights2);
+        }
+    }
+
+    if let Some(last) = pairs.remainder().first() {
+        let index = *last as usize;
         let input = _mm256_set1_epi32(*packed.get_unchecked(index));
         let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
