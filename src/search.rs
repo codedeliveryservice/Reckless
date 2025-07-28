@@ -771,6 +771,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return if in_check { mated_in(td.ply) } else { Score::DRAW };
     }
 
+    if bound == Bound::Lower && !is_decisive(best_score) && !is_decisive(beta) {
+        best_score = (best_score * depth + beta) / (depth + 1);
+    }
+
     if best_move.is_some() {
         let bonus_noisy = (128 * depth - 60).min(1150) - 69 * cut_node as i32;
         let malus_noisy = (145 * initial_depth - 67).min(1457) - 13 * (move_count - 1);
