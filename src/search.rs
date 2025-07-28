@@ -810,16 +810,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 107;
-            factor += 141 * (depth > 5) as i32;
-            factor += 231 * (!in_check && best_score <= static_eval.min(raw_eval) - 135) as i32;
-            factor += 289
-                * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
-                    as i32;
+            let mut bonus = (148 * depth - 43).min(1673);
 
-            let scaled_bonus = factor * (148 * depth - 43).min(1673) / 128;
+            if is_valid(td.stack[td.ply - 1].static_eval)
+                && !is_decisive(best_score)
+                && best_score + td.stack[td.ply - 1].static_eval < 0
+            {
+                bonus -= 5 * (best_score + td.stack[td.ply - 1].static_eval);
+            }
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
         }
     }
 
