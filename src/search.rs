@@ -823,6 +823,19 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if !NODE::ROOT && bound == Bound::Upper {
+        let pcm_move = td.stack[td.ply - 1].mv;
+        if pcm_move.is_noisy() {
+            td.noisy_history.update(
+                td.board.prior_threats(),
+                td.stack[td.ply - 1].piece,
+                pcm_move.to(),
+                td.board.captured_piece().piece_type(),
+                512,
+            );
+        }
+    }
+
     if NODE::PV {
         best_score = best_score.min(max_score);
     }

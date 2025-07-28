@@ -140,6 +140,10 @@ impl Board {
         self.pieces
     }
 
+    pub fn captured_piece(&self) -> Piece {
+        self.state.captured.unwrap_or(Piece::None)
+    }
+
     pub fn occupancies(&self) -> Bitboard {
         self.colors(Color::White) | self.colors(Color::Black)
     }
