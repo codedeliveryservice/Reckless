@@ -392,22 +392,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
-    // Reverse Futility Pruning (RFP)
-    if !tt_pv
-        && !in_check
-        && !excluded
-        && depth <= 7
-        && eval >= beta
-        && eval
-            >= beta + 72 * depth - (70 * improving as i32) - (23 * cut_node as i32)
-                + 559 * correction_value.abs() / 1024
-                + 23
-        && !is_loss(beta)
-        && !is_win(eval)
-    {
-        return (eval + beta) / 2;
-    }
-
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -460,6 +444,22 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             }
         }
+    }
+
+    // Reverse Futility Pruning (RFP)
+    if !tt_pv
+        && !in_check
+        && !excluded
+        && depth <= 7
+        && eval >= beta
+        && eval
+            >= beta + 72 * depth - (70 * improving as i32) - (23 * cut_node as i32)
+                + 559 * correction_value.abs() / 1024
+                + 23
+        && !is_loss(beta)
+        && !is_win(eval)
+    {
+        return (eval + beta) / 2;
     }
 
     // ProbCut
