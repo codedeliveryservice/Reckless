@@ -516,6 +516,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut range_reduction = 0;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
@@ -645,6 +646,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= 3268 * correction_value.abs() / 1024;
             reduction -= 55 * move_count;
+            reduction += 96 * range_reduction;
             reduction += 303;
 
             if tt_pv {
@@ -699,6 +701,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;
+            }
+
+            if score > static_eval - 30 && depth > 7 {
+                range_reduction += 1;
             }
         }
         // Full Depth Search (FDS)
