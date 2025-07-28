@@ -821,6 +821,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
         }
+
+        if is_valid(tt_score) && tt_move.is_some() {
+            let malus = (134 * depth - 72).min(1380);
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -malus);
+        }
     }
 
     if NODE::PV {
