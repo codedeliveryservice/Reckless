@@ -147,26 +147,29 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 }
 
 pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+    const CHUNKS: usize = simd::I32_LANES / 8;
+
     let input = l2_out.as_ptr();
     let weights = PARAMETERS.l3_weights.as_ptr();
 
-    let mut output = _mm256_setzero_ps();
+    let mut output = [simd::zero_f32(); CHUNKS];
 
-    for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
-        let a = weights.add(i).cast();
-        let b = input.add(i).cast();
-        output = _mm256_fmadd_ps(*a, *b, output);
+    for lane in 0..CHUNKS {
+        for i in (0..L3_SIZE).step_by(CHUNKS * simd::F32_LANES) {
+            let a = weights.add(i + lane * simd::F32_LANES).cast();
+            let b = input.add(i + lane * simd::F32_LANES).cast();
+
+            output[lane] = simd::mul_add_f32(*a, *b, output[lane]);
+        }
     }
 
-    let hi128 = _mm256_extractf128_ps::<1>(output);
-    let lo128 = _mm256_castps256_ps128(output);
-    let sum128 = _mm_add_ps(lo128, hi128);
+    #[cfg(target_feature = "avx512f")]
+    {
+        simd::horizontal_sum(_mm512_add_ps(output[0], output[1])) + PARAMETERS.l3_biases
+    }
 
-    let hi64 = _mm_movehl_ps(sum128, sum128);
-    let sum64 = _mm_add_ps(sum128, hi64);
-
-    let hi32 = _mm_shuffle_ps(sum64, sum64, 0x1);
-    let sum32 = _mm_add_ss(sum64, hi32);
-
-    _mm_cvtss_f32(sum32) + PARAMETERS.l3_biases
+    #[cfg(not(target_feature = "avx512f"))]
+    {
+        simd::horizontal_sum(output[0]) + PARAMETERS.l3_biases
+    }
 }

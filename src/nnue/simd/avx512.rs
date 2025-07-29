@@ -81,6 +81,10 @@ pub unsafe fn double_dpbusd(i32s: __m512i, u8s1: __m512i, i8s1: __m512i, u8s2: _
     _mm512_add_epi32(i32s, widened)
 }
 
+pub unsafe fn horizontal_sum(x: __m512) -> f32 {
+    _mm512_reduce_add_ps(x)
+}
+
 pub unsafe fn nnz_bitmask(x: __m512i) -> u16 {
     _mm512_cmpgt_epi32_mask(x, _mm512_setzero_si512())
 }

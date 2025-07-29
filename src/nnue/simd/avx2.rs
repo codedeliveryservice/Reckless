@@ -81,6 +81,16 @@ pub unsafe fn double_dpbusd(i32s: __m256i, u8s1: __m256i, i8s1: __m256i, u8s2: _
     _mm256_add_epi32(i32s, widened)
 }
 
+pub unsafe fn horizontal_sum(vec: __m256) -> f32 {
+    let pairwise = _mm256_hadd_ps(vec, vec);
+    let quad = _mm256_hadd_ps(pairwise, pairwise);
+
+    let lo = _mm256_castps256_ps128(quad);
+    let hi = _mm256_extractf128_ps::<1>(quad);
+
+    _mm_cvtss_f32(_mm_add_ss(lo, hi))
+}
+
 pub unsafe fn nnz_bitmask(x: __m256i) -> u8 {
     let greater_than_zero = _mm256_cmpgt_epi32(x, _mm256_setzero_si256());
     _mm256_movemask_ps(_mm256_castsi256_ps(greater_than_zero)) as u8
