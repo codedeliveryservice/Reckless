@@ -23,6 +23,8 @@ pub unsafe fn activate_ft(
 
     for flip in [0, 1] {
         let input = &accumulator.values[stm as usize ^ flip];
+        
+        println!("flip: {flip} = {:?}", &input[..10]);
 
         for i in (0..L1_SIZE / 2).step_by(2 * simd::I16_LANES) {
             let lhs1 = *input.as_ptr().add(i).cast();
@@ -62,6 +64,9 @@ pub unsafe fn activate_ft(
             }
         }
     }
+
+    println!("nnz_count: {nnz_count}");
+    println!("nnz_indexes: {:?}", &nnz_indexes[..10]);
 
     (output, nnz_indexes, nnz_count)
 }
@@ -106,6 +111,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         }
     }
 
+    println!("l1_pre_activated: {:?}", &pre_activations[..]);
+
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     let zero = simd::zero_f32();
@@ -117,6 +124,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
         *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
     }
+
+    println!("l1_activated: {:?}", &output[..10]);
 
     output
 }
@@ -135,6 +144,8 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
         }
     }
 
+    println!("l2_pre_activated: {:?}", &output[..10]);
+
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
 
@@ -142,6 +153,8 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
         let vector = output.as_mut_ptr().add(i).cast();
         *vector = simd::clamp_f32(*vector, zero, one);
     }
+
+    println!("l2_activated: {:?}", &output[..10]);
 
     output
 }
