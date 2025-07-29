@@ -91,4 +91,11 @@ impl TimeManager {
             _ => td.nodes.local() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
+
+    pub fn reset_time_bounds(&mut self) {
+        if let Limits::Fischer(..) | Limits::Cyclic(..) = self.limits {
+            self.soft_bound = Duration::from_millis(0);
+            self.hard_bound = Duration::from_millis(0);
+        }
+    }
 }
