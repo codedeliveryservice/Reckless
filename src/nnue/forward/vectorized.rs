@@ -49,13 +49,17 @@ pub unsafe fn activate_ft(
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
 
             let mask = simd::nnz_bitmask(unpacked);
-            let entry = nnz_table.get_unchecked(mask as usize);
 
-            let store = nnz_indexes.as_mut_ptr().add(nnz_count).cast();
-            _mm_storeu_si128(store, _mm_add_epi16(nnz_base, *entry.indexes.as_ptr().cast()));
+            for offset in (0..simd::I32_LANES).step_by(8) {
+                let slice = (mask >> offset) & 0xFF;
+                let entry = nnz_table.get_unchecked(slice as usize);
 
-            nnz_count += entry.count;
-            nnz_base = _mm_add_epi16(nnz_base, nnz_increment);
+                let store = nnz_indexes.as_mut_ptr().add(nnz_count).cast();
+                _mm_storeu_si128(store, _mm_add_epi16(nnz_base, *entry.indexes.as_ptr().cast()));
+
+                nnz_count += entry.count;
+                nnz_base = _mm_add_epi16(nnz_base, nnz_increment);
+            }
         }
     }
 
