@@ -1,6 +1,7 @@
 use std::{arch::x86_64::*, mem::size_of};
 
 pub const F32_LANES: usize = size_of::<__m256>() / size_of::<f32>();
+pub const I32_LANES: usize = size_of::<__m256i>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<__m256i>() / size_of::<i16>();
 
 pub fn add_i16(a: __m256i, b: __m256i) -> __m256i {
