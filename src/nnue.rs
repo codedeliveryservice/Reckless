@@ -25,14 +25,14 @@ mod simd {
     #[cfg(target_feature = "avx512f")]
     pub use avx512::*;
 
-    #[cfg(target_feature = "avx2")]
+    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
     mod avx2;
-    #[cfg(target_feature = "avx2")]
+    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
     pub use avx2::*;
 
-    #[cfg(not(target_feature = "avx2"))]
+    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
     mod scalar;
-    #[cfg(not(target_feature = "avx2"))]
+    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
     pub use scalar::*;
 }
 
