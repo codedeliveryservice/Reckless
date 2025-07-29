@@ -10,11 +10,11 @@ mod accumulator;
 mod forward {
     #[cfg(target_feature = "avx2")]
     mod vectorized;
-    #[cfg(not(target_feature = "avx2"))]
-    mod scalar;
-
     #[cfg(target_feature = "avx2")]
     pub use vectorized::*;
+
+    #[cfg(not(target_feature = "avx2"))]
+    mod scalar;
     #[cfg(not(target_feature = "avx2"))]
     pub use scalar::*;
 }
@@ -22,11 +22,11 @@ mod forward {
 mod simd {
     #[cfg(target_feature = "avx2")]
     mod avx2;
-    #[cfg(not(target_feature = "avx2"))]
-    mod scalar;
-
     #[cfg(target_feature = "avx2")]
     pub use avx2::*;
+
+    #[cfg(not(target_feature = "avx2"))]
+    mod scalar;
     #[cfg(not(target_feature = "avx2"))]
     pub use scalar::*;
 }
