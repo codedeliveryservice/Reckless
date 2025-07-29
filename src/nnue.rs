@@ -151,25 +151,12 @@ impl Network {
         false
     }
 
-    #[cfg(target_feature = "avx2")]
     fn output_transformer(&self, board: &Board) -> i32 {
         unsafe {
             let (ft_out, nnz_indexes, nnz_count) =
                 forward::activate_ft(&self.stack[self.index], &self.nnz_table, board.side_to_move());
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
-
-            (l3_out * NETWORK_SCALE as f32) as i32
-        }
-    }
-
-    #[cfg(not(target_feature = "avx2"))]
-    fn output_transformer(&self, board: &Board) -> i32 {
-        unsafe {
-            let ft_out = forward::activate_ft(&self.stack[self.index], board.side_to_move());
-            let l1_out = forward::propagate_l1(ft_out);
             let l2_out = forward::propagate_l2(l1_out);
             let l3_out = forward::propagate_l3(l2_out);
 
