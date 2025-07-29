@@ -18,8 +18,8 @@ pub unsafe fn activate_ft(
     let mut nnz_indexes = Aligned::new([0; L1_SIZE / 4]);
     let mut nnz_count = 0;
 
-    let zero = _mm256_setzero_si256();
-    let one = _mm256_set1_epi16(FT_QUANT as i16);
+    let zero = simd::zeroed();
+    let one = simd::splat_i16(FT_QUANT as i16);
 
     for flip in [0, 1] {
         let input = &accumulator.values[stm as usize ^ flip];
@@ -31,20 +31,20 @@ pub unsafe fn activate_ft(
             let rhs1 = *input.as_ptr().add(i + L1_SIZE / 2).cast();
             let rhs2 = *input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
-            let lhs1_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs1, zero), one);
-            let lhs2_clipped = _mm256_min_epi16(_mm256_max_epi16(lhs2, zero), one);
+            let lhs1_clipped = simd::clamp_i16(lhs1, zero, one);
+            let lhs2_clipped = simd::clamp_i16(lhs2, zero, one);
 
-            let rhs1_clipped = _mm256_min_epi16(rhs1, one);
-            let rhs2_clipped = _mm256_min_epi16(rhs2, one);
+            let rhs1_clipped = simd::min_i16(rhs1, one);
+            let rhs2_clipped = simd::min_i16(rhs2, one);
 
-            let shifted1 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
-            let shifted2 = _mm256_slli_epi16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
+            let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
+            let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
 
-            let product1 = _mm256_mulhi_epi16(shifted1, rhs1_clipped);
-            let product2 = _mm256_mulhi_epi16(shifted2, rhs2_clipped);
+            let product1 = simd::mul_high_i16(shifted1, rhs1_clipped);
+            let product2 = simd::mul_high_i16(shifted2, rhs2_clipped);
 
-            let packed = _mm256_packus_epi16(product1, product2);
-            let unpacked = _mm256_permute4x64_epi64::<0b11_01_10_00>(packed);
+            let packed = simd::packus(product1, product2);
+            let unpacked = simd::permute(packed);
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
 
@@ -65,7 +65,7 @@ pub unsafe fn activate_ft(
 pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
-    let mut pre_activations = Aligned::new([_mm256_setzero_si256(); L2_SIZE / simd::F32_LANES]);
+    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
@@ -75,8 +75,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         let index1 = *pair.get_unchecked(0) as usize;
         let index2 = *pair.get_unchecked(1) as usize;
 
-        let input1 = _mm256_set1_epi32(*packed.get_unchecked(index1));
-        let input2 = _mm256_set1_epi32(*packed.get_unchecked(index2));
+        let input1 = simd::splat_i32(*packed.get_unchecked(index1));
+        let input2 = simd::splat_i32(*packed.get_unchecked(index2));
 
         let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
         let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
@@ -92,7 +92,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
 
     if let Some(last) = pairs.remainder().first() {
         let index = *last as usize;
-        let input = _mm256_set1_epi32(*packed.get_unchecked(index));
+        let input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
@@ -104,14 +104,14 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
 
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
-    let zero = _mm256_setzero_ps();
-    let one = _mm256_set1_ps(1.0);
-    let dequant = _mm256_set1_ps(DEQUANT_MULTIPLIER);
+    let zero = simd::zero_f32();
+    let one = simd::splat_f32(1.0);
+    let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
-        let biases = _mm256_load_ps(PARAMETERS.l1_biases.as_ptr().add(i).cast());
-        let vector = _mm256_fmadd_ps(_mm256_cvtepi32_ps(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = _mm256_max_ps(_mm256_min_ps(vector, one), zero);
+        let biases = *PARAMETERS.l1_biases.as_ptr().add(i).cast();
+        let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
+        *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
     }
 
     output
@@ -121,22 +121,22 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
     let mut output = PARAMETERS.l2_biases.clone();
 
     for i in 0..L2_SIZE {
-        let input = _mm256_set1_ps(l1_out[i]);
+        let input = simd::splat_f32(l1_out[i]);
         let weights = PARAMETERS.l2_weights[i].as_ptr();
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j).cast();
             let vector = output.as_mut_ptr().add(j).cast();
-            *vector = _mm256_fmadd_ps(*weights, input, *vector);
+            *vector = simd::mul_add_f32(*weights, input, *vector);
         }
     }
 
-    let zero = _mm256_setzero_ps();
-    let one = _mm256_set1_ps(1.0);
+    let zero = simd::zero_f32();
+    let one = simd::splat_f32(1.0);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = output.as_mut_ptr().add(i).cast();
-        *vector = _mm256_min_ps(_mm256_max_ps(*vector, zero), one);
+        *vector = simd::clamp_f32(*vector, zero, one);
     }
 
     output
@@ -154,5 +154,15 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
         output = _mm256_fmadd_ps(*a, *b, output);
     }
 
-    simd::horizontal_sum(output) + PARAMETERS.l3_biases
+    let hi128 = _mm256_extractf128_ps::<1>(output);
+    let lo128 = _mm256_castps256_ps128(output);
+    let sum128 = _mm_add_ps(lo128, hi128);
+
+    let hi64 = _mm_movehl_ps(sum128, sum128);
+    let sum64 = _mm_add_ps(sum128, hi64);
+
+    let hi32 = _mm_shuffle_ps(sum64, sum64, 0x1);
+    let sum32 = _mm_add_ss(sum64, hi32);
+
+    _mm_cvtss_f32(sum32) + PARAMETERS.l3_biases
 }
