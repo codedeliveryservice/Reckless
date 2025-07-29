@@ -1,18 +1,13 @@
 use crate::{
     nnue::{
-        accumulator::Accumulator, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE,
-        L3_SIZE, PARAMETERS,
+        accumulator::Accumulator, Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE,
+        PARAMETERS,
     },
     types::Color,
 };
 
-pub fn activate_ft(
-    accumulator: &Accumulator, _: &[SparseEntry], stm: Color,
-) -> (Aligned<[u8; L1_SIZE]>, Aligned<[u16; L1_SIZE / 4]>, usize) {
+pub fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
     let mut output = Aligned::new([0; L1_SIZE]);
-
-    let mut nnz_indexes = Aligned::new([0; L1_SIZE / 4]);
-    let mut nnz_count = 0;
 
     for flip in [0, 1] {
         let input = &accumulator.values[stm as usize ^ flip];
@@ -25,40 +20,26 @@ pub fn activate_ft(
         }
     }
 
-    for i in 0..L1_SIZE / 4 {
-        let mut nonzero = 0;
-
-        for j in 0..4 {
-            nonzero |= output[i * 4 + j];
-        }
-
-        if nonzero != 0 {
-            nnz_indexes[nnz_count] = i as u16;
-            nnz_count += 1;
-        }
-    }
-
-    (output, nnz_indexes, nnz_count)
+    output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = [0i32; L2_SIZE];
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr() as *const i32, L1_SIZE / CHUNKS);
 
-    for i in 0..nnz.len() {
-        let index = *nnz.get_unchecked(i) as usize;
-        let input = packed.get_unchecked(index);
-        let weights = &PARAMETERS.l1_weights[index * L2_SIZE * CHUNKS..];
+    for i in 0..L1_SIZE / CHUNKS {
+        let input = packed.get_unchecked(i);
+        let weights = &PARAMETERS.l1_weights[i * L2_SIZE * CHUNKS..];
 
         for j in 0..L2_SIZE {
             let mut vector = 0;
 
             for k in 0..CHUNKS {
-                let byte = (input >> (k * 8)) & 0xFF;
-                let weight = weights[j * CHUNKS + k];
+                let byte = ((input >> (k * 8)) & 0xFF) as u8;
+                let weight = weights[j * CHUNKS + k] as i8;
 
                 vector += (byte as i16) * (weight as i16);
             }
@@ -70,7 +51,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[i]).clamp(0.0, 1.0);
+        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[i] as f32).clamp(0.0, 1.0);
     }
 
     output
