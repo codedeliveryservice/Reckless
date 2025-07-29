@@ -8,21 +8,27 @@ use accumulator::{Accumulator, AccumulatorCache};
 mod accumulator;
 
 mod forward {
-    #[cfg(not(target_feature = "avx2"))]
-    mod scalar;
     #[cfg(target_feature = "avx2")]
     mod vectorized;
-
     #[cfg(not(target_feature = "avx2"))]
-    pub use scalar::*;
+    mod scalar;
+
     #[cfg(target_feature = "avx2")]
     pub use vectorized::*;
+    #[cfg(not(target_feature = "avx2"))]
+    pub use scalar::*;
 }
 
 mod simd {
+    #[cfg(target_feature = "avx2")]
     mod avx2;
+    #[cfg(not(target_feature = "avx2"))]
+    mod scalar;
 
+    #[cfg(target_feature = "avx2")]
     pub use avx2::*;
+    #[cfg(not(target_feature = "avx2"))]
+    pub use scalar::*;
 }
 
 const NETWORK_SCALE: i32 = 400;
