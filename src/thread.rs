@@ -226,7 +226,7 @@ pub struct LmrTable {
 
 impl LmrTable {
     pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth as usize] * self.table[move_count as usize]
+        self.table[depth as usize] * self.table[move_count as usize] + 1024
     }
 }
 
@@ -236,7 +236,7 @@ impl Default for LmrTable {
         let mut table = [0; MAX_MOVES];
 
         for i in 1..MAX_MOVES {
-            table[i] = (3582.0 / 128.0 * (i as f64).ln()) as i32;
+            table[i] = (2782.0 / 128.0 * (i as f64).ln()) as i32;
         }
 
         Self { table }
