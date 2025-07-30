@@ -1044,7 +1044,15 @@ fn correction_value(td: &ThreadData) -> i32 {
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.non_knight_corrhist[Color::White].get(stm, td.board.non_knight_key(Color::White))
+        + td.non_knight_corrhist[Color::Black].get(stm, td.board.non_knight_key(Color::Black))
+        + td.non_bishop_corrhist[Color::White].get(stm, td.board.non_bishop_key(Color::White))
+        + td.non_bishop_corrhist[Color::Black].get(stm, td.board.non_bishop_key(Color::Black))
+        + td.non_rook_corrhist[Color::White].get(stm, td.board.non_rook_key(Color::White))
+        + td.non_rook_corrhist[Color::Black].get(stm, td.board.non_rook_key(Color::Black))
+        + td.non_queen_corrhist[Color::White].get(stm, td.board.non_queen_key(Color::White))
+        + td.non_queen_corrhist[Color::Black].get(stm, td.board.non_queen_key(Color::Black));
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
         correction += td.continuation_corrhist.get(
@@ -1071,6 +1079,18 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+
+    td.non_knight_corrhist[Color::White].update(stm, td.board.non_knight_key(Color::White), bonus);
+    td.non_knight_corrhist[Color::Black].update(stm, td.board.non_knight_key(Color::Black), bonus);
+
+    td.non_bishop_corrhist[Color::White].update(stm, td.board.non_bishop_key(Color::White), bonus);
+    td.non_bishop_corrhist[Color::Black].update(stm, td.board.non_bishop_key(Color::Black), bonus);
+
+    td.non_rook_corrhist[Color::White].update(stm, td.board.non_rook_key(Color::White), bonus);
+    td.non_rook_corrhist[Color::Black].update(stm, td.board.non_rook_key(Color::Black), bonus);
+
+    td.non_queen_corrhist[Color::White].update(stm, td.board.non_queen_key(Color::White), bonus);
+    td.non_queen_corrhist[Color::Black].update(stm, td.board.non_queen_key(Color::Black), bonus);
 
     if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
