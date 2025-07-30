@@ -154,12 +154,12 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
 
     let mut output = [simd::zero_f32(); CHUNKS];
 
-    for lane in 0..CHUNKS {
+    for (lane, result) in output.iter_mut().enumerate() {
         for i in (0..L3_SIZE).step_by(CHUNKS * simd::F32_LANES) {
             let a = weights.add(i + lane * simd::F32_LANES).cast();
             let b = input.add(i + lane * simd::F32_LANES).cast();
 
-            output[lane] = simd::mul_add_f32(*a, *b, output[lane]);
+            *result = simd::mul_add_f32(*a, *b, *result);
         }
     }
 
