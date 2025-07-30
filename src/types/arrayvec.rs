@@ -53,11 +53,11 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<T> {
+    pub fn iter(&self) -> std::slice::Iter<'_, T> {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<T> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
 }
