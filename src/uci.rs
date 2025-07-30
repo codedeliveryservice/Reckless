@@ -2,7 +2,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
     board::Board,
-    evaluate::evaluate,
     search::{self, Report},
     tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
