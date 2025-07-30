@@ -182,37 +182,35 @@ impl Accumulator {
 }
 
 unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
-    use std::arch::x86_64::*;
-
     const REGISTERS: usize = 16;
 
-    let mut registers: [__m256i; REGISTERS] = std::mem::zeroed();
+    let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
-        let output = entry.accumulator.as_mut_ptr().add(offset).cast::<__m256i>();
+        let output = entry.accumulator.as_mut_ptr().add(offset);
 
         for (i, register) in registers.iter_mut().enumerate() {
-            *register = *output.add(i);
+            *register = *output.add(i * simd::I16_LANES).cast();
         }
 
         for &add in adds.iter() {
-            let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset).cast::<__m256i>();
+            let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
-                *register = _mm256_add_epi16(*register, *weights.add(i).cast());
+                *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
         }
 
         for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset).cast::<__m256i>();
+            let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
-                *register = _mm256_sub_epi16(*register, *weights.add(i).cast());
+                *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
         }
 
         for (i, register) in registers.into_iter().enumerate() {
-            *output.add(i) = register;
+            *output.add(i * simd::I16_LANES).cast() = register;
         }
     }
 }
