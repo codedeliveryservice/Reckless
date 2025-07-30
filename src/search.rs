@@ -179,7 +179,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Qsearch Dive
     if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta);
+        return qsearch::<NODE>(td, alpha, beta, 0);
     }
 
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(td.ply) {
@@ -389,7 +389,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 294 - 264 * depth * depth {
-        return qsearch::<NonPV>(td, alpha, beta);
+        return qsearch::<NonPV>(td, alpha, beta, 0);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -431,7 +431,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.make_null_move();
 
         let score = if (depth - r) <= 0 {
-            -qsearch::<NonPV>(td, -beta, -beta + 1)
+            -qsearch::<NonPV>(td, -beta, -beta + 1, 0)
         } else {
             -search::<NonPV>(td, -beta, -beta + 1, depth - r, false)
         };
@@ -481,7 +481,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             make_move(td, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
+            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, 0);
 
             if score >= probcut_beta && probcut_depth > 0 {
                 score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
@@ -844,7 +844,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, depth: i32) -> i32 {
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
@@ -952,6 +952,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         futility_score = static_eval + 123;
     }
 
+    // Quiet Move Ordering Using Static-Eval
+    if depth == 0 && !in_check && td.stack[td.ply - 1].mv.is_quiet() && is_valid(td.stack[td.ply - 1].static_eval) {
+        let value = 709 * (-(best_score + td.stack[td.ply - 1].static_eval)) / 128;
+        let bonus = value.clamp(-59, 138);
+
+        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
+    }
+
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
@@ -994,7 +1002,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         make_move(td, mv);
 
-        let score = -qsearch::<NODE>(td, -beta, -alpha);
+        let score = -qsearch::<NODE>(td, -beta, -alpha, depth - 1);
 
         undo_move(td, mv);
 
