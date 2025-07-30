@@ -13,7 +13,7 @@ use crate::{
     types::Move,
 };
 
-const RANDOM_PLIES: &[usize] = &[4, 5];
+const RANDOM_PLIES: &[usize] = &[6, 7];
 const VALIDATION_THRESHOLD: i32 = 200;
 const VALIDATION_LIMITS: Limits = Limits::Depth(10);
 
