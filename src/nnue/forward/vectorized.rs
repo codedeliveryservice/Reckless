@@ -147,15 +147,15 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 }
 
 pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
-    const CHUNKS: usize = simd::I32_LANES / 8;
+    const LANES: usize = simd::I32_LANES / 8;
 
     let input = l2_out.as_ptr();
     let weights = PARAMETERS.l3_weights.as_ptr();
 
-    let mut output = [simd::zero_f32(); CHUNKS];
+    let mut output = [simd::zero_f32(); LANES];
 
     for (lane, result) in output.iter_mut().enumerate() {
-        for i in (0..L3_SIZE).step_by(CHUNKS * simd::F32_LANES) {
+        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
             let a = weights.add(i + lane * simd::F32_LANES).cast();
             let b = input.add(i + lane * simd::F32_LANES).cast();
 
