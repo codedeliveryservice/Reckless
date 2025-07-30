@@ -96,7 +96,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             match score {
                 s if s <= alpha => {
-                    beta = (alpha + beta) / 2;
+                    beta = (3 * alpha + beta) / 4;
                     alpha = (score - delta).max(-Score::INFINITE);
                     reduction = 0;
                 }
