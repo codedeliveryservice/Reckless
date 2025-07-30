@@ -388,7 +388,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 294 - 264 * depth * depth {
+    if !NODE::PV && !in_check && !td.stack[td.ply - 1].probcut && eval < alpha - 294 - 264 * depth * depth {
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
@@ -484,7 +484,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
+                td.stack[td.ply - 1].probcut = true;
                 score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
+                td.stack[td.ply - 1].probcut = false;
             }
 
             undo_move(td, mv);

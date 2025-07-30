@@ -21,6 +21,7 @@ pub struct StackEntry {
     pub tt_pv: bool,
     pub cutoff_count: i32,
     pub reduction: i32,
+    pub probcut: bool,
     pub conthist: *mut [[i16; 64]; 13],
     pub contcorrhist: *mut [[i16; 64]; 13],
 }
@@ -37,6 +38,7 @@ impl Default for StackEntry {
             tt_pv: false,
             cutoff_count: 0,
             reduction: 0,
+            probcut: false,
             conthist: std::ptr::null_mut(),
             contcorrhist: std::ptr::null_mut(),
         }
