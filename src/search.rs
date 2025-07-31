@@ -1058,7 +1058,8 @@ fn correction_value(td: &ThreadData) -> i32 {
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
+    let scale = 200 - (hmr as i32 * hmr as i32 / 200);
+    (eval * scale / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX + 1)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
