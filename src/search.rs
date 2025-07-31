@@ -534,8 +534,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
         } else {
+            let last_move = if !NODE::ROOT { td.stack[td.ply - 1].mv } else { Move::NULL };
+            let bonus = 250 * (mv.to() == last_move.to()) as i32;
+
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured) + bonus
         };
 
         let mut reduction = td.lmr.reduction(depth, move_count);
