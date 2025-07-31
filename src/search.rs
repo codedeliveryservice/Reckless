@@ -562,7 +562,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
-                skip_quiets = true;
+
+                skip_quiets |= futility_value <= alpha - 40;
                 continue;
             }
 
