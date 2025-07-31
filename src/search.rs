@@ -683,6 +683,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
+                new_depth += ((score - alpha) / 64).min(2);
                 new_depth += (score > best_score + 48 + 525 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
