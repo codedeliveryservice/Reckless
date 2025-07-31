@@ -619,7 +619,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         depth += 1;
                     }
                 } else if score >= beta && !is_decisive(score) {
-                    return score;
+                    return (score * depth + beta) / (depth + 1);
                 } else if tt_score >= beta {
                     extension = -2;
                 } else if cut_node {
