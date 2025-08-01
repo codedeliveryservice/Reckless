@@ -820,6 +820,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let scaled_bonus = factor * (148 * initial_depth - 43).min(1673) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+
+            if td.ply >= 2 {
+                let entry = &td.stack[td.ply - 2];
+                if entry.mv.is_some() {
+                    let bonus = (148 * initial_depth - 43).min(1673);
+                    td.continuation_history.update(entry.conthist, td.stack[td.ply - 1].piece, pcm_move.to(), bonus);
+                }
+            }
         }
     }
 
