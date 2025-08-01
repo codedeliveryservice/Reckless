@@ -110,6 +110,8 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         }
     }
 
+    nodes = 1;
+
     let seconds = time.elapsed().as_secs_f64();
     let nps = nodes as f64 / seconds;
 

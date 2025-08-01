@@ -585,7 +585,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 -22 * lmr_depth * lmr_depth - 44 * (history + 19) / 1024
             } else {
                 -92 * depth + 45 - 43 * (history + 13) / 1024
-            };
+            } - 64 * td.board.might_give_check_if_you_squint(mv) as i32;
 
             if !td.board.see(mv, threshold) {
                 continue;
