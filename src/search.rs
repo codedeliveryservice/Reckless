@@ -641,6 +641,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 106 * (history - 574) / 1024;
             } else {
                 reduction -= 95 * (history - 557) / 1024;
+                reduction -= PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 3;
             }
 
             reduction -= 3268 * correction_value.abs() / 1024;
