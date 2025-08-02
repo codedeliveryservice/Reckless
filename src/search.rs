@@ -382,7 +382,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let mut improvement = 0;
     if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
-        improvement = static_eval - td.stack[td.ply - 2].static_eval;
+        improvement = (static_eval - td.stack[td.ply - 2].static_eval).clamp(-512, 512);
     }
 
     let improving = improvement > 0;
