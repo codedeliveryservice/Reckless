@@ -811,14 +811,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             && td.stack[td.ply - 1].tt_move.is_quiet()
             && td.stack[td.ply - 1].tt_move == td.stack[td.ply - 1].mv
         {
-            let malus = (100 * initial_depth - 55).min(1200);
+            let malus = (80 * initial_depth - 55).min(800);
 
-            td.quiet_history.update(
-                td.board.prior_threats(),
-                !td.board.side_to_move(),
-                td.stack[td.ply - 1].tt_move,
-                -malus,
-            );
+            td.ply -= 1;
+            update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].tt_move.to(), -malus);
+            td.ply += 1;
         }
     }
 
