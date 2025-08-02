@@ -81,7 +81,9 @@ pub unsafe fn double_dpbusd(i32s: __m256i, u8s1: __m256i, i8s1: __m256i, u8s2: _
     _mm256_add_epi32(i32s, widened)
 }
 
-pub unsafe fn horizontal_sum(vec: __m256) -> f32 {
+pub unsafe fn horizontal_sum(x: [__m256; 2]) -> f32 {
+    let vec = _mm256_add_ps(x[0], x[1]);
+
     let hi128 = _mm256_extractf128_ps::<1>(vec);
     let lo128 = _mm256_castps256_ps128(vec);
     let sum128 = _mm_add_ps(lo128, hi128);

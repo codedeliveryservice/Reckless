@@ -147,7 +147,7 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 }
 
 pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
-    const LANES: usize = simd::I32_LANES / 8;
+    const LANES: usize = 16 / simd::F32_LANES;
 
     let input = l2_out.as_ptr();
     let weights = PARAMETERS.l3_weights.as_ptr();
@@ -163,13 +163,5 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
         }
     }
 
-    #[cfg(target_feature = "avx512f")]
-    {
-        simd::horizontal_sum(_mm512_add_ps(output[0], output[1])) + PARAMETERS.l3_biases
-    }
-
-    #[cfg(not(target_feature = "avx512f"))]
-    {
-        simd::horizontal_sum(output[0]) + PARAMETERS.l3_biases
-    }
+    simd::horizontal_sum(output) + PARAMETERS.l3_biases
 }
