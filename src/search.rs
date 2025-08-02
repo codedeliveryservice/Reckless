@@ -549,7 +549,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= move_count >= (6 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // History Pruning (HP)
             if is_quiet && depth <= 4 && (td.conthist(1, mv) + td.conthist(2, mv)) < -700 * depth - 1000 {
