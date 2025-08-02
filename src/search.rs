@@ -552,7 +552,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // History Pruning (HP)
-            if !NODE::PV && is_quiet && depth <= 4 && history < -1000 * depth - 1000 {
+            if is_quiet && depth <= 3 && (td.conthist(1, mv) + td.conthist(2, mv)) < -1000 * depth - 1000 {
                 continue;
             }
 
