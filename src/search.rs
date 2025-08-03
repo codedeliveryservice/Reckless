@@ -674,6 +674,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1232;
             }
 
+            if !NODE::ROOT && td.stack[td.ply - 2].move_count > 5 {
+                const SQRT: [i32; 32] =
+                    [1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7];
+
+                reduction -= 96 * SQRT[td.stack[td.ply - 2].move_count.min(31) as usize];
+            }
+
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 768;
             }
