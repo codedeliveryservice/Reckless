@@ -365,6 +365,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
         depth += 1;
+
+        if td.stack[td.ply - 1].mv.is_quiet() {
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, 128);
+        }
     }
 
     if !NODE::ROOT
