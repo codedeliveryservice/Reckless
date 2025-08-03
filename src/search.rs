@@ -349,11 +349,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !in_check
         && !excluded
         && td.stack[td.ply - 1].mv.is_quiet()
-        && td.stack[td.ply - 1].move_count < 5
+        && td.stack[td.ply - 1].move_count <= 4
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 709 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-59 * 2, 138 * 2);
+        let bonus = value.clamp(-59 * 3, 138 * 3);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
