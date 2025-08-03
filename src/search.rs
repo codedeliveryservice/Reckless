@@ -1044,11 +1044,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
+    let has_legal_moves = td.board.has_legal_moves();
+
+    if !has_legal_moves {
+        best_score = Score::DRAW;
+    }
+
     if in_check && move_count == 0 {
         return mated_in(td.ply);
     }
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+    if has_legal_moves && best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
         best_score = (best_score + beta) / 2;
     }
 
