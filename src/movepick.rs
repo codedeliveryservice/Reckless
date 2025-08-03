@@ -174,12 +174,8 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            if self.kind == Kind::QSearch {
-                entry.score = 2123 * PIECE_VALUES[captured] / 128;
-            } else {
-                entry.score = 2123 * PIECE_VALUES[captured] / 128
-                    + 984 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
-            }
+            entry.score = if self.kind == Kind::QSearch { 1280 } else { 2123 } * PIECE_VALUES[captured] / 128
+                + 984 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
         }
     }
 
