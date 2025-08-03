@@ -585,7 +585,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -22 * lmr_depth * lmr_depth - 44 * (history + 19) / 1024 - 2 * move_count
+                -22 * lmr_depth * lmr_depth - 44 * (history + move_count * depth) / 1024
             } else {
                 -92 * depth + 45 - 43 * (history + 13) / 1024
             };
