@@ -14,6 +14,13 @@ pub enum Stage {
     BadNoisy,
 }
 
+#[derive(Eq, PartialEq)]
+enum Kind {
+    Normal,
+    Probcut,
+    QSearch,
+}
+
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
@@ -21,6 +28,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    kind: Kind,
 }
 
 impl MovePicker {
@@ -32,6 +40,7 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::Normal,
         }
     }
 
@@ -43,6 +52,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::Probcut,
         }
     }
 
@@ -54,6 +64,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::QSearch,
         }
     }
 
@@ -163,8 +174,12 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 2123 * PIECE_VALUES[captured] / 128
-                + 984 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
+            if self.kind == Kind::QSearch {
+                entry.score = 2123 * PIECE_VALUES[captured] / 128;
+            } else {
+                entry.score = 2123 * PIECE_VALUES[captured] / 128
+                    + 984 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
+            }
         }
     }
 
