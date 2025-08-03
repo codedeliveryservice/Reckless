@@ -40,17 +40,17 @@ impl QuietHistoryEntry {
 }
 
 pub struct QuietHistory {
-    entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
+    entries: Box<[FromToHistory<QuietHistoryEntry>; 13]>,
 }
 
 impl QuietHistory {
-    pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
-        let entry = &self.entries[stm][mv.from()][mv.to()];
+    pub fn get(&self, threats: Bitboard, piece: Piece, mv: Move) -> i32 {
+        let entry = &self.entries[piece][mv.from()][mv.to()];
         (entry.factorizer + entry.bucket(threats, mv)) as i32
     }
 
-    pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
-        let entry = &mut self.entries[stm][mv.from()][mv.to()];
+    pub fn update(&mut self, threats: Bitboard, piece: Piece, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[piece][mv.from()][mv.to()];
 
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, mv, bonus);
