@@ -585,9 +585,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -22 * lmr_depth * lmr_depth - 44 * (history + 19) / 1024
+                let base_threshold = -22 * lmr_depth * lmr_depth - 44 * (history + 19) / 1024;
+                // More aggressive SEE pruning for late moves
+                base_threshold - 15 * (move_count - 1)
             } else {
-                -92 * depth + 45 - 43 * (history + 13) / 1024
+                let base_threshold = -92 * depth + 45 - 43 * (history + 13) / 1024;
+                // Less aggressive for captures in PV nodes
+                base_threshold + 20 * NODE::PV as i32
             };
 
             if !td.board.see(mv, threshold) {
