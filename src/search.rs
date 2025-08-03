@@ -509,7 +509,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if depth >= 3 + 3 * cut_node as i32
         && tt_move.is_null()
         && (NODE::PV || cut_node)
-        && td.stack[td.ply - 1].reduction <= 2048
+        && td.stack[td.ply - 1].reduction <= 1024
     {
         depth -= 1;
     }
