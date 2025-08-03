@@ -39,6 +39,7 @@ mod simd {
 const NETWORK_SCALE: i32 = 400;
 
 const INPUT_BUCKETS: usize = 4;
+const OUTPUT_BUCKETS: usize = 8;
 
 const FT_SIZE: usize = 768;
 const L1_SIZE: usize = 1024;
@@ -160,13 +161,15 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
+        let bucket = (board.occupancies().len() - 2) / 4;
+        
         unsafe {
             let (ft_out, nnz_indexes, nnz_count) =
                 forward::activate_ft(&self.stack[self.index], &self.nnz_table, board.side_to_move());
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
+            let l2_out = forward::propagate_l2(l1_out, bucket);
+            let l3_out = forward::propagate_l3(l2_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -203,12 +206,12 @@ impl Default for Network {
 struct Parameters {
     ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
-    l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
-    l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
-    l2_biases: Aligned<[f32; L3_SIZE]>,
-    l3_weights: Aligned<[f32; L3_SIZE]>,
-    l3_biases: f32,
+    l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
+    l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
