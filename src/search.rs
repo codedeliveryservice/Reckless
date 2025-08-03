@@ -1044,7 +1044,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
     }
 
-    if in_check && move_count == 0 {
+    if move_count == 0 && !td.board.has_legal_moves() {
+        return Score::DRAW;
+    }
+
+    if move_count == 0 && in_check {
         return mated_in(td.ply);
     }
 
