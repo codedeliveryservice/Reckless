@@ -589,9 +589,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 // More aggressive SEE pruning for late moves
                 base_threshold - 15 * (move_count - 1)
             } else {
-                let base_threshold = -92 * depth + 45 - 43 * (history + 13) / 1024;
-                // Less aggressive for captures in PV nodes
-                base_threshold + 20 * NODE::PV as i32
+                -92 * depth + 45 - 43 * (history + 13) / 1024
             };
 
             if !td.board.see(mv, threshold) {
