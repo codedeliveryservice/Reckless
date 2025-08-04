@@ -4,8 +4,15 @@ type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
-    let bonus = bonus.clamp(-MAX, MAX);
-    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+    let old_value = *entry as i32;
+    let clamped_bonus = bonus.clamp(-MAX, MAX);
+
+    let distance = MAX - (clamped_bonus.signum() * old_value);
+    let decay_factor = (distance * distance) / MAX;
+
+    let delta = clamped_bonus * decay_factor / MAX;
+
+    *entry = (old_value + delta).clamp(-MAX, MAX) as i16;
 }
 
 struct QuietHistoryEntry {
