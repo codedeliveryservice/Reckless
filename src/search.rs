@@ -515,7 +515,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let mut bound = Bound::Upper;
 
-    let mut quiet_moves = ArrayVec::<Move, 32>::new();
+    let mut quiet_moves = ArrayVec::<(Move, i32), 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
@@ -636,6 +636,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         make_move(td, mv);
 
         let mut new_depth = depth + extension - 1;
+        let mut applied_reduction = 0;
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
@@ -685,6 +686,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = reduction;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true);
             td.stack[td.ply - 1].reduction = 0;
+            applied_reduction = reduction;
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 48 + 525 * depth / 128) as i32;
@@ -692,6 +694,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+                    applied_reduction = 0;
 
                     if mv.is_quiet() && score >= beta {
                         let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
@@ -762,7 +765,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if mv.is_noisy() {
                 noisy_moves.push(mv);
             } else {
-                quiet_moves.push(mv);
+                quiet_moves.push((mv, applied_reduction));
             }
         }
     }
@@ -798,9 +801,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
-            for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont);
+            for &(mv, applied_reduction) in quiet_moves.iter() {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet * applied_reduction / 1024);
+                update_continuation_histories(td, td.board.moved_piece(mv), mv.to(), -malus_cont * applied_reduction / 1024);
             }
         }
 
