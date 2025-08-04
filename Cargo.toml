@@ -21,3 +21,6 @@ codegen-units = 1
 [build-dependencies]
 cc = "1.2.19"
 bindgen = "0.71.1"
+
+[dependencies]
+libc = "0.2.174"
