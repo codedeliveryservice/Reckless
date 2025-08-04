@@ -517,6 +517,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut failed_research = 0;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
@@ -651,6 +652,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= 3268 * correction_value.abs() / 1024;
             reduction -= 55 * move_count;
+            reduction -= 2048 * failed_research;
             reduction += 303;
 
             if tt_pv {
@@ -706,6 +708,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
                     }
+
+                    failed_research += (score <= alpha) as i32;
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;
