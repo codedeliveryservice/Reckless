@@ -16,6 +16,7 @@ impl Default for Stack {
 pub struct StackEntry {
     pub mv: Move,
     pub piece: Piece,
+    pub raw_eval: i32,
     pub static_eval: i32,
     pub excluded: Move,
     pub tt_move: Move,
@@ -34,6 +35,7 @@ impl Default for StackEntry {
         Self {
             mv: Move::NULL,
             piece: Piece::None,
+            raw_eval: Score::NONE,
             static_eval: Score::NONE,
             excluded: Move::NULL,
             tt_move: Move::NULL,

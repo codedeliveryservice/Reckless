@@ -338,6 +338,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     td.stack[td.ply].static_eval = static_eval;
+    td.stack[td.ply].raw_eval = raw_eval;
     td.stack[td.ply].tt_move = tt_move;
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].reduction = 0;
@@ -830,7 +831,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += 141 * (initial_depth > 5) as i32;
             factor += 231 * (!in_check && best_score <= static_eval.min(raw_eval) - 135) as i32;
             factor += 289
-                * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
+                * (is_valid(td.stack[td.ply - 1].static_eval)
+                    && best_score <= -td.stack[td.ply - 1].static_eval.min(-td.stack[td.ply - 1].raw_eval) - 102)
                     as i32;
 
             let scaled_bonus = factor * (148 * initial_depth - 43).min(1673) / 128;
