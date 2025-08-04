@@ -111,10 +111,6 @@ struct ClusterBlock {
 }
 
 impl ClusterBlock {
-    pub fn is_null(&self) -> bool {
-        self.ptr.is_null()
-    }
-
     pub fn as_mut_slice(&self) -> &mut [Cluster] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
@@ -137,7 +133,24 @@ impl TranspositionTable {
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&self, threads: usize, megabytes: usize) {
-        todo!();
+        unsafe {
+            let block = self.block.get();
+            let size = (*block).len * CLUSTER_SIZE;
+            let ptr = (*block).ptr;
+
+            #[cfg(target_os = "linux")]
+            let _ = libc::munmap(ptr as *mut _, size);
+
+            #[cfg(not(target_os = "linux"))]
+            {
+                let layout = std::alloc::Layout::from_size_align(size, align_of::<Cluster>()).unwrap();
+                std::alloc::dealloc(ptr as *mut u8, layout);
+            }
+
+            let new_block = allocate(megabytes);
+            (*self.block.get()).ptr = new_block.ptr;
+            (*self.block.get()).len = new_block.len;
+        }
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
@@ -278,7 +291,13 @@ impl TranspositionTable {
     }
 
     unsafe fn parallel_clear(&self, threads: usize, len: usize) {
-        todo!();
+        let vector = (*self.block.get()).as_mut_slice();
+
+        for cluster in vector.iter_mut() {
+            for entry in &mut cluster.entries {
+                *entry = InternalEntry::default();
+            }
+        }
     }
 }
 
@@ -337,7 +356,7 @@ impl Default for TranspositionTable {
 
 unsafe fn allocate(mb_size: usize) -> ClusterBlock {
     #[cfg(target_os = "linux")]
-    use libc::{madvise, mmap, munmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+    use libc::{madvise, mmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 
     let size = mb_size * MEGABYTE;
     let len = size / CLUSTER_SIZE;
