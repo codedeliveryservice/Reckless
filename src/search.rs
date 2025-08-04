@@ -847,6 +847,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if bound == Bound::Lower && !is_decisive(best_score) && !is_decisive(beta) {
+        best_score = (best_score * initial_depth + beta) / (initial_depth + 1);
+    }
+
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
