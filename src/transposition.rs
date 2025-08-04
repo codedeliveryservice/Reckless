@@ -1,5 +1,6 @@
 use std::{
     cell::UnsafeCell,
+    ptr,
     sync::atomic::{AtomicU8, Ordering},
 };
 
@@ -104,9 +105,24 @@ struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
 }
 
+struct ClusterBlock {
+    ptr: *mut Cluster,
+    len: usize,
+}
+
+impl ClusterBlock {
+    pub fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
+
+    pub fn as_mut_slice(&self) -> &mut [Cluster] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
+}
+
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: UnsafeCell<Vec<Cluster>>,
+    block: UnsafeCell<ClusterBlock>,
     age: AtomicU8,
 }
 
@@ -121,24 +137,12 @@ impl TranspositionTable {
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&self, threads: usize, megabytes: usize) {
-        let len = megabytes * MEGABYTE / CLUSTER_SIZE;
-
-        let mut vector = Vec::new();
-        vector.reserve_exact(len);
-
-        unsafe {
-            let vec = &mut *self.vector.get();
-
-            drop(std::ptr::replace(vec, vector));
-
-            self.parallel_clear(threads, len);
-            vec.set_len(len);
-        }
+        todo!();
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        let vector = unsafe { &*self.vector.get() };
+        let vector = unsafe { (*self.block.get()).as_mut_slice() };
         let tt_age = self.tt_age();
 
         let mut count = 0;
@@ -186,7 +190,7 @@ impl TranspositionTable {
 
         let index = self.index(hash);
         let cluster = unsafe {
-            let vector = &mut *self.vector.get();
+            let vector = (*self.block.get()).as_mut_slice();
             vector.get_unchecked_mut(index)
         };
 
@@ -242,7 +246,7 @@ impl TranspositionTable {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
             let index = self.index(hash);
-            let ptr = (*self.vector.get()).as_ptr().add(index).cast();
+            let ptr = (*self.block.get()).ptr.add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
 
@@ -256,13 +260,13 @@ impl TranspositionTable {
     }
 
     fn len(&self) -> usize {
-        unsafe { (*self.vector.get()).len() }
+        unsafe { (*self.block.get()).as_mut_slice().len() }
     }
 
     fn entry(&self, hash: u64) -> &Cluster {
         let index = self.index(hash);
         unsafe {
-            let vector = &*self.vector.get();
+            let vector = (*self.block.get()).as_mut_slice();
             vector.get_unchecked(index)
         }
     }
@@ -274,16 +278,7 @@ impl TranspositionTable {
     }
 
     unsafe fn parallel_clear(&self, threads: usize, len: usize) {
-        std::thread::scope(|scope| {
-            let vec = &mut *self.vector.get();
-            let ptr = vec.as_mut_ptr();
-            let slice = std::slice::from_raw_parts_mut(ptr, len);
-
-            let chunk_size = len.div_ceil(threads);
-            for chunk in slice.chunks_mut(chunk_size) {
-                scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
-            }
-        });
+        todo!();
     }
 }
 
@@ -334,8 +329,41 @@ const fn score_from_tt(score: i32, ply: usize, halfmove_clock: u8) -> i32 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            vector: UnsafeCell::new(vec![Cluster::default(); DEFAULT_TT_SIZE * MEGABYTE / CLUSTER_SIZE]),
+            block: unsafe { UnsafeCell::new(allocate(DEFAULT_TT_SIZE)) },
             age: AtomicU8::new(0),
         }
     }
+}
+
+unsafe fn allocate(mb_size: usize) -> ClusterBlock {
+    #[cfg(target_os = "linux")]
+    use libc::{madvise, mmap, munmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+
+    let size = mb_size * MEGABYTE;
+    let len = size / CLUSTER_SIZE;
+
+    #[cfg(target_os = "linux")]
+    let ptr = {
+        let ptr = mmap(ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if ptr == MAP_FAILED {
+            ptr::null_mut()
+        } else {
+            let _ = madvise(ptr, size, MADV_HUGEPAGE);
+            ptr as *mut Cluster
+        }
+    };
+
+    #[cfg(not(target_os = "linux"))]
+    let ptr = {
+        let layout = std::alloc::Layout::from_size_align(size, align_of::<Cluster>()).unwrap();
+        std::alloc::alloc_zeroed(layout) as *mut Cluster
+    };
+
+    if ptr.is_null() {
+        eprintln!("Failed to allocate {}MB for transposition table.", mb_size as u64);
+    }
+
+    ptr::write_bytes(ptr, 0, len);
+
+    ClusterBlock { ptr, len }
 }
