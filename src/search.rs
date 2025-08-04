@@ -828,6 +828,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if pcm_move.is_quiet() {
             let mut factor = 107;
             factor += 141 * (initial_depth > 5) as i32;
+            factor += 200 * (td.stack[td.ply - 1].move_count > 8) as i32;
             factor += 231 * (!in_check && best_score <= static_eval.min(raw_eval) - 135) as i32;
             factor += 289
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
