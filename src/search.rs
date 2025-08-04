@@ -382,6 +382,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
+    let mut score_fluctuation = 0;
+    if !in_check && is_valid(tt_score) && !is_decisive(tt_score) {
+        score_fluctuation = (static_eval - tt_score).abs();
+    }
+
     let mut improvement = 0;
     if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
         improvement = static_eval - td.stack[td.ply - 2].static_eval;
@@ -555,7 +560,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
-            let futility_value = static_eval + 121 * lmr_depth + 76 + 35 * history / 1024;
+            let futility_value = static_eval + 121 * lmr_depth + 76 + 35 * history / 1024 + score_fluctuation / 8;
+
             if !in_check
                 && is_quiet
                 && lmr_depth < 8
