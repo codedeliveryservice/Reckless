@@ -379,8 +379,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
-    let potential_singularity =
-        depth >= 7 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+    let potential_singularity = depth >= 4 + tt_pv as i32
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score);
 
     let mut improvement = 0;
     if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
