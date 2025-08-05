@@ -34,3 +34,25 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    f64 soft1: 0.024;
+    f64 soft2: 0.042;
+    f64 soft3: 0.045;
+    f64 hard1: 0.135;
+    f64 hard2: 0.145;
+    f64 hard3: 0.043;
+    f32 nodes1: 2.15;
+    f32 nodes2: 1.5;
+    f32 pv1: 1.25;
+    f32 pv2: 0.05;
+    f32 eval1: 1.2;
+    f32 eval2: 0.04;
+    f32 score1: 0.8;
+    f32 score2: 0.02;
+    f32 score3: 0.75;
+    f32 score4: 1.5;
+    i32 pv_stability_max: 8;
+    i32 eval_stability_max: 8;
+    i32 eval_stability_delta: 12;
+);

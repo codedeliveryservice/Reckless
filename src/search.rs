@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::ThreadData,
     transposition::{Bound, TtDepth},
@@ -122,26 +122,28 @@ pub fn start(td: &mut ThreadData, report: Report) {
         td.completed_depth = depth;
 
         if last_move == td.pv.best_move() {
-            pv_stability = (pv_stability + 1).min(8);
+            pv_stability = (pv_stability + 1).min(pv_stability_max());
         } else {
             pv_stability = 0;
             last_move = td.pv.best_move();
         }
 
-        if (td.best_score - average).abs() < 12 {
-            eval_stability = (eval_stability + 1).min(8);
+        if (td.best_score - average).abs() < eval_stability_delta() {
+            eval_stability = (eval_stability + 1).min(eval_stability_max());
         } else {
             eval_stability = 0;
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
+            let nodes_factor =
+                nodes1() - nodes2() * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
 
-            let pv_stability = 1.25 - 0.05 * pv_stability as f32;
+            let pv_stability = pv1() - pv2() * pv_stability as f32;
 
-            let eval_stability = 1.2 - 0.04 * eval_stability as f32;
+            let eval_stability = eval1() - eval2() * eval_stability as f32;
 
-            let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+            let score_trend = (score1() + score2() * (td.previous_best_score as f32 - td.best_score as f32))
+                .clamp(score3(), score4());
 
             nodes_factor * pv_stability * eval_stability * score_trend
         };
