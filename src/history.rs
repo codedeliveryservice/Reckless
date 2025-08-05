@@ -7,7 +7,7 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let old_value = *entry as i32;
     let clamped_bonus = bonus.clamp(-MAX, MAX);
 
-    let soft_decay_factor = (MAX - (clamped_bonus.signum() * old_value)) * MAX / (MAX + old_value.abs() / 2);
+    let soft_decay_factor = (MAX - (clamped_bonus.signum() * old_value)) * MAX / (MAX + old_value.abs() / 4);
 
     let delta = clamped_bonus * soft_decay_factor / MAX;
 
