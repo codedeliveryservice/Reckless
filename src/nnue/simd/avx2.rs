@@ -82,19 +82,15 @@ pub unsafe fn double_dpbusd(i32s: __m256i, u8s1: __m256i, i8s1: __m256i, u8s2: _
 }
 
 pub unsafe fn horizontal_sum(x: [__m256; 2]) -> f32 {
-    let vec = _mm256_add_ps(x[0], x[1]);
+    let v = _mm256_add_ps(x[0], x[1]);
 
-    let hi128 = _mm256_extractf128_ps::<1>(vec);
-    let lo128 = _mm256_castps256_ps128(vec);
-    let sum128 = _mm_add_ps(lo128, hi128);
+    let lo = _mm256_castps256_ps128(v);
+    let hi = _mm256_extractf128_ps::<1>(v);
+    let sum4 = _mm_add_ps(lo, hi);
 
-    let hi64 = _mm_movehl_ps(sum128, sum128);
-    let sum64 = _mm_add_ps(sum128, hi64);
-
-    let hi32 = _mm_shuffle_ps::<1>(sum64, sum64);
-    let sum32 = _mm_add_ss(sum64, hi32);
-
-    _mm_cvtss_f32(sum32)
+    let ones = _mm_set1_ps(1.0);
+    let dot = _mm_dp_ps::<0b11111111>(sum4, ones);
+    _mm_cvtss_f32(dot)
 }
 
 pub unsafe fn nnz_bitmask(x: __m256i) -> u16 {
