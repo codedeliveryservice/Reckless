@@ -576,7 +576,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 81 * (history + 501) / 1024
                 + 85 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < 6
+                && move_picker.stage() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+                && !td.board.might_give_check_if_you_squint(mv)
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
