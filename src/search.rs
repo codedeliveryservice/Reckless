@@ -833,8 +833,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += 289
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 102)
                     as i32;
+            factor -= 128 * excluded as i32;
 
-            let scaled_bonus = factor * (148 * initial_depth - 43).min(1673) / 128;
+            let scaled_bonus = factor.max(0) * (148 * initial_depth - 43).min(1673) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
