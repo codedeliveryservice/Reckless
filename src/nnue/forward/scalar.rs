@@ -6,13 +6,8 @@ use crate::{
     types::Color,
 };
 
-pub fn activate_ft(
-    accumulator: &Accumulator, _: &[SparseEntry], stm: Color,
-) -> (Aligned<[u8; L1_SIZE]>, Aligned<[u16; L1_SIZE / 4]>, usize) {
+pub fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
     let mut output = Aligned::new([0; L1_SIZE]);
-
-    let mut nnz_indexes = Aligned::new([0; L1_SIZE / 4]);
-    let mut nnz_count = 0;
 
     for flip in [0, 1] {
         let input = &accumulator.values[stm as usize ^ flip];
@@ -25,20 +20,27 @@ pub fn activate_ft(
         }
     }
 
+    output
+}
+
+pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    let mut indexes = Aligned::new([0; L1_SIZE / 4]);
+    let mut count = 0;
+
     for i in 0..L1_SIZE / 4 {
         let mut nonzero = 0;
 
         for j in 0..4 {
-            nonzero |= output[i * 4 + j];
+            nonzero |= ft_out[i * 4 + j];
         }
 
         if nonzero != 0 {
-            nnz_indexes[nnz_count] = i as u16;
-            nnz_count += 1;
+            indexes[count] = i as u16;
+            count += 1;
         }
     }
 
-    (output, nnz_indexes, nnz_count)
+    (indexes, count)
 }
 
 pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
