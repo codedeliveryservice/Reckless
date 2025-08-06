@@ -365,8 +365,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 2765
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
-        td.stack[td.ply].hindsight_reduction = -1;
-        depth += 1;
+        td.stack[td.ply].hindsight_reduction = -2;
+        depth += 2;
     }
 
     if !NODE::ROOT
@@ -378,16 +378,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && is_valid(td.stack[td.ply - 1].static_eval)
         && static_eval + td.stack[td.ply - 1].static_eval > 59
     {
-        td.stack[td.ply].hindsight_reduction = 2;
-        depth -= 1 + (depth > 2) as i32;
+        td.stack[td.ply].hindsight_reduction = 1;
+        depth -= 1;
     }
 
     if !NODE::ROOT
         && !in_check
-        && td.stack[td.ply - 1].hindsight_reduction == 2
-        && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && depth >= 2
+        && td.stack[td.ply - 1].hindsight_reduction == -2
+        && is_valid(td.stack[td.ply - 1].static_eval)
+        && static_eval + td.stack[td.ply - 1].static_eval > 59
     {
-        depth += 1;
+        depth -= 1;
     }
 
     let potential_singularity =
