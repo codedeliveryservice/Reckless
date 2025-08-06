@@ -237,7 +237,11 @@ impl Default for LmrTable {
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
-                let reduction = 1000.0 + 455.0 * (depth as f32).ln() * (move_count as f32).ln();
+                let reduction = 1000.0
+                    + 455.0
+                        * (depth as f32 + 0.25 * (depth as f32).ln()).ln()
+                        * (move_count as f32 + 0.25 * (move_count as f32).ln()).ln();
+
                 table[depth][move_count] = reduction as i32;
             }
         }
