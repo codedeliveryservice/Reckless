@@ -617,7 +617,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if score < singular_beta {
                     extension = 1;
                     extension += (score < singular_beta - 2 - 300 * NODE::PV as i32) as i32;
-                    extension += (is_quiet && score < singular_beta - 64 - 300 * NODE::PV as i32) as i32;
+                    extension += (is_quiet
+                        && score < singular_beta - 64 - 300 * NODE::PV as i32 + correction_value.abs() / 8)
+                        as i32;
 
                     if extension > 1 && depth < 14 {
                         depth += 1;
