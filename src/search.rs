@@ -642,7 +642,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
-        if depth >= 3 && move_count > 1 + NODE::ROOT as i32 {
+        if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
             if is_quiet {
                 reduction -= 106 * (history - 574) / 1024;
             } else {
@@ -679,6 +679,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 768;
+            }
+
+            if depth == 2 {
+                reduction -= 1024;
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
