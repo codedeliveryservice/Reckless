@@ -135,13 +135,15 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
+            let nodes_factor =
+                2.1869256 - 1.4761752 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
 
-            let pv_stability = 1.25 - 0.05 * pv_stability as f32;
+            let pv_stability = 1.2640443 - 0.0511675 * pv_stability as f32;
 
-            let eval_stability = 1.2 - 0.04 * eval_stability as f32;
+            let eval_stability = 1.2098489 - 0.0401459 * eval_stability as f32;
 
-            let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+            let score_trend = (0.8013051 + 0.0201004 * (td.previous_best_score as f32 - td.best_score as f32))
+                .clamp(0.7715826, 1.5484207);
 
             nodes_factor * pv_stability * eval_stability * score_trend
         };

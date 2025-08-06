@@ -32,8 +32,8 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let soft_scale = 0.024 + 0.042 * (1.0 - (-0.045 * fullmove_number as f64).exp());
-                let hard_scale = 0.135 + 0.145 * (1.0 - (-0.043 * fullmove_number as f64).exp());
+                let soft_scale = 0.0243348 + 0.0421829 * (1.0 - (-0.0458879 * fullmove_number as f64).exp());
+                let hard_scale = 0.1369000 + 0.1489909 * (1.0 - (-0.0434554 * fullmove_number as f64).exp());
 
                 let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
                 let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
