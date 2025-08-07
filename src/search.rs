@@ -818,7 +818,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !NODE::ROOT && td.stack[td.ply - 1].mv.is_quiet() && td.stack[td.ply - 1].move_count == 1 {
             let mut factor = 128;
-            factor += 96 * td.stack[td.ply - 1].tt_move.is_null() as i32;
+            factor -= 64 * td.stack[td.ply - 1].tt_move.is_some() as i32;
 
             let malus = factor * (80 * initial_depth - 55).min(800) / 128;
 
