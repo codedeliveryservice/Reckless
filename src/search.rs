@@ -338,6 +338,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     td.stack[td.ply].static_eval = static_eval;
+    td.stack[td.ply].tt_move = tt_move;
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].reduction = 0;
     td.stack[td.ply].move_count = 0;
@@ -816,7 +817,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if !NODE::ROOT && td.stack[td.ply - 1].mv.is_quiet() && td.stack[td.ply - 1].move_count == 1 {
-            let malus = (80 * initial_depth - 55).min(800);
+            let mut factor = 128;
+            factor += 96 * td.stack[td.ply - 1].tt_move.is_null() as i32;
+
+            let malus = factor * (80 * initial_depth - 55).min(800) / 128;
 
             td.ply -= 1;
             update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus);
