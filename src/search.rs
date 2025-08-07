@@ -338,7 +338,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     td.stack[td.ply].static_eval = static_eval;
-    td.stack[td.ply].tt_move = tt_move;
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].reduction = 0;
     td.stack[td.ply].move_count = 0;
