@@ -520,6 +520,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
+    let mut mitigate_reduction = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
@@ -684,6 +685,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1024;
             }
 
+            if mitigate_reduction {
+                reduction -= 1024;
+            }
+
             let reduced_depth = (new_depth - reduction / 1024)
                 .clamp(NODE::PV as i32, new_depth + cut_node as i32 + NODE::PV as i32)
                 + NODE::PV as i32;
@@ -706,6 +711,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
                     }
+
+                    mitigate_reduction = score <= alpha;
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;
