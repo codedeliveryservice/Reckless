@@ -863,7 +863,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval);
+        update_correction_histories(td, depth.max(tt_depth), best_score - static_eval);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
