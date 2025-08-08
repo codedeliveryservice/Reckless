@@ -551,9 +551,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            let thread_factor = if td.id == 0 { 1 } else { 1 + (td.id as i32 % 3) };
-            let lmp_threshold = (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
-            skip_quiets |= move_count >= thread_factor * lmp_threshold;
+            let base_threshold = (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            let thread_factor = 100 - 15 * (td.id % 4) as i32;
+            skip_quiets |= move_count >= base_threshold * 100 / thread_factor;
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 121 * lmr_depth + 76 + 35 * history / 1024;
