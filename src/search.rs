@@ -517,7 +517,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
-    let mut failed_research = 0;
+    let mut failed_research = false;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
@@ -642,7 +642,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
-        if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
+        if depth >= 2 && move_count > 1 + NODE::ROOT as i32 && !failed_research {
             if is_quiet {
                 reduction -= 106 * (history - 574) / 1024;
             } else {
@@ -652,7 +652,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= 3268 * correction_value.abs() / 1024;
             reduction -= 55 * move_count;
-            reduction -= 2048 * failed_research;
             reduction += 303;
 
             if tt_pv {
@@ -709,7 +708,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         td.ply += 1;
                     }
 
-                    failed_research += (score <= alpha) as i32;
+                    failed_research = score <= alpha;
                 }
             } else if score > alpha && score < best_score + 15 {
                 new_depth -= 1;
