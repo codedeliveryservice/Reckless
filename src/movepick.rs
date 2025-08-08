@@ -21,10 +21,12 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    pick_best: bool,
+    depth: i32,
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub const fn new(tt_move: Move, depth: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
@@ -32,6 +34,8 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
+            depth: depth,
         }
     }
 
@@ -43,6 +47,8 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
+            depth: 0,
         }
     }
 
@@ -54,6 +60,8 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
+            depth: 0,
         }
     }
 
@@ -115,14 +123,19 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let mut index = 0;
-                    for i in 1..self.list.len() {
-                        if self.list[i].score > self.list[index].score {
-                            index = i;
+                    let entry = if self.pick_best {
+                        let mut index = 0;
+                        for i in 1..self.list.len() {
+                            if self.list[i].score > self.list[index].score {
+                                self.pick_best = self.list[i].score > -7998 || self.list[i].score <= -3560 * self.depth;
+                                index = i;
+                            }
                         }
-                    }
+                        self.list.remove(index)
+                    } else {
+                        self.list.remove(0)
+                    };
 
-                    let entry = &self.list.remove(index);
                     if entry.mv == self.tt_move {
                         continue;
                     }
