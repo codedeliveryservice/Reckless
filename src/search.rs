@@ -707,7 +707,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         td.ply += 1;
                     }
                 }
-            } else if score > alpha && score < best_score + 15 {
+            } else if score > alpha && score < best_score + depth {
                 new_depth -= 1;
             }
         }
