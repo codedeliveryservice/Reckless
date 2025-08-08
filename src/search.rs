@@ -397,7 +397,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !tt_pv
         && !in_check
         && !excluded
-        && depth <= 7
+        && depth <= 10
         && eval >= beta
         && eval
             >= beta + 72 * depth - (70 * improving as i32) - (23 * cut_node as i32)
@@ -406,7 +406,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_loss(beta)
         && !is_win(eval)
     {
-        return (eval + beta) / 2;
+        if depth <= 7 {
+            return (eval + beta) / 2;
+        } else {
+            return qsearch::<NonPV>(td, alpha, beta);
+        }
     }
 
     // Null Move Pruning (NMP)
