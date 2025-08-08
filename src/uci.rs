@@ -2,7 +2,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
     board::Board,
-    evaluate::evaluate,
     search::{self, Report},
     tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
@@ -20,10 +19,6 @@ pub fn message_loop() {
     let tb_hits = AtomicU64::new(0);
 
     let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
-    for thread in threads.iter_mut() {
-        thread.nnue.full_refresh(&thread.board);
-    }
-
     let mut frc = false;
     let mut move_overhead = 0;
     let mut report = Report::Full;
@@ -201,7 +196,6 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
 
     for thread in threads.iter_mut() {
         thread.board = board.clone();
-        thread.nnue.full_refresh(&thread.board);
     }
 }
 
@@ -257,9 +251,10 @@ fn set_option(
 }
 
 fn eval(td: &mut ThreadData) {
+    td.nnue.full_refresh(&td.board);
     let eval = match td.board.side_to_move() {
-        Color::White => evaluate(td),
-        Color::Black => -evaluate(td),
+        Color::White => td.nnue.evaluate(&td.board),
+        Color::Black => -td.nnue.evaluate(&td.board),
     };
     println!("{eval}");
 }
