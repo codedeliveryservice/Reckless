@@ -21,6 +21,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    pick_best: bool,
 }
 
 impl MovePicker {
@@ -32,6 +33,7 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
         }
     }
 
@@ -43,6 +45,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
         }
     }
 
@@ -54,6 +57,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            pick_best: true,
         }
     }
 
@@ -115,14 +119,19 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let mut index = 0;
-                    for i in 1..self.list.len() {
-                        if self.list[i].score > self.list[index].score {
-                            index = i;
+                    let entry = if self.pick_best {
+                        let mut index = 0;
+                        for i in 1..self.list.len() {
+                            if self.list[i].score > self.list[index].score {
+                                self.pick_best = self.list[i].score > -7000;
+                                index = i;
+                            }
                         }
-                    }
+                        self.list.remove(index)
+                    } else {
+                        self.list.remove(0)
+                    };
 
-                    let entry = &self.list.remove(index);
                     if entry.mv == self.tt_move {
                         continue;
                     }
