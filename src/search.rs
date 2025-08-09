@@ -568,11 +568,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
+            let last_move = if !NODE::ROOT { td.stack[td.ply - 1].mv } else { Move::NULL };
+
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = static_eval
                 + 114 * lmr_depth
                 + 397 * move_count / 128
                 + 81 * (history + 501) / 1024
+                + 80 * (mv.to() == last_move.to()) as i32
                 + 85 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
