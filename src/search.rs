@@ -965,7 +965,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                     Bound::Lower,
                     Move::NULL,
                     td.ply,
-                    tt_pv,
+                    false,
                 );
             }
 
