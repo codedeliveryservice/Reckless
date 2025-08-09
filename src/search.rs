@@ -637,7 +637,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         make_move(td, mv);
 
-        let mut new_depth = depth + extension - 1;
+        let mut new_depth = depth + extension + (td.board.checkers().len() == 2) as i32 - 1;
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
