@@ -69,7 +69,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 12;
+        let mut delta = 12 + 3 * td.id as i32 % 4;
         let mut reduction = 0;
 
         // Aspiration Windows
