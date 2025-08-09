@@ -14,10 +14,10 @@ pub enum CastlingKind {
 impl CastlingKind {
     pub const fn landing_square(self) -> Square {
         match self {
-            CastlingKind::WhiteKingside => Square::G1,
-            CastlingKind::WhiteQueenside => Square::C1,
-            CastlingKind::BlackKingside => Square::G8,
-            CastlingKind::BlackQueenside => Square::C8,
+            Self::WhiteKingside => Square::G1,
+            Self::WhiteQueenside => Square::C1,
+            Self::BlackKingside => Square::G8,
+            Self::BlackQueenside => Square::C8,
         }
     }
 }

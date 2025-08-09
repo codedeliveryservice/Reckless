@@ -221,19 +221,18 @@ impl Default for PrincipalVariationTable {
 }
 
 pub struct LmrTable {
-    table: [[i32; MAX_MOVES + 1]; MAX_MOVES + 1],
+    table: Box<[[i32; MAX_MOVES + 1]]>,
 }
 
 impl LmrTable {
-    pub fn reduction(&self, depth: i32, move_count: i32) -> i32 {
+    pub const fn reduction(&self, depth: i32, move_count: i32) -> i32 {
         self.table[depth as usize][move_count as usize]
     }
 }
 
 impl Default for LmrTable {
-    #[allow(clippy::needless_range_loop)]
     fn default() -> Self {
-        let mut table = [[0; MAX_MOVES + 1]; MAX_MOVES + 1];
+        let mut table = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
