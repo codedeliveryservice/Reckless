@@ -469,7 +469,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
-        let probcut_depth = 0.max(depth - 4);
+        let probcut_depth = if in_check { depth - 4 } else { depth - 4 - (static_eval - beta) / 300 }.max(0);
 
         while let Some(mv) = move_picker.next(td, true) {
             if move_picker.stage() == Stage::BadNoisy {
