@@ -569,7 +569,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = static_eval
+            let noisy_futility_value = eval
                 + 114 * lmr_depth
                 + 397 * move_count / 128
                 + 81 * (history + 501) / 1024
