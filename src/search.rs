@@ -672,6 +672,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 794;
             }
 
+            if tt_move.is_noisy() {
+                reduction += 675;
+            }
+
             if td.stack[td.ply].cutoff_count > 2 {
                 reduction += 1232;
             }
