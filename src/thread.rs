@@ -96,6 +96,7 @@ pub struct ThreadData<'a> {
     pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
+    pub id: usize,
 }
 
 impl<'a> ThreadData<'a> {
@@ -130,6 +131,7 @@ impl<'a> ThreadData<'a> {
             ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
+            id: 0,
         }
     }
 
