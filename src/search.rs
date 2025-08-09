@@ -122,14 +122,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
         td.completed_depth = depth;
 
         if last_move == td.pv.best_move() {
-            pv_stability = (pv_stability + 1).min(8);
+            pv_stability += 1;
         } else {
             pv_stability = 0;
             last_move = td.pv.best_move();
         }
 
         if (td.best_score - average).abs() < 12 {
-            eval_stability = (eval_stability + 1).min(8);
+            eval_stability += 1;
         } else {
             eval_stability = 0;
         }
@@ -137,9 +137,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let multiplier = || {
             let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
 
-            let pv_stability = 1.25 - 0.05 * pv_stability as f32;
+            let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
-            let eval_stability = 1.2 - 0.04 * eval_stability as f32;
+            let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
 
             let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
 
