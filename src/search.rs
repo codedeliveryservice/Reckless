@@ -421,7 +421,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !potential_singularity
         && !is_loss(beta)
     {
-        let r = 5 + depth / 3 + ((eval - beta) / 244).min(3);
+        let nmp_depth = 2 * depth / 3 - ((eval - beta) / 244).min(3) - 5;
+        let nmp_depth = nmp_depth.max(0);
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
         td.stack[td.ply].contcorrhist = std::ptr::null_mut();
@@ -431,10 +432,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         td.board.make_null_move();
 
-        let score = if (depth - r) <= 0 {
+        let score = if nmp_depth == 0 {
             -qsearch::<NonPV>(td, -beta, -beta + 1)
         } else {
-            -search::<NonPV>(td, -beta, -beta + 1, depth - r, false)
+            -search::<NonPV>(td, -beta, -beta + 1, nmp_depth, false)
         };
 
         td.board.undo_null_move();
@@ -449,8 +450,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             }
 
-            td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false);
+            td.nmp_min_ply = td.ply as i32 + 3 * nmp_depth / 4;
+            let verified_score = search::<NonPV>(td, beta - 1, beta, nmp_depth, false);
             td.nmp_min_ply = 0;
 
             if td.stopped {
