@@ -554,7 +554,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
-            let futility_value = static_eval + 121 * lmr_depth + 76 + 35 * history / 1024;
+            let futility_value = static_eval.max(best_score) + 121 * lmr_depth + 76 + 35 * history / 1024;
             if !in_check
                 && is_quiet
                 && lmr_depth < 8
@@ -569,7 +569,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = static_eval
+            let noisy_futility_value = static_eval.max(best_score)
                 + 114 * lmr_depth
                 + 397 * move_count / 128
                 + 81 * (history + 501) / 1024
