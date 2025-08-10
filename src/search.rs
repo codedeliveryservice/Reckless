@@ -511,8 +511,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let mut best_move = Move::NULL;
-    let mut had_best_noisy_move = false;
-
     let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
@@ -742,9 +740,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 alpha = score;
                 best_move = mv;
 
-                if best_move.is_noisy() {
-                    had_best_noisy_move = true;
-                }
                 if NODE::PV {
                     td.pv.update(td.ply, mv);
 
@@ -860,7 +855,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !(in_check
-        || had_best_noisy_move
+        || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
