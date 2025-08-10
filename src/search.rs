@@ -462,6 +462,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
     }
+    let mut tried_probcut = false;
 
     // ProbCut
     let probcut_beta = beta + 271 - 61 * improving as i32;
@@ -501,12 +502,28 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     return score - (probcut_beta - beta);
                 }
             }
+            tried_probcut = true;
         }
     }
 
     // Internal Iterative Reductions (IIR)
     if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
         depth -= 1;
+    }
+
+    if cut_node
+        && !in_check
+        && !tt_pv
+        && static_eval >= beta
+        && tt_move.is_noisy()
+        && tt_depth > 5
+        && depth > 7
+        && depth <= 12
+        && !tried_probcut
+        && !is_loss(beta)
+        && potential_singularity
+    {
+        return (static_eval + beta) / 2;
     }
 
     let mut best_move = Move::NULL;
