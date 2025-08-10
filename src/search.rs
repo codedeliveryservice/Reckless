@@ -406,6 +406,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_loss(beta)
         && !is_win(eval)
     {
+        td.tt.write(
+            td.board.hash(),
+            TtDepth::SOME,
+            raw_eval,
+            (eval + beta) / 2,
+            Bound::Lower,
+            Move::NULL,
+            td.ply,
+            false,
+        );
+
         return (eval + beta) / 2;
     }
 
