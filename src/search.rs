@@ -410,7 +410,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.board.hash(),
             if tt_depth == 0 { TtDepth::SOME } else { TtDepth::SOME.max(tt_depth) },
             raw_eval,
-            (eval + beta) / 2,
+            eval,
             Bound::Lower,
             Move::NULL,
             td.ply,
