@@ -3,6 +3,7 @@
 mod board;
 mod evaluate;
 mod history;
+mod lmr;
 mod lookup;
 mod misc;
 mod movepick;

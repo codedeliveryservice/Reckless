@@ -1,5 +1,6 @@
 use crate::{
     evaluate::evaluate,
+    lmr,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
@@ -641,6 +642,22 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
+            let features = [
+                NODE::PV,
+                tt_pv,
+                cut_node,
+                is_valid(tt_score) && tt_score > alpha,
+                is_valid(tt_score) && tt_score < alpha,
+                is_valid(tt_score) && tt_depth >= depth,
+                is_valid(tt_score) && tt_bound == Bound::Upper,
+                (beta - alpha > 34 * td.root_delta / 128),
+                td.stack[td.ply].cutoff_count > 2,
+                td.board.in_check(),
+                !td.board.has_non_pawns(),
+            ];
+
+            reduction += lmr::feature_interaction(&features);
+
             if is_quiet {
                 reduction -= 106 * (history - 574) / 1024;
             } else {
@@ -651,33 +668,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 3268 * correction_value.abs() / 1024;
             reduction -= 55 * move_count;
             reduction += 303;
-
-            if tt_pv {
-                reduction -= 663;
-                reduction -= 652 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 783 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-                reduction -= 796 * cut_node as i32;
-            }
-
-            if NODE::PV {
-                reduction -= 590 + 573 * (beta - alpha > 34 * td.root_delta / 128) as i32;
-            }
-
-            if cut_node {
-                reduction += 1193;
-            }
-
-            if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 794;
-            }
-
-            if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 1232;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 768;
-            }
 
             if depth == 2 {
                 reduction -= 1024;
