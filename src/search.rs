@@ -1005,7 +1005,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            if !in_check && !td.board.see(mv, alpha - futility_score) {
                 best_score = best_score.max(futility_score);
                 continue;
             }
