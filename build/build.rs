@@ -125,7 +125,7 @@ fn generate_engine_version() {
     let version = env!("CARGO_PKG_VERSION");
 
     let git_sha = Command::new("git")
-        .args(&["rev-parse", "--short=8", "HEAD"])
+        .args(["rev-parse", "--short=8", "HEAD"])
         .output()
         .ok()
         .filter(|v| v.status.success())
