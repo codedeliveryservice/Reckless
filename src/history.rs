@@ -84,8 +84,14 @@ impl NoisyHistoryEntry {
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
         let threated = threats.contains(sq) as usize;
-        let entry = &mut self.buckets[captured][threated];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+
+        apply_bonus::<{ Self::MAX_BUCKET }>(&mut self.buckets[captured][threated], bonus);
+
+        if bonus > 0 {
+            let otherwise = threated ^ 1;
+            let malus = -bonus / 3;
+            apply_bonus::<{ Self::MAX_BUCKET }>(&mut self.buckets[captured][otherwise], malus);
+        }
     }
 }
 
