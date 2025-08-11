@@ -679,7 +679,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 768;
             }
 
-            if depth == 2 {
+            if depth == 2 || tt_depth == 2 {
                 reduction -= 1024;
             }
 
