@@ -1,5 +1,5 @@
 use super::Board;
-use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
