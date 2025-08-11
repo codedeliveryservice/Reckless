@@ -42,6 +42,7 @@ pub fn message_loop() {
                 set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
             }
             ["ucinewgame"] => reset(&mut threads, &tt),
+            ["params"] => crate::parameters::print_params(),
 
             ["stop"] => STOP.store(true, Ordering::Relaxed),
             ["quit"] => break,

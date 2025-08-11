@@ -1,36 +1,47 @@
+use crate::lmr::*;
+
 pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
 
-#[allow(unused_macros)]
-#[cfg(not(feature = "spsa"))]
-macro_rules! define {
-    {$($type:ident $name:ident: $value:expr; )*} => {
-        $(pub const fn $name() -> $type {
-            $value
-        })*
-    };
+pub fn set_parameter(name: &str, value: &str) {
+    if let Some(idx_str) = name.strip_prefix("single_") {
+        let idx = idx_str.parse::<usize>().unwrap();
+        let val = value.parse::<i32>().unwrap();
+        unsafe { SINGLE_VALUES[idx] = val };
+    } else if let Some(idx_str) = name.strip_prefix("double_") {
+        let idx = idx_str.parse::<usize>().unwrap();
+        let val = value.parse::<i32>().unwrap();
+        unsafe { DOUBLE_VALUES[idx] = val };
+    } else if let Some(idx_str) = name.strip_prefix("triple_") {
+        let idx = idx_str.parse::<usize>().unwrap();
+        let val = value.parse::<i32>().unwrap();
+        unsafe { TRIPLE_VALUES[idx] = val };
+    }
 }
 
-#[cfg(feature = "spsa")]
-macro_rules! define {
-    {$($type:ident $name:ident: $value:expr; )*} => {
-        pub fn set_parameter(name: &str, value: &str) {
-            match name {
-                $(stringify!($name) => unsafe { parameters::$name = value.parse().unwrap() },)*
-                _ => panic!("Unknown tunable parameter: {name}"),
-            }
-        }
+pub fn print_options() {
+    for i in 0..SINGLE_VALUES_LEN {
+        println!("option name single_{i} type string");
+    }
 
-        pub fn print_options() {
-            $(println!("option name {} type string", stringify!($name));)*
-        }
+    for i in 0..DOUBLE_VALUES_LEN {
+        println!("option name double_{i} type string");
+    }
 
-        $(pub fn $name() -> $type {
-            unsafe { parameters::$name }
-        })*
+    for i in 0..TRIPLE_VALUES_LEN {
+        println!("option name triple_{i} type string");
+    }
+}
 
-        #[allow(non_upper_case_globals)]
-        mod parameters {
-            $(pub static mut $name: $type = $value;)*
-        }
-    };
+pub fn print_params() {
+    for i in 0..SINGLE_VALUES_LEN {
+        println!("single_{i}, int, {}, -2048, 2048, 384, 0.002", unsafe { SINGLE_VALUES[i] });
+    }
+
+    for i in 0..DOUBLE_VALUES_LEN {
+        println!("double_{i}, int, {}, -2048, 2048, 224, 0.002", unsafe { DOUBLE_VALUES[i] });
+    }
+
+    for i in 0..TRIPLE_VALUES_LEN {
+        println!("triple_{i}, int, {}, -2048, 2048, 64, 0.002", unsafe { TRIPLE_VALUES[i] });
+    }
 }
