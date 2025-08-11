@@ -26,10 +26,10 @@ pub fn print_options() {
 
 pub fn print_params() {
     for i in 0..SINGLE_VALUES_LEN {
-        println!("single_{i}, int, {}, -2048, 2048, 384, 0.002", unsafe { SINGLE_VALUES[i] });
+        println!("single_{i}, int, {}, -2048, 2048, 256, 0.002", unsafe { SINGLE_VALUES[i] });
     }
 
     for i in 0..DOUBLE_VALUES_LEN {
-        println!("double_{i}, int, {}, -2048, 2048, 224, 0.002", unsafe { DOUBLE_VALUES[i] });
+        println!("double_{i}, int, {}, -2048, 2048, 128, 0.002", unsafe { DOUBLE_VALUES[i] });
     }
 }
