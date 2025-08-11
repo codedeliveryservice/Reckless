@@ -17,6 +17,7 @@ fn main() {
     generate_model_env();
     generate_attack_maps();
     generate_compiler_info();
+    generate_engine_version();
     generate_syzygy_binding();
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
@@ -24,6 +25,8 @@ fn main() {
     }
 
     println!("cargo:rerun-if-env-changed=EVALFILE");
+    println!("cargo:rerun-if-changed=.git/HEAD");
+    println!("cargo:rerun-if-changed=.git/logs/HEAD");
     println!("cargo:rerun-if-changed=networks/{NETWORK_NAME}");
 }
 
@@ -116,4 +119,22 @@ fn generate_compiler_info() {
     println!("cargo:rustc-env=COMPILER_VERSION={version}");
     println!("cargo:rustc-env=COMPILER_TARGET={}", get_env("TARGET"));
     println!("cargo:rustc-env=COMPILER_FEATURES={}", get_env("CARGO_CFG_TARGET_FEATURE"));
+}
+
+fn generate_engine_version() {
+    let version = env!("CARGO_PKG_VERSION");
+
+    let git_sha = Command::new("git")
+        .args(&["rev-parse", "--short=8", "HEAD"])
+        .output()
+        .ok()
+        .filter(|v| v.status.success())
+        .and_then(|v| String::from_utf8(v.stdout).ok())
+        .map(|v| v.trim().to_string());
+
+    if let Some(sha) = git_sha {
+        println!("cargo:rustc-env=ENGINE_VERSION={version}-{sha}")
+    } else {
+        println!("cargo:rustc-env=ENGINE_VERSION={version}")
+    }
 }
