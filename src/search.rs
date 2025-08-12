@@ -997,7 +997,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if move_count >= 3 {
+            if move_count >= 3 && !td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
@@ -1005,11 +1005,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            if !in_check
-                && futility_score <= alpha
-                && !td.board.might_give_check_if_you_squint(mv)
-                && !td.board.see(mv, 1)
-            {
+            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
             }
