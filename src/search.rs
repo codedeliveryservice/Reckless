@@ -1,6 +1,6 @@
 use crate::{
     evaluate::evaluate,
-    lmr,
+    lookup::lmr_rules_reduction,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
@@ -656,7 +656,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 !td.board.has_non_pawns(),
             ];
 
-            reduction += lmr::feature_interaction(&features);
+            reduction += lmr_rules_reduction(&features);
 
             if is_quiet {
                 reduction -= 106 * (history - 574) / 1024;

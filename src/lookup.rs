@@ -8,10 +8,14 @@ static mut CUCKOO: [u64; 0x2000] = [0; 0x2000];
 static mut A: [Square; 0x2000] = [Square::None; 0x2000];
 static mut B: [Square; 0x2000] = [Square::None; 0x2000];
 
+const LEN: usize = 11;
+static mut LMR_INTERACTIONS: [i32; 1 << LEN] = [0; 1 << LEN];
+
 pub fn init() {
     unsafe {
         init_between();
         init_cuckoo();
+        init_lmr_interactions();
     }
 }
 
@@ -144,4 +148,50 @@ const fn magic_index(occupancies: Bitboard, entry: &MagicEntry) -> u32 {
     let mut hash = occupancies.0 & entry.mask;
     hash = hash.wrapping_mul(entry.magic) >> entry.shift;
     hash as u32 + entry.offset
+}
+
+unsafe fn init_lmr_interactions() {
+    const SINGLE_VALUES_LEN: usize = LEN;
+    const DOUBLE_VALUES_LEN: usize = LEN * (LEN - 1) / 2;
+
+    const SINGLE_VALUES: [i32; SINGLE_VALUES_LEN] = [-744, -608, 1717, -92, 121, -94, 236, -28, 1417, -767, -915];
+    const DOUBLE_VALUES: [i32; DOUBLE_VALUES_LEN] = [
+        41, -90, 40, 24, -19, 199, -489, -169, -54, 57, -727, -546, 48, -971, 57, 18, 11, -25, -156, 3, -139, -3, -25,
+        -70, -33, 9, 132, 109, -44, -50, -6, 37, 125, 83, 92, 886, 246, -104, 62, -30, -109, -3, -174, -87, 51, 118,
+        15, 52, -60, -117, 44, -100, 26, 66, 34,
+    ];
+
+    for mask in 0..(1 << LEN) {
+        let mut s = 0i32;
+        // singles
+        for i in 0..LEN {
+            if (mask >> i) & 1 != 0 {
+                s += SINGLE_VALUES[i];
+            }
+        }
+        // doubles
+        let mut idx = 0usize;
+        for i in 0..LEN {
+            if (mask >> i) & 1 == 0 {
+                idx += LEN - i - 1;
+                continue;
+            }
+            for j in (i + 1)..LEN {
+                if (mask >> j) & 1 != 0 {
+                    s += DOUBLE_VALUES[idx];
+                }
+                idx += 1;
+            }
+        }
+        LMR_INTERACTIONS[mask] = s;
+    }
+}
+
+pub fn lmr_rules_reduction(features: &[bool]) -> i32 {
+    debug_assert!(features.len() >= LEN);
+    let mut mask = 0usize;
+    for i in 0..LEN {
+        mask |= (features[i] as usize) << i;
+    }
+    unsafe { LMR_INTERACTIONS[mask] }
 }
