@@ -542,7 +542,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !improving {
-            reduction += (494 - 425 * improvement / 128).min(1205);
+            reduction += (466 - 405 * improvement / 128).min(1152);
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
@@ -642,45 +642,45 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
             if is_quiet {
-                reduction -= 106 * (history - 574) / 1024;
+                reduction -= 100 * (history - 563) / 1024;
             } else {
-                reduction -= 95 * (history - 557) / 1024;
-                reduction -= PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 3;
+                reduction -= 93 * (history - 557) / 1024;
+                reduction -= 42 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
-            reduction -= 3268 * correction_value.abs() / 1024;
-            reduction -= 55 * move_count;
-            reduction += 303;
+            reduction -= 3097 * correction_value.abs() / 1024;
+            reduction -= 56 * move_count;
+            reduction += 313;
 
             if tt_pv {
-                reduction -= 663;
-                reduction -= 652 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 783 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-                reduction -= 796 * cut_node as i32;
+                reduction -= 643;
+                reduction -= 621 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 845 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 801 * cut_node as i32;
             }
 
             if NODE::PV {
-                reduction -= 590 + 573 * (beta - alpha > 34 * td.root_delta / 128) as i32;
+                reduction -= 630 + 543 * (beta - alpha > 37 * td.root_delta / 128) as i32;
             }
 
             if cut_node {
-                reduction += 1193;
+                reduction += 1349;
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 794;
+                reduction -= 762;
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 1232;
+                reduction += 1264;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 768;
+                reduction += 782;
             }
 
             if depth == 2 {
-                reduction -= 1024;
+                reduction -= 1035;
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
