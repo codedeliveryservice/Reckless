@@ -918,6 +918,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             && (!NODE::PV || !is_decisive(tt_score))
         {
             debug_assert!(is_valid(tt_score));
+
+            if entry.depth > 0 && entry.mv.is_noisy() && tt_score >= beta {
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(entry.mv),
+                    entry.mv.to(),
+                    td.board.piece_on(entry.mv.to()).piece_type(),
+                    (60 * entry.depth).min(800),
+                );
+            }
+
             return tt_score;
         }
     }
