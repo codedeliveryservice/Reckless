@@ -472,7 +472,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let probcut_depth = 0.max(depth - 4);
 
-        while let Some(mv) = move_picker.next(td, true) {
+        while let Some(mv) = move_picker.next(td, !in_check) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -501,6 +501,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
+            }
+
+            if in_check && mv.is_quiet() {
+                break;
             }
         }
     }
