@@ -933,7 +933,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let correction_value = correction_value(td);
+        let static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -972,7 +973,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             alpha = best_score;
         }
 
-        futility_score = static_eval + 123;
+        futility_score = static_eval + 113 + correction_value.abs() / 5;
     }
 
     let mut best_move = Move::NULL;
