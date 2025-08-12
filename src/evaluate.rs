@@ -16,6 +16,8 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
+    eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
+
     eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
