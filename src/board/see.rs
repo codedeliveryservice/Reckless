@@ -31,6 +31,10 @@ impl super::Board {
         occupancies.clear(mv.from());
         occupancies.set(mv.to());
 
+        if mv.is_en_passant() {
+            occupancies.clear(mv.to() ^ 8);
+        }
+
         let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
 
