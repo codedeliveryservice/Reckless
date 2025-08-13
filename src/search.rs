@@ -421,6 +421,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.has_non_pawns()
         && !potential_singularity
         && !is_loss(beta)
+        && td.board.occupancies().len() < 32
     {
         let r = 5 + depth / 3 + ((eval - beta) / 244).min(3);
 
