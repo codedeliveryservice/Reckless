@@ -11,7 +11,7 @@ impl super::Board {
     ///
     /// Promotions and castling always pass this check.
     pub fn see(&self, mv: Move, threshold: i32) -> bool {
-        if mv.is_promotion() || mv.is_castling() {
+        if mv.is_promotion() || mv.is_castling() || mv.is_en_passant() {
             return true;
         }
 
@@ -76,10 +76,6 @@ impl super::Board {
     }
 
     fn move_value(&self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            return PIECE_VALUES[PieceType::Pawn];
-        }
-
         let capture = self.piece_on(mv.to()).piece_type();
         PIECE_VALUES[capture]
     }
