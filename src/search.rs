@@ -684,7 +684,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if depth == 4 {
-                reduction -= 768;
+                reduction += 768;
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
