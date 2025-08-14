@@ -205,7 +205,7 @@ struct Parameters {
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
+    l2_weights: Aligned<[[f32; L3_SIZE]; 2 * L2_SIZE]>,
     l2_biases: Aligned<[f32; L3_SIZE]>,
     l3_weights: Aligned<[f32; L3_SIZE]>,
     l3_biases: f32,

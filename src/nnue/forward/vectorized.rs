@@ -73,7 +73,7 @@ pub unsafe fn find_nnz(
     (indexes, count)
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; 2 * L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
@@ -113,7 +113,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0.0; 2 * L2_SIZE]);
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
@@ -122,16 +122,18 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = *PARAMETERS.l1_biases.as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
+
         *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
+        *output.as_mut_ptr().add(i + L2_SIZE).cast() = simd::min_f32(simd::mul_f32(vector, vector), one);
     }
 
     output
 }
 
-pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+pub unsafe fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
     let mut output = PARAMETERS.l2_biases.clone();
 
-    for i in 0..L2_SIZE {
+    for i in 0..L2_SIZE * 2 {
         let input = simd::splat_f32(l1_out[i]);
         let weights = PARAMETERS.l2_weights[i].as_ptr();
 
