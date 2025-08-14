@@ -719,7 +719,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Principal Variation Search (PVS)
         if NODE::PV && (move_count == 1 || score > alpha) {
-            if mv == tt_move && is_quiet && td.root_depth > 8 && new_depth == 0 {
+            if new_depth == 0 && mv == tt_move && td.root_depth > 8 {
                 new_depth = 1;
             }
 
