@@ -24,24 +24,35 @@ pub enum Report {
 trait NodeType {
     const PV: bool;
     const ROOT: bool;
+    const SE: bool;
 }
 
 struct Root;
 impl NodeType for Root {
     const PV: bool = true;
     const ROOT: bool = true;
+    const SE: bool = false;
 }
 
 struct PV;
 impl NodeType for PV {
     const PV: bool = true;
     const ROOT: bool = false;
+    const SE: bool = false;
 }
 
 struct NonPV;
 impl NodeType for NonPV {
     const PV: bool = false;
     const ROOT: bool = false;
+    const SE: bool = false;
+}
+
+struct SE;
+impl NodeType for SE {
+    const PV: bool = false;
+    const ROOT: bool = false;
+    const SE: bool = true;
 }
 
 pub fn start(td: &mut ThreadData, report: Report) {
@@ -167,7 +178,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
-    let excluded = td.stack[td.ply].excluded.is_some();
 
     if NODE::PV {
         td.pv.clear(td.ply);
@@ -239,7 +249,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         tt_bound = entry.bound;
 
         if !NODE::PV
-            && !excluded
+            && !NODE::SE
             && tt_depth > depth - (tt_score <= beta) as i32 - (tt_bound == Bound::Exact) as i32
             && is_valid(tt_score)
             && match tt_bound {
@@ -265,7 +275,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Tablebases Probe
     if !NODE::ROOT
-        && !excluded
+        && !NODE::SE
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().len() <= tb_size()
@@ -310,7 +320,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
-    } else if excluded {
+    } else if NODE::SE {
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
         eval = static_eval;
@@ -345,8 +355,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
+        && !NODE::SE
         && !in_check
-        && !excluded
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
@@ -358,8 +368,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Hindsight reductions
     if !NODE::ROOT
+        && !NODE::SE
         && !in_check
-        && !excluded
         && td.stack[td.ply - 1].reduction >= 2765
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
@@ -367,9 +377,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !NODE::ROOT
+        && !NODE::SE
         && !tt_pv
         && !in_check
-        && !excluded
         && depth >= 2
         && td.stack[td.ply - 1].reduction >= 914
         && is_valid(td.stack[td.ply - 1].static_eval)
@@ -394,9 +404,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Reverse Futility Pruning (RFP)
-    if !tt_pv
+    if !NODE::SE
+        && !tt_pv
         && !in_check
-        && !excluded
         && eval >= beta
         && eval
             >= beta + 10 * depth * depth + 30 * depth - (70 * improving as i32) - (23 * cut_node as i32)
@@ -410,9 +420,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // Null Move Pruning (NMP)
-    if cut_node
+    if !NODE::SE
+        && cut_node
         && !in_check
-        && !excluded
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 15 * depth + 147 * tt_pv as i32 - 105 * improvement / 1024 + 187
@@ -595,7 +605,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
+        if !NODE::ROOT && !NODE::SE && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = &entry.unwrap();
 
             if potential_singularity {
@@ -604,7 +614,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 let singular_depth = (depth - 1) / 2;
 
                 td.stack[td.ply].excluded = entry.mv;
-                let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+                let score = search::<SE>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
                 td.stack[td.ply].excluded = Move::NULL;
 
                 if td.stopped {
@@ -769,7 +779,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if move_count == 0 {
-        if excluded {
+        if NODE::SE {
             return alpha;
         }
 
@@ -849,7 +859,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         best_score = best_score.min(max_score);
     }
 
-    if !excluded {
+    if !NODE::SE {
         td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
