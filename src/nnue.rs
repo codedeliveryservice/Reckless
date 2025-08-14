@@ -41,9 +41,9 @@ const NETWORK_SCALE: i32 = 400;
 const INPUT_BUCKETS: usize = 10;
 
 const FT_SIZE: usize = 768;
-const L1_SIZE: usize = 1024;
+const L1_SIZE: usize = 1536;
 const L2_SIZE: usize = 16;
-const L3_SIZE: usize = 32;
+const L3_SIZE: usize = 96;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
@@ -60,7 +60,7 @@ const BUCKETS: [usize; 64] = [
     0, 1, 2, 3, 3, 2, 1, 0,
     4, 5, 6, 7, 7, 6, 5, 4,
     8, 8, 8, 8, 8, 8, 8, 8,
-    9, 9, 9, 9, 9, 9, 9, 9,
+    8, 8, 8, 8, 8, 8, 8, 8,
     9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9,
@@ -205,7 +205,7 @@ struct Parameters {
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
+    l2_weights: Aligned<[[f32; L3_SIZE]; 2 * L2_SIZE]>,
     l2_biases: Aligned<[f32; L3_SIZE]>,
     l3_weights: Aligned<[f32; L3_SIZE]>,
     l3_biases: f32,
