@@ -406,6 +406,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
+        if (eval + beta / 2) < 0 && eval > 0 {
+            return 0;
+        }
+
         return (eval + beta) / 2;
     }
 
