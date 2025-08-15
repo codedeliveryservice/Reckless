@@ -777,15 +777,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (128 * depth - 60).min(1150) - 69 * cut_node as i32;
-        let malus_noisy = (145 * initial_depth - 67).min(1457) - 26 * noisy_moves.len() as i32;
+        let bonus_noisy = ((128 * depth - 60).min(1150) - 69 * cut_node as i32).max(0);
+        let malus_noisy = ((145 * initial_depth - 67).min(1457) - 26 * noisy_moves.len() as i32).max(0);
 
-        let bonus_quiet = (151 * depth - 68).min(1597) - 64 * cut_node as i32;
+        let bonus_quiet = ((151 * depth - 68).min(1597) - 64 * cut_node as i32).max(0);
         let malus_quiet =
-            (134 * initial_depth - 55).min(1273) - 34 * quiet_moves.len() as i32 + 200 * skip_quiets as i32;
+            ((134 * initial_depth - 55).min(1273) - 34 * quiet_moves.len() as i32 + 200 * skip_quiets as i32).max(0);
 
-        let bonus_cont = (97 * depth - 57).min(1250) - 69 * cut_node as i32;
-        let malus_cont = (277 * initial_depth - 49).min(978) - 28 * quiet_moves.len() as i32 + 126 * skip_quiets as i32;
+        let bonus_cont = ((97 * depth - 57).min(1250) - 69 * cut_node as i32).max(0);
+        let malus_cont =
+            ((277 * initial_depth - 49).min(978) - 28 * quiet_moves.len() as i32 + 126 * skip_quiets as i32).max(0);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
