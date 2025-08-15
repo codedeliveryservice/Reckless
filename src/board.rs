@@ -61,6 +61,10 @@ impl Board {
         self.frc
     }
 
+    pub const fn captured(&self) -> Option<Piece> {
+        self.state.captured
+    }
+
     pub const fn side_to_move(&self) -> Color {
         self.side_to_move
     }

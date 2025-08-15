@@ -86,7 +86,7 @@ impl Display for Piece {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, PartialOrd)]
 pub enum PieceType {
     Pawn,
     Knight,
