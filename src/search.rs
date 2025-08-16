@@ -552,11 +552,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
-            let futility_value = static_eval + 10 * lmr_depth * lmr_depth + 80 * lmr_depth + 76 + 35 * history / 1024;
+            let futility_value = static_eval + 8 * lmr_depth * lmr_depth + 70 * lmr_depth + 76 + 35 * history / 1024;
 
             if !in_check
                 && is_quiet
-                && lmr_depth < 8
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
