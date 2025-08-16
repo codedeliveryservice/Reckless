@@ -777,7 +777,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (128 * depth - 60).min(1150) - 69 * cut_node as i32;
+        let bonus_noisy = ((128 * depth - 60).min(1150) - 69 * cut_node as i32).max(69);
         let malus_noisy = (145 * initial_depth - 67).min(1457) - 26 * noisy_moves.len() as i32;
 
         let bonus_quiet = (151 * depth - 68).min(1597) - 64 * cut_node as i32;
@@ -788,15 +788,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let malus_cont = (277 * initial_depth - 49).min(978) - 28 * quiet_moves.len() as i32 + 126 * skip_quiets as i32;
 
         if best_move.is_noisy() {
-            if bonus_noisy > 0 {
-                td.noisy_history.update(
-                    td.board.threats(),
-                    td.board.moved_piece(best_move),
-                    best_move.to(),
-                    td.board.piece_on(best_move.to()).piece_type(),
-                    bonus_noisy,
-                );
-            }
+            td.noisy_history.update(
+                td.board.threats(),
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                td.board.piece_on(best_move.to()).piece_type(),
+                bonus_noisy,
+            );
         } else if !quiet_moves.is_empty() || depth > 3 {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
