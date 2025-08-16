@@ -625,7 +625,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     return score;
                 } else if tt_score >= beta {
                     extension = -2;
-                } else if cut_node {
+                } else if !NODE::PV {
                     extension = -2;
                 }
             }
