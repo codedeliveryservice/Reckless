@@ -1,6 +1,5 @@
 use std::{
     cell::UnsafeCell,
-    ptr,
     sync::atomic::{AtomicU8, Ordering},
 };
 
@@ -80,26 +79,13 @@ impl TtDepth {
     pub const SOME: i32 = -1;
 }
 
-impl Default for InternalEntry {
-    fn default() -> Self {
-        Self {
-            mv: Move::NULL,
-            key: 0,
-            eval: Score::NONE as i16,
-            score: Score::NONE as i16,
-            depth: TtDepth::NONE as i8,
-            flags: Flags::new(Bound::None, false, 0),
-        }
-    }
-}
-
 impl InternalEntry {
     pub const fn relative_age(&self, tt_age: u8) -> i32 {
         ((AGE_CYCLE + tt_age - self.flags.age()) & AGE_MASK) as i32
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 #[repr(align(32))]
 struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
@@ -127,7 +113,7 @@ unsafe impl Sync for TranspositionTable {}
 impl TranspositionTable {
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
-        unsafe { self.parallel_clear(threads, self.len()) }
+        unsafe { parallel_clear(threads, (*self.block.get()).ptr as *mut u8, (*self.block.get()).len * CLUSTER_SIZE) };
         self.age.store(0, Ordering::Relaxed);
     }
 
@@ -147,7 +133,7 @@ impl TranspositionTable {
                 std::alloc::dealloc(ptr as *mut u8, layout);
             }
 
-            let new_block = allocate(megabytes);
+            let new_block = allocate(threads, megabytes);
             (*self.block.get()).ptr = new_block.ptr;
             (*self.block.get()).len = new_block.len;
         }
@@ -289,16 +275,6 @@ impl TranspositionTable {
         // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
         (((hash as u128) * (self.len() as u128)) >> 64) as usize
     }
-
-    unsafe fn parallel_clear(&self, threads: usize, len: usize) {
-        let vector = (*self.block.get()).as_mut_slice();
-
-        for cluster in vector.iter_mut() {
-            for entry in &mut cluster.entries {
-                *entry = InternalEntry::default();
-            }
-        }
-    }
 }
 
 /// Returns the verification key of the hash (bottom 16 bits).
@@ -348,13 +324,13 @@ const fn score_from_tt(score: i32, ply: usize, halfmove_clock: u8) -> i32 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         Self {
-            block: unsafe { UnsafeCell::new(allocate(DEFAULT_TT_SIZE)) },
+            block: unsafe { UnsafeCell::new(allocate(1, DEFAULT_TT_SIZE)) },
             age: AtomicU8::new(0),
         }
     }
 }
 
-unsafe fn allocate(mb_size: usize) -> ClusterBlock {
+unsafe fn allocate(threads: usize, mb_size: usize) -> ClusterBlock {
     #[cfg(target_os = "linux")]
     use libc::{madvise, mmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 
@@ -363,13 +339,13 @@ unsafe fn allocate(mb_size: usize) -> ClusterBlock {
 
     #[cfg(target_os = "linux")]
     let ptr = {
-        let ptr = mmap(ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        let ptr = mmap(std::ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if ptr == MAP_FAILED {
-            ptr::null_mut()
-        } else {
-            let _ = madvise(ptr, size, MADV_HUGEPAGE);
-            ptr as *mut Cluster
+            panic!("Failed to allocate {}MB for transposition table.", mb_size as u64);
         }
+
+        let _ = madvise(ptr, size, MADV_HUGEPAGE);
+        ptr as *mut Cluster
     };
 
     #[cfg(not(target_os = "linux"))]
@@ -378,11 +354,18 @@ unsafe fn allocate(mb_size: usize) -> ClusterBlock {
         std::alloc::alloc_zeroed(layout) as *mut Cluster
     };
 
-    if ptr.is_null() {
-        eprintln!("Failed to allocate {}MB for transposition table.", mb_size as u64);
-    }
-
-    ptr::write_bytes(ptr, 0, len);
+    unsafe { parallel_clear(threads, ptr as *mut u8, size) };
 
     ClusterBlock { ptr, len }
+}
+
+unsafe fn parallel_clear(threads: usize, ptr: *mut u8, len: usize) {
+    std::thread::scope(|scope| {
+        let slice = std::slice::from_raw_parts_mut(ptr, len);
+
+        let chunk_size = len.div_ceil(threads);
+        for chunk in slice.chunks_mut(chunk_size) {
+            scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
+        }
+    });
 }
