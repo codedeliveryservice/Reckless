@@ -184,7 +184,8 @@ impl MovePicker {
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
-                + td.conthist(6, mv);
+                + td.conthist(6, mv)
+                + 6029 * (td.board.might_give_check_if_you_squint(mv) && td.board.see(mv, -73)) as i32;
         }
     }
 }
