@@ -97,8 +97,8 @@ struct ClusterBlock {
 }
 
 impl ClusterBlock {
-    pub fn as_mut_slice(&self) -> &mut [Cluster] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
+    pub unsafe fn as_mut_slice(&mut self) -> &mut [Cluster] {
+        std::slice::from_raw_parts_mut(self.ptr, self.len)
     }
 }
 
@@ -341,7 +341,7 @@ unsafe fn allocate(threads: usize, mb_size: usize) -> ClusterBlock {
     let ptr = {
         let ptr = mmap(std::ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if ptr == MAP_FAILED {
-            panic!("Failed to allocate {}MB for transposition table.", mb_size as u64);
+            panic!("Failed to allocate {mb_size}MB for transposition table.");
         }
 
         let _ = madvise(ptr, size, MADV_HUGEPAGE);
