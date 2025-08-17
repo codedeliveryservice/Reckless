@@ -184,7 +184,9 @@ impl MovePicker {
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
-                + td.conthist(6, mv);
+                + td.conthist(6, mv)
+                + 20 * mv.is_forward(td.board.side_to_move()) as i32
+                - 20 * mv.is_backward(td.board.side_to_move()) as i32;
         }
     }
 }

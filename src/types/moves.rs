@@ -1,7 +1,7 @@
 use std::mem;
 
 use super::{PieceType, Square};
-use crate::board::Board;
+use crate::{board::Board, types::Color};
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
@@ -109,6 +109,26 @@ impl Move {
             MoveKind::PromotionR | MoveKind::PromotionCaptureR => Some(PieceType::Rook),
             MoveKind::PromotionQ | MoveKind::PromotionCaptureQ => Some(PieceType::Queen),
             _ => None,
+        }
+    }
+
+    pub const fn is_forward(self, color: Color) -> bool {
+        let from_rank = self.from().rank();
+        let to_rank = self.to().rank();
+
+        match color {
+            Color::White => to_rank > from_rank,
+            Color::Black => to_rank < from_rank,
+        }
+    }
+
+    pub const fn is_backward(self, color: Color) -> bool {
+        let from_rank = self.from().rank();
+        let to_rank = self.to().rank();
+
+        match color {
+            Color::White => to_rank < from_rank,
+            Color::Black => to_rank > from_rank,
         }
     }
 
