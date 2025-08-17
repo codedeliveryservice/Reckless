@@ -106,7 +106,7 @@ impl TranspositionTable {
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&self, threads: usize, megabytes: usize) {
-        unsafe { deallocate_block(self.ptr(), self.len()) };
+        unsafe { deallocate(self.ptr(), self.len()) };
 
         let (new_ptr, new_len) = unsafe { allocate(threads, megabytes) };
 
@@ -309,7 +309,7 @@ impl Default for TranspositionTable {
 
 impl Drop for TranspositionTable {
     fn drop(&mut self) {
-        unsafe { deallocate_block(self.ptr(), self.len()) };
+        unsafe { deallocate(self.ptr(), self.len()) };
     }
 }
 
@@ -337,7 +337,7 @@ unsafe fn allocate(threads: usize, size_mb: usize) -> (*mut Cluster, usize) {
     (ptr, len)
 }
 
-unsafe fn deallocate_block(ptr: *mut Cluster, len: usize) {
+unsafe fn deallocate(ptr: *mut Cluster, len: usize) {
     #[cfg(target_os = "linux")]
     let _ = libc::munmap(ptr as *mut _, len);
 
