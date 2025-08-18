@@ -37,6 +37,10 @@ fn main() {
             let files: Vec<_> = std::env::args().skip(2).collect();
             tools::duplicates(&files);
         },
+        Some("stats") => {
+            let files: Vec<_> = std::env::args().skip(2).collect();
+            tools::stats(&files);
+        },
         _ => uci::message_loop(),
     }
 }
