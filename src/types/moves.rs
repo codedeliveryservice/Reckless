@@ -112,6 +112,10 @@ impl Move {
         }
     }
 
+    pub const fn is_backward_absolute(self) -> bool {
+        self.to().rank() < self.from().rank()
+    }
+
     pub fn to_uci(self, board: &Board) -> String {
         // For FRC castling moves are encoded as king capturing rook
         if board.is_frc() && self.is_castling() {
