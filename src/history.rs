@@ -2,6 +2,7 @@ use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
+type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
@@ -142,25 +143,25 @@ impl Default for CorrectionHistory {
 }
 
 pub struct ContinuationCorrectionHistory {
-    // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[[[PieceToHistory<i16>; 64]; 13]; 2]; 2]>,
+    // [in_check][capture][piece][to][piece][to]
+    entries: Box<ContinuationHistoryType>,
 }
 
 impl ContinuationCorrectionHistory {
     const MAX_HISTORY: i32 = 16222;
 
     pub fn subtable_ptr(
-        &mut self, in_check: bool, capture: bool, piece: Piece, sq: Square,
+        &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
     ) -> *mut PieceToHistory<i16> {
-        self.entries[in_check as usize][capture as usize][piece][sq].as_mut_ptr().cast()
+        self.entries[in_check as usize][capture as usize][piece][to].as_mut_ptr().cast()
     }
 
-    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][sq] as i32) / 100
+    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
+        (unsafe { &*subtable_ptr }[piece][to] as i32) / 100
     }
 
-    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
-        let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
+    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
+        let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
@@ -172,25 +173,25 @@ impl Default for ContinuationCorrectionHistory {
 }
 
 pub struct ContinuationHistory {
-    // [piece][to][continuation_piece][continuation_to]
-    entries: Box<[[[[PieceToHistory<i16>; 64]; 13]; 2]; 2]>,
+    // [in_check][capture][piece][to][piece][to]
+    entries: Box<ContinuationHistoryType>,
 }
 
 impl ContinuationHistory {
     const MAX_HISTORY: i32 = 15324;
 
     pub fn subtable_ptr(
-        &mut self, in_check: bool, capture: bool, piece: Piece, sq: Square,
+        &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
     ) -> *mut PieceToHistory<i16> {
-        self.entries[in_check as usize][capture as usize][piece][sq].as_mut_ptr().cast()
+        self.entries[in_check as usize][capture as usize][piece][to].as_mut_ptr().cast()
     }
 
-    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][sq]) as i32
+    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
+        (unsafe { &*subtable_ptr }[piece][to]) as i32
     }
 
-    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, sq: Square, bonus: i32) {
-        let entry = &mut unsafe { &mut *subtable_ptr }[piece][sq];
+    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
+        let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
