@@ -697,7 +697,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
 
-                    if mv.is_quiet() && score >= beta {
+                    if score >= beta {
                         let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
                             * (162 * depth - 50).min(1037);
                         td.ply -= 1;
