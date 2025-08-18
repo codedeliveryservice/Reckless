@@ -1,7 +1,8 @@
 use std::{arch::x86_64::*, mem::size_of};
 
+use crate::nnue::{Aligned, SparseEntry, L1_SIZE};
+
 pub const F32_LANES: usize = size_of::<__m512>() / size_of::<f32>();
-pub const I32_LANES: usize = size_of::<__m512i>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<__m512i>() / size_of::<i16>();
 
 pub fn add_i16(a: __m512i, b: __m512i) -> __m512i {
@@ -85,6 +86,25 @@ pub unsafe fn horizontal_sum(x: [__m512; 1]) -> f32 {
     _mm512_reduce_add_ps(x[0])
 }
 
-pub unsafe fn nnz_bitmask(x: __m512i) -> u16 {
-    _mm512_cmpgt_epi32_mask(x, _mm512_setzero_si512())
+pub unsafe fn find_nnz(ft_out: &[u8; L1_SIZE], _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    let mut indexes = Aligned::new([0; L1_SIZE / 4]);
+    let mut count = 0;
+
+    let increment = _mm512_set1_epi32(16);
+    let mut base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+    for i in (0..L1_SIZE).step_by(64) {
+        let input = *ft_out.as_ptr().add(i).cast();
+
+        let mask = _mm512_test_epi32_mask(input, input);
+        let masked = _mm512_maskz_compress_epi32(mask, base);
+
+        let store = indexes.as_mut_ptr().add(count).cast();
+        _mm512_mask_cvtepi32_storeu_epi16(store, 0xFFFF, masked);
+
+        count += mask.count_ones() as usize;
+        base = _mm512_add_epi32(base, increment);
+    }
+
+    (indexes, count)
 }

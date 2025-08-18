@@ -1,9 +1,7 @@
-use std::arch::x86_64::*;
-
 use crate::{
     nnue::{
-        accumulator::Accumulator, simd, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE,
-        L3_SIZE, PARAMETERS,
+        accumulator::Accumulator, simd, Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE,
+        PARAMETERS,
     },
     types::Color,
 };
@@ -44,33 +42,6 @@ pub unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8;
     }
 
     output
-}
-
-pub unsafe fn find_nnz(
-    ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
-) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
-    let mut indexes = Aligned::new([0; L1_SIZE / 4]);
-    let mut count = 0;
-
-    let increment = _mm_set1_epi16(8);
-    let mut base = _mm_setzero_si128();
-
-    for i in (0..L1_SIZE).step_by(2 * simd::I16_LANES) {
-        let mask = simd::nnz_bitmask(*ft_out.as_ptr().add(i).cast());
-
-        for offset in (0..simd::I32_LANES).step_by(8) {
-            let slice = (mask >> offset) & 0xFF;
-            let entry = nnz_table.get_unchecked(slice as usize);
-
-            let store = indexes.as_mut_ptr().add(count).cast();
-            _mm_storeu_si128(store, _mm_add_epi16(base, *entry.indexes.as_ptr().cast()));
-
-            count += entry.count;
-            base = _mm_add_epi16(base, increment);
-        }
-    }
-
-    (indexes, count)
 }
 
 pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {

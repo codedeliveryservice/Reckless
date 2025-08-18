@@ -1,7 +1,8 @@
 use std::{arch::x86_64::*, mem::size_of};
 
+use crate::nnue::{Aligned, SparseEntry, L1_SIZE};
+
 pub const F32_LANES: usize = size_of::<__m256>() / size_of::<f32>();
-pub const I32_LANES: usize = size_of::<__m256i>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<__m256i>() / size_of::<i16>();
 
 pub fn add_i16(a: __m256i, b: __m256i) -> __m256i {
@@ -97,7 +98,27 @@ pub unsafe fn horizontal_sum(x: [__m256; 2]) -> f32 {
     _mm_cvtss_f32(sum32)
 }
 
-pub unsafe fn nnz_bitmask(x: __m256i) -> u16 {
-    let greater_than_zero = _mm256_cmpgt_epi32(x, _mm256_setzero_si256());
-    _mm256_movemask_ps(_mm256_castsi256_ps(greater_than_zero)) as u16
+pub unsafe fn find_nnz(ft_out: &[u8; L1_SIZE], nnz_table: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    let mut indexes = Aligned::new([0; L1_SIZE / 4]);
+    let mut count = 0;
+
+    let increment = _mm_set1_epi16(8);
+    let mut base = _mm_setzero_si128();
+
+    for i in (0..L1_SIZE).step_by(32) {
+        let input = *ft_out.as_ptr().add(i).cast();
+
+        let greater_than_zero = _mm256_cmpgt_epi32(input, _mm256_setzero_si256());
+        let mask = _mm256_movemask_ps(_mm256_castsi256_ps(greater_than_zero));
+
+        let entry = nnz_table.get_unchecked(mask as usize);
+
+        let store = indexes.as_mut_ptr().add(count).cast();
+        _mm_storeu_si128(store, _mm_add_epi16(base, *entry.indexes.as_ptr().cast()));
+
+        count += entry.count;
+        base = _mm_add_epi16(base, increment);
+    }
+
+    (indexes, count)
 }
