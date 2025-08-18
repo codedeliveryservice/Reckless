@@ -1,7 +1,4 @@
-use std::{
-    cell::UnsafeCell,
-    sync::atomic::{AtomicU8, Ordering},
-};
+use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
 
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
@@ -79,26 +76,13 @@ impl TtDepth {
     pub const SOME: i32 = -1;
 }
 
-impl Default for InternalEntry {
-    fn default() -> Self {
-        Self {
-            mv: Move::NULL,
-            key: 0,
-            eval: Score::NONE as i16,
-            score: Score::NONE as i16,
-            depth: TtDepth::NONE as i8,
-            flags: Flags::new(Bound::None, false, 0),
-        }
-    }
-}
-
 impl InternalEntry {
     pub const fn relative_age(&self, tt_age: u8) -> i32 {
         ((AGE_CYCLE + tt_age - self.flags.age()) & AGE_MASK) as i32
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 #[repr(align(32))]
 struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
@@ -106,7 +90,8 @@ struct Cluster {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    vector: UnsafeCell<Vec<Cluster>>,
+    ptr: AtomicPtr<Cluster>,
+    len: AtomicUsize,
     age: AtomicU8,
 }
 
@@ -115,36 +100,30 @@ unsafe impl Sync for TranspositionTable {}
 impl TranspositionTable {
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
-        unsafe { self.parallel_clear(threads, self.len()) }
+        unsafe { parallel_clear(threads, self.ptr(), self.len()) };
         self.age.store(0, Ordering::Relaxed);
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
     pub fn resize(&self, threads: usize, megabytes: usize) {
-        let len = megabytes * MEGABYTE / CLUSTER_SIZE;
+        unsafe { deallocate(self.ptr(), self.len()) };
 
-        let mut vector = Vec::new();
-        vector.reserve_exact(len);
+        let (new_ptr, new_len) = unsafe { allocate(threads, megabytes) };
 
-        unsafe {
-            let vec = &mut *self.vector.get();
-
-            drop(std::ptr::replace(vec, vector));
-
-            self.parallel_clear(threads, len);
-            vec.set_len(len);
-        }
+        self.ptr.store(new_ptr, Ordering::Relaxed);
+        self.len.store(new_len, Ordering::Relaxed);
+        self.age.store(0, Ordering::Relaxed);
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        let vector = unsafe { &*self.vector.get() };
-        let tt_age = self.tt_age();
+        let age = self.age();
+        let clusters = unsafe { std::slice::from_raw_parts(self.ptr(), self.len()) };
 
         let mut count = 0;
-        for cluster in vector.iter().take(1000) {
+        for cluster in clusters.iter().take(1000) {
             for entry in &cluster.entries {
-                count += (entry.flags.bound() != Bound::None && entry.flags.age() == tt_age) as usize;
+                count += (entry.flags.bound() != Bound::None && entry.flags.age() == age) as usize;
             }
         }
 
@@ -152,11 +131,15 @@ impl TranspositionTable {
     }
 
     pub fn increment_age(&self) {
-        self.age.store((self.tt_age() + 1) & AGE_MASK, Ordering::Relaxed);
+        self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
     pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> Option<Entry> {
-        let cluster = self.entry(hash);
+        let cluster = {
+            let index = index(hash, self.len());
+            unsafe { &*self.ptr().add(index) }
+        };
+
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
@@ -184,14 +167,13 @@ impl TranspositionTable {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
-        let index = self.index(hash);
-        let cluster = unsafe {
-            let vector = &mut *self.vector.get();
-            vector.get_unchecked_mut(index)
+        let cluster = {
+            let index = index(hash, self.len());
+            unsafe { &mut *self.ptr().add(index) }
         };
 
         let key = verification_key(hash);
-        let tt_age = self.tt_age();
+        let tt_age = self.age();
 
         let mut index = 0;
         let mut minimum = i32::MAX;
@@ -241,8 +223,8 @@ impl TranspositionTable {
         unsafe {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
-            let index = self.index(hash);
-            let ptr = (*self.vector.get()).as_ptr().add(index).cast();
+            let index = index(hash, self.len());
+            let ptr = self.ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
 
@@ -251,40 +233,23 @@ impl TranspositionTable {
         let _ = hash;
     }
 
-    fn tt_age(&self) -> u8 {
+    fn age(&self) -> u8 {
         self.age.load(Ordering::Relaxed)
     }
 
+    fn ptr(&self) -> *mut Cluster {
+        self.ptr.load(Ordering::Relaxed)
+    }
+
     fn len(&self) -> usize {
-        unsafe { (*self.vector.get()).len() }
+        self.len.load(Ordering::Relaxed)
     }
+}
 
-    fn entry(&self, hash: u64) -> &Cluster {
-        let index = self.index(hash);
-        unsafe {
-            let vector = &*self.vector.get();
-            vector.get_unchecked(index)
-        }
-    }
-
-    fn index(&self, hash: u64) -> usize {
-        // Fast hash table index calculation
-        // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
-        (((hash as u128) * (self.len() as u128)) >> 64) as usize
-    }
-
-    unsafe fn parallel_clear(&self, threads: usize, len: usize) {
-        std::thread::scope(|scope| {
-            let vec = &mut *self.vector.get();
-            let ptr = vec.as_mut_ptr();
-            let slice = std::slice::from_raw_parts_mut(ptr, len);
-
-            let chunk_size = len.div_ceil(threads);
-            for chunk in slice.chunks_mut(chunk_size) {
-                scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
-            }
-        });
-    }
+fn index(hash: u64, len: usize) -> usize {
+    // Fast hash table index calculation
+    // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
+    (((hash as u128) * (len as u128)) >> 64) as usize
 }
 
 /// Returns the verification key of the hash (bottom 16 bits).
@@ -333,9 +298,63 @@ const fn score_from_tt(score: i32, ply: usize, halfmove_clock: u8) -> i32 {
 
 impl Default for TranspositionTable {
     fn default() -> Self {
+        let (ptr, len) = unsafe { allocate(1, DEFAULT_TT_SIZE) };
         Self {
-            vector: UnsafeCell::new(vec![Cluster::default(); DEFAULT_TT_SIZE * MEGABYTE / CLUSTER_SIZE]),
+            ptr: AtomicPtr::new(ptr),
+            len: AtomicUsize::new(len),
             age: AtomicU8::new(0),
         }
     }
+}
+
+impl Drop for TranspositionTable {
+    fn drop(&mut self) {
+        unsafe { deallocate(self.ptr(), self.len()) };
+    }
+}
+
+unsafe fn allocate(threads: usize, size_mb: usize) -> (*mut Cluster, usize) {
+    #[cfg(target_os = "linux")]
+    use libc::{madvise, mmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+
+    let size = size_mb * MEGABYTE;
+    let len = size / CLUSTER_SIZE;
+
+    #[cfg(target_os = "linux")]
+    let ptr = {
+        let ptr = mmap(std::ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        madvise(ptr, size, MADV_HUGEPAGE);
+        ptr as *mut Cluster
+    };
+
+    #[cfg(not(target_os = "linux"))]
+    let ptr = {
+        let layout = std::alloc::Layout::from_size_align(size, std::mem::align_of::<Cluster>()).unwrap();
+        std::alloc::alloc_zeroed(layout) as *mut Cluster
+    };
+
+    unsafe { parallel_clear(threads, ptr, len) };
+    (ptr, len)
+}
+
+unsafe fn deallocate(ptr: *mut Cluster, len: usize) {
+    #[cfg(target_os = "linux")]
+    let _ = libc::munmap(ptr as *mut _, len);
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let layout = std::alloc::Layout::from_size_align(len, std::mem::align_of::<Cluster>()).unwrap();
+        std::alloc::dealloc(ptr as *mut u8, layout);
+    }
+}
+
+unsafe fn parallel_clear<T: std::marker::Send>(threads: usize, ptr: *mut T, len: usize) {
+    std::thread::scope(|scope| {
+        let slice = std::slice::from_raw_parts_mut(ptr, len);
+
+        let chunk_size = len.div_ceil(threads);
+        for chunk in slice.chunks_mut(chunk_size) {
+            scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
+        }
+    });
 }
