@@ -505,7 +505,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let probcut_beta = beta + 512;
-    if matches!(tt_bound, Bound::Lower | Bound::Exact)
+    if !potential_singularity
+        && matches!(tt_bound, Bound::Lower | Bound::Exact)
         && tt_score >= probcut_beta
         && tt_depth >= depth - 4
         && is_valid(tt_score)
