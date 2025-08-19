@@ -502,6 +502,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
         }
+    } else if !potential_singularity
+        && matches!(tt_bound, Bound::Lower | Bound::Exact)
+        && tt_score >= probcut_beta
+        && tt_depth >= depth - 4
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && !is_decisive(beta)
+    {
+        return probcut_beta;
     }
 
     // Internal Iterative Reductions (IIR)
