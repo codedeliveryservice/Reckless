@@ -78,9 +78,11 @@ define!(
     i32 nmp6: 244;
     i32 prob1: 271;
     i32 prob2: 61;
+    i32 prob3: 4;
     i32 r1: 494;
     i32 r2: 425;
     i32 r3: 1205;
+    i32 lmr_hist1: 138;
     i32 lmp1: 4;
     i32 lmp2: 17;
     i32 fp1: 121;
@@ -92,6 +94,7 @@ define!(
     i32 bnfp3: 81;
     i32 bnfp4: 501;
     i32 bnfp5: 85;
+    i32 bnfp6: 6;
     i32 see1: 22;
     i32 see2: 44;
     i32 see3: 19;
@@ -124,6 +127,8 @@ define!(
     i32 post1: 162;
     i32 post2: 50;
     i32 post3: 1037;
+    i32 post4: 48;
+    i32 post5: 525;
     i32 bonus1: 128;
     i32 bonus2: 60;
     i32 bonus3: 1150;
@@ -173,6 +178,11 @@ define!(
     i32 corr3: 3303;
     i32 corr4: 82;
     i32 corr5: 100;
+    i32 mat1: 132;
+    i32 mat2: 414;
+    i32 mat3: 432;
+    i32 mat4: 661;
+    i32 mat5: 1217;
     i32 eval1: 19768;
     i32 eval2: 1828;
     i32 eval3: 30145;

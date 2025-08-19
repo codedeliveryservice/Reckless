@@ -472,7 +472,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) && !tt_move.is_quiet() {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
-        let probcut_depth = 0.max(depth - 4);
+        let probcut_depth = 0.max(depth - prob3());
 
         while let Some(mv) = move_picker.next(td, true) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -548,7 +548,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_reduction = if is_quiet { reduction - 138 * history / 1024 } else { reduction };
+            let lmr_reduction = if is_quiet { reduction - lmr_hist1() * history / 1024 } else { reduction };
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
@@ -577,7 +577,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + bnfp3() * (history + bnfp4()) / 1024
                 + bnfp5() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < bnfp6()
+                && move_picker.stage() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
@@ -696,7 +700,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 48 + 525 * depth / 128) as i32;
+                new_depth += (score > best_score + post4() + post5() * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
@@ -786,11 +790,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let malus_noisy = (malus1() * initial_depth - malus2()).min(malus3()) - malus4() * noisy_moves.len() as i32;
 
         let bonus_quiet = (bonus5() * depth - bonus6()).min(bonus7()) - bonus8() * cut_node as i32;
-        let malus_quiet =
-            (malus5() * initial_depth - malus6()).min(malus7()) - malus8() * quiet_moves.len() as i32 + malus9() * skip_quiets as i32;
+        let malus_quiet = (malus5() * initial_depth - malus6()).min(malus7()) - malus8() * quiet_moves.len() as i32
+            + malus9() * skip_quiets as i32;
 
         let bonus_cont = (bonus9() * depth - bonus10()).min(bonus11()) - bonus12() * cut_node as i32;
-        let malus_cont = (malus10() * initial_depth - malus11()).min(malus12()) - malus13() * quiet_moves.len() as i32 + malus14() * skip_quiets as i32;
+        let malus_cont = (malus10() * initial_depth - malus11()).min(malus12()) - malus13() * quiet_moves.len() as i32
+            + malus14() * skip_quiets as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -833,8 +838,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             factor += pcm2() * (initial_depth > pcm3()) as i32;
             factor += pcm4() * (!in_check && best_score <= static_eval.min(raw_eval) - pcm5()) as i32;
             factor += pcm6()
-                * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - pcm7())
-                    as i32;
+                * (is_valid(td.stack[td.ply - 1].static_eval)
+                    && best_score <= -td.stack[td.ply - 1].static_eval - pcm7()) as i32;
 
             let scaled_bonus = factor * (pcm8() * initial_depth - pcm9()).min(pcm10()) / 128;
 
