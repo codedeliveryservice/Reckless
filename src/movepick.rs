@@ -90,7 +90,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 37 + 110);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 36 + 116);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -163,8 +163,8 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 2123 * PIECE_VALUES[captured] / 128
-                + 984 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
+            entry.score = 2009 * PIECE_VALUES[captured] / 128
+                + 1067 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
         }
     }
 
