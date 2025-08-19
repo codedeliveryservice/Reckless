@@ -4,7 +4,7 @@ use crate::{
     types::{PieceType, Score},
 };
 
-const MATERIAL_VALUES: [i32; 6] = [132, 414, 432, 661, 1217, 0];
+const MATERIAL_VALUES: [i32; 6] = [128, 388, 442, 704, 1282, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
@@ -12,7 +12,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     let material = material(&td.board);
 
-    eval = (eval * (19768 + material) + td.optimism[td.board.side_to_move()] * (1828 + material)) / 30145;
+    eval = (eval * (21114 + material) + td.optimism[td.board.side_to_move()] * (1796 + material)) / 27642;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
