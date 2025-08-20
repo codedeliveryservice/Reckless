@@ -362,6 +362,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && td.stack[td.ply - 1].reduction >= 2561
         && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && !(eval <= alpha && tt_bound == Bound::Upper)
     {
         depth += 1;
     }
