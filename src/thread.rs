@@ -75,6 +75,7 @@ pub struct ThreadData<'a> {
     pub time_manager: TimeManager,
     pub stack: Stack,
     pub nnue: Network,
+    pub root_moves: Vec<RootMove>,
     pub pv: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
@@ -88,7 +89,6 @@ pub struct ThreadData<'a> {
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
-    pub best_score: i32,
     pub root_depth: i32,
     pub root_delta: i32,
     pub sel_depth: i32,
@@ -109,6 +109,7 @@ impl<'a> ThreadData<'a> {
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
             nnue: Network::default(),
+            root_moves: Vec::new(),
             pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
@@ -122,7 +123,6 @@ impl<'a> ThreadData<'a> {
             lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
-            best_score: -Score::INFINITE,
             root_depth: 0,
             root_delta: 0,
             sel_depth: 0,
@@ -147,10 +147,13 @@ impl<'a> ThreadData<'a> {
         self.continuation_history.get(self.stack[self.ply - index].conthist, piece, sq)
     }
 
-    pub fn print_uci_info(&self, depth: i32, score: i32) {
+    pub fn print_uci_info(&self, depth: i32) {
         let elapsed = self.time_manager.elapsed();
         let nps = self.nodes.global() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
+
+        let root_move = &self.root_moves[0];
+        let score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
             format!("cp {}", normalize_to_cp(score, &self.board))
@@ -181,6 +184,14 @@ impl<'a> ThreadData<'a> {
 
         println!();
     }
+}
+
+pub struct RootMove {
+    pub mv: Move,
+    pub score: i32,
+    pub display_score: i32,
+    pub upperbound: bool,
+    pub lowerbound: bool,
 }
 
 pub struct PrincipalVariationTable {

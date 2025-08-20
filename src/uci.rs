@@ -125,8 +125,8 @@ fn go(
         listener
     });
 
-    let min_score = threads.iter().map(|v| v.best_score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.best_score - min_score + 10) * td.completed_depth;
+    let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
+    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
 
     let mut votes = vec![0; 4096];
     for result in threads.iter() {
@@ -140,18 +140,18 @@ fn go(
             let best = &threads[best];
             let current = &threads[current];
 
-            if is_decisive(best.best_score) {
-                return current.best_score > best.best_score;
+            if is_decisive(best.root_moves[0].score) {
+                return current.root_moves[0].score > best.root_moves[0].score;
             }
 
-            if is_win(current.best_score) {
+            if is_win(current.root_moves[0].score) {
                 return true;
             }
 
             let best_vote = votes[best.pv.best_move().encoded()];
             let current_vote = votes[current.pv.best_move().encoded()];
 
-            !is_loss(current.best_score)
+            !is_loss(current.root_moves[0].score)
                 && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(best)))
         };
 
