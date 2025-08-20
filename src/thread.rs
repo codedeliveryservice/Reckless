@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, Square, MAX_MOVES, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -85,7 +85,6 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
@@ -119,7 +118,6 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
-            node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
@@ -201,6 +199,7 @@ pub struct RootMove {
     pub upperbound: bool,
     pub lowerbound: bool,
     pub sel_depth: i32,
+    pub nodes: u64,
 }
 
 pub struct PrincipalVariationTable {
@@ -262,30 +261,6 @@ impl Default for LmrTable {
         }
 
         Self { table }
-    }
-}
-
-pub struct NodeTable {
-    table: Box<[u64]>,
-}
-
-impl NodeTable {
-    pub const fn add(&mut self, mv: Move, nodes: u64) {
-        self.table[mv.encoded()] += nodes;
-    }
-
-    pub const fn get(&self, mv: Move) -> u64 {
-        self.table[mv.encoded()]
-    }
-
-    pub fn clear(&mut self) {
-        *self = Self::default();
-    }
-}
-
-impl Default for NodeTable {
-    fn default() -> Self {
-        Self { table: vec![0; Square::NUM * Square::NUM].into_boxed_slice() }
     }
 }
 

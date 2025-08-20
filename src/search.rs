@@ -49,7 +49,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.stopped = false;
 
     td.pv.clear(0);
-    td.node_table.clear();
     td.nodes.clear();
     td.tb_hits.clear();
 
@@ -67,6 +66,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             lowerbound: false,
             upperbound: false,
             sel_depth: 0,
+            nodes: 0,
         })
         .collect();
 
@@ -156,7 +156,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
+            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
@@ -750,9 +750,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if NODE::ROOT {
-            td.node_table.add(mv, td.nodes.local() - initial_nodes);
-
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
+
+            root_move.nodes += td.nodes.local() - initial_nodes;
 
             if move_count == 1 || score > alpha {
                 match score {
