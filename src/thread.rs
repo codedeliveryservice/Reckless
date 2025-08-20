@@ -176,7 +176,7 @@ impl<'a> ThreadData<'a> {
 
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
-            self.sel_depth,
+            root_move.sel_depth,
             self.nodes.global(),
             self.tt.hashfull(),
             self.tb_hits.global(),
@@ -200,6 +200,7 @@ pub struct RootMove {
     pub display_score: i32,
     pub upperbound: bool,
     pub lowerbound: bool,
+    pub sel_depth: i32,
 }
 
 pub struct PrincipalVariationTable {

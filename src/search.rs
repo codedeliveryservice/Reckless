@@ -66,6 +66,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             display_score: -Score::INFINITE,
             lowerbound: false,
             upperbound: false,
+            sel_depth: 0,
         })
         .collect();
 
@@ -771,6 +772,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
 
                 root_move.score = score;
+                root_move.sel_depth = td.sel_depth;
             } else {
                 root_move.score = -Score::INFINITE;
             }
