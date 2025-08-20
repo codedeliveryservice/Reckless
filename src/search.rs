@@ -363,7 +363,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.stack[td.ply - 1].reduction >= 2561
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
-        depth += 1;
+        depth += 1 + (depth > 8 && depth < 17) as i32;
     }
 
     if !NODE::ROOT
