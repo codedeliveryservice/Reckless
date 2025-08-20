@@ -3,7 +3,7 @@ use crate::{
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
-    thread::ThreadData,
+    thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
@@ -49,11 +49,26 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.stopped = false;
 
     td.pv.clear(0);
-    td.node_table.clear();
     td.nodes.clear();
     td.tb_hits.clear();
 
     td.nnue.full_refresh(&td.board);
+
+    td.root_moves = td
+        .board
+        .generate_all_moves()
+        .iter()
+        .filter(|v| td.board.is_legal(v.mv))
+        .map(|v| RootMove {
+            mv: v.mv,
+            score: -Score::INFINITE,
+            display_score: -Score::INFINITE,
+            lowerbound: false,
+            upperbound: false,
+            sel_depth: 0,
+            nodes: 0,
+        })
+        .collect();
 
     let mut average = Score::NONE;
     let mut last_move = Move::NULL;
@@ -90,6 +105,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
             // Root Search
             let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
 
+            td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
+
             if td.stopped {
                 break;
             }
@@ -110,6 +127,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
+            if report == Report::Full && td.nodes.global() > 10_000_000 {
+                td.print_uci_info(depth);
+            }
+
             delta += delta * (38 + 15 * reduction) / 128;
         }
 
@@ -128,20 +149,21 @@ pub fn start(td: &mut ThreadData, report: Report) {
             last_move = td.pv.best_move();
         }
 
-        if (td.best_score - average).abs() < 12 {
+        if (td.root_moves[0].score - average).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.node_table.get(td.pv.best_move()) as f32 / td.nodes.local() as f32);
+            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
             let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
 
-            let score_trend = (800 + 20 * (td.previous_best_score - td.best_score)).clamp(750, 1500) as f32 / 1000.0;
+            let score_trend =
+                (800 + 20 * (td.previous_best_score - td.root_moves[0].score)).clamp(750, 1500) as f32 / 1000.0;
 
             nodes_factor * pv_stability * eval_stability * score_trend
         };
@@ -151,15 +173,15 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         if report == Report::Full {
-            td.print_uci_info(depth, td.best_score);
+            td.print_uci_info(depth);
         }
     }
 
     if report != Report::None {
-        td.print_uci_info(td.root_depth, td.best_score);
+        td.print_uci_info(td.root_depth);
     }
 
-    td.previous_best_score = td.best_score;
+    td.previous_best_score = td.root_moves[0].score;
 }
 
 fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool) -> i32 {
@@ -190,7 +212,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if NODE::PV {
-        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+        td.sel_depth = td.sel_depth.max(td.ply as i32);
     }
 
     if td.time_manager.check_time(td) {
@@ -728,7 +750,32 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if NODE::ROOT {
-            td.node_table.add(mv, td.nodes.local() - initial_nodes);
+            let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
+
+            root_move.nodes += td.nodes.local() - initial_nodes;
+
+            if move_count == 1 || score > alpha {
+                match score {
+                    v if v <= alpha => {
+                        root_move.display_score = alpha;
+                        root_move.upperbound = true;
+                    }
+                    v if v >= beta => {
+                        root_move.display_score = beta;
+                        root_move.lowerbound = true;
+                    }
+                    _ => {
+                        root_move.display_score = score;
+                        root_move.upperbound = false;
+                        root_move.lowerbound = false;
+                    }
+                }
+
+                root_move.score = score;
+                root_move.sel_depth = td.sel_depth;
+            } else {
+                root_move.score = -Score::INFINITE;
+            }
         }
 
         if score > best_score {
@@ -741,10 +788,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if NODE::PV {
                     td.pv.update(td.ply, mv);
-
-                    if NODE::ROOT {
-                        td.best_score = score;
-                    }
                 }
 
                 if score >= beta {
@@ -882,7 +925,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     if NODE::PV {
         td.pv.clear(td.ply);
-        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+        td.sel_depth = td.sel_depth.max(td.ply as i32);
     }
 
     if td.time_manager.check_time(td) {

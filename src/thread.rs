@@ -10,7 +10,7 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, Square, MAX_MOVES, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -75,6 +75,7 @@ pub struct ThreadData<'a> {
     pub time_manager: TimeManager,
     pub stack: Stack,
     pub nnue: Network,
+    pub root_moves: Vec<RootMove>,
     pub pv: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
@@ -84,11 +85,9 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub node_table: NodeTable,
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
-    pub best_score: i32,
     pub root_depth: i32,
     pub root_delta: i32,
     pub sel_depth: i32,
@@ -109,6 +108,7 @@ impl<'a> ThreadData<'a> {
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
             nnue: Network::default(),
+            root_moves: Vec::new(),
             pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
@@ -118,11 +118,9 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
-            node_table: NodeTable::default(),
             lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
-            best_score: -Score::INFINITE,
             root_depth: 0,
             root_delta: 0,
             sel_depth: 0,
@@ -147,10 +145,13 @@ impl<'a> ThreadData<'a> {
         self.continuation_history.get(self.stack[self.ply - index].conthist, piece, sq)
     }
 
-    pub fn print_uci_info(&self, depth: i32, score: i32) {
+    pub fn print_uci_info(&self, depth: i32) {
         let elapsed = self.time_manager.elapsed();
         let nps = self.nodes.global() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
+
+        let root_move = &self.root_moves[0];
+        let score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
             format!("cp {}", normalize_to_cp(score, &self.board))
@@ -163,9 +164,17 @@ impl<'a> ThreadData<'a> {
             format!("mate {}", if score.is_positive() { mate } else { -mate })
         };
 
+        let score = if root_move.upperbound {
+            format!("{score} upperbound")
+        } else if root_move.lowerbound {
+            format!("{score} lowerbound")
+        } else {
+            score
+        };
+
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
-            self.sel_depth,
+            root_move.sel_depth,
             self.nodes.global(),
             self.tt.hashfull(),
             self.tb_hits.global(),
@@ -181,6 +190,16 @@ impl<'a> ThreadData<'a> {
 
         println!();
     }
+}
+
+pub struct RootMove {
+    pub mv: Move,
+    pub score: i32,
+    pub display_score: i32,
+    pub upperbound: bool,
+    pub lowerbound: bool,
+    pub sel_depth: i32,
+    pub nodes: u64,
 }
 
 pub struct PrincipalVariationTable {
@@ -242,30 +261,6 @@ impl Default for LmrTable {
         }
 
         Self { table }
-    }
-}
-
-pub struct NodeTable {
-    table: Box<[u64]>,
-}
-
-impl NodeTable {
-    pub const fn add(&mut self, mv: Move, nodes: u64) {
-        self.table[mv.encoded()] += nodes;
-    }
-
-    pub const fn get(&self, mv: Move) -> u64 {
-        self.table[mv.encoded()]
-    }
-
-    pub fn clear(&mut self) {
-        *self = Self::default();
-    }
-}
-
-impl Default for NodeTable {
-    fn default() -> Self {
-        Self { table: vec![0; Square::NUM * Square::NUM].into_boxed_slice() }
     }
 }
 
