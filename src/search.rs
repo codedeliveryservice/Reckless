@@ -379,7 +379,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+        tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     let mut improvement = 0;
     if !in_check && td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) {
@@ -598,7 +598,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
             let entry = &entry.unwrap();
 
-            if potential_singularity {
+            if depth >= 5 && potential_singularity {
                 debug_assert!(is_valid(tt_score));
                 let singular_beta = tt_score - depth;
                 let singular_depth = (depth - 1) / 2;
