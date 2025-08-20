@@ -86,25 +86,55 @@ pub unsafe fn horizontal_sum(x: [__m512; 1]) -> f32 {
     _mm512_reduce_add_ps(x[0])
 }
 
+// #[cfg(target_feature = "avx512vbmi2")]
 pub unsafe fn find_nnz(ft_out: &[u8; L1_SIZE], _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
     let mut indexes = Aligned::new([0; L1_SIZE / 4]);
     let mut count = 0;
 
-    let increment = _mm512_set1_epi32(16);
-    let mut base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    let increment = _mm512_set1_epi16(32);
+    let mut base = _mm512_set_epi16(
+        31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4, 19, 18, 17, 16, 3, 2,
+        1, 0,
+    );
 
-    for i in (0..L1_SIZE).step_by(64) {
-        let input = *ft_out.as_ptr().add(i).cast();
+    for i in (0..L1_SIZE).step_by(128) {
+        let input1 = *ft_out.as_ptr().add(i).cast();
+        let input2 = *ft_out.as_ptr().add(i + 64).cast();
+        let input = _mm512_packus_epi32(input1, input2);
 
-        let mask = _mm512_test_epi32_mask(input, input);
-        let masked = _mm512_maskz_compress_epi32(mask, base);
+        let mask = _mm512_test_epi16_mask(input, input);
+        let masked = _mm512_maskz_compress_epi16(mask, base);
 
         let store = indexes.as_mut_ptr().add(count).cast();
-        _mm512_mask_cvtepi32_storeu_epi16(store, 0xFFFF, masked);
+        _mm512_store_si512(store, masked);
 
         count += mask.count_ones() as usize;
-        base = _mm512_add_epi32(base, increment);
+        base = _mm512_add_epi16(base, increment);
     }
 
     (indexes, count)
 }
+
+// #[cfg(not(target_feature = "avx512vbmi2"))]
+// pub unsafe fn find_nnz(ft_out: &[u8; L1_SIZE], _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+//     let mut indexes = Aligned::new([0; L1_SIZE / 4]);
+//     let mut count = 0;
+
+//     let increment = _mm512_set1_epi32(16);
+//     let mut base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+//     for i in (0..L1_SIZE).step_by(64) {
+//         let input = *ft_out.as_ptr().add(i).cast();
+
+//         let mask = _mm512_test_epi32_mask(input, input);
+//         let masked = _mm512_maskz_compress_epi32(mask, base);
+
+//         let store = indexes.as_mut_ptr().add(count).cast();
+//         _mm512_mask_cvtepi32_storeu_epi16(store, 0xFFFF, masked);
+
+//         count += mask.count_ones() as usize;
+//         base = _mm512_add_epi32(base, increment);
+//     }
+
+//     (indexes, count)
+// }
