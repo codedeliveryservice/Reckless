@@ -109,7 +109,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             if td.stopped {
                 break;
             }
-            }
 
             match score {
                 s if s <= alpha => {
@@ -125,6 +124,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
                     break;
                 }
+            }
+
+            if report == Report::Full {
+                td.print_uci_info(depth);
             }
 
             delta += delta * (38 + 15 * reduction) / 128;

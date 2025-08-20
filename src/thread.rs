@@ -166,6 +166,14 @@ impl<'a> ThreadData<'a> {
             format!("mate {}", if score.is_positive() { mate } else { -mate })
         };
 
+        let score = if root_move.upperbound {
+            format!("{score} upperbound")
+        } else if root_move.lowerbound {
+            format!("{score} lowerbound")
+        } else {
+            score
+        };
+
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             self.sel_depth,
