@@ -195,6 +195,7 @@ impl<'a> ThreadData<'a> {
 pub struct RootMove {
     pub mv: Move,
     pub score: i32,
+    pub average_score: i32,
     pub display_score: i32,
     pub upperbound: bool,
     pub lowerbound: bool,

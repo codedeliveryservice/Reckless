@@ -63,6 +63,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             mv: v.mv,
             score: -Score::INFINITE,
             display_score: -Score::INFINITE,
+            average_score: -Score::INFINITE,
             lowerbound: false,
             upperbound: false,
             sel_depth: 0,
@@ -70,7 +71,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
         })
         .collect();
 
-    let mut average = Score::NONE;
     let mut last_move = Move::NULL;
 
     let mut eval_stability = 0;
@@ -89,6 +89,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         // Aspiration Windows
         if depth >= 2 {
+            let average = td.root_moves[0].average_score;
+
             delta += average * average / 26614;
 
             alpha = (average - delta).max(-Score::INFINITE);
@@ -121,10 +123,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     beta = (score + delta).min(Score::INFINITE);
                     reduction += 1;
                 }
-                _ => {
-                    average = if average == Score::NONE { score } else { (average + score) / 2 };
-                    break;
-                }
+                _ => break,
             }
 
             if report == Report::Full && td.nodes.global() > 10_000_000 {
@@ -149,7 +148,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             last_move = td.pv.best_move();
         }
 
-        if (td.root_moves[0].score - average).abs() < 12 {
+        if (td.root_moves[0].score - td.root_moves[0].average_score).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
@@ -753,6 +752,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
 
             root_move.nodes += td.nodes.local() - initial_nodes;
+            root_move.average_score =
+                if root_move.average_score == -Score::INFINITE { score } else { (root_move.average_score + score) / 2 };
 
             if move_count == 1 || score > alpha {
                 match score {
