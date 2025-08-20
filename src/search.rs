@@ -127,7 +127,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
-            if report == Report::Full {
+            if report == Report::Full && td.nodes.global() > 10_000_000 {
                 td.print_uci_info(depth);
             }
 
