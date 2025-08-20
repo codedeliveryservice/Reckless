@@ -212,7 +212,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if NODE::PV {
-        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+        td.sel_depth = td.sel_depth.max(td.ply as i32);
     }
 
     if td.time_manager.check_time(td) {
@@ -925,7 +925,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     if NODE::PV {
         td.pv.clear(td.ply);
-        td.sel_depth = td.sel_depth.max(td.ply as i32 + 1);
+        td.sel_depth = td.sel_depth.max(td.ply as i32);
     }
 
     if td.time_manager.check_time(td) {
