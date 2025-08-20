@@ -647,7 +647,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 40 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 120;
             }
 
-            reduction -= 3398 * (correction_value.abs() + correction(td).abs()) / 2048;
+            reduction -= 3398 * correction_value.abs() / 1024;
+            reduction -= 3398 * correction(td).abs() / 1024;
             reduction -= 54 * move_count;
             reduction += 343;
 
