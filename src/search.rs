@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[allow(unused_imports)]
-use crate::misc::{dbg_hit, dbg_stats};
+use crate::misc::{dbg_bayes, dbg_hit, dbg_stats};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Report {
