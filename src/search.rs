@@ -428,6 +428,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
+        if eval == tt_score && tt_depth > TtDepth::SOME {
+            return eval;
+        }
+
         return (eval + beta) / 2;
     }
 
