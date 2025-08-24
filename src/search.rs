@@ -537,6 +537,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut stagnation = 0;
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
@@ -561,6 +562,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         };
 
         let mut reduction = td.lmr.reduction(depth, move_count);
+
+        reduction += 64 * stagnation;
 
         if !improving {
             reduction += (499 - 434 * improvement / 128).min(1263);
@@ -779,6 +782,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if score > best_score {
+            stagnation = 0;
             best_score = score;
 
             if score > alpha {
@@ -800,6 +804,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     depth -= 1;
                 }
             }
+        } else {
+            stagnation += mv.is_quiet() as i32;
         }
 
         if mv != best_move && move_count < 32 {
