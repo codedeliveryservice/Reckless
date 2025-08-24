@@ -360,6 +360,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     td.stack[td.ply].static_eval = static_eval;
+    td.stack[td.ply].tt_move = tt_move;
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].reduction = 0;
     td.stack[td.ply].move_count = 0;
@@ -424,6 +425,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             >= beta + 10 * depth * depth + 30 * depth - (72 * improving as i32) - (23 * cut_node as i32)
                 + 588 * correction_value.abs() / 1024
                 + 23
+        && !(td.stack[td.ply - 1].tt_move.is_capture() && td.stack[td.ply - 1].move_count == 1)
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
