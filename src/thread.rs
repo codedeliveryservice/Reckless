@@ -1,72 +1,21 @@
-use std::{
-    ops::Index,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+use std::sync::{
+    atomic::{AtomicBool, AtomicU64, Ordering},
+    Arc, Condvar, Mutex,
 };
 
 use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    search::{self, Report},
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
-pub struct ThreadPool<'a> {
-    vector: Vec<ThreadData<'a>>,
-}
-
-impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, nodes, tb_hits)] }
-    }
-
-    pub fn set_count(&mut self, threads: usize) {
-        let tt = self.vector[0].tt;
-        let stop = self.vector[0].stop;
-        let nodes = self.vector[0].nodes.global;
-        let tb_hits = self.vector[0].tb_hits.global;
-
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, nodes, tb_hits));
-
-        for i in 1..self.vector.len() {
-            self.vector[i].board = self.vector[0].board.clone();
-        }
-    }
-
-    pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
-        &mut self.vector[0]
-    }
-
-    pub fn len(&self) -> usize {
-        self.vector.len()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &ThreadData<'a>> {
-        self.vector.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData<'a>> {
-        self.vector.iter_mut()
-    }
-
-    pub fn clear(&mut self) {
-        for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.nodes.global, thread.tb_hits.global);
-        }
-    }
-}
-
-impl<'a> Index<usize> for ThreadPool<'a> {
-    type Output = ThreadData<'a>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.vector[index]
-    }
-}
-
 pub struct ThreadData<'a> {
+    pub id: usize,
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
     pub nodes: AtomicCounter<'a>,
@@ -98,8 +47,11 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
+    pub fn new(
+        id: usize, tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64,
+    ) -> Self {
         Self {
+            id,
             tt,
             stop,
             nodes: AtomicCounter::new(nodes),
@@ -302,5 +254,171 @@ impl<'a> AtomicCounter<'a> {
         self.local += self.buffer;
         self.global.fetch_add(self.buffer, Ordering::Relaxed);
         self.buffer = 0;
+    }
+}
+
+pub struct ThreadPool {
+    context: Arc<(Mutex<Vec<()>>, Condvar)>,
+    senders: Vec<std::sync::mpsc::Sender<Message>>,
+    handlers: Vec<std::thread::JoinHandle<()>>,
+    data: Vec<ThreadDataPtr>,
+}
+
+enum Message {
+    Prepare(std::sync::mpsc::Sender<ThreadDataPtr>),
+    Search(TimeManager),
+    Terminate,
+}
+
+struct ThreadDataPtr(*mut ThreadData<'static>);
+
+impl ThreadDataPtr {
+    pub fn as_ref(&self) -> &ThreadData<'static> {
+        unsafe { &*self.0 }
+    }
+}
+
+unsafe impl Send for ThreadDataPtr {}
+unsafe impl Sync for ThreadDataPtr {}
+
+impl ThreadPool {
+    pub fn new() -> Self {
+        Self {
+            context: Arc::new((Mutex::new(Vec::new()), Condvar::new())),
+            senders: Vec::new(),
+            handlers: Vec::new(),
+            data: Vec::new(),
+        }
+    }
+
+    pub fn resize(
+        &mut self, requested: usize, tt: &'static TranspositionTable, stop: &'static AtomicBool,
+        nodes: &'static AtomicU64, tb_hits: &'static AtomicU64,
+    ) {
+        while self.handlers.len() > requested {
+            if let Some(tx) = self.senders.pop() {
+                tx.send(Message::Terminate).unwrap();
+            }
+            if let Some(handler) = self.handlers.pop() {
+                handler.join().unwrap();
+            }
+            self.data.pop().unwrap();
+        }
+
+        while self.handlers.len() < requested {
+            let (tx, rx) = std::sync::mpsc::channel();
+
+            let id = self.handlers.len();
+            let context = self.context.clone();
+
+            let handler = std::thread::spawn(move || {
+                let mut td = Box::pin(ThreadData::new(id, tt, stop, nodes, tb_hits));
+
+                loop {
+                    match rx.recv() {
+                        Ok(Message::Prepare(reply)) => {
+                            let ptr: *mut ThreadData = &mut *td as *mut ThreadData;
+                            let ptr = ThreadDataPtr(ptr);
+                            reply.send(ptr).unwrap();
+                        }
+                        Ok(Message::Search(time_manager)) => {
+                            let (lock, cvar) = &*context;
+
+                            if id == 0 {
+                                td.time_manager = time_manager;
+                            }
+
+                            search::start(&mut td, if id == 0 { Report::Minimal } else { Report::None });
+                            stop.store(true, Ordering::Relaxed);
+
+                            lock.lock().unwrap().push(());
+                            cvar.notify_one();
+                        }
+                        Ok(Message::Terminate) | Err(_) => break,
+                    }
+                }
+            });
+
+            let (reply_tx, reply_rx) = std::sync::mpsc::channel();
+            tx.send(Message::Prepare(reply_tx)).unwrap();
+
+            self.data.push(reply_rx.recv().unwrap());
+            self.senders.push(tx);
+            self.handlers.push(handler);
+        }
+    }
+
+    pub fn search(&mut self, time_manager: TimeManager) {
+        for sender in self.senders.iter() {
+            sender.send(Message::Search(time_manager.clone())).unwrap();
+        }
+
+        let (lock, cvar) = &*self.context;
+        let mut guard = lock.lock().unwrap();
+        while guard.len() < self.handlers.len() {
+            guard = cvar.wait(guard).unwrap();
+        }
+        std::mem::take(&mut *guard);
+
+        let min_score = self.data.iter().map(|v| v.as_ref().root_moves[0].score).min().unwrap();
+        let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+
+        let mut votes = vec![0; 4096];
+        for result in self.data.iter() {
+            votes[result.as_ref().pv.best_move().encoded()] += vote_value(result.as_ref());
+        }
+
+        let mut best = 0;
+
+        for current in 1..self.data.len() {
+            let is_better_candidate = || -> bool {
+                let best = self.data[best].as_ref();
+                let current = self.data[current].as_ref();
+
+                if is_decisive(best.root_moves[0].score) {
+                    return current.root_moves[0].score > best.root_moves[0].score;
+                }
+
+                if is_win(current.root_moves[0].score) {
+                    return true;
+                }
+
+                let best_vote = votes[best.pv.best_move().encoded()];
+                let current_vote = votes[current.pv.best_move().encoded()];
+
+                !is_loss(current.root_moves[0].score)
+                    && (current_vote > best_vote
+                        || (current_vote == best_vote && vote_value(current) > vote_value(best)))
+            };
+
+            if is_better_candidate() {
+                best = current;
+            }
+        }
+
+        println!("bestmove {}", self.data[best].as_ref().pv.best_move().to_uci(&self.data[best].as_ref().board));
+    }
+
+    pub fn any_thread(&mut self) -> &ThreadData<'static> {
+        unsafe { &*self.data[0].0 }
+    }
+
+    pub fn len(&self) -> usize {
+        self.handlers.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+
+        for sender in self.senders.iter() {
+            let (reply_tx, reply_rx) = std::sync::mpsc::channel();
+            sender.send(Message::Prepare(reply_tx)).unwrap();
+
+            self.data.push(reply_rx.recv().unwrap());
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData<'static>> {
+        self.data.iter_mut().map(|td| unsafe { &mut *td.0 })
     }
 }

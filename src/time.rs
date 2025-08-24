@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::thread::ThreadData;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Limits {
     Infinite,
     Depth(i32),
@@ -14,6 +14,7 @@ pub enum Limits {
 
 const TIME_OVERHEAD_MS: u64 = 15;
 
+#[derive(Clone)]
 pub struct TimeManager {
     limits: Limits,
     start_time: Instant,

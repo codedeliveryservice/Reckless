@@ -2,23 +2,25 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::{
     board::Board,
-    search::{self, Report},
+    search::Report,
     tb::tb_initilize,
     thread::{ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color},
+    types::Color,
 };
 
 pub fn message_loop() {
     static STOP: AtomicBool = AtomicBool::new(false);
+    static NODES: AtomicU64 = AtomicU64::new(0);
+    static TB_HITS: AtomicU64 = AtomicU64::new(0);
 
-    let tt = TranspositionTable::default();
-    let nodes = AtomicU64::new(0);
-    let tb_hits = AtomicU64::new(0);
+    let tt = Box::leak(Box::new(TranspositionTable::default()));
 
-    let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
+    let mut threads = ThreadPool::new();
+    threads.resize(1, tt, &STOP, &NODES, &TB_HITS);
+
     let mut frc = false;
     let mut move_overhead = 0;
     let mut report = Report::Full;
@@ -31,10 +33,10 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
+            ["go", tokens @ ..] => next_command = go(&mut threads, &tt, &STOP, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, frc, tokens),
             ["setoption", tokens @ ..] => {
-                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, tt, &STOP, &NODES, &TB_HITS, tokens)
             }
             ["ucinewgame"] => reset(&mut threads, &tt),
 
@@ -43,10 +45,8 @@ pub fn message_loop() {
 
             // Non-UCI commands
             ["compiler"] => compiler(),
-            ["eval"] => eval(threads.main_thread()),
-            ["d"] => display(threads.main_thread()),
+            ["d"] => display(threads.any_thread()),
             ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
-            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
             _ => eprintln!("Unknown command: '{}'", command.trim_end()),
@@ -83,87 +83,20 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 }
 
 fn go(
-    threads: &mut ThreadPool, stop: &'static AtomicBool, report: Report, move_overhead: u64, tokens: &[&str],
+    threads: &mut ThreadPool, tt: &TranspositionTable, stop: &'static AtomicBool, report: Report, move_overhead: u64,
+    tokens: &[&str],
 ) -> Option<String> {
-    let board = &threads.main_thread().board;
+    let board = &threads.any_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
-    threads.main_thread().tt.increment_age();
-
+    tt.increment_age();
     stop.store(false, Ordering::Relaxed);
 
-    let listener = std::thread::scope(|scope| {
-        let mut handlers = Vec::new();
+    let time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    threads.search(time_manager);
 
-        for (id, td) in threads.iter_mut().enumerate() {
-            let handler = scope.spawn(move || {
-                search::start(td, if id == 0 { report } else { Report::None });
-                if id == 0 {
-                    stop.store(true, Ordering::Relaxed);
-                }
-            });
-
-            handlers.push(handler);
-        }
-
-        let listener = std::thread::spawn(|| loop {
-            let command = read_stdin();
-            match command.as_str().trim() {
-                "isready" => println!("readyok"),
-                "stop" => {
-                    stop.store(true, Ordering::Relaxed);
-                    return None;
-                }
-                _ => return Some(command),
-            }
-        });
-
-        for handler in handlers {
-            handler.join().unwrap();
-        }
-        listener
-    });
-
-    let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
-
-    let mut votes = vec![0; 4096];
-    for result in threads.iter() {
-        votes[result.pv.best_move().encoded()] += vote_value(result);
-    }
-
-    let mut best = 0;
-
-    for current in 1..threads.len() {
-        let is_better_candidate = || -> bool {
-            let best = &threads[best];
-            let current = &threads[current];
-
-            if is_decisive(best.root_moves[0].score) {
-                return current.root_moves[0].score > best.root_moves[0].score;
-            }
-
-            if is_win(current.root_moves[0].score) {
-                return true;
-            }
-
-            let best_vote = votes[best.pv.best_move().encoded()];
-            let current_vote = votes[current.pv.best_move().encoded()];
-
-            !is_loss(current.root_moves[0].score)
-                && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(best)))
-        };
-
-        if is_better_candidate() {
-            best = current;
-        }
-    }
-
-    println!("bestmove {}", threads[best].pv.best_move().to_uci(&threads.main_thread().board));
     crate::misc::dbg_print();
-
-    listener.join().unwrap()
+    None
 }
 
 fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
@@ -208,7 +141,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 }
 
 fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, tt: &TranspositionTable,
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool,
+    tt: &'static TranspositionTable, stop: &'static AtomicBool, nodes: &'static AtomicU64, tb_hits: &'static AtomicU64,
     tokens: &[&str],
 ) {
     match tokens {
@@ -226,7 +160,7 @@ fn set_option(
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
-            threads.set_count(v.parse().unwrap());
+            threads.resize(v.parse().unwrap(), tt, &stop, &nodes, &tb_hits);
             println!("info string set Threads to {v}");
         }
         ["name", "MoveOverhead", "value", v] => {
@@ -250,16 +184,7 @@ fn set_option(
     }
 }
 
-fn eval(td: &mut ThreadData) {
-    td.nnue.full_refresh(&td.board);
-    let eval = match td.board.side_to_move() {
-        Color::White => td.nnue.evaluate(&td.board),
-        Color::Black => -td.nnue.evaluate(&td.board),
-    };
-    println!("{eval}");
-}
-
-fn display(td: &mut ThreadData) {
+fn display(td: &ThreadData) {
     println!("FEN: {}", td.board.to_fen());
 }
 
