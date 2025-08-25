@@ -431,6 +431,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return (eval + beta) / 2;
     }
 
+    let mut did_nmp = false;
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -443,6 +444,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !potential_singularity
         && !is_loss(beta)
     {
+        did_nmp = true;
         let r = 5 + depth / 3 + ((eval - beta) / 248).min(3);
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
@@ -539,7 +541,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             (eval - beta) as f32,
             (entry.is_some() as i32) as f32,
             (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
-        ]) >= 0.9
+        ]) >= 0.90
+        && !did_nmp
     {
         return beta;
     }
