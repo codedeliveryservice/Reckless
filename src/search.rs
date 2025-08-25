@@ -542,7 +542,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             (eval - beta) as f32,
             (entry.is_some() as i32) as f32,
             (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
-        ]) >= 0.9
+        ]) >= 0.95
     {
         return beta;
     }
