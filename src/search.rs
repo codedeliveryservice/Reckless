@@ -419,14 +419,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !tt_pv
         && !in_check
         && !excluded
-        && eval >= beta
-        && eval
-            >= beta + 10 * depth * depth + 30 * depth - (72 * improving as i32) - (23 * cut_node as i32)
-                + 588 * correction_value.abs() / 1024
-                + 23
         && !is_loss(beta)
         && !is_win(eval)
-        && tt_bound != Bound::Upper
+        && eval >= beta
+        && crate::rfp::predict([
+            (depth) as f32,
+            (improvement) as f32,
+            (correction_value) as f32,
+            (eval - beta) as f32,
+            (cut_node as i32) as f32,
+            (entry.is_some() as i32) as f32,
+            (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
+        ]) >= 0.97
     {
         return (eval + beta) / 2;
     }
