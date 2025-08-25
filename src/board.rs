@@ -96,6 +96,18 @@ impl Board {
         self.state.pinned
     }
 
+    pub fn threats_key(&self) -> u64 {
+        const fn hash(mut k: u64) -> u64 {
+            k ^= k >> 33;
+            k = k.wrapping_mul(0xff51afd7ed558ccd);
+            k ^= k >> 33;
+            k = k.wrapping_mul(0xc4ceb9fe1a85ec53);
+            k ^ (k >> 33)
+        }
+
+        hash(self.threats().0 & self.them().0)
+    }
+
     pub const fn checkers(&self) -> Bitboard {
         self.state.checkers
     }
