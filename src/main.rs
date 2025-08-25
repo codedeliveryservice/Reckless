@@ -8,6 +8,7 @@ mod misc;
 mod movepick;
 mod nnue;
 mod parameters;
+mod pruning;
 mod search;
 mod stack;
 mod tb;
