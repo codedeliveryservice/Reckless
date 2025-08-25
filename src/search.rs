@@ -95,9 +95,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
-
-            td.optimism[td.board.side_to_move()] = 118 * average / (average.abs() + 237);
-            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
 
         loop {
@@ -653,6 +650,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         let initial_nodes = td.nodes.local();
+
+        if NODE::ROOT {
+            let stm = td.board.side_to_move();
+            td.optimism[stm] = td
+                .root_moves
+                .iter()
+                .find(|v| v.mv == mv)
+                .map(|v| 118 * v.average_score / (v.average_score.abs() + 237))
+                .unwrap();
+            td.optimism[!stm] = -td.optimism[stm];
+        }
 
         make_move(td, mv);
 
