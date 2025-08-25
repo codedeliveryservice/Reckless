@@ -485,6 +485,24 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    if cut_node
+        && !in_check
+        && !excluded
+        && !is_loss(beta)
+        && !is_win(eval)
+        && depth <= 4
+        && crate::pruning::predict([
+            (depth) as f32,
+            (improving as i32) as f32,
+            (correction_value) as f32,
+            (eval - beta) as f32,
+            (entry.is_some() as i32) as f32,
+            (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
+        ]) >= 0.9
+    {
+        return beta;
+    }
+
     // ProbCut
     let probcut_beta = beta + 265 - 60 * improving as i32;
 
@@ -524,24 +542,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
         }
-    }
-
-    if cut_node
-        && !in_check
-        && !excluded
-        && !is_loss(beta)
-        && !is_win(eval)
-        && depth <= 4
-        && crate::pruning::predict([
-            (depth) as f32,
-            (improving as i32) as f32,
-            (correction_value) as f32,
-            (eval - beta) as f32,
-            (entry.is_some() as i32) as f32,
-            (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
-        ]) >= 0.9
-    {
-        return beta;
     }
 
     // Internal Iterative Reductions (IIR)
