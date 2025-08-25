@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
@@ -906,6 +908,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
+
+    if cut_node && !in_check && !excluded && !is_decisive(eval) && !is_decisive(beta) && initial_depth <= 4 {
+        writeln!(
+            td.writer,
+            "{initial_depth}, {}, {}, {}, {}, {}, {}", // depth
+            improving as i32,                          // improvement
+            correction_value,                          // abs()
+            eval - beta,
+            entry.is_some() as i32,
+            entry.map(|v| v.depth - initial_depth).unwrap_or(0),
+            (bound == Bound::Lower) as i32,
+        )
+        .unwrap();
+    }
 
     best_score
 }
