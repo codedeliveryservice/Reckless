@@ -534,7 +534,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         did_probcut = true;
     }
 
-    if !NODE::ROOT
+    if cut_node
         && !in_check
         && !excluded
         && !is_loss(beta)
@@ -549,7 +549,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             tt_move.is_quiet() as i32,
             did_nmp as i32,
             did_probcut as i32,
-            cut_node as i32,
             if is_valid(tt_score) { tt_score - alpha } else { 0 },
             if is_valid(tt_score) { tt_depth - depth } else { 0 },
         ]) >= 0.9
