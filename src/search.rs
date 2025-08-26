@@ -431,6 +431,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return (eval + beta) / 2;
     }
 
+    let mut did_nmp = false;
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -483,7 +485,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             }
         }
+
+        did_nmp = true;
     }
+
+    let mut did_probcut = false;
 
     // ProbCut
     let probcut_beta = beta + 265 - 60 * improving as i32;
@@ -524,21 +530,28 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
         }
+
+        did_probcut = true;
     }
 
-    if cut_node
+    if !NODE::ROOT
         && !in_check
         && !excluded
         && !is_loss(beta)
         && !is_win(eval)
         && depth <= 4
         && crate::pruning::predict([
-            (depth) as f32,
-            (improving as i32) as f32,
-            (correction_value) as f32,
-            (eval - beta) as f32,
-            (entry.is_some() as i32) as f32,
-            (entry.map(|v| v.depth - initial_depth).unwrap_or(0)) as f32,
+            depth,
+            improvement,
+            correction_value.abs(),
+            eval - beta,
+            tt_move.is_capture() as i32,
+            tt_move.is_quiet() as i32,
+            did_nmp as i32,
+            did_probcut as i32,
+            cut_node as i32,
+            if is_valid(tt_score) { tt_score - alpha } else { 0 },
+            if is_valid(tt_score) { tt_depth - depth } else { 0 },
         ]) >= 0.9
     {
         return beta;
