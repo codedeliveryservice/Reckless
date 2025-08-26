@@ -35,12 +35,12 @@ impl MovePicker {
         }
     }
 
-    pub const fn new_probcut(threshold: i32) -> Self {
+    pub const fn new_probcut(tt_move: Move, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
-            tt_move: Move::NULL,
+            tt_move,
             threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
+            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
