@@ -907,7 +907,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
-    best_score
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+        (best_score * depth + beta) / (depth + 1)
+    } else {
+        best_score
+    }
 }
 
 fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
