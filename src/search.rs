@@ -482,6 +482,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if verified_score >= beta {
                 return score;
             }
+        } else if score < alpha - 514 - 294 * depth * depth && !is_loss(score) {
+            return score;
         }
     }
 
