@@ -482,8 +482,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if verified_score >= beta {
                 return score;
             }
-        } else if depth < 16 && score <= alpha {
-            let score = search::<NonPV>(td, beta - 1, beta, depth + 1, false);
+        } else if score <= alpha && depth < 6 {
+            let score = search::<NonPV>(td, beta - 1, beta, 6, false);
             if score >= beta && !is_win(score) {
                 return score;
             }
