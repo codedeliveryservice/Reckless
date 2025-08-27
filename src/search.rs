@@ -486,7 +486,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     // ProbCut
-    let probcut_beta = beta + 265 - 60 * improving as i32;
+    let probcut_beta = beta + 265 - (improvement / 4).clamp(-40, 60);
 
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) && !tt_move.is_quiet() {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
