@@ -214,7 +214,11 @@ impl TranspositionTable {
         entry.key = key;
         entry.depth = depth as i8;
         entry.score = score as i16;
-        entry.eval = eval as i16;
+        if bound != Bound::Exact || is_decisive(score) {
+            entry.eval = eval as i16;
+        } else {
+            entry.eval = score as i16;
+        }
         entry.flags = Flags::new(bound, pv, tt_age);
     }
 
