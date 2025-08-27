@@ -60,7 +60,7 @@ pub enum Bound {
 /// Internal representation of a transposition table entry (10 bytes).
 #[derive(Clone)]
 #[repr(C)]
-struct InternalEntry {
+pub struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
@@ -134,7 +134,7 @@ impl TranspositionTable {
         self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> Option<Entry> {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, *const InternalEntry) {
         let cluster = {
             let index = index(hash, self.len());
             unsafe { &*self.ptr().add(index) }
@@ -153,46 +153,38 @@ impl TranspositionTable {
                     mv: entry.mv,
                 };
 
-                return Some(hit);
+                return (Some(hit), entry as *const _);
             }
         }
 
-        None
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn write(
-        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
-    ) {
-        // Used for checking if an entry exists
-        debug_assert!(depth != TtDepth::NONE);
-
-        let cluster = {
-            let index = index(hash, self.len());
-            unsafe { &mut *self.ptr().add(index) }
-        };
-
-        let key = verification_key(hash);
         let tt_age = self.age();
 
-        let mut index = 0;
+        let mut replace_entry = cluster.entries.as_ptr();
         let mut minimum = i32::MAX;
 
         for (i, candidate) in cluster.entries.iter().enumerate() {
-            if candidate.key == key || candidate.flags.bound() == Bound::None {
-                index = i;
-                break;
-            }
-
             let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
 
             if quality < minimum {
-                index = i;
+                replace_entry = &cluster.entries[i] as *const _;
                 minimum = quality;
             }
         }
 
-        let entry = &mut cluster.entries[index];
+        (None, replace_entry)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn write(
+        &self, ptr: *const InternalEntry, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move,
+        ply: usize, pv: bool,
+    ) {
+        // Used for checking if an entry exists
+        debug_assert!(depth != TtDepth::NONE);
+
+        let entry = unsafe { &mut *(ptr as *mut InternalEntry) };
+        let key = verification_key(hash);
+        let tt_age = self.age();
 
         if !(entry.key == key && mv.is_null()) {
             entry.mv = mv;
