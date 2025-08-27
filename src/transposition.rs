@@ -163,6 +163,11 @@ impl TranspositionTable {
         let mut minimum = i32::MAX;
 
         for (i, candidate) in cluster.entries.iter().enumerate() {
+            if candidate.depth as i32 == TtDepth::NONE {
+                replace_entry = &cluster.entries[i] as *const _;
+                break;
+            }
+
             let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
 
             if quality < minimum {
