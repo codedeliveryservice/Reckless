@@ -1,12 +1,11 @@
 use super::{PieceType, MAX_PLY};
-use crate::board::Board;
+use crate::{board::Board, thread::ThreadData};
 
 pub struct Score;
 
 #[rustfmt::skip]
 impl Score {
     pub const ZERO: i32 = 0;
-    pub const DRAW: i32 = 0;
 
     pub const NONE:     i32 = 32002;
     pub const INFINITE: i32 = 32001;
@@ -16,6 +15,10 @@ impl Score {
 
     pub const TB_WIN:        i32 = Self::MATE_IN_MAX - 1;
     pub const TB_WIN_IN_MAX: i32 = Self::TB_WIN - MAX_PLY as i32;
+}
+
+pub const fn draw_score(td: &ThreadData) -> i32 {
+    (td.nodes.local() & 2) as i32 - 1
 }
 
 pub const fn mated_in(ply: usize) -> i32 {
