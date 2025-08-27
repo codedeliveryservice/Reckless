@@ -123,15 +123,19 @@ pub struct CorrectionHistory {
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14734;
 
-    const SIZE: usize = 16384;
-    const MASK: usize = Self::SIZE - 1;
+    const SIZE: usize = 1 << 14;
+
+    fn index(k: u64) -> usize {
+        let x = k ^ (k >> 14) ^ (k >> 28) ^ (k >> 42) ^ (k >> 56);
+        (x as usize) & ((1 << 14) - 1)
+    }
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] as i32) / 81
+        (self.entries[stm][Self::index(key)] as i32) / 81
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
-        let entry = &mut self.entries[stm][key as usize & Self::MASK];
+        let entry = &mut self.entries[stm][Self::index(key)];
         *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
     }
 }
