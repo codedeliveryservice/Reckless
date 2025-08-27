@@ -244,7 +244,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
-    let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let (entry, replace_entry_ptr) = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
@@ -253,7 +253,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut tt_pv = NODE::PV;
 
     // Search Early TT-Cut
-    if let Some(entry) = entry {
+    if let Some(entry) = &entry {
         tt_move = entry.mv;
         tt_pv |= entry.pv;
         tt_score = entry.score;
@@ -306,7 +306,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 || (bound == Bound::Upper && score <= alpha)
             {
                 let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.tt.write(td.board.hash(), depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
+                td.tt.write(
+                    replace_entry_ptr,
+                    td.board.hash(),
+                    depth,
+                    Score::NONE,
+                    score,
+                    bound,
+                    Move::NULL,
+                    td.ply,
+                    tt_pv,
+                );
                 return score;
             }
 
@@ -336,7 +346,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
         eval = static_eval;
-    } else if let Some(entry) = entry {
+    } else if let Some(entry) = &entry {
         raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
@@ -353,7 +363,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
-        td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+        td.tt.write(
+            replace_entry_ptr,
+            td.board.hash(),
+            TtDepth::SOME,
+            raw_eval,
+            Score::NONE,
+            Bound::None,
+            Move::NULL,
+            td.ply,
+            tt_pv,
+        );
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
@@ -517,7 +537,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
-                td.tt.write(td.board.hash(), probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
+                td.tt.write(
+                    replace_entry_ptr,
+                    td.board.hash(),
+                    probcut_depth + 1,
+                    raw_eval,
+                    score,
+                    Bound::Lower,
+                    mv,
+                    td.ply,
+                    tt_pv,
+                );
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
@@ -898,7 +928,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(replace_entry_ptr, td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
@@ -945,13 +975,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
-    let entry = &td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let (entry, replace_entry_ptr) = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
     // QS Early TT-Cut
-    if let Some(entry) = entry {
+    if let Some(entry) = &entry {
         tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_bound = entry.bound;
@@ -975,7 +1005,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     // Evaluation
     if !in_check {
-        raw_eval = match entry {
+        raw_eval = match &entry {
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
@@ -1001,6 +1031,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
             if entry.is_none() {
                 td.tt.write(
+                    replace_entry_ptr,
                     td.board.hash(),
                     TtDepth::SOME,
                     raw_eval,
@@ -1100,7 +1131,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(td.board.hash(), TtDepth::SOME, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+    td.tt.write(
+        replace_entry_ptr,
+        td.board.hash(),
+        TtDepth::SOME,
+        raw_eval,
+        best_score,
+        bound,
+        best_move,
+        td.ply,
+        tt_pv,
+    );
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
