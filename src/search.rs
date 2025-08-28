@@ -618,38 +618,37 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move {
-            let entry = &entry.unwrap();
+        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move && potential_singularity {
+            debug_assert!(is_valid(tt_score));
 
-            if potential_singularity {
-                debug_assert!(is_valid(tt_score));
-                let singular_beta = tt_score - depth;
-                let singular_depth = (depth - 1) / 2;
+            let singular_beta = tt_score - depth;
+            let singular_depth = (depth - 1) / 2;
 
-                td.stack[td.ply].excluded = entry.mv;
-                let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
-                td.stack[td.ply].excluded = Move::NULL;
+            td.stack[td.ply].excluded = tt_move;
+            let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+            td.stack[td.ply].excluded = Move::NULL;
 
-                if td.stopped {
-                    return Score::ZERO;
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if score < singular_beta {
+                let double_margin = 2 + 277 * NODE::PV as i32;
+                let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+
+                extension = 1;
+                extension += (score < singular_beta - double_margin) as i32;
+                extension += (score < singular_beta - triple_margin) as i32;
+
+                if extension > 1 && depth < 14 {
+                    depth += 1;
                 }
-
-                if score < singular_beta {
-                    extension = 1;
-                    extension += (score < singular_beta - 2 - 277 * NODE::PV as i32) as i32;
-                    extension +=
-                        (score < singular_beta - 67 - 315 * NODE::PV as i32 + 16 * correction_value.abs() / 128) as i32;
-
-                    if extension > 1 && depth < 14 {
-                        depth += 1;
-                    }
-                } else if score >= beta && !is_decisive(score) {
-                    return score;
-                } else if tt_score >= beta {
-                    extension = -2;
-                } else if cut_node {
-                    extension = -2;
-                }
+            } else if score >= beta && !is_decisive(score) {
+                return score;
+            } else if tt_score >= beta {
+                extension = -2;
+            } else if cut_node {
+                extension = -2;
             }
         }
 
