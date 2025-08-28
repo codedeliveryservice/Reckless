@@ -153,25 +153,25 @@ impl TranspositionTable {
                     mv: entry.mv,
                 };
 
-                return (Some(hit), entry as *const _);
+                return (Some(hit), std::ptr::from_ref(entry));
             }
         }
 
         let tt_age = self.age();
 
-        let mut replace_entry = cluster.entries.as_ptr();
-        let mut minimum = i32::MAX;
+        let mut replacement_slot = cluster.entries.as_ptr();
+        let mut lowest_quality = i32::MAX;
 
-        for candidate in cluster.entries.iter() {
+        for candidate in &cluster.entries {
             let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
 
-            if quality < minimum {
-                replace_entry = candidate as *const _;
-                minimum = quality;
+            if quality < lowest_quality {
+                replacement_slot = std::ptr::from_ref(candidate);
+                lowest_quality = quality;
             }
         }
 
-        (None, replace_entry)
+        (None, replacement_slot)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -182,7 +182,7 @@ impl TranspositionTable {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
-        let entry = unsafe { &mut *(ptr as *mut InternalEntry) };
+        let entry = unsafe { &mut *ptr.cast_mut() };
         let key = verification_key(hash);
         let tt_age = self.age();
 
@@ -238,7 +238,7 @@ impl TranspositionTable {
     }
 }
 
-fn index(hash: u64, len: usize) -> usize {
+const fn index(hash: u64, len: usize) -> usize {
     // Fast hash table index calculation
     // For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction
     (((hash as u128) * (len as u128)) >> 64) as usize
@@ -316,13 +316,13 @@ unsafe fn allocate(threads: usize, size_mb: usize) -> (*mut Cluster, usize) {
     let ptr = {
         let ptr = mmap(std::ptr::null_mut(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         madvise(ptr, size, MADV_HUGEPAGE);
-        ptr as *mut Cluster
+        ptr.cast()
     };
 
     #[cfg(not(target_os = "linux"))]
     let ptr = {
         let layout = std::alloc::Layout::from_size_align(size, std::mem::align_of::<Cluster>()).unwrap();
-        std::alloc::alloc_zeroed(layout) as *mut Cluster
+        std::alloc::alloc_zeroed(layout).cast()
     };
 
     unsafe { parallel_clear(threads, ptr, len) };

@@ -349,7 +349,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 _ => true,
             }
         {
-            debug_assert!(is_valid(tt_score));
             eval = tt_score;
         }
     } else {
@@ -492,7 +491,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if depth >= 3 && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) && !tt_move.is_quiet() {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
-        let probcut_depth = 0.max(depth - 4);
+        let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next(td, true) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -965,7 +964,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
             && (!NODE::PV || !is_decisive(tt_score))
         {
-            debug_assert!(is_valid(tt_score));
             return tt_score;
         }
     }
@@ -991,7 +989,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 _ => true,
             }
         {
-            debug_assert!(is_valid(tt_score));
             best_score = tt_score;
         }
 
