@@ -7,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        PieceType, Score, Square, MAX_PLY,
+        Score, Square, MAX_PLY,
     },
 };
 
@@ -457,12 +457,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval >= static_eval
-        && static_eval >= beta - 15 * depth + 154 * tt_pv as i32 - 104 * improvement / 1024 + 189
+        && static_eval
+            >= beta - 15 * depth + 154 * tt_pv as i32 - 104 * improvement / 1024 + 189
+                - 100 * (td.board.material_imbalance() > 0) as i32
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity
         && !is_loss(beta)
-        && td.board.material_imbalance() >= -PIECE_VALUES[PieceType::Rook]
     {
         let r = 5 + depth / 3 + ((eval - beta) / 248).min(3);
 
