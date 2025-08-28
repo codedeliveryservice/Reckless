@@ -459,7 +459,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= static_eval
         && static_eval
             >= beta - 15 * depth + 154 * tt_pv as i32 - 104 * improvement / 1024 + 189
-                - 100 * (td.board.material_imbalance() > 0) as i32
+                - 32 * (td.board.material_imbalance() > 0) as i32
         && td.ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity

@@ -552,7 +552,7 @@ impl Board {
 
     pub fn material_imbalance(&self) -> i32 {
         let mut balance = 0i32;
-        for &pt in &[PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen] {
+        for &pt in &[PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen] {
             let ours = self.our(pt).len() as i32;
             let theirs = self.their(pt).len() as i32;
             balance += (ours - theirs) * PIECE_VALUES[pt as usize];
