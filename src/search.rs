@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -733,8 +733,59 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            reduction -= fds_r1() * correction_value.abs() / 1024;
+            reduction -= fds_r2() * move_count;
+            reduction += fds_r3();
+
+            if tt_pv {
+                reduction -= fds_r4();
+                reduction -= fds_r5() * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= fds_r6() * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= fds_r7() * cut_node as i32;
+            }
+
+            if NODE::PV {
+                reduction -= fds_r8() + fds_r9() * (beta - alpha > fds_r10() * td.root_delta / 128) as i32;
+            }
+
+            if cut_node {
+                reduction += fds_r11();
+                reduction += fds_r12() * tt_move.is_null() as i32;
+            }
+
+            if td.board.in_check() || !td.board.has_non_pawns() {
+                reduction -= fds_r13();
+            }
+
+            if td.stack[td.ply].cutoff_count > 2 {
+                reduction += fds_r14();
+            }
+
+            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+                reduction += fds_r15();
+            }
+
+            if depth == 2 {
+                reduction -= fds_r16();
+            }
+
+            if mv == tt_move {
+                reduction = -fds_r17();
+            }
+
+            if is_quiet {
+                reduction -= fds_r18() * (history - fds_r19()) / 1024;
+            } else {
+                reduction -= fds_r20() * (history - fds_r21()) / 1024;
+                reduction -= fds_r22() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / fds_r23();
+            }
+
+            if tt_move.is_null() {
+                reduction += fds_r24();
+            }
+
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction > 3000) as i32, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 

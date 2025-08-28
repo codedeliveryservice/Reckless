@@ -34,3 +34,30 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 fds_r1: 3398;
+    i32 fds_r2: 54;
+    i32 fds_r3: 343;
+    i32 fds_r4: 662;
+    i32 fds_r5: 665;
+    i32 fds_r6: 796;
+    i32 fds_r7: 838;
+    i32 fds_r8: 601;
+    i32 fds_r9: 582;
+    i32 fds_r10: 33;
+    i32 fds_r11: 1247;
+    i32 fds_r12: 927;
+    i32 fds_r13: 800;
+    i32 fds_r14: 1270;
+    i32 fds_r15: 752;
+    i32 fds_r16: 1057;
+    i32 fds_r17: 2048;
+    i32 fds_r18: 107;
+    i32 fds_r19: 572;
+    i32 fds_r20: 99;
+    i32 fds_r21: 561;
+    i32 fds_r22: 40;
+    i32 fds_r23: 120;
+    i32 fds_r24: 1024;
+);
