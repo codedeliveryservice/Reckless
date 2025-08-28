@@ -733,8 +733,59 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            reduction -= 3398 * correction_value.abs() / 1024;
+            reduction -= 54 * move_count;
+            reduction += 343;
+
+            if tt_pv {
+                reduction -= 662;
+                reduction -= 665 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 796 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 838 * cut_node as i32;
+            }
+
+            if NODE::PV {
+                reduction -= 601 + 582 * (beta - alpha > 33 * td.root_delta / 128) as i32;
+            }
+
+            if cut_node {
+                reduction += 1247;
+                reduction += 927 * tt_move.is_null() as i32;
+            }
+
+            if td.board.in_check() || !td.board.has_non_pawns() {
+                reduction -= 800;
+            }
+
+            if td.stack[td.ply].cutoff_count > 2 {
+                reduction += 1270;
+            }
+
+            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+                reduction += 752;
+            }
+
+            if depth == 2 {
+                reduction -= 1057;
+            }
+
+            if mv == tt_move {
+                reduction = -2048;
+            }
+
+            if is_quiet {
+                reduction -= 107 * (history - 572) / 1024;
+            } else {
+                reduction -= 99 * (history - 561) / 1024;
+                reduction -= 40 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 120;
+            }
+
+            if tt_move.is_null() {
+                reduction += 1024;
+            }
+
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction > 3000) as i32, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 
