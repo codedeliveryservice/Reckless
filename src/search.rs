@@ -607,7 +607,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let threshold = if is_quiet {
                 -22 * lmr_depth * lmr_depth - 44 * (history + 19) / 1024
             } else {
-                -104 * depth + 46 - 45 * (history + 13) / 1024
+                -104 * depth + 46 - (45 * (history + 13) / 1024).clamp(-80 * depth, 80 * depth)
             };
 
             if !td.board.see(mv, threshold) {
