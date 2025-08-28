@@ -331,12 +331,12 @@ unsafe fn allocate(threads: usize, size_mb: usize) -> (*mut Cluster, usize) {
 
 unsafe fn deallocate(ptr: *mut Cluster, len: usize) {
     #[cfg(target_os = "linux")]
-    let _ = libc::munmap(ptr as *mut _, len);
+    let _ = libc::munmap(ptr.cast(), len);
 
     #[cfg(not(target_os = "linux"))]
     {
         let layout = std::alloc::Layout::from_size_align(len, std::mem::align_of::<Cluster>()).unwrap();
-        std::alloc::dealloc(ptr as *mut u8, layout);
+        std::alloc::dealloc(ptr.cast(), layout);
     }
 }
 
