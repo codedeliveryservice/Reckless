@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -662,46 +662,46 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
             if is_quiet {
-                reduction -= 107 * (history - 572) / 1024;
+                reduction -= lmr_v1() * (history - lmr_v2()) / 1024;
             } else {
-                reduction -= 99 * (history - 561) / 1024;
-                reduction -= 40 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 120;
+                reduction -= lmr_v3() * (history - lmr_v4()) / 1024;
+                reduction -= lmr_v5() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / lmr_v6();
             }
 
-            reduction -= 3398 * correction_value.abs() / 1024;
-            reduction -= 54 * move_count;
-            reduction += 343;
+            reduction -= lmr_v7() * correction_value.abs() / 1024;
+            reduction -= lmr_v8() * move_count;
+            reduction += lmr_v9();
 
             if tt_pv {
-                reduction -= 662;
-                reduction -= 665 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 796 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-                reduction -= 838 * cut_node as i32;
+                reduction -= lmr_v10();
+                reduction -= lmr_v11() * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= lmr_v12() * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= lmr_v13() * cut_node as i32;
             }
 
             if NODE::PV {
-                reduction -= 601 + 582 * (beta - alpha > 33 * td.root_delta / 128) as i32;
+                reduction -= lmr_v14() + lmr_v15() * (beta - alpha > 33 * td.root_delta / 128) as i32;
             }
 
             if cut_node {
-                reduction += 1247;
-                reduction += 927 * tt_move.is_null() as i32;
+                reduction += lmr_v16();
+                reduction += lmr_v17() * tt_move.is_null() as i32;
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 800;
+                reduction -= lmr_v18();
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 1270;
+                reduction += lmr_v19();
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 752;
+                reduction += lmr_v20();
             }
 
             if depth == 2 {
-                reduction -= 1057;
+                reduction -= lmr_v21();
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
@@ -713,7 +713,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 45 + 565 * depth / 128) as i32;
+                new_depth += (score > best_score + lmr_v22() + lmr_v23() * depth / lmr_v24()) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
@@ -721,7 +721,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                     if mv.is_quiet() && score >= beta {
                         let bonus = (1 + 2 * (move_count > depth) as i32 + 2 * (move_count > 2 * depth) as i32)
-                            * (152 * depth - 48).min(1027);
+                            * (lmr_v25() * depth - lmr_v26()).min(lmr_v27());
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
@@ -733,8 +733,59 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            reduction -= fds_r1() * correction_value.abs() / 1024;
+            reduction -= fds_r2() * move_count;
+            reduction += fds_r3();
+
+            if tt_pv {
+                reduction -= fds_r4();
+                reduction -= fds_r5() * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= fds_r6() * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= fds_r7() * cut_node as i32;
+            }
+
+            if NODE::PV {
+                reduction -= fds_r8() + fds_r9() * (beta - alpha > fds_r10() * td.root_delta / 128) as i32;
+            }
+
+            if cut_node {
+                reduction += fds_r11();
+                reduction += fds_r12() * tt_move.is_null() as i32;
+            }
+
+            if td.board.in_check() || !td.board.has_non_pawns() {
+                reduction -= fds_r13();
+            }
+
+            if td.stack[td.ply].cutoff_count > 2 {
+                reduction += fds_r14();
+            }
+
+            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+                reduction += fds_r15();
+            }
+
+            if depth == 2 {
+                reduction -= fds_r16();
+            }
+
+            if mv == tt_move {
+                reduction = -fds_r17();
+            }
+
+            if is_quiet {
+                reduction -= fds_r18() * (history - fds_r19()) / 1024;
+            } else {
+                reduction -= fds_r20() * (history - fds_r21()) / 1024;
+                reduction -= fds_r22() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / fds_r23();
+            }
+
+            if tt_move.is_null() {
+                reduction += fds_r24();
+            }
+
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction > 3000) as i32, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 
