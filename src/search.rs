@@ -244,7 +244,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
-    let (entry, replace_entry_ptr) = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let hash = td.board.hash();
+    let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), td.ply);
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
@@ -306,17 +307,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 || (bound == Bound::Upper && score <= alpha)
             {
                 let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.tt.write(
-                    replace_entry_ptr,
-                    td.board.hash(),
-                    depth,
-                    Score::NONE,
-                    score,
-                    bound,
-                    Move::NULL,
-                    td.ply,
-                    tt_pv,
-                );
+                td.tt.write(tt_slot, hash, depth, Score::NONE, score, bound, Move::NULL, td.ply, tt_pv);
                 return score;
             }
 
@@ -363,17 +354,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
-        td.tt.write(
-            replace_entry_ptr,
-            td.board.hash(),
-            TtDepth::SOME,
-            raw_eval,
-            Score::NONE,
-            Bound::None,
-            Move::NULL,
-            td.ply,
-            tt_pv,
-        );
+        td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
@@ -537,17 +518,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score >= probcut_beta {
-                td.tt.write(
-                    replace_entry_ptr,
-                    td.board.hash(),
-                    probcut_depth + 1,
-                    raw_eval,
-                    score,
-                    Bound::Lower,
-                    mv,
-                    td.ply,
-                    tt_pv,
-                );
+                td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
@@ -928,7 +899,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(replace_entry_ptr, td.board.hash(), depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
@@ -975,7 +946,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
-    let (entry, replace_entry_ptr) = td.tt.read(td.board.hash(), td.board.halfmove_clock(), td.ply);
+    let hash = td.board.hash();
+    let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), td.ply);
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1031,8 +1003,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
             if entry.is_none() {
                 td.tt.write(
-                    replace_entry_ptr,
-                    td.board.hash(),
+                    tt_slot,
+                    hash,
                     TtDepth::SOME,
                     raw_eval,
                     best_score,
@@ -1131,17 +1103,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(
-        replace_entry_ptr,
-        td.board.hash(),
-        TtDepth::SOME,
-        raw_eval,
-        best_score,
-        bound,
-        best_move,
-        td.ply,
-        tt_pv,
-    );
+    td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
