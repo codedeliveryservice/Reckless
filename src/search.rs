@@ -757,10 +757,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 741;
             }
 
-            if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 1477;
-            }
-
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 854;
             }
@@ -769,8 +765,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1086;
             }
 
+            if td.stack[td.ply].cutoff_count > 2 {
+                reduction += 1477;
+            }
+
             if mv == tt_move {
-                reduction = -1887;
+                reduction -= 1887;
             }
 
             if is_quiet {
