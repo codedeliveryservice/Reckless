@@ -770,15 +770,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1086;
             }
 
-            if mv == tt_move {
-                reduction = -1887;
-            }
-
             if is_quiet {
                 reduction -= 143 * (history - 556) / 1024;
             } else {
                 reduction -= 67 * (history - 551) / 1024;
                 reduction -= 45 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 132;
+            }
+
+            if mv == tt_move {
+                reduction -= 3072;
             }
 
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
