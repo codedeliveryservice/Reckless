@@ -113,22 +113,24 @@ impl MovePicker {
         }
 
         if self.stage == Stage::Quiet {
-            if !skip_quiets {
-                while !self.list.is_empty() {
-                    let mut index = 0;
-                    for i in 1..self.list.len() {
-                        if self.list[i].score > self.list[index].score {
-                            index = i;
-                        }
+            while !self.list.is_empty() {
+                let mut index = 0;
+                for i in 1..self.list.len() {
+                    if self.list[i].score > self.list[index].score {
+                        index = i;
                     }
-
-                    let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move {
-                        continue;
-                    }
-
-                    return Some(entry.mv);
                 }
+
+                let entry = &self.list.remove(index);
+                if entry.mv == self.tt_move {
+                    continue;
+                }
+
+                if skip_quiets && entry.score <= 6000 {
+                    break;
+                }
+
+                return Some(entry.mv);
             }
 
             self.stage = Stage::BadNoisy;
