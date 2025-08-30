@@ -126,7 +126,7 @@ impl MovePicker {
                     continue;
                 }
 
-                if skip_quiets && !td.board.might_give_check_if_you_squint(entry.mv) {
+                if skip_quiets && (entry.score <= 0 || !td.board.might_give_check_if_you_squint(entry.mv)) {
                     break;
                 }
 
