@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::thread::ThreadData;
+use crate::{board::Board, thread::ThreadData, types::PieceType};
 
 #[derive(Debug)]
 pub enum Limits {
@@ -22,7 +22,7 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
+    pub fn new(limits: Limits, move_overhead: u64, board: Option<&Board>) -> Self {
         let soft;
         let hard;
 
@@ -32,8 +32,18 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let soft_scale = 0.024 + 0.042 * (1.0 - (-0.045 * fullmove_number as f64).exp());
-                let hard_scale = 0.135 + 0.145 * (1.0 - (-0.043 * fullmove_number as f64).exp());
+                let board = board.unwrap();
+                let material = (board.pieces(PieceType::Pawn).len()
+                    + 3 * board.pieces(PieceType::Knight).len()
+                    + 3 * board.pieces(PieceType::Bishop).len()
+                    + 5 * board.pieces(PieceType::Rook).len()
+                    + 9 * board.pieces(PieceType::Queen).len())
+                .clamp(16, 70) as f64;
+
+                let v = -0.295 * material + 37.42;
+
+                let soft_scale = 0.024 + 0.042 * (1.0 - (-0.045 * v).exp());
+                let hard_scale = 0.135 + 0.145 * (1.0 - (-0.043 * v).exp());
 
                 let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
                 let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;

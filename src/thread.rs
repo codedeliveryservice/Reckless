@@ -105,7 +105,7 @@ impl<'a> ThreadData<'a> {
             nodes: AtomicCounter::new(nodes),
             tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite, 0, 0),
+            time_manager: TimeManager::new(Limits::Infinite, 0, None),
             stack: Stack::default(),
             nnue: Network::default(),
             root_moves: Vec::new(),
