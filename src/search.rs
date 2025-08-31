@@ -1172,7 +1172,7 @@ fn correction_value(td: &ThreadData) -> i32 {
         );
     }
 
-    correction
+    correction.clamp(-196, 196)
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
