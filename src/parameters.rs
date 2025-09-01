@@ -34,3 +34,16 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 lmp_v1: 17;
+    i32 lmp_v2: 2048;
+    i32 lmp_v3: 512;
+    i32 lmp_v4: 2048;
+    i32 lmp_v5: 512;
+    i32 lmp_v6: 4096;
+    i32 lmp_v7: 1024;
+    i32 lmp_v8: 4096;
+    i32 lmp_v9: 1024;
+    i32 lmp_v10: 1024;
+);
