@@ -32,15 +32,22 @@ fn main() {
         Some("collect") => {
             let files: Vec<_> = std::env::args().skip(2).collect();
             tools::collect_buckets(&files);
-        },
+        }
         Some("duplicates") => {
             let files: Vec<_> = std::env::args().skip(2).collect();
             tools::duplicates(&files);
-        },
+        }
         Some("stats") => {
             let files: Vec<_> = std::env::args().skip(2).collect();
             tools::stats(&files);
-        },
+        }
+        Some("convert") => {
+            let input = std::env::args().nth(2).unwrap();
+            let output = std::env::args().nth(3).unwrap();
+            let threads = std::env::args().nth(4).unwrap().parse().unwrap();
+
+            tools::convert_pgns(&input, &output, threads);
+        }
         _ => uci::message_loop(),
     }
 }

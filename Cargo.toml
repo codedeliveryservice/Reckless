@@ -24,3 +24,7 @@ bindgen = "0.71.1"
 
 [dependencies]
 libc = "0.2.175"
+bzip2 = "0.5.2"
+indicatif = "0.17.11"
+pgn-lexer = "0.1.1"
+shakmaty = "0.27.3"
