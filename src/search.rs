@@ -1035,6 +1035,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         best_score = static_eval;
 
         if is_valid(tt_score)
+            && !is_decisive(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score < static_eval,
                 Bound::Lower => tt_score > static_eval,
@@ -1062,6 +1063,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                     tt_pv,
                 );
             }
+
+            // debug_assert!(!is_decisive(best_score) || !NODE::PV);
 
             return best_score;
         }
