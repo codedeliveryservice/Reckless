@@ -191,7 +191,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
-    if NODE::PV {
+    if !NODE::ROOT && NODE::PV {
         td.pv.clear(td.ply);
     }
 
