@@ -85,7 +85,7 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub lmr: LmrTable,
+    pub params: ParametersTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub root_depth: i32,
@@ -118,7 +118,7 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
-            lmr: LmrTable::default(),
+            params: ParametersTable::default(),
             optimism: [0; 2],
             stopped: false,
             root_depth: 0,
@@ -239,28 +239,44 @@ impl Default for PrincipalVariationTable {
     }
 }
 
-pub struct LmrTable {
-    table: Box<[[i32; MAX_MOVES + 1]]>,
+pub struct ParametersTable {
+    lmr: Box<[[i32; MAX_MOVES + 1]]>,
+    lmp: Box<[[[i32; MAX_MOVES + 1]; 2]]>,
 }
 
-impl LmrTable {
-    pub const fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth as usize][move_count as usize]
+impl ParametersTable {
+    pub const fn lmr(&self, depth: i32, move_count: i32) -> i32 {
+        self.lmr[depth as usize][move_count as usize]
+    }
+
+    pub const fn lmp(&self, opponent_worsening: bool, improving: bool, depth: i32) -> i32 {
+        self.lmp[opponent_worsening as usize][improving as usize][depth as usize]
     }
 }
 
-impl Default for LmrTable {
+impl Default for ParametersTable {
     fn default() -> Self {
-        let mut table = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
+        let mut lmr = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
                 let reduction = 977.5506 + 443.8557 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
+                lmr[depth][move_count] = reduction as i32;
             }
         }
 
-        Self { table }
+        let mut lmp = vec![[[0; MAX_MOVES + 1]; 2]; 2].into_boxed_slice();
+
+        for depth in 0..MAX_MOVES {
+            let d2 = (depth * depth) as i32;
+            // [opponent_worserning][improving][depth]
+            lmp[0][0][depth] = (1882 + 521 * d2) / 611;
+            lmp[0][1][depth] = (3104 + 1160 * d2) / 611;
+            lmp[1][0][depth] = (1945 + 522 * d2) / 611;
+            lmp[1][1][depth] = (4172 + 1127 * d2) / 611;
+        }
+
+        Self { lmr, lmp }
     }
 }
 
