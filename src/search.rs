@@ -565,7 +565,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
+        let mut reduction = td.params.lmr(depth, move_count);
 
         if !improving {
             reduction += (499 - 434 * improvement / 128).min(1263);
@@ -576,9 +576,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
+            if !in_check
                 && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+                    >= td.params.lmp(
+                        is_valid(td.stack[td.ply - 1].static_eval)
+                            && td.stack[td.ply].static_eval > -td.stack[td.ply - 1].static_eval,
+                        improving || static_eval >= beta + 12,
+                        initial_depth,
+                    )
+            {
+                skip_quiets = true;
+            }
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 107 * lmr_depth + 75 + 32 * history / 1024;
