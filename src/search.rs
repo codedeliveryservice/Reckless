@@ -513,7 +513,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node);
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false);
             }
 
             undo_move(td, mv);
