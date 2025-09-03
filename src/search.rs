@@ -504,7 +504,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 break;
             }
 
-            if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
+            if mv == tt_move || !td.board.is_legal(mv) || mv == td.stack[td.ply].excluded {
                 continue;
             }
 
