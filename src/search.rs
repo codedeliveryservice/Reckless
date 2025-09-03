@@ -243,7 +243,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut max_score = Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
-    let initial_depth = depth;
 
     let hash = td.board.hash();
     let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), td.ply);
@@ -400,6 +399,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         depth -= 1;
     }
+
+    let initial_depth = depth;
 
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
