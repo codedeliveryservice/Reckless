@@ -19,10 +19,10 @@ impl QuietHistoryEntry {
     const MAX_BUCKET: i32 = 6029;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
-        let from_threated = threats.contains(mv.from()) as usize;
-        let to_threated = threats.contains(mv.to()) as usize;
+        let from_threatened = threats.contains(mv.from()) as usize;
+        let to_threatened = threats.contains(mv.to()) as usize;
 
-        self.buckets[from_threated][to_threated]
+        self.buckets[from_threatened][to_threatened]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
@@ -32,10 +32,10 @@ impl QuietHistoryEntry {
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
-        let from_threated = threats.contains(mv.from()) as usize;
-        let to_threated = threats.contains(mv.to()) as usize;
+        let from_threatened = threats.contains(mv.from()) as usize;
+        let to_threatened = threats.contains(mv.to()) as usize;
 
-        let entry = &mut self.buckets[from_threated][to_threated];
+        let entry = &mut self.buckets[from_threatened][to_threatened];
         apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
     }
 }
@@ -74,8 +74,8 @@ impl NoisyHistoryEntry {
     const MAX_BUCKET: i32 = 8148;
 
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
-        let threated = threats.contains(sq) as usize;
-        self.buckets[captured][threated]
+        let threatened = threats.contains(sq) as usize;
+        self.buckets[captured][threatened]
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
@@ -84,14 +84,14 @@ impl NoisyHistoryEntry {
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
-        let threated = threats.contains(sq) as usize;
-        let entry = &mut self.buckets[captured][threated];
+        let threatened = threats.contains(sq) as usize;
+        let entry = &mut self.buckets[captured][threatened];
         apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
     }
 }
 
 pub struct NoisyHistory {
-    // [piece][to][captured_piece_type][to_threated]
+    // [piece][to][captured_piece_type][to_threatened]
     entries: Box<PieceToHistory<NoisyHistoryEntry>>,
 }
 
