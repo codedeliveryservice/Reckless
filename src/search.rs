@@ -46,7 +46,6 @@ impl NodeType for NonPV {
 
 pub fn start(td: &mut ThreadData, report: Report) {
     td.completed_depth = 0;
-    td.stopped = false;
 
     td.pv_table.clear(0);
     td.nodes.clear();
@@ -108,7 +107,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
 
-            if td.stopped {
+            if td.stopped() {
                 break;
             }
 
@@ -135,7 +134,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             delta += delta * (38 + 15 * reduction) / 128;
         }
 
-        if td.stopped {
+        if td.stopped() {
             break;
         }
 
@@ -196,7 +195,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.pv_table.clear(td.ply);
     }
 
-    if td.stopped {
+    if td.stopped() {
         return Score::ZERO;
     }
 
@@ -217,7 +216,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if td.time_manager.check_time(td) {
-        td.stopped = true;
         return Score::ZERO;
     }
 
@@ -463,7 +461,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.board.undo_null_move();
         td.ply -= 1;
 
-        if td.stopped {
+        if td.stopped() {
             return Score::ZERO;
         }
 
@@ -476,7 +474,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false);
             td.nmp_min_ply = 0;
 
-            if td.stopped {
+            if td.stopped() {
                 return Score::ZERO;
             }
 
@@ -518,7 +516,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             undo_move(td, mv);
 
-            if td.stopped {
+            if td.stopped() {
                 return Score::ZERO;
             }
 
@@ -635,7 +633,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
             td.stack[td.ply].excluded = Move::NULL;
 
-            if td.stopped {
+            if td.stopped() {
                 return Score::ZERO;
             }
 
@@ -799,7 +797,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         undo_move(td, mv);
 
-        if td.stopped {
+        if td.stopped() {
             return Score::ZERO;
         }
 
@@ -986,7 +984,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if td.time_manager.check_time(td) {
-        td.stopped = true;
         return Score::ZERO;
     }
 
@@ -1122,7 +1119,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
         undo_move(td, mv);
 
-        if td.stopped {
+        if td.stopped() {
             return Score::ZERO;
         }
 

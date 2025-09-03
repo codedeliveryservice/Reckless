@@ -87,7 +87,6 @@ pub struct ThreadData<'a> {
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
-    pub stopped: bool,
     pub root_depth: i32,
     pub root_delta: i32,
     pub sel_depth: i32,
@@ -120,7 +119,6 @@ impl<'a> ThreadData<'a> {
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             lmr: LmrTable::default(),
             optimism: [0; 2],
-            stopped: false,
             root_depth: 0,
             root_delta: 0,
             sel_depth: 0,
@@ -131,7 +129,7 @@ impl<'a> ThreadData<'a> {
         }
     }
 
-    pub fn get_stop(&self) -> bool {
+    pub fn stopped(&self) -> bool {
         self.stop.load(Ordering::Relaxed)
     }
 

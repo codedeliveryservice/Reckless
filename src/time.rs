@@ -81,7 +81,7 @@ impl TimeManager {
             return false;
         }
 
-        if td.nodes.local() & 2047 == 2047 && td.get_stop() {
+        if td.nodes.local() & 2047 == 2047 && td.stopped() {
             return true;
         }
 
