@@ -401,6 +401,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let initial_depth_after_hindsight = depth;
+
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
@@ -951,7 +953,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(
+            tt_slot,
+            hash,
+            initial_depth_after_hindsight,
+            raw_eval,
+            best_score,
+            bound,
+            best_move,
+            td.ply,
+            tt_pv,
+        );
     }
 
     if !(in_check
