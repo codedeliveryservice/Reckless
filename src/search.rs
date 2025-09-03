@@ -585,7 +585,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let futility_value = static_eval + 107 * lmr_depth + 75 + 32 * history / 1024;
             if !in_check
                 && is_quiet
-                && lmr_depth < 8
+                && (depth - reduction).max(0) < 8
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
