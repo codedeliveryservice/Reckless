@@ -651,6 +651,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     depth += 1;
                 }
             } else if score >= beta && !is_decisive(score) {
+                if !in_check && score > td.stack[td.ply].static_eval && td.stack[td.ply].mv.is_quiet() {
+                    update_correction_histories(td, singular_depth, score - static_eval);
+                }
                 return score;
             } else if tt_score >= beta {
                 extension = -2;
