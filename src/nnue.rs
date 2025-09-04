@@ -38,7 +38,7 @@ mod simd {
 
 const NETWORK_SCALE: i32 = 400;
 
-const INPUT_BUCKETS: usize = 7;
+const INPUT_BUCKETS: usize = 10;
 
 const FT_SIZE: usize = 768;
 const L1_SIZE: usize = 1024;
@@ -58,13 +58,13 @@ const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * 
 #[rustfmt::skip]
 const BUCKETS: [usize; 64] = [
     0, 1, 2, 3, 3, 2, 1, 0,
-    4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
+    4, 5, 6, 7, 7, 6, 5, 4,
+    8, 8, 8, 8, 8, 8, 8, 8,
+    9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 9, 9, 9,
 ];
 
 #[repr(align(16))]
