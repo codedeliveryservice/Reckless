@@ -547,6 +547,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
+    let pruning_depth = depth;
+
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -566,7 +568,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
+        let mut reduction = td.lmr.reduction(pruning_depth, move_count);
 
         if !improving {
             reduction += (499 - 434 * improvement / 128).min(1263);
@@ -574,12 +576,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !NODE::ROOT && !is_loss(best_score) {
             let lmr_reduction = if is_quiet { reduction - 143 * history / 1024 } else { reduction };
-            let lmr_depth = (depth - lmr_reduction / 1024).max(0);
+            let lmr_depth = (pruning_depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            skip_quiets |=
+                !in_check && move_count >= (4 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 107 * lmr_depth + 75 + 32 * history / 1024;
@@ -614,7 +615,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let threshold = if is_quiet {
                 -22 * lmr_depth * lmr_depth + 17
             } else {
-                -104 * depth + 46 - 45 * (history + 13) / 1024
+                -104 * pruning_depth + 46 - 45 * (history + 13) / 1024
             };
 
             if !td.board.see(mv, threshold) {
