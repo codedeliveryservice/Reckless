@@ -323,10 +323,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction_value(td);
+    let correction_value = correction(td);
 
     let raw_eval;
-    let static_eval;
+    let mut static_eval;
     let mut eval;
 
     // Evaluation
@@ -954,6 +954,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
+    if !in_check && !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && potential_singularity {
+        static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
+        td.stack[td.ply].static_eval = static_eval;
+    }
+
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
@@ -1033,7 +1038,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -1161,7 +1166,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     best_score
 }
 
-fn correction_value(td: &ThreadData) -> i32 {
+fn correction(td: &ThreadData) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
