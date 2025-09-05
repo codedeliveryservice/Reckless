@@ -954,9 +954,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !in_check && !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && potential_singularity {
+    if !in_check && !excluded {
         static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
-        td.stack[td.ply].static_eval = static_eval;
     }
 
     if !(in_check
