@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::{PrincipalVariationTable, RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -577,9 +577,34 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            if !in_check {
+                let mut threshold = v1() + v2() * (initial_depth * initial_depth) as f32;
+
+                threshold += v3() * (correction_value.abs() as f32 / 1024.0) as f32;
+
+                if improving || static_eval >= beta + v10() {
+                    threshold += v4();
+                    threshold += v5() * (initial_depth * initial_depth) as f32;
+                }
+
+                if NODE::PV {
+                    threshold += v6();
+                }
+
+                if tt_pv {
+                    threshold += v7();
+                }
+
+                if cut_node {
+                    threshold += v8();
+                }
+
+                if td.stack[td.ply + 1].cutoff_count > 2 {
+                    threshold += v9();
+                }
+
+                skip_quiets |= move_count >= threshold as i32;
+            }
 
             // Futility Pruning (FP)
             let futility_value = static_eval + 107 * lmr_depth + 75 + 32 * history / 1024;
