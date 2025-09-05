@@ -632,8 +632,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let singular_depth = (depth - 1) / 2;
 
             td.stack[td.ply].excluded = tt_move;
+            td.stack[td.ply].excluded_beta = beta;
+
             let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
             td.stack[td.ply].excluded = Move::NULL;
+            td.stack[td.ply].excluded_beta = Score::NONE;
 
             if td.stopped {
                 return Score::ZERO;
@@ -954,11 +957,22 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !(in_check
+    if !(excluded
+        || in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
+        update_correction_histories(td, depth, best_score - static_eval);
+    }
+
+    if excluded
+        && !(in_check
+            || best_move.is_noisy()
+            || (best_score >= td.stack[td.ply].excluded_beta && best_score <= static_eval)
+            || (bound == Bound::Upper && best_score >= static_eval))
+    {
+        debug_assert!(td.stack[td.ply].excluded_beta != Score::NONE);
         update_correction_histories(td, depth, best_score - static_eval);
     }
 
