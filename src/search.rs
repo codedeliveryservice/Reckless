@@ -954,7 +954,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
-    if !in_check && !excluded {
+    if !in_check && !excluded && !best_move.is_noisy() {
         static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
     }
 
