@@ -374,7 +374,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 722 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-60, 128);
+        let bonus = value.clamp(-120, 256);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
