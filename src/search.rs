@@ -578,7 +578,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
-            let futility_value = static_eval + 107 * lmr_depth + 75 + 32 * history / 1024;
+            let futility_value =
+                static_eval + 107 * lmr_depth + 32 * history / 1024 + 96 * best_move.is_null() as i32 + 75;
+
             if !in_check
                 && is_quiet
                 && lmr_depth < 8
