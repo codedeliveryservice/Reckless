@@ -4,6 +4,12 @@ use crate::{
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
 
+enum Kind {
+    Normal,
+    ProbCut,
+    QSearch,
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
@@ -17,10 +23,11 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
-    threshold: Option<i32>,
+    threshold: i32,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    kind: Kind,
 }
 
 impl MovePicker {
@@ -28,10 +35,11 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move,
-            threshold: None,
+            threshold: 0,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::Normal,
         }
     }
 
@@ -39,10 +47,11 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            threshold: Some(threshold),
+            threshold,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::ProbCut,
         }
     }
 
@@ -50,10 +59,11 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
-            threshold: None,
+            threshold: 0,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            kind: Kind::QSearch,
         }
     }
 
@@ -90,7 +100,12 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 36 + 116);
+                let threshold = match self.kind {
+                    Kind::Normal => -entry.score / 36 + 116,
+                    Kind::ProbCut => self.threshold,
+                    Kind::QSearch => (-entry.score / 36 + 116).max(-128),
+                };
+
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
