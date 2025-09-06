@@ -11,6 +11,7 @@ combines established concepts with its reckless nature, as the name suggests.
 
 | Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
 | ------------------------- | ---------------------- | ----------------------- | ------------ |
+| [Reckless v0.8.0][v0.8.0] | 3765 +/- 16 [#8]       | 3605 +/- 30 [#14]       | Aug 29, 2025 |
 | [Reckless v0.7.0][v0.7.0] | 3505 +/- 16 [#59]      | 3407 +/- 25 [#61]       | Aug 23, 2024 |
 | [Reckless v0.6.0][v0.6.0] | 3386 +/- 16 [#78]      | 3318 +/- 16 [#83]       | Mar 22, 2024 |
 | [Reckless v0.5.0][v0.5.0] | 3243 +/- 19 [#94]      | 3213 +/- 21 [#94]       | Feb 4, 2024  |
@@ -26,6 +27,7 @@ combines established concepts with its reckless nature, as the name suggests.
 [v0.5.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.5.0
 [v0.6.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.6.0
 [v0.7.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.7.0
+[v0.8.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.8.0
 [ccrl-404]: https://www.computerchess.org.uk/ccrl/404/
 [crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/
 
