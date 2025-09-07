@@ -609,11 +609,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet {
-                -22 * lmr_depth * lmr_depth + 17
-            } else {
-                -104 * depth + 46 - 45 * (history + 13) / 1024
-            };
+            let threshold =
+                if is_quiet { -22 * lmr_depth * lmr_depth + 17 } else { -104 * depth - 45 * history / 1024 + 46 };
 
             if !td.board.see(mv, threshold) {
                 continue;
@@ -667,15 +664,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 + NODE::ROOT as i32 {
             if is_quiet {
-                reduction -= 139 * (history - 763) / 1024;
+                reduction += 523;
+                reduction -= 139 * history / 1024;
             } else {
-                reduction -= 107 * (history - 547) / 1024;
-                reduction -= 43 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 120;
+                reduction += 477;
+                reduction -= 107 * history / 1024;
+                reduction -= 46 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
             reduction -= 3689 * correction_value.abs() / 1024;
             reduction -= 71 * move_count;
-            reduction += 420;
 
             if tt_pv {
                 reduction -= 454;
@@ -718,7 +716,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.stack[td.ply - 1].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 38 + 437 * depth / 111) as i32;
+                new_depth += (score > best_score + 38 + 504 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
@@ -738,9 +736,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            if is_quiet {
+                reduction += 391;
+                reduction -= 143 * history / 1024;
+            } else {
+                reduction += 350;
+                reduction -= 67 * history / 1024;
+                reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
+            }
+
             reduction -= 2806 * correction_value.abs() / 1024;
             reduction -= 51 * move_count;
-            reduction += 314;
 
             if tt_pv {
                 reduction -= 776;
@@ -772,13 +778,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if depth == 2 {
                 reduction -= 1086;
-            }
-
-            if is_quiet {
-                reduction -= 143 * (history - 556) / 1024;
-            } else {
-                reduction -= 67 * (history - 551) / 1024;
-                reduction -= 45 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 132;
             }
 
             if mv == tt_move {
