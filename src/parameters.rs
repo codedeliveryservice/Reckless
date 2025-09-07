@@ -34,3 +34,27 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    f32 lmp1: 4.0;
+    f32 lmp2: 1.0;
+    f32 lmp3: 2.0;
+    f32 lmp4: 0.5;
+    i32 lmp5: 17;
+    i32 fp1: 107;
+    i32 fp2: 48;
+    i32 fp3: 90;
+    i32 fp4: 75;
+    i32 fp5: 8;
+    i32 bnfp1: 118;
+    i32 bnfp2: 96;
+    i32 bnfp3: 91;
+    i32 bnfp4: 67;
+    i32 bnfp5: 6;
+    i32 see1: 22;
+    i32 see2: 32;
+    i32 see3: 17;
+    i32 see4: 104;
+    i32 see5: 45;
+    i32 see6: 46;
+);

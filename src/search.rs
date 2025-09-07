@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::{PrincipalVariationTable, RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -533,6 +533,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let lmp_threshold = if improving || static_eval >= beta + lmp5() {
+        lmp1() + lmp2() * (initial_depth * initial_depth) as f32
+    } else {
+        lmp3() + lmp4() * (initial_depth * initial_depth) as f32
+    } as i32;
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -572,17 +578,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            skip_quiets |= !in_check && move_count >= lmp_threshold;
 
             // Futility Pruning (FP)
-            let futility_value =
-                static_eval + 107 * lmr_depth + 48 * history / 1024 + 90 * (static_eval >= alpha) as i32 + 75;
+            let futility_value = static_eval
+                + fp1() * lmr_depth
+                + fp2() * history / 1024
+                + fp3() * (static_eval >= alpha) as i32
+                + fp4();
 
             if !in_check
                 && is_quiet
-                && lmr_depth < 8
+                && lmr_depth < fp5()
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
@@ -595,12 +602,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = static_eval
-                + 118 * lmr_depth
-                + 96 * history / 1024
-                + 91 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 67;
+                + bnfp1() * lmr_depth
+                + bnfp2() * history / 1024
+                + bnfp3() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + bnfp4();
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < bnfp5()
+                && move_picker.stage() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
@@ -609,9 +620,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -22 * lmr_depth * lmr_depth - 32 * history / 1024 + 17
+                -see1() * lmr_depth * lmr_depth - see2() * history / 1024 + see3()
             } else {
-                -104 * depth + 46 - 45 * history / 1024
+                -see4() * depth - see5() * history / 1024 + see6()
             };
 
             if !td.board.see(mv, threshold) {
