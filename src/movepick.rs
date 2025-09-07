@@ -1,4 +1,5 @@
 use crate::{
+    lookup::pawn_attacks,
     parameters::PIECE_VALUES,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
@@ -185,6 +186,12 @@ impl MovePicker {
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
                 + td.conthist(6, mv);
+
+            if td.board.moved_piece(mv).piece_type() == PieceType::Pawn
+                && !(pawn_attacks(mv.from(), side) & td.board.them()).is_empty()
+            {
+                entry.score += 1024;
+            }
         }
     }
 }
