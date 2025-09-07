@@ -20,7 +20,7 @@ pub fn message_loop() {
 
     let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
     let mut frc = false;
-    let mut move_overhead = 0;
+    let mut move_overhead = 100;
     let mut report = Report::Full;
     let mut next_command = None;
 
@@ -59,7 +59,7 @@ fn uci() {
     println!("id author Arseniy Surkov, Shahin M. Shahin, and Styx");
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 262144");
     println!("option name Threads type spin default 1 min 1 max 512");
-    println!("option name MoveOverhead type spin default 0 min 0 max 2000");
+    println!("option name MoveOverhead type spin default 100 min 0 max 2000");
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
