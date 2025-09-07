@@ -693,6 +693,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 980 * tt_move.is_null() as i32;
             }
 
+            if in_check {
+                reduction -= 768;
+            }
+
             if td.board.in_check() || !td.board.has_non_pawns() {
                 reduction -= 1026;
             }
