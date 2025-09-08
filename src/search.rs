@@ -533,6 +533,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth -= 1;
     }
 
+    let lmp_threshold = if improving || static_eval >= beta + 18 {
+        4.1560 + 0.9769 * (initial_depth * initial_depth) as f32
+    } else {
+        1.8653 + 0.4893 * (initial_depth * initial_depth) as f32
+    } as i32;
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -573,9 +579,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - lmr_reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            skip_quiets |= !in_check && move_count >= lmp_threshold;
 
             // Futility Pruning (FP)
             let futility_value =
