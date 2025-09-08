@@ -835,7 +835,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if score > alpha {
                 bound = Bound::Exact;
-                alpha = score;
                 best_move = mv;
 
                 if NODE::PV {
@@ -851,6 +850,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 if depth > 2 && depth < 17 && !is_decisive(score) {
                     depth -= 1;
                 }
+
+                alpha = score;
             }
         }
 
@@ -939,7 +940,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+    debug_assert!(alpha < beta);
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
     }
 
