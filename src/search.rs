@@ -695,7 +695,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1026;
             }
 
-            if td.stack[td.ply].cutoff_count > 2 {
+            if td.stack[td.ply].cutoff_count > 1 + (depth > 8) as i32 {
                 reduction += 1639;
             }
 
