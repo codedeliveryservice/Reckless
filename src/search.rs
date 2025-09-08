@@ -569,8 +569,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_reduction = if is_quiet { reduction - 143 * history / 1024 } else { reduction };
-            let lmr_depth = (depth - lmr_reduction / 1024).max(0);
+            let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
@@ -579,11 +578,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Futility Pruning (FP)
             let futility_value =
-                static_eval + 107 * lmr_depth + 32 * history / 1024 + 90 * (static_eval >= alpha) as i32 + 75;
+                static_eval + 107 * lmr_depth + 48 * history / 1024 + 90 * (static_eval >= alpha) as i32 + 85;
 
             if !in_check
                 && is_quiet
-                && lmr_depth < 8
+                && lmr_depth < 9
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
