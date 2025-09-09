@@ -751,16 +751,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 2806 * correction_value.abs() / 1024;
             reduction -= 51 * move_count;
 
-            if tt_pv {
-                reduction -= 776;
-                reduction -= 536 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 1071 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if NODE::PV {
-                reduction -= 480 + 801 * (beta - alpha > 26 * td.root_delta / 128) as i32;
-            }
-
             if !tt_pv && cut_node {
                 reduction += 1391;
                 reduction += 1055 * tt_move.is_null() as i32;
@@ -787,7 +777,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction > 3000) as i32, !cut_node);
+            score =
+                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (!tt_pv && reduction > 3000) as i32, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 
