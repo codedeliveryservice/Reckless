@@ -72,7 +72,16 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .collect();
 
     let mut average = Score::NONE;
-    let mut last_move = Move::NULL;
+    let mut last_best_rootmove = RootMove {
+        mv: Move::NULL,
+        score: -Score::INFINITE,
+        display_score: -Score::INFINITE,
+        lowerbound: false,
+        upperbound: false,
+        sel_depth: 0,
+        nodes: 0,
+        pv: PrincipalVariationTable::default(),
+    };
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
@@ -135,19 +144,34 @@ pub fn start(td: &mut ThreadData, report: Report) {
             delta += delta * (38 + 15 * reduction) / 128;
         }
 
-        if td.stopped {
-            break;
+        if !td.stopped {
+            td.completed_depth = depth;
         }
 
         td.nodes.flush();
         td.tb_hits.flush();
-        td.completed_depth = depth;
 
-        if last_move == td.root_moves[0].mv {
+        if report == Report::Full && !(is_loss(td.root_moves[0].display_score) && td.stopped) {
+            td.print_uci_info(depth);
+        }
+
+        if last_best_rootmove.mv == td.root_moves[0].mv {
             pv_stability += 1;
         } else {
             pv_stability = 0;
-            last_move = td.root_moves[0].mv;
+        }
+
+        if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
+            if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
+                td.root_moves.remove(pos);
+                td.root_moves.insert(0, last_best_rootmove.clone());
+            }
+        } else {
+            last_best_rootmove = td.root_moves[0].clone();
+        }
+
+        if td.stopped {
+            break;
         }
 
         if (td.root_moves[0].score - average).abs() < 12 {
@@ -171,10 +195,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         if td.time_manager.soft_limit(td, multiplier) {
             break;
-        }
-
-        if report == Report::Full {
-            td.print_uci_info(depth);
         }
     }
 
