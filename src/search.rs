@@ -582,6 +582,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
+        let mut new_depth = depth - 1;
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !improving {
@@ -676,13 +677,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             } else if cut_node {
                 extension = -2;
             }
+
+            new_depth += extension;
         }
 
         let initial_nodes = td.nodes.local();
 
         make_move(td, mv);
 
-        let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
