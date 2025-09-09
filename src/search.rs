@@ -412,7 +412,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 305 - 239 * initial_depth * initial_depth {
+    if !NODE::PV && !in_check && eval < alpha - 305 - 239 * initial_depth * initial_depth && tt_bound != Bound::Lower {
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
