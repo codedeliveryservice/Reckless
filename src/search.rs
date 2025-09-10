@@ -497,6 +497,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if verified_score >= beta {
+                td.tt.write(
+                    tt_slot,
+                    hash,
+                    (depth - r).max(0) + 1,
+                    raw_eval,
+                    score,
+                    Bound::Lower,
+                    Move::NULL,
+                    td.ply,
+                    tt_pv,
+                );
+
                 return score;
             }
         }
