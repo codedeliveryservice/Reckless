@@ -4,6 +4,7 @@ use crate::{
         queen_attacks, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
+    uci::CastleSide,
 };
 
 #[cfg(test)]
@@ -28,6 +29,7 @@ struct InternalState {
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
+    opponent_castled_side: Option<CastleSide>,
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
@@ -546,6 +548,46 @@ impl Board {
             Square::G8 => (self.castling_rooks[CastlingKind::BlackKingside], Square::F8),
             Square::C8 => (self.castling_rooks[CastlingKind::BlackQueenside], Square::D8),
             _ => unreachable!(),
+        }
+    }
+
+    pub const fn opponent_castled_side(&self) -> Option<CastleSide> {
+        self.state.opponent_castled_side
+    }
+
+    pub fn set_opponent_castled_side(&mut self, side: Option<CastleSide>) {
+        self.state.opponent_castled_side = side;
+    }
+
+    pub fn set_opponent_castled_side_from_move(&mut self, mv: Move, mover: Color) {
+        if let Some(side) = Self::castle_side_from_move(mv, mover) {
+            self.state.opponent_castled_side = Some(side);
+        }
+    }
+
+    pub fn set_opponent_castled_side_from_uci(&mut self, uci: &str, mover: Color) {
+        if let Some(side) = Self::castle_side_from_uci(uci, mover) {
+            self.state.opponent_castled_side = Some(side);
+        }
+    }
+
+    fn castle_side_from_move(mv: Move, mover: Color) -> Option<CastleSide> {
+        match (mover, mv.from(), mv.to()) {
+            (Color::White, Square::E1, Square::G1) => Some(CastleSide::Kingside),
+            (Color::White, Square::E1, Square::C1) => Some(CastleSide::Queenside),
+            (Color::Black, Square::E8, Square::G8) => Some(CastleSide::Kingside),
+            (Color::Black, Square::E8, Square::C8) => Some(CastleSide::Queenside),
+            _ => None,
+        }
+    }
+
+    fn castle_side_from_uci(uci: &str, mover: Color) -> Option<CastleSide> {
+        match (mover, uci) {
+            (Color::White, "e1g1") => Some(CastleSide::Kingside),
+            (Color::White, "e1c1") => Some(CastleSide::Queenside),
+            (Color::Black, "e8g8") => Some(CastleSide::Kingside),
+            (Color::Black, "e8c8") => Some(CastleSide::Queenside),
+            _ => None,
         }
     }
 }

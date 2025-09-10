@@ -6,9 +6,10 @@ use crate::{
     thread::{PrincipalVariationTable, RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
-        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, CastlingKind,
+        Color, Move, Piece, Score, Square, MAX_PLY,
     },
+    uci::CastleSide,
 };
 
 #[allow(unused_imports)]
@@ -54,11 +55,35 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     td.nnue.full_refresh(&td.board);
 
+    let opp_side = td.board.opponent_castled_side();
+    let side = td.board.side_to_move();
+
     td.root_moves = td
         .board
         .generate_all_moves()
         .iter()
-        .filter(|v| td.board.is_legal(v.mv))
+        .filter(|v| {
+            if !td.board.is_legal(v.mv) {
+                return false;
+            }
+
+            if let Some(opp) = opp_side {
+                if v.mv.is_castling() {
+                    let same_side_castle = match (side, v.mv.castling_kind(side).unwrap(), opp) {
+                        (Color::White, CastlingKind::WhiteKingside, CastleSide::Kingside) => true,
+                        (Color::White, CastlingKind::WhiteQueenside, CastleSide::Queenside) => true,
+                        (Color::Black, CastlingKind::BlackKingside, CastleSide::Kingside) => true,
+                        (Color::Black, CastlingKind::BlackQueenside, CastleSide::Queenside) => true,
+                        _ => false,
+                    };
+                    if same_side_castle {
+                        return false;
+                    }
+                }
+            }
+
+            true
+        })
         .map(|v| RootMove {
             mv: v.mv,
             score: -Score::INFINITE,
@@ -565,6 +590,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
+            continue;
+        }
+
+        if NODE::ROOT && !td.root_moves.iter().any(|rm| rm.mv == mv) {
             continue;
         }
 

@@ -1,7 +1,10 @@
 use std::mem;
 
 use super::{PieceType, Square};
-use crate::board::Board;
+use crate::{
+    board::Board,
+    types::{CastlingKind, Color},
+};
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
@@ -108,6 +111,16 @@ impl Move {
             MoveKind::PromotionB | MoveKind::PromotionCaptureB => Some(PieceType::Bishop),
             MoveKind::PromotionR | MoveKind::PromotionCaptureR => Some(PieceType::Rook),
             MoveKind::PromotionQ | MoveKind::PromotionCaptureQ => Some(PieceType::Queen),
+            _ => None,
+        }
+    }
+
+    pub fn castling_kind(&self, side: Color) -> Option<CastlingKind> {
+        match (side, self.from(), self.to()) {
+            (Color::White, Square::E1, Square::G1) => Some(CastlingKind::WhiteKingside),
+            (Color::White, Square::E1, Square::C1) => Some(CastlingKind::WhiteQueenside),
+            (Color::Black, Square::E8, Square::G8) => Some(CastlingKind::BlackKingside),
+            (Color::Black, Square::E8, Square::C8) => Some(CastlingKind::BlackQueenside),
             _ => None,
         }
     }

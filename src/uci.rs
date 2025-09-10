@@ -177,6 +177,22 @@ fn go(
     listener.join().unwrap()
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum CastleSide {
+    Kingside,
+    Queenside,
+}
+
+fn castle_side_from_uci(uci: &str, stm: Color) -> Option<CastleSide> {
+    match (stm, uci) {
+        (Color::White, "e1g1") => Some(CastleSide::Kingside),
+        (Color::White, "e1c1") => Some(CastleSide::Queenside),
+        (Color::Black, "e8g8") => Some(CastleSide::Kingside),
+        (Color::Black, "e8c8") => Some(CastleSide::Queenside),
+        _ => None,
+    }
+}
+
 fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
     let mut board = Board::default();
 
@@ -195,7 +211,36 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
-                rest.iter().for_each(|uci_move| make_uci_move(&mut board, uci_move));
+                let mut white_castled: Option<CastleSide> = None;
+                let mut black_castled: Option<CastleSide> = None;
+
+                for uci_move in rest {
+                    let stm = board.side_to_move();
+                    if let Some(side) = castle_side_from_uci(uci_move, stm) {
+                        match stm {
+                            Color::White => {
+                                if white_castled.is_none() {
+                                    white_castled = Some(side);
+                                }
+                            }
+                            Color::Black => {
+                                if black_castled.is_none() {
+                                    black_castled = Some(side);
+                                }
+                            }
+                        }
+                    }
+                    make_uci_move(&mut board, uci_move);
+                }
+
+                let opponent = !board.side_to_move();
+                let opp_side = match opponent {
+                    Color::White => white_castled,
+                    Color::Black => black_castled,
+                };
+
+                board.set_opponent_castled_side(opp_side);
+
                 break;
             }
             _ => {
