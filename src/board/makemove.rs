@@ -93,6 +93,8 @@ impl Board {
 
                 self.update_hash(rook, rook_from);
                 self.update_hash(rook, rook_to);
+
+                self.state.castling.raw &= self.castling_rights[from ^ 56] & self.castling_rights[to ^ 56];
             }
             _ if mv.is_promotion() => {
                 let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
