@@ -1044,6 +1044,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_score = -Score::INFINITE;
     let mut futility_base = Score::NONE;
     let mut raw_eval = Score::NONE;
+    let mut static_eval = Score::NONE;
 
     // Evaluation
     if !in_check {
@@ -1052,7 +1053,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             _ => evaluate(td),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -1123,6 +1124,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
 
             if in_check && mv.is_quiet() {
                 break;
+            }
+
+            if !in_check && !td.board.see(mv, alpha - static_eval - 300) {
+                best_score = alpha;
+                continue;
             }
 
             let futility_score = futility_base + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
