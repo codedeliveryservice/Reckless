@@ -563,6 +563,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
+    let lmp_threshold = (6 + depth * depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -592,9 +594,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+            skip_quiets |= !in_check && move_count >= lmp_threshold;
 
             // Futility Pruning (FP)
             let futility_value =
