@@ -628,7 +628,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            let threshold = if is_quiet {
+            let threshold = if is_quiet && !td.board.might_give_check_if_you_squint(mv) {
                 -22 * lmr_depth * lmr_depth - 31 * history / 1024 + 17
             } else {
                 -104 * depth - 45 * history / 1024 + 46
