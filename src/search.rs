@@ -1133,7 +1133,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
         }
 
-        if !is_loss(best_score) && !td.board.see(mv, -79) {
+        if !is_loss(best_score) && !td.board.see(mv, if mv.is_quiet() { 0 } else { -79 }) {
             continue;
         }
 
