@@ -63,3 +63,19 @@ pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
 
     (100.0 * score as f64 / normalization).round() as i32
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Default)]
+pub struct S(pub i32, pub i32);
+
+impl S {
+    pub fn interpolate(self, board: &Board) -> i32 {
+        const TOTAL_PHASE: i32 = 24;
+
+        let mg_phase = board.game_phase();
+        let eg_phase = TOTAL_PHASE - mg_phase;
+
+        let S(mg_score, eg_score) = self;
+
+        (mg_score * mg_phase + eg_score * eg_phase) / TOTAL_PHASE
+    }
+}

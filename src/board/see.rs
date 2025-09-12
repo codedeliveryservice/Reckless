@@ -22,7 +22,7 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= PIECE_VALUES[self.piece_on(mv.from()).piece_type()];
+        balance -= PIECE_VALUES[self.piece_on(mv.from()).piece_type()].interpolate(self);
         if balance >= 0 {
             return true;
         }
@@ -59,7 +59,7 @@ impl super::Board {
             stm = !stm;
 
             // Assume our piece is going to be captured
-            balance = -balance - 1 - PIECE_VALUES[attacker];
+            balance = -balance - 1 - PIECE_VALUES[attacker].interpolate(self);
             if balance >= 0 {
                 break;
             }
@@ -81,11 +81,11 @@ impl super::Board {
 
     fn move_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return PIECE_VALUES[PieceType::Pawn];
+            return PIECE_VALUES[PieceType::Pawn].interpolate(self);
         }
 
         let capture = self.piece_on(mv.to()).piece_type();
-        PIECE_VALUES[capture]
+        PIECE_VALUES[capture].interpolate(self)
     }
 
     fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {

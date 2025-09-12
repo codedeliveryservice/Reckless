@@ -14,6 +14,8 @@ mod movegen;
 mod parser;
 mod see;
 
+const PHASE_WEIGHTS: [i32; 6] = [0, 1, 1, 2, 4, 0];
+
 /// Captures essential information needed to efficiently revert the board to
 /// a previous position after making a move.
 ///
@@ -50,6 +52,7 @@ pub struct Board {
     castling_threat: [Bitboard; 16],
     castling_rooks: [Square; 16],
     frc: bool,
+    phase: i32,
 }
 
 impl Board {
@@ -67,6 +70,10 @@ impl Board {
 
     pub const fn fullmove_number(&self) -> usize {
         self.fullmove_number
+    }
+
+    pub const fn game_phase(&self) -> i32 {
+        self.phase
     }
 
     pub fn hash(&self) -> u64 {
@@ -194,12 +201,14 @@ impl Board {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
+        self.phase += PHASE_WEIGHTS[piece.piece_type() as usize];
     }
 
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
+        self.phase -= PHASE_WEIGHTS[piece.piece_type() as usize];
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
@@ -565,6 +574,7 @@ impl Default for Board {
             castling_threat: [Bitboard::default(); 16],
             castling_rooks: [Square::None; 16],
             frc: false,
+            phase: 0,
         }
     }
 }
