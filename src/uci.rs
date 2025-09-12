@@ -4,7 +4,7 @@ use crate::{
     board::Board,
     search::Report,
     tb::tb_initilize,
-    thread::{ThreadData, ThreadPool},
+    thread::ThreadPool,
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
@@ -45,7 +45,6 @@ pub fn message_loop() {
 
             // Non-UCI commands
             ["compiler"] => compiler(),
-            ["d"] => display(threads.any_thread()),
             ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
@@ -86,13 +85,13 @@ fn go(
     threads: &mut ThreadPool, tt: &TranspositionTable, stop: &'static AtomicBool, report: Report, move_overhead: u64,
     tokens: &[&str],
 ) -> Option<String> {
-    let board = &threads.any_thread().board;
-    let limits = parse_limits(board.side_to_move(), tokens);
+    let (side_to_move, fullmove_number) = threads.get_board_info();
+    let limits = parse_limits(side_to_move, tokens);
 
     tt.increment_age();
     stop.store(false, Ordering::Relaxed);
 
-    let time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    let time_manager = TimeManager::new(limits, fullmove_number, move_overhead);
     threads.search(time_manager);
 
     crate::misc::dbg_print();
@@ -127,9 +126,7 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
         }
     }
 
-    for thread in threads.iter_mut() {
-        thread.board = board.clone();
-    }
+    threads.set_board(&board);
 }
 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
@@ -182,10 +179,6 @@ fn set_option(
         }
         _ => eprintln!("Unknown option: '{}'", tokens.join(" ").trim_end()),
     }
-}
-
-fn display(td: &ThreadData) {
-    println!("FEN: {}", td.board.to_fen());
 }
 
 fn read_stdin() -> String {

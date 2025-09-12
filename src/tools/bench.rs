@@ -84,7 +84,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     let nodes = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut td = ThreadData::new(0, &tt, &stop, &nodes, &tb_hits);
+    let mut td = ThreadData::new(&tt, &stop, &nodes, &tb_hits);
 
     let time = Instant::now();
 
