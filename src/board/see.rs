@@ -27,6 +27,12 @@ impl super::Board {
             return true;
         }
 
+        if self.piece_on(mv.to()).piece_type() == PieceType::Queen
+            && self.piece_on(mv.from()).piece_type() == PieceType::Pawn
+        {
+            return true;
+        }
+
         let mut occupancies = self.occupancies();
         occupancies.clear(mv.from());
         occupancies.set(mv.to());
