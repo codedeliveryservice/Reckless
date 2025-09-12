@@ -11,11 +11,10 @@ use crate::{
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{is_decisive, is_loss, is_win, normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
+    types::{is_decisive, is_loss, is_win, normalize_to_cp, Color, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadData<'a> {
-    pub id: usize,
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
     pub nodes: AtomicCounter<'a>,
@@ -47,11 +46,8 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(
-        id: usize, tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64,
-    ) -> Self {
+    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
         Self {
-            id,
             tt,
             stop,
             nodes: AtomicCounter::new(nodes),
@@ -144,6 +140,7 @@ impl<'a> ThreadData<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct RootMove {
     pub mv: Move,
     pub score: i32,
@@ -154,6 +151,7 @@ pub struct RootMove {
     pub nodes: u64,
 }
 
+#[derive(Clone)]
 pub struct PrincipalVariationTable {
     table: [[Move; MAX_PLY + 1]; MAX_PLY + 1],
     len: [usize; MAX_PLY + 1],
@@ -261,25 +259,21 @@ pub struct ThreadPool {
     context: Arc<(Mutex<Vec<()>>, Condvar)>,
     senders: Vec<std::sync::mpsc::Sender<Message>>,
     handlers: Vec<std::thread::JoinHandle<()>>,
-    data: Vec<ThreadDataPtr>,
 }
 
 enum Message {
-    Prepare(std::sync::mpsc::Sender<ThreadDataPtr>),
-    Search(TimeManager),
+    Search(TimeManager, std::sync::mpsc::Sender<SearchResult>),
+    SetBoard(Board),
     Terminate,
+    Clear,
+    GetBoardInfo(std::sync::mpsc::Sender<(Color, usize)>),
 }
 
-struct ThreadDataPtr(*mut ThreadData<'static>);
-
-impl ThreadDataPtr {
-    pub fn as_ref(&self) -> &ThreadData<'static> {
-        unsafe { &*self.0 }
-    }
+struct SearchResult {
+    root_moves: Vec<RootMove>,
+    pv: PrincipalVariationTable,
+    completed_depth: i32,
 }
-
-unsafe impl Send for ThreadDataPtr {}
-unsafe impl Sync for ThreadDataPtr {}
 
 impl ThreadPool {
     pub fn new() -> Self {
@@ -287,7 +281,6 @@ impl ThreadPool {
             context: Arc::new((Mutex::new(Vec::new()), Condvar::new())),
             senders: Vec::new(),
             handlers: Vec::new(),
-            data: Vec::new(),
         }
     }
 
@@ -302,7 +295,6 @@ impl ThreadPool {
             if let Some(handler) = self.handlers.pop() {
                 handler.join().unwrap();
             }
-            self.data.pop().unwrap();
         }
 
         while self.handlers.len() < requested {
@@ -312,16 +304,11 @@ impl ThreadPool {
             let context = self.context.clone();
 
             let handler = std::thread::spawn(move || {
-                let mut td = Box::pin(ThreadData::new(id, tt, stop, nodes, tb_hits));
+                let mut td = ThreadData::new(tt, stop, nodes, tb_hits);
 
                 loop {
                     match rx.recv() {
-                        Ok(Message::Prepare(reply)) => {
-                            let ptr: *mut ThreadData = &mut *td as *mut ThreadData;
-                            let ptr = ThreadDataPtr(ptr);
-                            reply.send(ptr).unwrap();
-                        }
-                        Ok(Message::Search(time_manager)) => {
+                        Ok(Message::Search(time_manager, reply)) => {
                             let (lock, cvar) = &*context;
 
                             if id == 0 {
@@ -333,24 +320,39 @@ impl ThreadPool {
 
                             lock.lock().unwrap().push(());
                             cvar.notify_one();
+
+                            reply
+                                .send(SearchResult {
+                                    root_moves: td.root_moves.clone(),
+                                    pv: td.pv.clone(),
+                                    completed_depth: td.completed_depth,
+                                })
+                                .unwrap();
+                        }
+                        Ok(Message::Clear) => {
+                            td = ThreadData::new(tt, stop, nodes, tb_hits);
+                        }
+                        Ok(Message::SetBoard(board)) => {
+                            td.board = board;
+                        }
+                        Ok(Message::GetBoardInfo(reply)) => {
+                            reply.send((td.board.side_to_move(), td.board.fullmove_number())).unwrap();
                         }
                         Ok(Message::Terminate) | Err(_) => break,
                     }
                 }
             });
 
-            let (reply_tx, reply_rx) = std::sync::mpsc::channel();
-            tx.send(Message::Prepare(reply_tx)).unwrap();
-
-            self.data.push(reply_rx.recv().unwrap());
             self.senders.push(tx);
             self.handlers.push(handler);
         }
     }
 
     pub fn search(&mut self, time_manager: TimeManager) {
+        let (reply_tx, reply_rx) = std::sync::mpsc::channel();
+
         for sender in self.senders.iter() {
-            sender.send(Message::Search(time_manager.clone())).unwrap();
+            sender.send(Message::Search(time_manager.clone(), reply_tx.clone())).unwrap();
         }
 
         let (lock, cvar) = &*self.context;
@@ -360,20 +362,22 @@ impl ThreadPool {
         }
         std::mem::take(&mut *guard);
 
-        let min_score = self.data.iter().map(|v| v.as_ref().root_moves[0].score).min().unwrap();
-        let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+        let results = reply_rx.iter().take(self.handlers.len()).collect::<Vec<_>>();
+
+        let min_score = results.iter().map(|v| v.root_moves[0].score).min().unwrap();
+        let vote_value = |result: &SearchResult| (result.root_moves[0].score - min_score + 10) * result.completed_depth;
 
         let mut votes = vec![0; 4096];
-        for result in self.data.iter() {
-            votes[result.as_ref().pv.best_move().encoded()] += vote_value(result.as_ref());
+        for result in results.iter() {
+            votes[result.pv.best_move().encoded()] += vote_value(result);
         }
 
         let mut best = 0;
 
-        for current in 1..self.data.len() {
+        for current in 1..results.len() {
             let is_better_candidate = || -> bool {
-                let best = self.data[best].as_ref();
-                let current = self.data[current].as_ref();
+                let best = &results[best];
+                let current = &results[current];
 
                 if is_decisive(best.root_moves[0].score) {
                     return current.root_moves[0].score > best.root_moves[0].score;
@@ -396,29 +400,29 @@ impl ThreadPool {
             }
         }
 
-        println!("bestmove {}", self.data[best].as_ref().pv.best_move().to_uci(&self.data[best].as_ref().board));
-    }
-
-    pub fn any_thread(&mut self) -> &ThreadData<'static> {
-        unsafe { &*self.data[0].0 }
+        // TODO: This breaks (D)FRC
+        println!("bestmove {}", results[best].pv.best_move().to_uci(&Board::default()));
     }
 
     pub fn len(&self) -> usize {
         self.handlers.len()
     }
 
-    pub fn clear(&mut self) {
-        self.data.clear();
-
+    pub fn clear(&self) {
         for sender in self.senders.iter() {
-            let (reply_tx, reply_rx) = std::sync::mpsc::channel();
-            sender.send(Message::Prepare(reply_tx)).unwrap();
-
-            self.data.push(reply_rx.recv().unwrap());
+            sender.send(Message::Clear).unwrap();
         }
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData<'static>> {
-        self.data.iter_mut().map(|td| unsafe { &mut *td.0 })
+    pub fn set_board(&self, board: &Board) {
+        for sender in self.senders.iter() {
+            sender.send(Message::SetBoard(board.clone())).unwrap();
+        }
+    }
+
+    pub fn get_board_info(&self) -> (Color, usize) {
+        let (reply_tx, reply_rx) = std::sync::mpsc::channel();
+        self.senders[0].send(Message::GetBoardInfo(reply_tx)).unwrap();
+        reply_rx.recv().unwrap()
     }
 }
