@@ -1,6 +1,14 @@
 use crate::types::S;
 
-pub const PIECE_VALUES: [S; 7] = [S(100, 100), S(375, 375), S(400, 400), S(625, 625), S(1200, 1200), S(0, 0), S(0, 0)];
+pub const PIECE_VALUES: [fn() -> S; 7] = [
+    || S(pawn_mg(), pawn_eg()),
+    || S(knight_mg(), knight_eg()),
+    || S(bishop_mg(), bishop_eg()),
+    || S(rook_mg(), rook_eg()),
+    || S(queen_mg(), queen_eg()),
+    || S(0, 0),
+    || S(0, 0),
+];
 
 #[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
@@ -36,3 +44,16 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 pawn_mg: 100;
+    i32 pawn_eg: 100;
+    i32 knight_mg: 375;
+    i32 knight_eg: 375;
+    i32 bishop_mg: 400;
+    i32 bishop_eg: 400;
+    i32 rook_mg: 625;
+    i32 rook_eg: 625;
+    i32 queen_mg: 1200;
+    i32 queen_eg: 1200;
+);

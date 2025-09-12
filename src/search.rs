@@ -617,7 +617,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let noisy_futility_value = static_eval
                 + 118 * lmr_depth
                 + 80 * history / 1024
-                + 91 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()].interpolate(&td.board) / 1024
+                + 91 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()]().interpolate(&td.board) / 1024
                 + 67;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
@@ -691,7 +691,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             } else {
                 reduction += 477;
                 reduction -= 107 * history / 1024;
-                reduction -= 46 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()].interpolate(&td.board) / 128;
+                reduction -= 46 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()]().interpolate(&td.board) / 128;
             }
 
             reduction -= 3689 * correction_value.abs() / 1024;
@@ -763,7 +763,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             } else {
                 reduction += 350;
                 reduction -= 67 * history / 1024;
-                reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()].interpolate(&td.board) / 128;
+                reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()]().interpolate(&td.board) / 128;
             }
 
             reduction -= 2806 * correction_value.abs() / 1024;
@@ -1125,8 +1125,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 break;
             }
 
-            let futility_score =
-                futility_base + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()].interpolate(&td.board) / 128;
+            let futility_score = futility_base
+                + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()]().interpolate(&td.board) / 128;
 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
