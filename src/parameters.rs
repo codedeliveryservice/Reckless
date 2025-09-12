@@ -1,6 +1,6 @@
 use crate::types::S;
 
-pub const PIECE_VALUES: [S; 7] = [S(100, 100), S(375, 375), S(400, 400), S(625, 625), S(1200, 1200), S(0, 0), S(0, 0)];
+pub const PIECE_VALUES: [S; 7] = [S(82, 97), S(370, 392), S(400, 372), S(625, 646), S(1227, 1160), S(0, 0), S(0, 0)];
 
 #[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
