@@ -1,4 +1,4 @@
-pub const PIECE_VALUES: [i32; 7] = [100, 375, 400, 625, 1200, 0, 0];
+pub const PIECE_VALUES: [i32; 7] = [109, 403, 435, 679, 1242, 0, 0];
 
 #[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]

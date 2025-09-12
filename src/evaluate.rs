@@ -1,10 +1,9 @@
 use crate::{
     board::Board,
+    parameters::PIECE_VALUES,
     thread::ThreadData,
     types::{PieceType, Score},
 };
-
-const MATERIAL_VALUES: [i32; 6] = [129, 403, 435, 679, 1242, 0];
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
@@ -22,6 +21,6 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 fn material(board: &Board) -> i32 {
     [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
         .iter()
-        .map(|&pt| board.pieces(pt).len() as i32 * MATERIAL_VALUES[pt])
+        .map(|&pt| board.pieces(pt).len() as i32 * PIECE_VALUES[pt])
         .sum::<i32>()
 }
