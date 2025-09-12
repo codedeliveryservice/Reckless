@@ -8,9 +8,11 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pgn_lexer::parser::{PGNTokenIterator, Token};
 use shakmaty::{fen::Fen, san::San, CastlingMode, Chess, Position};
 
-use crate::{board::Board, tools::BinpackWriter};
+use crate::{board::Board, nnue::Network, tools::BinpackWriter, types::Color};
 
-pub fn convert_pgns(input: &str, output: &str, threads: usize) {
+pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool) {
+    println!("Converting PGNs from '{input}' to '{output}' using {threads} threads [adversarial={adversarial}]");
+
     let mut handlers = Vec::new();
 
     std::fs::create_dir(output).unwrap();
@@ -45,9 +47,10 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize) {
         let handler = std::thread::spawn(move || {
             let buf = BufWriter::new(File::create(format!("{output}/chunk_{index}.rbinpack")).unwrap());
             let mut writer = BinpackWriter::new(buf);
+            let mut nnue = Network::default();
 
             for file_name in chunk {
-                convert_pgn(&file_name, &mut writer);
+                convert_pgn(&file_name, adversarial, &mut writer, &mut nnue);
                 progress.lock().unwrap().inc(1);
             }
         });
@@ -61,7 +64,7 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize) {
     std::process::exit(0);
 }
 
-pub fn convert_pgn(file_name: &str, writer: &mut BinpackWriter) {
+pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWriter, nnue: &mut Network) {
     let file = File::open(file_name).unwrap();
     let uncompressed = bzip2::read::BzDecoder::new(file);
     let bytes = BufReader::new(uncompressed).bytes().flatten().collect::<Vec<_>>();
@@ -74,6 +77,7 @@ pub fn convert_pgn(file_name: &str, writer: &mut BinpackWriter) {
     let mut internal_board = Board::default();
     let mut internal_entries = Vec::new();
 
+    let mut player = Color::White;
     let mut mate_score_found = false;
     let mut skip_game = false;
 
@@ -85,6 +89,15 @@ pub fn convert_pgn(file_name: &str, writer: &mut BinpackWriter) {
         }
 
         match token {
+            Token::TagSymbol(bytes) if bytes == b"White" => {
+                let white_bytes = match parser.next() {
+                    Some(Token::TagString(v)) => v,
+                    _ => panic!(),
+                };
+
+                player =
+                    if String::from_utf8_lossy(white_bytes).contains("Reckless") { Color::White } else { Color::Black };
+            }
             Token::TagSymbol(bytes) if bytes == b"FEN" => {
                 let fen_bytes = match parser.next() {
                     Some(Token::TagString(v)) => v,
@@ -137,7 +150,11 @@ pub fn convert_pgn(file_name: &str, writer: &mut BinpackWriter) {
             };
 
             let score = match commentary.split_whitespace().next().and_then(|v| v.parse::<f32>().ok()) {
-                Some(v) => (100.0 * v) as i32,
+                Some(v) if !adversarial || internal_board.side_to_move() == player => (100.0 * v) as i32,
+                Some(_) => {
+                    nnue.full_refresh(&internal_board);
+                    nnue.evaluate(&internal_board)
+                }
                 None => {
                     mate_score_found = true;
                     continue;
