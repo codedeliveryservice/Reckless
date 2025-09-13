@@ -645,8 +645,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move && potential_singularity {
             debug_assert!(is_valid(tt_score));
 
+            depth -= !(NODE::PV || cut_node) as i32;
             let singular_beta = tt_score - depth;
             let singular_depth = (depth - 1) / 2;
+            depth += !(NODE::PV || cut_node) as i32;
 
             td.stack[td.ply].excluded = tt_move;
             let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
