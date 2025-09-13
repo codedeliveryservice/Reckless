@@ -402,7 +402,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check
-        && !excluded
         && td.stack[td.ply - 1].reduction >= 2561
         && static_eval + td.stack[td.ply - 1].static_eval < 0
     {
@@ -412,7 +411,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     if !NODE::ROOT
         && !tt_pv
         && !in_check
-        && !excluded
         && depth >= 2
         && td.stack[td.ply - 1].reduction >= 980
         && is_valid(td.stack[td.ply - 1].static_eval)
@@ -648,9 +646,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let singular_beta = tt_score - depth;
             let singular_depth = (depth - 1) / 2;
 
+            let original_reduction = td.stack[td.ply - 1].reduction;
+
+            td.stack[td.ply - 1].reduction = 1024 * (depth - singular_depth);
             td.stack[td.ply].excluded = tt_move;
+
             let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node);
+
             td.stack[td.ply].excluded = Move::NULL;
+            td.stack[td.ply - 1].reduction = original_reduction;
 
             if td.stopped {
                 return Score::ZERO;
