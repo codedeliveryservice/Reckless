@@ -4,7 +4,7 @@ use crate::{
     board::Board,
     search::{self, Report},
     tb::tb_initilize,
-    thread::{ThreadData, ThreadPool},
+    thread::{pool::ScopeExt, ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
@@ -98,18 +98,25 @@ fn go(
     let listener = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
-        for (id, td) in threads.iter_mut().enumerate() {
-            let handler = scope.spawn(move || {
-                if id == 0 {
-                    search::start(td, report);
-                    stop.store(true, Ordering::Relaxed);
-                } else {
-                    td.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
-                    search::start(td, Report::None);
-                }
-            });
+        let (t1, rest) = threads.vector.split_first_mut().unwrap();
+        let (w1, rest_workers) = threads.workers.split_first().unwrap();
 
-            handlers.push(handler);
+        handlers.push(scope.spawn_into(
+            || {
+                search::start(t1, report);
+                stop.store(true, Ordering::Relaxed);
+            },
+            w1,
+        ));
+
+        for (t, w) in rest.iter_mut().zip(rest_workers) {
+            handlers.push(scope.spawn_into(
+                || {
+                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+                    search::start(t, Report::None);
+                },
+                w,
+            ));
         }
 
         let listener = std::thread::spawn(|| loop {
@@ -125,7 +132,7 @@ fn go(
         });
 
         for handler in handlers {
-            handler.join().unwrap();
+            handler.join();
         }
         listener
     });
