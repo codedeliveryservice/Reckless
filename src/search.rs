@@ -505,10 +505,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     // ProbCut
     let probcut_beta = beta + 265 - 60 * improving as i32;
 
-    if cut_node && !is_decisive(beta) && (!is_valid(tt_score) || tt_score >= probcut_beta) && !tt_move.is_quiet() {
+    if cut_node
+        && depth >= 5
+        && !is_decisive(beta)
+        && (!is_valid(tt_score) || tt_score >= probcut_beta)
+        && !tt_move.is_quiet()
+    {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
-        let probcut_depth = (depth - 4).max(0);
+        let probcut_depth = depth - 4;
 
         while let Some(mv) = move_picker.next(td, true) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -523,7 +528,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
-            if score >= probcut_beta && probcut_depth > 0 {
+            if score >= probcut_beta {
                 score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false);
             }
 
