@@ -539,6 +539,24 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
 
+    pub fn estimate_next_hash(&mut self, mv: Move) -> u64 {
+        let from = mv.from();
+        let to = mv.to();
+        let piece = self.piece_on(from);
+
+        let mut key = self.state.key;
+
+        let captured = self.piece_on(to);
+        if captured != Piece::None {
+            key ^= ZOBRIST.pieces[captured][to];
+        }
+
+        key ^ ZOBRIST.side
+            ^ ZOBRIST.pieces[piece][from]
+            ^ ZOBRIST.pieces[piece][to]
+            ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
+    }
+
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
             Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingside], Square::F1),

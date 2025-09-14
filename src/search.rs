@@ -449,7 +449,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
-        return (eval + beta) / 2;
+        if tt_move.is_null() || td.board.piece_on(tt_move.from()) == Piece::None {
+            return (eval + beta) / 2;
+        }
+
+        let next_hash = td.board.estimate_next_hash(tt_move);
+
+        if let (Some(next_entry), _) = td.tt.read(next_hash, td.board.halfmove_clock() + 1, td.ply + 1) {
+            if is_valid(next_entry.score) && next_entry.bound == Bound::Upper {
+                return (-next_entry.score + beta) / 2;
+            }
+        }
     }
 
     // Null Move Pruning (NMP)
