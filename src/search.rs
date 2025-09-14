@@ -386,6 +386,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply].move_count = 0;
     td.stack[td.ply + 2].cutoff_count = 0;
 
+    // Razoring
+    if !NODE::PV && !in_check && eval < alpha - 305 - 239 * depth * depth {
+        return qsearch::<NonPV>(td, alpha, beta);
+    }
+
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
         && !in_check
@@ -430,11 +435,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     let improving = improvement > 0;
-
-    // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 305 - 239 * initial_depth * initial_depth {
-        return qsearch::<NonPV>(td, alpha, beta);
-    }
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
