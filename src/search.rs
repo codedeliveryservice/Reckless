@@ -588,7 +588,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction += (499 - 434 * improvement / 128).min(1263);
         }
 
-        if !NODE::ROOT && !is_loss(best_score) {
+        if !NODE::ROOT && !is_loss(best_score) && !(NODE::PV && best_move.is_null() && history > 4000 * move_count) {
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
