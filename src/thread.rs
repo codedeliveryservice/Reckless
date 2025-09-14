@@ -8,18 +8,23 @@ use crate::{
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
     stack::Stack,
+    thread::pool::ScopeExt,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
     types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
-    vector: Vec<ThreadData<'a>>,
+    pub workers: Vec<pool::WorkerThread>,
+    pub vector: Vec<Box<ThreadData<'a>>>,
 }
 
 impl<'a> ThreadPool<'a> {
     pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, nodes, tb_hits)] }
+        let workers = pool::make_worker_threads(1);
+        let data = make_thread_data(tt, stop, nodes, tb_hits, &workers);
+
+        Self { workers, vector: data }
     }
 
     pub fn set_count(&mut self, threads: usize) {
@@ -28,11 +33,11 @@ impl<'a> ThreadPool<'a> {
         let nodes = self.vector[0].nodes.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, nodes, tb_hits));
+        self.workers.drain(..).into_iter().for_each(pool::WorkerThread::join);
+        self.workers = pool::make_worker_threads(threads);
 
-        for i in 1..self.vector.len() {
-            self.vector[i].board = self.vector[0].board.clone();
-        }
+        std::mem::drop(self.vector.drain(..).into_iter());
+        self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
@@ -43,18 +48,22 @@ impl<'a> ThreadPool<'a> {
         self.vector.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &ThreadData<'a>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Box<ThreadData<'a>>> {
         self.vector.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData<'a>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<ThreadData<'a>>> {
         self.vector.iter_mut()
     }
 
     pub fn clear(&mut self) {
-        for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.nodes.global, thread.tb_hits.global);
-        }
+        let tt = self.vector[0].tt;
+        let stop = self.vector[0].stop;
+        let nodes = self.vector[0].nodes.global;
+        let tb_hits = self.vector[0].tb_hits.global;
+
+        std::mem::drop(self.vector.drain(..).into_iter());
+        self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
     }
 }
 
@@ -305,5 +314,162 @@ impl<'a> AtomicCounter<'a> {
         self.local += self.buffer;
         self.global.fetch_add(self.buffer, Ordering::Relaxed);
         self.buffer = 0;
+    }
+}
+
+pub fn make_thread_data<'a>(
+    tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64,
+    worker_threads: &[pool::WorkerThread],
+) -> Vec<Box<ThreadData<'a>>> {
+    std::thread::scope(|scope| -> Vec<Box<ThreadData<'a>>> {
+        let handles = worker_threads
+            .iter()
+            .map(|worker| {
+                let (tx, rx) = std::sync::mpsc::channel();
+                let join_handle = scope.spawn_into(
+                    move || {
+                        tx.send(Box::new(ThreadData::new(tt, stop, nodes, tb_hits))).unwrap();
+                    },
+                    worker,
+                );
+                (rx, join_handle)
+            })
+            .collect::<Vec<_>>();
+
+        let mut thread_data: Vec<Box<ThreadData>> = Vec::with_capacity(handles.len());
+        for (rx, handle) in handles {
+            let td = rx.recv().unwrap();
+            thread_data.push(td);
+            handle.join();
+        }
+
+        thread_data
+    })
+}
+
+pub mod pool {
+    use std::{
+        sync::{
+            mpsc::{Receiver, SyncSender},
+            Arc, Condvar, Mutex,
+        },
+        thread::Scope,
+    };
+
+    // Handle for communicating with a worker thread.
+    // Contains a sender for sending messages to the worker thread,
+    // and a receiver for receiving messages from the worker thread.
+    pub struct WorkSender {
+        // INVARIANT: Each send must be matched by a receive.
+        sender: SyncSender<Box<dyn FnOnce() + Send>>,
+        completion_signal: Arc<(Mutex<bool>, Condvar)>,
+    }
+
+    /// Handle for the receiver side of a worker thread.
+    struct WorkReceiver {
+        receiver: Receiver<Box<dyn FnOnce() + Send>>,
+        completion_signal: Arc<(Mutex<bool>, Condvar)>,
+    }
+
+    fn make_work_channel() -> (WorkSender, WorkReceiver) {
+        let (sender, receiver) = std::sync::mpsc::sync_channel(0);
+        let completion_signal = Arc::new((Mutex::new(false), Condvar::new()));
+
+        (
+            WorkSender { sender, completion_signal: Arc::clone(&completion_signal) },
+            WorkReceiver { receiver, completion_signal },
+        )
+    }
+
+    pub struct ReceiverHandle<'scope> {
+        completion_signal: &'scope Arc<(Mutex<bool>, Condvar)>,
+        received: bool,
+    }
+
+    impl ReceiverHandle<'_> {
+        pub fn join(mut self) {
+            let (lock, cvar) = &**self.completion_signal;
+            let mut completed = lock.lock().unwrap();
+            while !*completed {
+                completed = cvar.wait(completed).unwrap();
+            }
+            drop(completed);
+            self.received = true;
+        }
+    }
+
+    impl Drop for ReceiverHandle<'_> {
+        fn drop(&mut self) {
+            // When the receiver handle is dropped, we ensure that we have received something.
+            assert!(self.received, "ReceiverHandle was dropped without receiving a value");
+        }
+    }
+
+    pub trait ScopeExt<'scope, 'env> {
+        fn spawn_into<F>(&'scope self, f: F, comms: &'scope WorkerThread) -> ReceiverHandle<'scope>
+        where
+            F: FnOnce() + Send + 'scope;
+    }
+
+    impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
+        fn spawn_into<'comms, F>(&'scope self, f: F, thread: &'scope WorkerThread) -> ReceiverHandle<'scope>
+        where
+            F: FnOnce() + Send + 'scope,
+        {
+            // Safety: This file is structured such that threads never hold the data longer than is permissible.
+            let f = unsafe {
+                std::mem::transmute::<Box<dyn FnOnce() + Send + 'scope>, Box<dyn FnOnce() + Send + 'static>>(Box::new(
+                    f,
+                ))
+            };
+
+            // Reset the completion flag before sending the task
+            {
+                let (lock, _) = &*thread.comms.completion_signal;
+                let mut completed = lock.lock().unwrap();
+                *completed = false;
+            }
+
+            thread.comms.sender.send(f).expect("Failed to send function to worker thread");
+
+            ReceiverHandle {
+                completion_signal: &thread.comms.completion_signal,
+                // Important: We start with `received` as false.
+                received: false,
+            }
+        }
+    }
+
+    fn make_worker_thread() -> WorkerThread {
+        let (sender, receiver) = make_work_channel();
+
+        let handle = std::thread::spawn(move || {
+            while let Ok(work) = receiver.receiver.recv() {
+                work();
+                let (lock, cvar) = &*receiver.completion_signal;
+                let mut completed = lock.lock().unwrap();
+                *completed = true;
+                drop(completed); // Release the lock before notifying
+                cvar.notify_one();
+            }
+        });
+
+        WorkerThread { handle, comms: sender }
+    }
+
+    pub fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
+        (0..num_threads).map(|_| make_worker_thread()).collect()
+    }
+
+    pub struct WorkerThread {
+        handle: std::thread::JoinHandle<()>,
+        comms: WorkSender,
+    }
+
+    impl WorkerThread {
+        pub fn join(self) {
+            drop(self.comms); // Drop the sender to signal the worker thread to finish
+            self.handle.join().expect("Worker thread panicked");
+        }
     }
 }
