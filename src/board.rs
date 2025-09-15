@@ -32,6 +32,7 @@ struct InternalState {
     repetition: i32,
     captured: Option<Piece>,
     threats: Bitboard,
+    threats_pt: [Bitboard; PieceType::NUM],
     pinned: Bitboard,
     checkers: Bitboard,
 }
@@ -102,6 +103,10 @@ impl Board {
 
     pub const fn threats(&self) -> Bitboard {
         self.state.threats
+    }
+
+    pub const fn threats_pt(&self, piece_type: PieceType) -> Bitboard {
+        self.state.threats_pt[piece_type as usize]
     }
 
     pub fn prior_threats(&self) -> Bitboard {
@@ -287,6 +292,20 @@ impl Board {
         false
     }
 
+    pub fn opponent_has_easy_captures(&self) -> bool {
+        let queens = self.pieces(PieceType::Queen);
+        let rooks = queens | self.pieces(PieceType::Rook);
+        let minors = rooks | self.pieces(PieceType::Bishop) | self.pieces(PieceType::Knight);
+
+        let pawn_threats = self.threats_pt(PieceType::Pawn);
+        let minor_threats = pawn_threats | self.threats_pt(PieceType::Knight) | self.threats_pt(PieceType::Bishop);
+        let rook_threats = minor_threats | self.threats_pt(PieceType::Rook);
+
+        !(queens & rook_threats & self.us()).is_empty()
+            || !(rooks & minor_threats & self.us()).is_empty()
+            || !(minors & pawn_threats & self.us()).is_empty()
+    }
+
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
         rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
             | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
@@ -465,25 +484,32 @@ impl Board {
         // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let occupancies = self.occupancies() ^ self.our(PieceType::King);
 
-        let mut threats = Bitboard::default();
+        let mut threats = [Bitboard::default(); PieceType::NUM];
 
         for square in self.their(PieceType::Pawn) {
-            threats |= pawn_attacks(square, !self.side_to_move);
+            threats[PieceType::Pawn] |= pawn_attacks(square, !self.side_to_move);
         }
 
         for square in self.their(PieceType::Knight) {
-            threats |= knight_attacks(square);
+            threats[PieceType::Knight] |= knight_attacks(square);
         }
 
-        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
-            threats |= bishop_attacks(square, occupancies);
+        for square in self.their(PieceType::Bishop) {
+            threats[PieceType::Bishop] |= bishop_attacks(square, occupancies);
         }
 
-        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
-            threats |= rook_attacks(square, occupancies);
+        for square in self.their(PieceType::Rook) {
+            threats[PieceType::Rook] |= rook_attacks(square, occupancies);
         }
 
-        self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+        for square in self.their(PieceType::Queen) {
+            threats[PieceType::Queen] |= queen_attacks(square, occupancies);
+        }
+
+        threats[PieceType::King] = king_attacks(self.their(PieceType::King).lsb());
+
+        self.state.threats_pt = threats;
+        self.state.threats = threats.iter().copied().reduce(|a, b| a | b).unwrap();
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
