@@ -123,7 +123,7 @@ pub struct CorrectionHistory {
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14734;
 
-    const SIZE: usize = 16384;
+    const SIZE: usize = 2 * 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
