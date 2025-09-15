@@ -738,7 +738,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 38 + 504 * depth / 128) as i32;
-                new_depth -= (score < best_score + new_depth) as i32;
+                new_depth -= (score < best_score + 8) as i32;
 
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node);
