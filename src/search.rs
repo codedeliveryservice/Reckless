@@ -775,10 +775,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 1071 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if NODE::PV {
-                reduction -= 480 + 801 * (beta - alpha > 26 * td.root_delta / 128) as i32;
-            }
-
             if !tt_pv && cut_node {
                 reduction += 1391;
                 reduction += 1055 * tt_move.is_null() as i32;
