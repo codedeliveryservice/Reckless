@@ -792,6 +792,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1477;
             }
 
+            if tt_move.is_noisy() {
+                reduction += 1400;
+            }
+
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 854;
             }
