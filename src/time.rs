@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::thread::ThreadData;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Limits {
     Infinite,
     Depth(i32),
@@ -90,5 +90,9 @@ impl TimeManager {
             Limits::Nodes(maximum) => td.nodes.global() >= maximum,
             _ => td.nodes.local() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
+    }
+
+    pub fn limits(&self) -> Limits {
+        self.limits.clone()
     }
 }

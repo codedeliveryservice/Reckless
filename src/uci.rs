@@ -138,35 +138,41 @@ fn go(
 
     let mut best = 0;
 
-    for current in 1..threads.len() {
-        let is_better_candidate = || -> bool {
-            let best = &threads[best];
-            let current = &threads[current];
+    match &threads[best].time_manager.limits() {
+        Limits::Depth(_) => {}
+        _ => {
+            for current in 1..threads.len() {
+                let is_better_candidate = || -> bool {
+                    let best = &threads[best];
+                    let current = &threads[current];
 
-            if is_win(best.root_moves[0].score) {
-                return current.root_moves[0].score > best.root_moves[0].score;
+                    if is_win(best.root_moves[0].score) {
+                        return current.root_moves[0].score > best.root_moves[0].score;
+                    }
+
+                    if current.root_moves[0].score != -Score::INFINITE
+                        && best.root_moves[0].score != -Score::INFINITE
+                        && is_loss(best.root_moves[0].score)
+                    {
+                        return current.root_moves[0].score < best.root_moves[0].score;
+                    }
+
+                    if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
+                        return true;
+                    }
+
+                    let best_vote = votes[best.root_moves[0].mv.encoded()];
+                    let current_vote = votes[current.root_moves[0].mv.encoded()];
+
+                    !is_loss(current.root_moves[0].score)
+                        && (current_vote > best_vote
+                            || (current_vote == best_vote && vote_value(current) > vote_value(best)))
+                };
+
+                if is_better_candidate() {
+                    best = current;
+                }
             }
-
-            if current.root_moves[0].score != -Score::INFINITE
-                && best.root_moves[0].score != -Score::INFINITE
-                && is_loss(best.root_moves[0].score)
-            {
-                return current.root_moves[0].score < best.root_moves[0].score;
-            }
-
-            if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
-                return true;
-            }
-
-            let best_vote = votes[best.root_moves[0].mv.encoded()];
-            let current_vote = votes[current.root_moves[0].mv.encoded()];
-
-            !is_loss(current.root_moves[0].score)
-                && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(best)))
-        };
-
-        if is_better_candidate() {
-            best = current;
         }
     }
 
