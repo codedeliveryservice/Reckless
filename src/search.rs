@@ -198,7 +198,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
     }
 
-    if report == Report::Full || report == Report::Minimal {
+    if report == Report::Minimal {
         td.print_uci_info(td.root_depth);
     }
 
