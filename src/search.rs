@@ -464,7 +464,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !potential_singularity
         && !is_loss(beta)
     {
-        let r = 5 + depth / 3 + ((eval - beta) / 248).min(3);
+        let r = 5 + depth / 3 + tt_move.is_noisy() as i32;
 
         td.stack[td.ply].conthist = std::ptr::null_mut();
         td.stack[td.ply].contcorrhist = std::ptr::null_mut();
