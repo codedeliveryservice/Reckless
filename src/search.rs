@@ -792,10 +792,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 1477;
             }
 
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 854;
-            }
-
             if depth == 2 {
                 reduction -= 1086;
             }
