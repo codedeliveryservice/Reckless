@@ -642,7 +642,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && td.ply < 2 * td.root_depth as usize && mv == tt_move && potential_singularity {
+        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity {
             debug_assert!(is_valid(tt_score));
 
             let singular_beta = tt_score - depth;
@@ -657,8 +657,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score < singular_beta {
-                let double_margin = 2 + 277 * NODE::PV as i32;
-                let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+                let double_margin = 2 + 277 * NODE::PV as i32 - 48 * (td.ply as i32 > td.root_depth) as i32;
+                let triple_margin = 67 + 315 * NODE::PV as i32
+                    - 16 * correction_value.abs() / 128
+                    - 48 * (td.ply as i32 > td.root_depth) as i32;
 
                 extension = 1;
                 extension += (score < singular_beta - double_margin) as i32;
