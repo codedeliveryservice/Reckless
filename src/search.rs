@@ -449,7 +449,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
-        return (eval + beta) / 2;
+        return (2 * beta + eval) / 3;
     }
 
     // Null Move Pruning (NMP)
