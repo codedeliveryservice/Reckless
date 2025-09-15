@@ -174,7 +174,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             break;
         }
 
-        if (td.root_moves[0].score - average).abs() < 12 {
+        if (td.root_moves[0].score - average).pow(2) < 256 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
