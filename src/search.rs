@@ -594,7 +594,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
-                    >= (4 + initial_depth * initial_depth) / (2 - (improving || static_eval >= beta + 17) as i32);
+                    >= (4 - (history < -1000) as i32 + (history > 1000) as i32 + initial_depth * initial_depth)
+                        / (2 - (improving || static_eval >= beta + 17) as i32);
 
             // Futility Pruning (FP)
             let futility_value =
