@@ -11,7 +11,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     let material = material(&td.board);
 
-    eval = (eval * (21063 + material) + td.optimism[td.board.side_to_move()] * (1817 + material)) / 27627;
+    eval = (eval * (21146 + material) + td.optimism[td.board.side_to_move()] * (1876 + material)) / 28020;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
