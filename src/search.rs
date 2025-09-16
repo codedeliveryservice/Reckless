@@ -137,7 +137,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
-            if report == Report::Full && td.nodes.global() > 10_000_000 {
+            if report == Report::Full && td.accumulate_nodes() > 10_000_000 {
                 td.print_uci_info(depth);
             }
 
@@ -148,7 +148,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.completed_depth = depth;
         }
 
-        td.nodes.flush();
         td.tb_hits.flush();
 
         if report == Report::Full && !(is_loss(td.root_moves[0].display_score) && td.stopped) {
@@ -181,7 +180,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
+            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
@@ -676,7 +675,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         }
 
-        let initial_nodes = td.nodes.local();
+        let initial_nodes = td.nodes();
 
         make_move(td, mv);
 
@@ -821,9 +820,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if NODE::ROOT {
+            let nodes = td.nodes();
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
 
-            root_move.nodes += td.nodes.local() - initial_nodes;
+            root_move.nodes += nodes - initial_nodes;
 
             if move_count == 1 || score > alpha {
                 match score {
@@ -1247,10 +1247,11 @@ fn make_move(td: &mut ThreadData, mv: Move) {
         td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
     td.ply += 1;
 
-    td.nodes.increment();
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
     td.tt.prefetch(td.board.hash());
+
+    td.increment_nodes();
 }
 
 fn undo_move(td: &mut ThreadData, mv: Move) {

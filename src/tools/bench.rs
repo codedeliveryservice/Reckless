@@ -84,7 +84,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     let nodes = AtomicU64::new(0);
     let tb_hits = AtomicU64::new(0);
 
-    let mut td = ThreadData::new(&tt, &stop, &nodes, &tb_hits);
+    let mut td = ThreadData::new(0, &tt, &stop, vec![&nodes], &tb_hits);
 
     let time = Instant::now();
 
@@ -99,14 +99,14 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
         search::start(&mut td, Report::None);
 
-        nodes += td.nodes.local();
+        nodes += td.nodes();
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let nps = td.nodes.local() as f64 / seconds;
+        let nps = td.nodes() as f64 / seconds;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes.local());
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes());
         }
     }
 

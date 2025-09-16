@@ -18,20 +18,27 @@ pub struct ThreadPool<'a> {
 }
 
 impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
-        Self { vector: vec![ThreadData::new(tt, stop, nodes, tb_hits)] }
+    pub fn new(
+        tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: Vec<&'a AtomicU64>, tb_hits: &'a AtomicU64,
+    ) -> Self {
+        Self { vector: vec![ThreadData::new(0, tt, stop, nodes, tb_hits)] }
     }
 
-    pub fn set_count(&mut self, threads: usize) {
+    pub fn set_count(&mut self, threads: usize, nodes: Vec<&'a AtomicU64>) {
         let tt = self.vector[0].tt;
         let stop = self.vector[0].stop;
-        let nodes = self.vector[0].nodes.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.vector.resize_with(threads, || ThreadData::new(tt, stop, nodes, tb_hits));
+        if threads < self.vector.len() {
+            self.vector.truncate(threads);
+            return;
+        }
 
-        for i in 1..self.vector.len() {
-            self.vector[i].board = self.vector[0].board.clone();
+        while self.vector.len() < threads {
+            let id = self.vector.len();
+            
+            self.vector.push(ThreadData::new(id, tt, stop, nodes.clone(), tb_hits));
+            self.vector[id].board = self.vector[0].board.clone();
         }
     }
 
@@ -52,8 +59,8 @@ impl<'a> ThreadPool<'a> {
     }
 
     pub fn clear(&mut self) {
-        for thread in &mut self.vector {
-            *thread = ThreadData::new(thread.tt, thread.stop, thread.nodes.global, thread.tb_hits.global);
+        for (i, thread) in &mut self.vector.iter_mut().enumerate() {
+            *thread = ThreadData::new(i, thread.tt, thread.stop, thread.nodes.clone(), thread.tb_hits.global);
         }
     }
 }
@@ -67,9 +74,10 @@ impl<'a> Index<usize> for ThreadPool<'a> {
 }
 
 pub struct ThreadData<'a> {
+    pub id: usize,
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
-    pub nodes: AtomicCounter<'a>,
+    pub nodes: Vec<&'a AtomicU64>,
     pub tb_hits: AtomicCounter<'a>,
     pub board: Board,
     pub time_manager: TimeManager,
@@ -98,11 +106,14 @@ pub struct ThreadData<'a> {
 }
 
 impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
+    pub fn new(
+        id: usize, tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: Vec<&'a AtomicU64>, tb_hits: &'a AtomicU64,
+    ) -> Self {
         Self {
+            id,
             tt,
             stop,
-            nodes: AtomicCounter::new(nodes),
+            nodes,
             tb_hits: AtomicCounter::new(tb_hits),
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
@@ -135,6 +146,18 @@ impl<'a> ThreadData<'a> {
         self.stop.load(Ordering::Relaxed)
     }
 
+    pub fn nodes(&self) -> u64 {
+        self.nodes[self.id].load(Ordering::Relaxed)
+    }
+
+    pub fn increment_nodes(&self) {
+        self.nodes[self.id].fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn accumulate_nodes(&self) -> u64 {
+        self.nodes.iter().map(|n| n.load(Ordering::Relaxed)).sum()
+    }
+
     pub fn conthist(&self, index: usize, mv: Move) -> i32 {
         if self.ply < index || self.stack[self.ply - index].mv.is_null() {
             return 0;
@@ -147,7 +170,7 @@ impl<'a> ThreadData<'a> {
 
     pub fn print_uci_info(&self, depth: i32) {
         let elapsed = self.time_manager.elapsed();
-        let nps = self.nodes.global() as f64 / elapsed.as_secs_f64();
+        let nps = self.accumulate_nodes() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
 
         let root_move = &self.root_moves[0];
@@ -175,7 +198,7 @@ impl<'a> ThreadData<'a> {
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             root_move.sel_depth,
-            self.nodes.global(),
+            self.accumulate_nodes(),
             self.tt.hashfull(),
             self.tb_hits.global(),
         );

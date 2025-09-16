@@ -70,7 +70,7 @@ impl TimeManager {
         match self.limits {
             Limits::Infinite => false,
             Limits::Depth(maximum) => td.completed_depth >= maximum,
-            Limits::Nodes(maximum) => td.nodes.global() >= maximum,
+            Limits::Nodes(maximum) => td.accumulate_nodes() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()),
         }
@@ -81,14 +81,14 @@ impl TimeManager {
             return false;
         }
 
-        if td.nodes.local() & 2047 == 2047 && td.get_stop() {
+        if td.nodes() & 2047 == 2047 && td.get_stop() {
             return true;
         }
 
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
-            Limits::Nodes(maximum) => td.nodes.global() >= maximum,
-            _ => td.nodes.local() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
+            Limits::Nodes(maximum) => td.accumulate_nodes() >= maximum,
+            _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
 

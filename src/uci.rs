@@ -15,10 +15,10 @@ pub fn message_loop() {
     static STOP: AtomicBool = AtomicBool::new(false);
 
     let tt = TranspositionTable::default();
-    let nodes = AtomicU64::new(0);
+    let nodes = vec![AtomicU64::new(0)];
     let tb_hits = AtomicU64::new(0);
 
-    let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
+    let mut threads = ThreadPool::new(&tt, &STOP, nodes.iter().collect(), &tb_hits);
     let mut frc = false;
     let mut move_overhead = 100;
     let mut report = Report::Full;
@@ -34,7 +34,7 @@ pub fn message_loop() {
             ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, frc, tokens),
             ["setoption", tokens @ ..] => {
-                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, nodes.iter().collect(), tokens)
             }
             ["ucinewgame"] => reset(&mut threads, &tt),
 
@@ -227,9 +227,9 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, tt: &TranspositionTable,
-    tokens: &[&str],
+fn set_option<'a>(
+    threads: &'a mut ThreadPool<'a>, report: &mut Report, move_overhead: &mut u64, frc: &mut bool,
+    tt: &TranspositionTable, nodes: Vec<&'a AtomicU64>, tokens: &[&str],
 ) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -246,7 +246,7 @@ fn set_option(
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
-            threads.set_count(v.parse().unwrap());
+            threads.set_count(v.parse().unwrap(), nodes);
             println!("info string set Threads to {v}");
         }
         ["name", "MoveOverhead", "value", v] => {
