@@ -7,6 +7,7 @@ use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    parameters::*,
     stack::Stack,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
@@ -258,7 +259,7 @@ impl Default for LmrTable {
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
-                let reduction = 977.5506 + 443.8557 * (depth as f32).ln() * (move_count as f32).ln();
+                let reduction = 987.3932043645675 + 470.44604138978866 * (depth as f32).ln() * (move_count as f32).ln();
                 table[depth][move_count] = reduction as i32;
             }
         }

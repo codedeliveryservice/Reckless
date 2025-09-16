@@ -1,6 +1,6 @@
 use crate::{
     board::Board,
-    parameters::PIECE_VALUES,
+    parameters::*,
     thread::ThreadData,
     types::{PieceType, Score},
 };
@@ -11,7 +11,7 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 
     let material = material(&td.board);
 
-    eval = (eval * (21063 + material) + td.optimism[td.board.side_to_move()] * (1817 + material)) / 27627;
+    eval = (eval * (20980 + material) + td.optimism[td.board.side_to_move()] * (1758 + material)) / 27234;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 

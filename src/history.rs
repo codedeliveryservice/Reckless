@@ -1,4 +1,7 @@
-use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
+use crate::{
+    parameters::*,
+    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+};
 
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
@@ -127,7 +130,7 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] as i32) / 81
+        (self.entries[stm][key as usize & Self::MASK] as i32) / 79
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
@@ -157,7 +160,7 @@ impl ContinuationCorrectionHistory {
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][to] as i32) / 104
+        (unsafe { &*subtable_ptr }[piece][to] as i32) / 100
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
