@@ -1,7 +1,7 @@
 use crate::{
     lookup::{bishop_attacks, rook_attacks},
     parameters::PIECE_VALUES,
-    types::{Bitboard, Move, PieceType},
+    types::{Move, PieceType},
 };
 
 impl super::Board {
@@ -22,8 +22,8 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= PIECE_VALUES[self.piece_on(mv.from()).piece_type()];
-        if balance >= 0 {
+        balance = PIECE_VALUES[self.piece_on(mv.from()).piece_type()] - balance;
+        if balance <= 0 {
             return true;
         }
 
@@ -36,47 +36,88 @@ impl super::Board {
         }
 
         let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
-        let mut stm = !self.side_to_move();
+        let mut stm = self.side_to_move();
 
         let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
         let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
+        let mut result = 1;
+
         loop {
+            stm = !stm;
+            attackers &= occupancies;
+
             let our_attackers = attackers & self.colors(stm);
             if our_attackers.is_empty() {
                 break;
             }
 
-            let attacker = self.least_valuable_attacker(our_attackers);
+            result ^= 1;
 
-            // The king cannot capture a protected piece; the side to move loses the exchange
-            if attacker == PieceType::King && !(attackers & self.colors(!stm)).is_empty() {
-                break;
-            }
+            let bitboard = our_attackers & self.pieces(PieceType::Pawn);
+            if !bitboard.is_empty() {
+                balance = PIECE_VALUES[PieceType::Pawn] - balance;
+                if balance < result {
+                    break;
+                }
 
-            // Make the capture
-            occupancies.clear((self.pieces(attacker) & our_attackers).lsb());
-            stm = !stm;
-
-            // Assume our piece is going to be captured
-            balance = -balance - 1 - PIECE_VALUES[attacker];
-            if balance >= 0 {
-                break;
-            }
-
-            // Capturing a piece may reveal a new sliding attacker
-            if [PieceType::Pawn, PieceType::Bishop, PieceType::Queen].contains(&attacker) {
+                occupancies.clear(bitboard.lsb());
                 attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+                continue;
             }
-            if [PieceType::Rook, PieceType::Queen].contains(&attacker) {
+
+            let bitboard = our_attackers & self.pieces(PieceType::Knight);
+            if !bitboard.is_empty() {
+                balance = PIECE_VALUES[PieceType::Knight] - balance;
+                if balance < result {
+                    break;
+                }
+
+                occupancies.clear(bitboard.lsb());
+                continue;
+            }
+
+            let bitboard = our_attackers & self.pieces(PieceType::Bishop);
+            if !bitboard.is_empty() {
+                balance = PIECE_VALUES[PieceType::Bishop] - balance;
+                if balance < result {
+                    break;
+                }
+
+                occupancies.clear(bitboard.lsb());
+                attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+                continue;
+            }
+
+            let bitboard = our_attackers & self.pieces(PieceType::Rook);
+            if !bitboard.is_empty() {
+                balance = PIECE_VALUES[PieceType::Rook] - balance;
+                if balance < result {
+                    break;
+                }
+
+                occupancies.clear(bitboard.lsb());
                 attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
+                continue;
             }
-            attackers &= occupancies;
+
+            let bitboard = our_attackers & self.pieces(PieceType::Queen);
+            if !bitboard.is_empty() {
+                balance = PIECE_VALUES[PieceType::Queen] - balance;
+                if balance < result {
+                    break;
+                }
+
+                occupancies.clear(bitboard.lsb());
+                attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+                attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
+                continue;
+            }
+
+            return if (attackers & !self.colors(stm)).is_empty() { result != 0 } else { (result ^ 1) != 0 };
         }
 
-        // The last side to move has failed to capture back
-        // since it has no more attackers and, therefore, is losing
-        stm != self.side_to_move()
+        result != 0
     }
 
     fn move_value(&self, mv: Move) -> i32 {
@@ -86,15 +127,5 @@ impl super::Board {
 
         let capture = self.piece_on(mv.to()).piece_type();
         PIECE_VALUES[capture]
-    }
-
-    fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {
-        for index in 0..PieceType::NUM {
-            let piece = PieceType::new(index);
-            if !(self.pieces(piece) & attackers).is_empty() {
-                return piece;
-            }
-        }
-        unreachable!();
     }
 }
