@@ -511,7 +511,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && (!is_valid(tt_score) || tt_score >= probcut_beta)
         && !tt_move.is_quiet()
     {
-        let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
+        let mut move_picker = MovePicker::new_probcut(in_check, probcut_beta - static_eval);
 
         let probcut_depth = (depth - 4).max(0);
 
@@ -560,7 +560,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new(in_check, tt_move);
     let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
@@ -1098,7 +1098,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch();
+    let mut move_picker = MovePicker::new_qsearch(in_check);
 
     let previous_square = match td.stack[td.ply - 1].mv {
         Move::NULL => Square::None,

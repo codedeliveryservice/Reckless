@@ -7,6 +7,7 @@ use crate::{
 enum Kind {
     Quiet,
     Noisy,
+    Evasions,
 }
 
 trait MoveGenerator {
@@ -21,6 +22,11 @@ impl MoveGenerator for Quiet {
 struct Noisy;
 impl MoveGenerator for Noisy {
     const KIND: Kind = Kind::Noisy;
+}
+
+struct Evasions;
+impl MoveGenerator for Evasions {
+    const KIND: Kind = Kind::Evasions;
 }
 
 impl super::Board {
@@ -49,6 +55,10 @@ impl super::Board {
         self.generate_moves::<Noisy>(list);
     }
 
+    pub fn append_evasion_moves(&self, list: &mut MoveList) {
+        self.generate_moves::<Evasions>(list);
+    }
+
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         self.collect_for::<T, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
 
@@ -57,10 +67,11 @@ impl super::Board {
         }
 
         let occupancies = self.occupancies();
-        let target = if self.in_check() {
-            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
-        } else {
-            Bitboard::ALL
+        let target = match T::KIND {
+            Kind::Evasions => {
+                between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
+            }
+            _ => Bitboard::ALL,
         };
 
         self.collect_pawn_moves::<T>(list);
@@ -79,13 +90,13 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, piece: PieceType, attacks: F,
     ) {
         for from in self.our(piece) {
-            if T::KIND == Kind::Noisy {
+            if T::KIND != Kind::Quiet {
                 for to in attacks(from) & target & self.them() {
                     list.push(from, to, MoveKind::Capture);
                 }
             }
 
-            if T::KIND == Kind::Quiet {
+            if T::KIND != Kind::Noisy {
                 for to in attacks(from) & target & !self.occupancies() {
                     list.push(from, to, MoveKind::Normal);
                 }
@@ -125,7 +136,7 @@ impl super::Board {
 
         self.collect_pawn_pushes::<T>(list, pawns, seventh_rank);
 
-        if T::KIND == Kind::Noisy {
+        if T::KIND != Kind::Quiet {
             self.collect_pawn_captures(list, pawns, seventh_rank);
             self.collect_en_passant_moves(list, pawns);
         }
@@ -139,7 +150,7 @@ impl super::Board {
 
         let empty = !self.occupancies();
 
-        if T::KIND == Kind::Quiet {
+        if T::KIND != Kind::Noisy {
             let non_promotions = pawns & !seventh_rank;
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
@@ -157,11 +168,11 @@ impl super::Board {
         for to in promotions {
             let from = to.shift(-up);
 
-            if T::KIND == Kind::Noisy {
+            if T::KIND != Kind::Quiet {
                 list.push(from, to, MoveKind::PromotionQ);
             }
 
-            if T::KIND == Kind::Quiet {
+            if T::KIND != Kind::Noisy {
                 list.push(from, to, MoveKind::PromotionR);
                 list.push(from, to, MoveKind::PromotionB);
                 list.push(from, to, MoveKind::PromotionN);

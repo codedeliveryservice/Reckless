@@ -12,6 +12,9 @@ pub enum Stage {
     GenerateQuiet,
     Quiet,
     BadNoisy,
+    EvasionHashMove,
+    GenerateEvasions,
+    Evasions,
 }
 
 pub struct MovePicker {
@@ -24,34 +27,45 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub const fn new(in_check: bool, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
             threshold: None,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
+            stage: match (in_check, tt_move.is_some()) {
+                (true, true) => Stage::EvasionHashMove,
+                (true, false) => Stage::GenerateEvasions,
+                (false, true) => Stage::HashMove,
+                (false, false) => Stage::GenerateNoisy,
+            },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
     }
 
-    pub const fn new_probcut(threshold: i32) -> Self {
+    pub const fn new_probcut(in_check: bool, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
+            stage: match in_check {
+                true => Stage::GenerateEvasions,
+                false => Stage::GenerateNoisy,
+            },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
     }
 
-    pub const fn new_qsearch() -> Self {
+    pub const fn new_qsearch(in_check: bool) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: None,
-            stage: Stage::GenerateNoisy,
+            stage: match in_check {
+                true => Stage::GenerateEvasions,
+                false => Stage::GenerateNoisy,
+            },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -134,16 +148,55 @@ impl MovePicker {
             self.stage = Stage::BadNoisy;
         }
 
-        // Stage::BadNoisy
-        while self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
-            self.bad_noisy_idx += 1;
+        if self.stage == Stage::BadNoisy {
+            while self.bad_noisy_idx < self.bad_noisy.len() {
+                let mv = self.bad_noisy[self.bad_noisy_idx];
+                self.bad_noisy_idx += 1;
 
-            if mv == self.tt_move {
-                continue;
+                if mv == self.tt_move {
+                    continue;
+                }
+
+                return Some(mv);
+            }
+        }
+
+        if self.stage == Stage::EvasionHashMove {
+            self.stage = Stage::GenerateEvasions;
+
+            if td.board.is_pseudo_legal(self.tt_move) {
+                return Some(self.tt_move);
+            }
+        }
+
+        if self.stage == Stage::GenerateEvasions {
+            self.stage = Stage::Evasions;
+            td.board.append_evasion_moves(&mut self.list);
+            self.score_evasions(td);
+        }
+
+        if self.stage == Stage::Evasions {
+            while !self.list.is_empty() {
+                let mut index = 0;
+                for i in 1..self.list.len() {
+                    if !(skip_quiets && self.list[i].mv.is_quiet()) && self.list[i].score > self.list[index].score {
+                        index = i;
+                    }
+                }
+
+                let entry = &self.list.remove(index);
+                if entry.mv.is_quiet() && skip_quiets {
+                    return None;
+                }
+
+                if entry.mv == self.tt_move {
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
-            return Some(mv);
+            return None;
         }
 
         None
@@ -185,6 +238,23 @@ impl MovePicker {
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
                 + td.conthist(6, mv);
+        }
+    }
+
+    fn score_evasions(&mut self, td: &ThreadData) {
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+
+            if mv.is_noisy() {
+                let captured =
+                    if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
+
+                entry.score = 1 << 28;
+                entry.score += PIECE_VALUES[captured];
+            } else {
+                entry.score +=
+                    td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + td.conthist(1, mv);
+            }
         }
     }
 }
