@@ -1,6 +1,9 @@
 use std::{
     ops::Index,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc, Mutex,
+    },
 };
 
 use crate::{
@@ -321,30 +324,30 @@ pub fn make_thread_data<'a>(
     tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64,
     worker_threads: &[pool::WorkerThread],
 ) -> Vec<Box<ThreadData<'a>>> {
-    std::thread::scope(|scope| -> Vec<Box<ThreadData<'a>>> {
-        let handles = worker_threads
+    let vector = Arc::new(Mutex::new((0..worker_threads.len()).map(|_| None).collect::<Vec<_>>()));
+
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = worker_threads
             .iter()
-            .map(|worker| {
-                let (tx, rx) = std::sync::mpsc::channel();
-                let join_handle = scope.spawn_into(
+            .enumerate()
+            .map(|(i, worker)| {
+                let vector = Arc::clone(&vector);
+                let handle = scope.spawn_into(
                     move || {
-                        tx.send(Box::new(ThreadData::new(tt, stop, nodes, tb_hits))).unwrap();
+                        vector.lock().unwrap()[i] = Some(Box::new(ThreadData::new(tt, stop, nodes, tb_hits)));
                     },
                     worker,
                 );
-                (rx, join_handle)
+                handle
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        let mut thread_data: Vec<Box<ThreadData>> = Vec::with_capacity(handles.len());
-        for (rx, handle) in handles {
-            let td = rx.recv().unwrap();
-            thread_data.push(td);
+        for handle in handles {
             handle.join();
         }
+    });
 
-        thread_data
-    })
+    Arc::into_inner(vector).unwrap().into_inner().unwrap().into_iter().map(Option::unwrap).collect()
 }
 
 pub mod pool {
