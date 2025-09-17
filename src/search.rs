@@ -728,8 +728,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 791;
             }
 
-            if depth == 2 {
-                reduction -= 1397;
+            if depth < 5 {
+                reduction -= [0, 0, 1397, 698, 349][depth as usize];
             }
 
             let reduced_depth = (new_depth - reduction / 1024)
@@ -800,8 +800,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 849;
             }
 
-            if depth == 2 {
-                reduction -= 1052;
+            if depth < 5 {
+                reduction -= [0, 0, 1052, 526, 263][depth as usize];
             }
 
             if mv == tt_move {
