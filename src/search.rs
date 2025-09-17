@@ -99,7 +99,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         // Aspiration Windows
         if depth >= 2 {
-            delta += average * average / 24616;
+            delta += average * average / 13000;
 
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
