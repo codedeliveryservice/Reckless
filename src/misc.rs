@@ -61,7 +61,7 @@ pub fn dbg_print() {
             let hits = slot.get(1);
             let rate = hits as f64 / total as f64 * 100.0;
 
-            println!("Hit #{i}: Total {total}, Hits {hits}, Hit Rate (%) {rate:.2}");
+            println!("Hit #{i}: Total {total}, Hits {hits}, Hit Rate (%) {rate:.5}");
         }
     }
 
@@ -72,7 +72,7 @@ pub fn dbg_print() {
             let variance = slot.get(2) as f64 / total as f64 - mean * mean;
             let stddev = variance.sqrt();
 
-            println!("Stats #{i}: Total {total}, Mean {mean:.2}, Std Dev {stddev:.2}");
+            println!("Stats #{i}: Total {total}, Mean {mean:.5}, Std Dev {stddev:.5}");
         }
     }
 
