@@ -595,9 +595,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || static_eval >= beta + 17 {
-                        (36408 + 9744 * initial_depth * initial_depth) / 10000
+                        (3728 + 998 * initial_depth * initial_depth) / 1024
                     } else {
-                        (18600 + 4590 * initial_depth * initial_depth) / 10000
+                        (1904 + 470 * initial_depth * initial_depth) / 1024
                     };
 
             // Futility Pruning (FP)
