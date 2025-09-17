@@ -404,7 +404,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !in_check
         && !excluded
         && td.stack[td.ply - 1].reduction >= 2397
-        && static_eval + td.stack[td.ply - 1].static_eval < 0
+        && is_valid(td.stack[td.ply - 1].static_eval)
+        && static_eval + td.stack[td.ply - 1].static_eval < 32
     {
         depth += 1;
     }
