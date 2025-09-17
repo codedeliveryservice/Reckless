@@ -17,6 +17,7 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
+    in_check: bool,
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
@@ -24,10 +25,11 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub const fn new(in_check: bool, tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
+            in_check,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
@@ -35,10 +37,11 @@ impl MovePicker {
         }
     }
 
-    pub const fn new_probcut(threshold: i32) -> Self {
+    pub const fn new_probcut(in_check: bool, threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            in_check,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -46,10 +49,11 @@ impl MovePicker {
         }
     }
 
-    pub const fn new_qsearch() -> Self {
+    pub const fn new_qsearch(in_check: bool) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            in_check,
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -73,7 +77,12 @@ impl MovePicker {
         if self.stage == Stage::GenerateNoisy {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
-            self.score_noisy(td);
+
+            if self.in_check {
+                self.score_noisy_evasions(td);
+            } else {
+                self.score_noisy(td);
+            }
         }
 
         if self.stage == Stage::GoodNoisy {
@@ -106,7 +115,12 @@ impl MovePicker {
             if !skip_quiets {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
-                self.score_quiet(td);
+
+                if self.in_check {
+                    self.score_quiet_evasions(td);
+                } else {
+                    self.score_quiet(td);
+                }
             } else {
                 self.stage = Stage::BadNoisy;
             }
@@ -168,6 +182,17 @@ impl MovePicker {
         }
     }
 
+    fn score_noisy_evasions(&mut self, td: &ThreadData) {
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+
+            let captured =
+                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
+
+            entry.score = (1 << 28) + PIECE_VALUES[captured];
+        }
+    }
+
     fn score_quiet(&mut self, td: &ThreadData) {
         let threats = td.board.threats();
         let side = td.board.side_to_move();
@@ -185,6 +210,14 @@ impl MovePicker {
                 + td.conthist(2, mv)
                 + td.conthist(4, mv)
                 + td.conthist(6, mv);
+        }
+    }
+
+    fn score_quiet_evasions(&mut self, td: &ThreadData) {
+        for entry in self.list.iter_mut() {
+            let mv = entry.mv;
+
+            entry.score += td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + td.conthist(1, mv);
         }
     }
 }
