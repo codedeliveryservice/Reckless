@@ -7,7 +7,7 @@ use crate::board::Board;
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
 ///
 /// See [Encoding Moves](https://www.chessprogramming.org/Encoding_Moves) for more information.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Move(u16);
 
 /// Represents a typed enumeration of move kinds, which is the 4-bit part of the encoded bit move.

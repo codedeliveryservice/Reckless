@@ -206,7 +206,9 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
-                rest.iter().for_each(|uci_move| make_uci_move(&mut board, uci_move));
+                for uci_move in rest.iter() {
+                    make_uci_move(&mut board, uci_move)
+                }
                 break;
             }
             _ => {

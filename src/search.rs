@@ -3,7 +3,7 @@ use crate::{
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
-    thread::{PrincipalVariationTable, RootMove, ThreadData},
+    thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
@@ -59,29 +59,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .generate_all_moves()
         .iter()
         .filter(|v| td.board.is_legal(v.mv))
-        .map(|v| RootMove {
-            mv: v.mv,
-            score: -Score::INFINITE,
-            display_score: -Score::INFINITE,
-            lowerbound: false,
-            upperbound: false,
-            sel_depth: 0,
-            nodes: 0,
-            pv: PrincipalVariationTable::default(),
-        })
+        .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
     let mut average = Score::NONE;
-    let mut last_best_rootmove = RootMove {
-        mv: Move::NULL,
-        score: -Score::INFINITE,
-        display_score: -Score::INFINITE,
-        lowerbound: false,
-        upperbound: false,
-        sel_depth: 0,
-        nodes: 0,
-        pv: PrincipalVariationTable::default(),
-    };
+    let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;

@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::thread::ThreadData;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Limits {
     Infinite,
     Depth(i32),
