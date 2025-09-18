@@ -816,8 +816,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 3034;
             }
 
+            let reduced_depth = (new_depth - (reduction >= 3072) as i32).max(1);
+
             td.stack[td.ply - 1].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node);
             td.stack[td.ply - 1].reduction = 0;
         }
 
