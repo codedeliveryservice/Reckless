@@ -126,7 +126,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 td.print_uci_info(depth);
             }
 
-            delta += delta * (38 + 15 * reduction) / 128;
+            delta += 42 * delta / 128;
         }
 
         if !td.stopped {
