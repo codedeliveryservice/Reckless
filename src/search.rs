@@ -718,10 +718,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction += 791;
             }
 
-            if depth == 2 {
-                reduction -= 1397;
-            }
-
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + cut_node as i32 + NODE::PV as i32)
                 + 2 * NODE::PV as i32;
 
