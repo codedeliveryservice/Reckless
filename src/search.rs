@@ -421,6 +421,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let improving = improvement > 0;
 
+    // Internal Iterative Reductions (IIR)
+    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+        depth -= 1;
+    }
+
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
         return qsearch::<NonPV>(td, alpha, beta);
@@ -536,11 +541,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
         }
-    }
-
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
-        depth -= 1;
     }
 
     let mut best_move = Move::NULL;
