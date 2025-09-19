@@ -198,7 +198,9 @@ impl ContinuationHistory {
 
 impl Default for ContinuationHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        let mut entries = zeroed_box();
+        fill(&mut *entries, -1024);
+        Self { entries }
     }
 }
 
@@ -211,4 +213,14 @@ fn zeroed_box<T>() -> Box<T> {
         }
         Box::<T>::from_raw(ptr.cast())
     }
+}
+
+fn fill<T>(entries: &mut T, value: i16) {
+    let slice = unsafe {
+        std::slice::from_raw_parts_mut(
+            entries as *mut T as *mut i16,
+            std::mem::size_of_val(entries) / std::mem::size_of::<i16>(),
+        )
+    };
+    slice.fill(value);
 }
