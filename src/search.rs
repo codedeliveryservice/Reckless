@@ -407,19 +407,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
     let mut improvement = 0;
+    let mut improving = false;
 
-    if td.ply >= 2 && td.stack[td.ply - 1].mv.is_some() && is_valid(td.stack[td.ply - 2].static_eval) && !in_check {
+    if td.ply >= 2 && is_valid(td.stack[td.ply - 2].static_eval) && !in_check {
         improvement = static_eval - td.stack[td.ply - 2].static_eval;
-    } else if td.ply >= 4
-        && td.stack[td.ply - 1].mv.is_some()
-        && td.stack[td.ply - 3].mv.is_some()
-        && is_valid(td.stack[td.ply - 4].static_eval)
-        && !in_check
-    {
+        improving = improvement > 0 && td.stack[td.ply - 1].mv.is_some();
+    } else if td.ply >= 4 && is_valid(td.stack[td.ply - 4].static_eval) && !in_check {
         improvement = static_eval - td.stack[td.ply - 4].static_eval;
+        improving = improvement > 0 && td.stack[td.ply - 1].mv.is_some() && td.stack[td.ply - 3].mv.is_some()
     }
-
-    let improving = improvement > 0;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
