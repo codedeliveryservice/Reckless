@@ -933,7 +933,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = 104;
-            factor += 147 * (initial_depth > 5) as i32;
+            factor += (160 * (depth - 4) / 2).clamp(0, 200);
             factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
             factor += 297
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 100)
