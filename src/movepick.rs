@@ -181,10 +181,10 @@ impl MovePicker {
             }
 
             entry.score = td.quiet_history.get(threats, side, mv)
-                + td.conthist(1, mv)
-                + td.conthist(2, mv)
-                + td.conthist(4, mv)
-                + td.conthist(6, mv);
+                + td.conthist(1, mv).clamp(-4096, 4096)
+                + td.conthist(2, mv).clamp(-4096, 4096)
+                + td.conthist(4, mv).clamp(-4096, 4096)
+                + td.conthist(6, mv).clamp(-4096, 4096);
         }
     }
 }
