@@ -172,7 +172,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
             let score_trend =
                 (800 + 20 * (td.previous_best_score - td.root_moves[0].score)).clamp(750, 1500) as f32 / 1000.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend
+            let opening = 0.9 + td.board.phase() as f32 / 256.0;
+
+            nodes_factor * pv_stability * eval_stability * score_trend * opening
         };
 
         if td.time_manager.soft_limit(td, multiplier) {

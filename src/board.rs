@@ -223,6 +223,14 @@ impl Board {
         }
     }
 
+    pub fn phase(&self) -> i32 {
+        (self.pieces(PieceType::Pawn).len()
+            + 3 * self.pieces(PieceType::Knight).len()
+            + 3 * self.pieces(PieceType::Bishop).len()
+            + 5 * self.pieces(PieceType::Rook).len()
+            + 9 * self.pieces(PieceType::Queen).len()) as i32
+    }
+
     /// Checks if the position is a known draw by the fifty-move rule or repetition.
     pub fn is_draw(&self, ply: usize) -> bool {
         self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
