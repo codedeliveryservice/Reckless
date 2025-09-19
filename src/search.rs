@@ -266,7 +266,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !NODE::PV
             && !excluded
-            && tt_depth > depth - (tt_score <= beta) as i32 - (tt_bound == Bound::Exact) as i32
+            && tt_depth > depth - (tt_score <= beta || tt_bound == Bound::Exact) as i32
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
