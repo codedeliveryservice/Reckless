@@ -860,8 +860,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     break;
                 }
 
-                if depth > 2 && depth < 17 && !is_decisive(score) {
-                    depth -= 1;
+                if depth > 2 && !is_decisive(score) {
+                    depth -= 1 + (depth < 17) as i32;
                 }
 
                 alpha = score;
