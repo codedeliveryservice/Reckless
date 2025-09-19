@@ -475,7 +475,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
-                return score;
+                return (2 * score + beta) / 3;
             }
 
             td.nmp_min_ply = td.ply as i32 + 3 * (depth - r) / 4;
@@ -487,7 +487,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if verified_score >= beta {
-                return score;
+                return (2 * score + beta) / 3;
             }
         }
     }
