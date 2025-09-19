@@ -427,7 +427,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !excluded
         && eval >= beta
         && eval
-            >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+            >= beta + 157 * depth * depth / 16 + 31 * depth - improvement.max(0) / 16 - (23 * cut_node as i32)
                 + 580 * correction_value.abs() / 1024
                 + 24
         && !is_loss(beta)
