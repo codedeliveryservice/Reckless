@@ -1,5 +1,5 @@
 use crate::{
-    evaluate::evaluate,
+    board::Board,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
@@ -7,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        PieceType, Score, Square, MAX_PLY,
     },
 };
 
@@ -229,7 +229,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if td.ply >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { evaluate(td) };
+            return if in_check { Score::DRAW } else { td.nnue.evaluate(&td.board) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -341,8 +341,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         static_eval = raw_eval;
         eval = static_eval;
     } else if let Some(entry) = &entry {
-        raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
-        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        raw_eval = if is_valid(entry.eval) { entry.eval } else { td.nnue.evaluate(&td.board) };
+        static_eval = corrected_eval(td, raw_eval, correction_value);
         eval = static_eval;
 
         if is_valid(tt_score)
@@ -355,10 +355,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             eval = tt_score;
         }
     } else {
-        raw_eval = evaluate(td);
+        raw_eval = td.nnue.evaluate(&td.board);
         td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
 
-        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        static_eval = corrected_eval(td, raw_eval, correction_value);
         eval = static_eval;
     }
 
@@ -1003,7 +1003,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     }
 
     if td.ply >= MAX_PLY - 1 {
-        return if in_check { Score::DRAW } else { evaluate(td) };
+        return if in_check { Score::DRAW } else { td.nnue.evaluate(&td.board) };
     }
 
     let hash = td.board.hash();
@@ -1038,10 +1038,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     if !in_check {
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.eval) => entry.eval,
-            _ => evaluate(td),
+            _ => td.nnue.evaluate(&td.board),
         };
 
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        let static_eval = corrected_eval(td, raw_eval, correction_value(td));
         best_score = static_eval;
 
         if is_valid(tt_score)
@@ -1191,8 +1191,25 @@ fn correction_value(td: &ThreadData) -> i32 {
     correction
 }
 
-fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
+fn corrected_eval(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
+    let material = material(&td.board);
+
+    eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
+
+    eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+
+    eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
+
+    eval += correction_value;
+
+    eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
+}
+
+fn material(board: &Board) -> i32 {
+    [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
+        .iter()
+        .map(|&pt| board.pieces(pt).len() as i32 * PIECE_VALUES[pt])
+        .sum::<i32>()
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
