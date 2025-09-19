@@ -951,7 +951,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 }
             }
         } else {
-            let bonus = (40 * initial_depth - 10).min(400);
+            let bonus = (80 * initial_depth - 40).min(800);
             td.noisy_history.update(
                 td.board.prior_threats(),
                 td.stack[td.ply - 1].piece,
