@@ -945,6 +945,14 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     td.continuation_history.update(entry.conthist, td.stack[td.ply - 1].piece, pcm_move.to(), bonus);
                 }
             }
+
+            if td.ply >= 3 {
+                let entry = &td.stack[td.ply - 3];
+                if entry.mv.is_some() {
+                    let bonus = (128 * initial_depth - 41).min(1152);
+                    td.continuation_history.update(entry.conthist, td.stack[td.ply - 2].piece, pcm_move.to(), bonus);
+                }
+            }
         }
     }
 
