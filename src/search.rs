@@ -436,6 +436,18 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return (eval + beta) / 2;
     }
 
+    if !tt_pv
+        && !in_check
+        && !excluded
+        && depth < 9
+        && eval >= beta
+        && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
+        && !is_loss(beta)
+        && !is_win(eval)
+    {
+        return beta + (static_eval - beta) / 3;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
