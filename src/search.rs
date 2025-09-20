@@ -598,7 +598,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             // Futility Pruning (FP)
             let futility_value =
-                static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
+                static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32
+                    - 80 * best_move.is_some() as i32
+                    + 83;
 
             if !in_check
                 && is_quiet
