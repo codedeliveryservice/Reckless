@@ -429,6 +429,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && tt_bound != Bound::Upper
     {
         return beta + (static_eval - beta) / 3;
     }
