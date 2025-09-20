@@ -798,6 +798,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         // Principal Variation Search (PVS)
         if NODE::PV && (move_count == 1 || score > alpha) {
+            if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
+                new_depth = new_depth.max(1);
+            }
+
             score = -search::<PV>(td, -beta, -alpha, new_depth, false);
         }
 
