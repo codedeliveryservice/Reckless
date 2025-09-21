@@ -328,7 +328,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let raw_eval;
     let static_eval;
-    let mut eval;
+    let eval;
 
     // Evaluation
     if in_check {
@@ -343,16 +343,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
-
-        if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score < eval,
-                Bound::Lower => tt_score > eval,
-                _ => true,
-            }
-        {
-            eval = tt_score;
-        }
     } else {
         raw_eval = evaluate(td);
         td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
