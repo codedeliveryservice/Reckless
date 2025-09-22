@@ -121,7 +121,7 @@ pub struct CorrectionHistory {
 }
 
 impl CorrectionHistory {
-    const MAX_HISTORY: i32 = 14734;
+    const MAX_HISTORY: i32 = 16384;
 
     const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
@@ -148,7 +148,7 @@ pub struct ContinuationCorrectionHistory {
 }
 
 impl ContinuationCorrectionHistory {
-    const MAX_HISTORY: i32 = 16222;
+    const MAX_HISTORY: i32 = 16384;
 
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
@@ -178,7 +178,7 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 15324;
+    const MAX_HISTORY: i32 = 16384;
 
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
