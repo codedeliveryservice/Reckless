@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
+use std::cell::UnsafeCell;
 
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
@@ -90,9 +90,9 @@ struct Cluster {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    ptr: AtomicPtr<Cluster>,
-    len: AtomicUsize,
-    age: AtomicU8,
+    ptr: UnsafeCell<*mut Cluster>,
+    len: UnsafeCell<usize>,
+    age: UnsafeCell<u8>,
 }
 
 unsafe impl Sync for TranspositionTable {}
@@ -100,8 +100,10 @@ unsafe impl Sync for TranspositionTable {}
 impl TranspositionTable {
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
-        unsafe { parallel_clear(threads, self.ptr(), self.len()) };
-        self.age.store(0, Ordering::Relaxed);
+        unsafe {
+            parallel_clear(threads, self.ptr(), self.len());
+            *self.age.get() = 0;
+        }
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
@@ -110,9 +112,11 @@ impl TranspositionTable {
 
         let (new_ptr, new_len) = unsafe { allocate(threads, megabytes) };
 
-        self.ptr.store(new_ptr, Ordering::Relaxed);
-        self.len.store(new_len, Ordering::Relaxed);
-        self.age.store(0, Ordering::Relaxed);
+        unsafe {
+            *self.ptr.get() = new_ptr;
+            *self.len.get() = new_len;
+            *self.age.get() = 0;
+        }
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
@@ -131,7 +135,9 @@ impl TranspositionTable {
     }
 
     pub fn increment_age(&self) {
-        self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
+        unsafe {
+            *self.age.get() = (self.age() + 1) & AGE_MASK;
+        }
     }
 
     pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, *const InternalEntry) {
@@ -229,15 +235,15 @@ impl TranspositionTable {
     }
 
     fn age(&self) -> u8 {
-        self.age.load(Ordering::Relaxed)
+        unsafe { *self.age.get() }
     }
 
     fn ptr(&self) -> *mut Cluster {
-        self.ptr.load(Ordering::Relaxed)
+        unsafe { *self.ptr.get() }
     }
 
     fn len(&self) -> usize {
-        self.len.load(Ordering::Relaxed)
+        unsafe { *self.len.get() }
     }
 }
 
@@ -295,9 +301,9 @@ impl Default for TranspositionTable {
     fn default() -> Self {
         let (ptr, len) = unsafe { allocate(1, DEFAULT_TT_SIZE) };
         Self {
-            ptr: AtomicPtr::new(ptr),
-            len: AtomicUsize::new(len),
-            age: AtomicU8::new(0),
+            ptr: UnsafeCell::new(ptr),
+            len: UnsafeCell::new(len),
+            age: UnsafeCell::new(0),
         }
     }
 }
