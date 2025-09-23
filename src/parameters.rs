@@ -34,3 +34,16 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    f32 nodes1: 2.15;
+    f32 nodes2: 1.5;
+    f32 pv1: 1.25;
+    f32 pv2: 0.05;
+    f32 eval1: 1.2;
+    f32 eval2: 0.04;
+    f32 trend1: 0.8;
+    f32 trend2: 0.05;
+    f32 trend3: 0.8;
+    f32 trend4: 1.45;
+);
