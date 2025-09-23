@@ -9,9 +9,7 @@ use crate::{
 pub fn evaluate(td: &mut ThreadData) -> i32 {
     let mut eval = td.nnue.evaluate(&td.board);
 
-    let material = material(&td.board);
-
-    eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
+    eval += td.optimism[td.board.side_to_move()] * (1747 + material(&td.board)) / 27395;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
