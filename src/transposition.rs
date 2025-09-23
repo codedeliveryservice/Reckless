@@ -1,6 +1,5 @@
-use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
-
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
+use std::cell::UnsafeCell;
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -90,35 +89,36 @@ struct Cluster {
 
 /// The transposition table is used to cache previously performed search results.
 pub struct TranspositionTable {
-    ptr: AtomicPtr<Cluster>,
-    len: AtomicUsize,
-    age: AtomicU8,
+    ptr: *mut Cluster,
+    len: usize,
+    age: UnsafeCell<u8>,
 }
 
+// Allow multiple threads to read/write concurrently
 unsafe impl Sync for TranspositionTable {}
+unsafe impl Send for TranspositionTable {}
 
 impl TranspositionTable {
     /// Clears the transposition table. This will remove all entries but keep the allocated memory.
     pub fn clear(&self, threads: usize) {
-        unsafe { parallel_clear(threads, self.ptr(), self.len()) };
-        self.age.store(0, Ordering::Relaxed);
+        unsafe { parallel_clear(threads, self.ptr, self.len) };
+        unsafe { *self.age.get() = 0 };
     }
 
     /// Resizes the transposition table to the specified size in megabytes. This will clear all entries.
-    pub fn resize(&self, threads: usize, megabytes: usize) {
-        unsafe { deallocate(self.ptr(), self.len()) };
-
+    pub fn resize(&mut self, threads: usize, megabytes: usize) {
+        unsafe { deallocate(self.ptr, self.len) };
         let (new_ptr, new_len) = unsafe { allocate(threads, megabytes) };
 
-        self.ptr.store(new_ptr, Ordering::Relaxed);
-        self.len.store(new_len, Ordering::Relaxed);
-        self.age.store(0, Ordering::Relaxed);
+        self.ptr = new_ptr;
+        self.len = new_len;
+        unsafe { *self.age.get() = 0 };
     }
 
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
-        let age = self.age();
-        let clusters = unsafe { std::slice::from_raw_parts(self.ptr(), self.len()) };
+        let age = unsafe { *self.age.get() };
+        let clusters = unsafe { std::slice::from_raw_parts(self.ptr, self.len) };
 
         let mut count = 0;
         for cluster in clusters.iter().take(1000) {
@@ -131,34 +131,30 @@ impl TranspositionTable {
     }
 
     pub fn increment_age(&self) {
-        self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
+        unsafe { *self.age.get() = (*self.age.get() + 1) & AGE_MASK };
     }
 
     pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, *const InternalEntry) {
-        let cluster = {
-            let index = index(hash, self.len());
-            unsafe { &*self.ptr().add(index) }
-        };
-
+        let cluster = unsafe { &*self.ptr.add(index(hash, self.len)) };
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
-                let hit = Entry {
-                    depth: entry.depth as i32,
-                    score: score_from_tt(entry.score as i32, ply, halfmove_clock),
-                    eval: entry.eval as i32,
-                    bound: entry.flags.bound(),
-                    pv: entry.flags.pv(),
-                    mv: entry.mv,
-                };
-
-                return (Some(hit), std::ptr::from_ref(entry));
+                return (
+                    Some(Entry {
+                        depth: entry.depth as i32,
+                        score: score_from_tt(entry.score as i32, ply, halfmove_clock),
+                        eval: entry.eval as i32,
+                        bound: entry.flags.bound(),
+                        pv: entry.flags.pv(),
+                        mv: entry.mv,
+                    }),
+                    std::ptr::from_ref(entry),
+                );
             }
         }
 
-        let tt_age = self.age();
-
+        let tt_age = unsafe { *self.age.get() };
         let mut replacement_slot = cluster.entries.as_ptr();
         let mut lowest_quality = i32::MAX;
 
@@ -184,7 +180,7 @@ impl TranspositionTable {
 
         let entry = unsafe { &mut *ptr.cast_mut() };
         let key = verification_key(hash);
-        let tt_age = self.age();
+        let tt_age = unsafe { *self.age.get() };
 
         if !(entry.key == key && mv.is_null()) {
             entry.mv = mv;
@@ -218,26 +214,11 @@ impl TranspositionTable {
         unsafe {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
 
-            let index = index(hash, self.len());
-            let ptr = self.ptr().add(index).cast();
+            let ptr = self.ptr.add(index(hash, self.len)).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
-
-        // No prefetching for non-x86_64 architectures
         #[cfg(not(target_arch = "x86_64"))]
         let _ = hash;
-    }
-
-    fn age(&self) -> u8 {
-        self.age.load(Ordering::Relaxed)
-    }
-
-    fn ptr(&self) -> *mut Cluster {
-        self.ptr.load(Ordering::Relaxed)
-    }
-
-    fn len(&self) -> usize {
-        self.len.load(Ordering::Relaxed)
     }
 }
 
@@ -294,17 +275,13 @@ const fn score_from_tt(score: i32, ply: usize, halfmove_clock: u8) -> i32 {
 impl Default for TranspositionTable {
     fn default() -> Self {
         let (ptr, len) = unsafe { allocate(1, DEFAULT_TT_SIZE) };
-        Self {
-            ptr: AtomicPtr::new(ptr),
-            len: AtomicUsize::new(len),
-            age: AtomicU8::new(0),
-        }
+        Self { ptr, len, age: UnsafeCell::new(0) }
     }
 }
 
 impl Drop for TranspositionTable {
     fn drop(&mut self) {
-        unsafe { deallocate(self.ptr(), self.len()) };
+        unsafe { deallocate(self.ptr, self.len) };
     }
 }
 
