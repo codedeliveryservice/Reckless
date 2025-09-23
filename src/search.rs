@@ -502,7 +502,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
 
-    if cut_node
+    if !tt_pv
+        && cut_node
         && depth >= 3
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta)
