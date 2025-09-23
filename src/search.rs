@@ -1041,7 +1041,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             }
             && (!NODE::PV || !is_decisive(tt_score))
         {
-            return tt_score;
+            return (tt_score + beta) / 2;
         }
     }
 
