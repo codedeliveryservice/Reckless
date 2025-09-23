@@ -560,6 +560,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
+    let mut history = 0;
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -570,7 +571,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let is_quiet = mv.is_quiet();
 
-        let history = if is_quiet {
+        history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
                 + td.conthist(2, mv)
@@ -911,7 +912,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
-                bonus_noisy,
+                bonus_noisy * (1 + 2 * ((history < 0 && !td.board.see(best_move, 0)) as i32)),
             );
         } else if !quiet_moves.is_empty() || depth > 3 {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
