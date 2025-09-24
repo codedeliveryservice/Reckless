@@ -10,6 +10,7 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
+        self.state.captured = None;
 
         self.update_threats();
         self.update_king_threats();
