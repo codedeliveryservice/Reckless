@@ -672,6 +672,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             } else if tt_score >= beta {
                 extension = -2;
+
+                if !tt_pv && depth + extension < tt_depth {
+                    return tt_score;
+                }
             } else if cut_node {
                 extension = -2;
             }
