@@ -538,6 +538,16 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if score >= probcut_beta {
                 td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, td.ply, tt_pv);
 
+                let bonus_noisy = (125 * (probcut_depth + 1) - 57).min(1175) - 70;
+
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    td.board.piece_on(mv.to()).piece_type(),
+                    bonus_noisy,
+                );
+
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
