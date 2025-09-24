@@ -718,7 +718,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if td.stack[td.ply].cutoff_count > 2 {
-                reduction += 1555;
+                reduction += 1299 + 768 * (!NODE::PV && !cut_node) as i32;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
