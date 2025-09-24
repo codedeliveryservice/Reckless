@@ -380,6 +380,25 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[td.ply - 1].mv, bonus);
     }
 
+    // Noisy Move Ordering Using Static-Eval
+    if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && td.board.captured().is_some()
+        && is_valid(td.stack[td.ply - 1].static_eval)
+    {
+        let value = -(static_eval + td.stack[td.ply - 1].static_eval);
+        let bonus = value.clamp(-32, 64);
+
+        td.noisy_history.update(
+            td.board.prior_threats(),
+            td.board.piece_on(td.stack[td.ply - 1].mv.to()),
+            td.stack[td.ply - 1].mv.to(),
+            td.board.captured().unwrap().piece_type(),
+            bonus,
+        );
+    }
+
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check

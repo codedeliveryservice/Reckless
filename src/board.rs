@@ -3,7 +3,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
-    types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
+    types::{piece, ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -106,6 +106,10 @@ impl Board {
 
     pub fn prior_threats(&self) -> Bitboard {
         self.state_stack[self.state_stack.len() - 1].threats
+    }
+
+    pub fn captured(&self) -> Option<piece::Piece> {
+        self.state.captured
     }
 
     pub const fn en_passant(&self) -> Square {
