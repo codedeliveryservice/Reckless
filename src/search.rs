@@ -557,6 +557,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
+    let mut failed_lmr_research = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
@@ -689,6 +690,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if is_quiet {
                 reduction += 489;
                 reduction -= 137 * history / 1024;
+                reduction += 448 * failed_lmr_research;
             } else {
                 reduction += 488;
                 reduction -= 109 * history / 1024;
@@ -748,6 +750,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                         td.ply -= 1;
                         update_continuation_histories(td, td.stack[td.ply].piece, mv.to(), bonus);
                         td.ply += 1;
+                    }
+
+                    if score <= alpha {
+                        failed_lmr_research += 1;
                     }
                 }
             } else if score > alpha && score < best_score + 16 {
