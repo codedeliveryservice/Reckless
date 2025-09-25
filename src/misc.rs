@@ -44,7 +44,7 @@ impl Wrapper {
         let mut sorted = vals.to_vec();
         sorted.sort_unstable();
         let mid = sorted.len() / 2;
-        if sorted.len() % 2 == 0 {
+        if sorted.len().is_multiple_of(2) {
             (sorted[mid - 1] + sorted[mid]) as f64 / 2.0
         } else {
             sorted[mid] as f64
@@ -53,17 +53,19 @@ impl Wrapper {
 
     fn gini_mean_difference(&self) -> f64 {
         let vals = self.values.lock().unwrap();
-        let n = vals.len();
-        if n < 2 {
+        let len = vals.len();
+        if len < 2 {
             return 0.0;
         }
+
         let mut sorted = vals.to_vec();
         sorted.sort_unstable();
-        let mut sum = 0i64;
-        for (i, &x) in sorted.iter().enumerate() {
-            sum += x * (2 * (i as i64) + 1 - n as i64);
+        let mut sum = 0;
+        for (i, &val) in sorted.iter().enumerate() {
+            sum += val * (2 * (i as i64) + 1 - len as i64);
         }
-        2.0 * sum as f64 / (n as f64 * (n as f64 - 1.0))
+
+        2.0 * sum as f64 / (len as i64 as f64 * (len as i64 as f64 - 1.0))
     }
 
     fn min(&self) -> i64 {
