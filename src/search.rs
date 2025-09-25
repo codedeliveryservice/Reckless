@@ -665,7 +665,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 extension += (score < singular_beta - double_margin) as i32;
                 extension += (score < singular_beta - triple_margin) as i32;
 
-                if extension > 1 && depth < 14 {
+                if depth < 14 {
                     depth += 1;
                 }
             } else if score >= beta && !is_decisive(score) {
