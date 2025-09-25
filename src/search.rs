@@ -942,7 +942,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let pcm_move = td.stack[td.ply - 1].mv;
         if pcm_move.is_quiet() {
-            let bonus = (175 * depth - 52).min(2884);
+            let bonus = (200 * depth - 59).min(2628);
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
 
             if td.ply >= 2 {
