@@ -499,6 +499,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
+    let probcut_beta = beta + 512;
+
+    if !NODE::PV
+        && matches!(tt_bound, Bound::Lower | Bound::Exact)
+        && tt_score >= probcut_beta
+        && tt_depth >= depth - 4
+        && tt_move.is_noisy()
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && !is_decisive(probcut_beta)
+    {
+        return probcut_beta;
+    }
+
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
 
