@@ -499,9 +499,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let probcut_beta = beta + 300;
+    let probcut_beta = beta + 256;
 
-    if !NODE::PV
+    if cut_node
         && tt_bound == Bound::Lower
         && tt_score >= probcut_beta
         && tt_depth >= depth - 4
