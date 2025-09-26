@@ -499,7 +499,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let probcut_beta = beta + 512;
+    let probcut_beta = beta + 384;
 
     if !NODE::PV
         && matches!(tt_bound, Bound::Lower | Bound::Exact)
