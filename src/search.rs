@@ -327,7 +327,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let correction_value = correction_value(td);
 
     let raw_eval;
-    let static_eval;
+    let mut static_eval;
     let mut eval;
 
     // Evaluation
@@ -335,6 +335,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
+
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
+                _ => true,
+            }
+        {
+            eval = tt_score;
+            static_eval = tt_score;
+        }
     } else if excluded {
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
@@ -369,7 +380,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
-        && !in_check
+        && is_valid(static_eval)
         && !excluded
         && td.stack[td.ply - 1].mv.is_quiet()
         && is_valid(td.stack[td.ply - 1].static_eval)
@@ -382,7 +393,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Hindsight reductions
     if !NODE::ROOT
-        && !in_check
+        && is_valid(static_eval)
         && !excluded
         && td.stack[td.ply - 1].reduction >= 2397
         && static_eval + td.stack[td.ply - 1].static_eval < 0
@@ -392,7 +403,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     if !NODE::ROOT
         && !tt_pv
-        && !in_check
+        && is_valid(static_eval)
         && !excluded
         && depth >= 2
         && td.stack[td.ply - 1].reduction >= 963
@@ -407,22 +418,22 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let mut improvement = 0;
 
-    if td.ply >= 2 && is_valid(td.stack[td.ply - 2].static_eval) && !in_check {
+    if td.ply >= 2 && is_valid(td.stack[td.ply - 2].static_eval) && is_valid(static_eval) {
         improvement = static_eval - td.stack[td.ply - 2].static_eval;
-    } else if td.ply >= 4 && is_valid(td.stack[td.ply - 4].static_eval) && !in_check {
+    } else if td.ply >= 4 && is_valid(td.stack[td.ply - 4].static_eval) && is_valid(static_eval) {
         improvement = static_eval - td.stack[td.ply - 4].static_eval;
     }
 
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
+    if !NODE::PV && is_valid(eval) && eval < alpha - 320 - 237 * initial_depth * initial_depth {
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
     if !tt_pv
-        && !in_check
+        && is_valid(static_eval)
         && !excluded
         && depth < 9
         && eval >= beta
@@ -435,7 +446,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
-        && !in_check
+        && is_valid(eval)
         && !excluded
         && eval >= beta
         && eval
