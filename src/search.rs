@@ -327,7 +327,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let correction_value = correction_value(td);
 
     let raw_eval;
-    let static_eval;
+    let mut static_eval;
     let mut eval;
 
     // Evaluation
@@ -335,6 +335,17 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
+
+        if is_valid(tt_score)
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha,
+                Bound::Lower => tt_score >= beta,
+                _ => true,
+            }
+        {
+            eval = tt_score;
+            static_eval = tt_score;
+        }
     } else if excluded {
         raw_eval = td.stack[td.ply].static_eval;
         static_eval = raw_eval;
@@ -422,7 +433,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
     if !tt_pv
-        && !in_check
+        && is_valid(eval)
         && !excluded
         && depth < 9
         && eval >= beta
@@ -435,7 +446,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
-        && !in_check
+        && is_valid(eval)
         && !excluded
         && eval >= beta
         && eval
