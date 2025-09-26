@@ -1055,15 +1055,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
-
-        let static_eval = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
-        best_score = static_eval;
+        best_score = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
-                Bound::Upper => tt_score < static_eval,
-                Bound::Lower => tt_score > static_eval,
+                Bound::Upper => tt_score < best_score,
+                Bound::Lower => tt_score > best_score,
                 _ => true,
             }
         {
@@ -1096,7 +1094,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             alpha = best_score;
         }
 
-        futility_base = static_eval + 79;
+        futility_base = best_score + 79;
     }
 
     let mut best_move = Move::NULL;
