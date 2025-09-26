@@ -1,7 +1,7 @@
 use crate::{
-    lookup::{bishop_attacks, rook_attacks},
+    lookup::{between, bishop_attacks, rook_attacks},
     parameters::PIECE_VALUES,
-    types::{Bitboard, Move, PieceType},
+    types::{Bitboard, Color, Move, PieceType},
 };
 
 impl super::Board {
@@ -41,8 +41,13 @@ impl super::Board {
         let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
         let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
 
+        let white_pins = self.pinned(Color::White) & !between(self.king_square(Color::White), mv.to());
+        let black_pins = self.pinned(Color::Black) & !between(self.king_square(Color::Black), mv.to());
+
+        let allowed = !(white_pins | black_pins) | mv.from().to_bb();
+
         loop {
-            let our_attackers = attackers & self.colors(stm);
+            let our_attackers = attackers & allowed & self.colors(stm);
             if our_attackers.is_empty() {
                 break;
             }
