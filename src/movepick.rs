@@ -61,7 +61,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool) -> Option<Move> {
+    pub fn next(&mut self, td: &mut ThreadData, skip_quiets: bool) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -93,6 +93,15 @@ impl MovePicker {
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 36 + 119);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
+
+                    td.noisy_history.update(
+                        td.board.threats(),
+                        td.board.moved_piece(entry.mv),
+                        entry.mv.to(),
+                        td.board.piece_on(entry.mv.to()).piece_type(),
+                        -128,
+                    );
+
                     continue;
                 }
 
