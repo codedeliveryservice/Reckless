@@ -449,6 +449,20 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         return (eval + beta) / 2;
     }
 
+    let probcut_beta = beta + 256;
+
+    if cut_node
+        && tt_bound == Bound::Lower
+        && tt_score >= probcut_beta
+        && tt_depth >= depth - 4
+        && tt_move.is_noisy()
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && !is_decisive(probcut_beta)
+    {
+        return probcut_beta;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -497,20 +511,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 return score;
             }
         }
-    }
-
-    let probcut_beta = beta + 256;
-
-    if cut_node
-        && tt_bound == Bound::Lower
-        && tt_score >= probcut_beta
-        && tt_depth >= depth - 4
-        && tt_move.is_noisy()
-        && is_valid(tt_score)
-        && !is_decisive(tt_score)
-        && !is_decisive(probcut_beta)
-    {
-        return probcut_beta;
     }
 
     // ProbCut
