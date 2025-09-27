@@ -92,7 +92,6 @@ pub struct ThreadData<'a> {
     pub root_delta: i32,
     pub sel_depth: i32,
     pub completed_depth: i32,
-    pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
 }
@@ -125,7 +124,6 @@ impl<'a> ThreadData<'a> {
             root_delta: 0,
             sel_depth: 0,
             completed_depth: 0,
-            ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
         }
@@ -135,14 +133,14 @@ impl<'a> ThreadData<'a> {
         self.stop.load(Ordering::Relaxed)
     }
 
-    pub fn conthist(&self, index: usize, mv: Move) -> i32 {
-        if self.ply < index || self.stack[self.ply - index].mv.is_null() {
+    pub fn conthist(&self, index: usize, mv: Move, ply: usize) -> i32 {
+        if ply < index || self.stack[ply - index].mv.is_null() {
             return 0;
         }
 
         let piece = self.board.piece_on(mv.from());
         let sq = mv.to();
-        self.continuation_history.get(self.stack[self.ply - index].conthist, piece, sq)
+        self.continuation_history.get(self.stack[ply - index].conthist, piece, sq)
     }
 
     pub fn print_uci_info(&self, depth: i32) {
