@@ -452,7 +452,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval
             >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
-                + td.stack[td.ply - 1].history / 324
+                + (td.stack[td.ply - 1].mv.is_quiet()) as i32 * (td.stack[td.ply - 1].history / 324)
                 + 580 * correction_value.abs() / 1024
                 + 24
         && !is_loss(beta)
