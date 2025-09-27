@@ -5,15 +5,26 @@ use crate::{
     types::{PieceType, Score},
 };
 
-/// Calculates the score of the current position from the perspective of the side to move.
-pub fn evaluate(td: &mut ThreadData) -> i32 {
-    let mut eval = td.nnue.evaluate(&td.board);
+pub fn evaluate(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
+    eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
+    eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
+
+    eval += correction_value;
+
+    eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
+}
+
+pub fn evaluate_qs(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
     let material = material(&td.board);
 
     eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+
+    eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
+
+    eval += correction_value;
 
     eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
