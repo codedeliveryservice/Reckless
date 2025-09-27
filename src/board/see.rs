@@ -44,10 +44,10 @@ impl super::Board {
         let white_pins = self.pinned(Color::White) & !between(self.king_square(Color::White), mv.to());
         let black_pins = self.pinned(Color::Black) & !between(self.king_square(Color::Black), mv.to());
 
-        let pins = white_pins | black_pins;
+        let allowed = !(white_pins | black_pins);
 
         loop {
-            let our_attackers = attackers & !pins & self.colors(stm);
+            let our_attackers = attackers & allowed & self.colors(stm);
             if our_attackers.is_empty() {
                 break;
             }
