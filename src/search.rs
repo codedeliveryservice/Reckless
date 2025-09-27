@@ -705,7 +705,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if NODE::PV {
-                reduction -= 393 + 552 * (beta - alpha > 30 * td.root_delta / 128) as i32;
+                reduction -= 393 + 552 * (beta - alpha) / td.root_delta;
             }
 
             if !tt_pv && cut_node {
@@ -775,7 +775,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if NODE::PV {
-                reduction -= 491 + 780 * (beta - alpha > 25 * td.root_delta / 128) as i32;
+                reduction -= 491 + 780 * (beta - alpha) / td.root_delta;
             }
 
             if !tt_pv && cut_node {
