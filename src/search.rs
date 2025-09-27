@@ -937,11 +937,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3) {
+    if !NODE::ROOT && bound == Bound::Upper {
         tt_pv |= td.stack[td.ply - 1].tt_pv;
 
         let pcm_move = td.stack[td.ply - 1].mv;
-        if pcm_move.is_quiet() {
+        if pcm_move.is_quiet() && (!quiet_moves.is_empty() || depth > 3) {
             let mut factor = 104;
             factor += 147 * (initial_depth > 5) as i32;
             factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
