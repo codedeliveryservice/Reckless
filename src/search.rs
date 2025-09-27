@@ -708,6 +708,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 reduction -= 393 + 552 * (beta - alpha) / td.root_delta;
             }
 
+            if NODE::ROOT {
+                reduction -= 1024;
+            }
+
             if !tt_pv && cut_node {
                 reduction += 1675;
                 reduction += 934 * tt_move.is_null() as i32;
