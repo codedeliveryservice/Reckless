@@ -660,10 +660,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if score < singular_beta {
                 let double_margin = 2 + 277 * NODE::PV as i32;
                 let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+                let quadrple_margin = 324 + 384 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
                 extension = 1;
                 extension += (score < singular_beta - double_margin) as i32;
                 extension += (score < singular_beta - triple_margin) as i32;
+                extension += (score < singular_beta - quadrple_margin) as i32;
 
                 if extension > 1 && depth < 14 {
                     depth += 1;
