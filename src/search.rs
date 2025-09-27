@@ -1245,8 +1245,7 @@ fn make_move(td: &mut ThreadData, mv: Move) {
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
-    td.stack[td.ply].contcorrhist =
-        td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
+    td.stack[td.ply].contcorrhist = td.continuation_corrhist.subtable_ptr(td.board.moved_piece(mv));
     td.ply += 1;
 
     td.nodes.increment();
