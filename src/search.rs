@@ -417,7 +417,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
-        return qsearch::<NonPV>(td, alpha, beta);
+        let score = qsearch::<NonPV>(td, alpha, beta);
+        if score >= beta {
+            return (eval + beta) / 2;
+        }
+
+        return score;
     }
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
