@@ -365,6 +365,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     td.stack[td.ply].tt_pv = tt_pv;
     td.stack[td.ply].reduction = 0;
     td.stack[td.ply].move_count = 0;
+    td.stack[td.ply].history = 0;
     td.stack[td.ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
@@ -440,6 +441,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && eval >= beta
         && eval
             >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+                + td.stack[td.ply - 1].history / 324
                 + 580 * correction_value.abs() / 1024
                 + 24
         && !is_loss(beta)
@@ -521,7 +523,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 continue;
             }
 
-            make_move(td, mv);
+            make_move(td, mv, 0);
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1);
 
@@ -679,7 +681,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let initial_nodes = td.nodes.local();
 
-        make_move(td, mv);
+        make_move(td, mv, history);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -1139,7 +1141,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             continue;
         }
 
-        make_move(td, mv);
+        make_move(td, mv, 0);
 
         let score = -qsearch::<NODE>(td, -beta, -alpha);
 
@@ -1240,8 +1242,9 @@ fn update_continuation_histories(td: &mut ThreadData, piece: Piece, sq: Square, 
     }
 }
 
-fn make_move(td: &mut ThreadData, mv: Move) {
+fn make_move(td: &mut ThreadData, mv: Move, history: i32) {
     td.stack[td.ply].mv = mv;
+    td.stack[td.ply].history = history;
     td.stack[td.ply].piece = td.board.moved_piece(mv);
     td.stack[td.ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
