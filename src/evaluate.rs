@@ -6,6 +6,10 @@ use crate::{
 };
 
 pub fn evaluate(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
+    let material = material(&td.board);
+
+    eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
+
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
     eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
@@ -16,10 +20,6 @@ pub fn evaluate(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
 }
 
 pub fn evaluate_qs(td: &ThreadData, mut eval: i32, correction_value: i32) -> i32 {
-    let material = material(&td.board);
-
-    eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
-
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
     eval = (eval * (200 - td.board.halfmove_clock() as i32)) / 200;
