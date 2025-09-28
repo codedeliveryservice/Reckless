@@ -612,7 +612,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             let futility_value =
                 static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
 
-            if !in_check
+            if is_valid(static_eval)
                 && is_quiet
                 && lmr_depth < 9
                 && futility_value <= alpha
@@ -632,7 +632,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
                 + 71;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if is_valid(static_eval)
+                && lmr_depth < 6
+                && move_picker.stage() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
