@@ -265,26 +265,31 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         if !NODE::PV
             && !excluded
-            && tt_depth > depth - (tt_score <= beta) as i32 - (tt_bound == Bound::Exact) as i32
+            && is_valid(tt_score)
+            && tt_move.is_quiet()
+            && tt_depth > depth - (tt_score <= beta || tt_bound == Bound::Exact) as i32
+            && tt_score >= beta
+            && tt_bound != Bound::Upper
+        {
+            let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
+            let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
+
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
+            update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+        }
+
+        if !NODE::PV
+            && !excluded
+            && tt_depth > depth - (tt_score <= beta || tt_bound == Bound::Exact) as i32
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
                 Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
                 _ => true,
             }
+            && td.board.halfmove_clock() < 90
         {
-            if tt_move.is_quiet() && tt_score >= beta {
-                let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
-                let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
-
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
-            }
-
-            if td.board.halfmove_clock() < 90 {
-                debug_assert!(is_valid(tt_score));
-                return tt_score;
-            }
+            return tt_score;
         }
     }
 
