@@ -669,7 +669,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if score < singular_beta {
-                let double_margin = 2 + 277 * NODE::PV as i32;
+                let double_margin = 2 + 277 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
                 let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
                 extension = 1;
