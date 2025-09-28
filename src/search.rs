@@ -270,6 +270,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             && tt_depth > depth - (tt_score <= beta || tt_bound == Bound::Exact) as i32
             && tt_score >= beta
             && tt_bound != Bound::Upper
+            && td.board.halfmove_clock() < 90
         {
             let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
             let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
