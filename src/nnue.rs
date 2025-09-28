@@ -8,31 +8,12 @@ use accumulator::{Accumulator, AccumulatorCache};
 mod accumulator;
 
 mod forward {
-    #[cfg(target_feature = "avx2")]
-    mod vectorized;
-    #[cfg(target_feature = "avx2")]
-    pub use vectorized::*;
-
-    #[cfg(not(target_feature = "avx2"))]
     mod scalar;
-    #[cfg(not(target_feature = "avx2"))]
     pub use scalar::*;
 }
 
 mod simd {
-    #[cfg(target_feature = "avx512f")]
-    mod avx512;
-    #[cfg(target_feature = "avx512f")]
-    pub use avx512::*;
-
-    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-    mod avx2;
-    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-    pub use avx2::*;
-
-    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
     mod scalar;
-    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
     pub use scalar::*;
 }
 
