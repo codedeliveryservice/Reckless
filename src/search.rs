@@ -418,9 +418,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     let mut improvement = 0;
 
-    if td.ply >= 2 && is_valid(td.stack[td.ply - 2].static_eval) && !in_check {
+    if td.ply >= 2 && is_valid(static_eval) && is_valid(td.stack[td.ply - 2].static_eval) {
         improvement = static_eval - td.stack[td.ply - 2].static_eval;
-    } else if td.ply >= 4 && is_valid(td.stack[td.ply - 4].static_eval) && !in_check {
+    } else if td.ply >= 4 && is_valid(static_eval) && is_valid(td.stack[td.ply - 4].static_eval) {
         improvement = static_eval - td.stack[td.ply - 4].static_eval;
     }
 
