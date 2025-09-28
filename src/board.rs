@@ -112,6 +112,10 @@ impl Board {
         self.state.en_passant
     }
 
+    pub const fn is_captured(&self) -> bool {
+        self.state.captured.is_some()
+    }
+
     pub const fn castling(&self) -> Castling {
         self.state.castling
     }
