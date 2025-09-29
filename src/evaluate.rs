@@ -7,11 +7,15 @@ use crate::{
 
 /// Calculates the score of the current position from the perspective of the side to move.
 pub fn evaluate(td: &mut ThreadData) -> i32 {
-    let mut eval = td.nnue.evaluate(&td.board);
-
     let material = material(&td.board);
+    let nnue_weight = td.nnue.evaluate(&td.board) * (21366 + material);
+    let optimism_weight = td.optimism[td.board.side_to_move()] * (1747 + material);
 
-    eval = (eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
+    let mut eval = if nnue_weight == 0 || (nnue_weight.signum() == (nnue_weight + optimism_weight).signum()) {
+        nnue_weight + optimism_weight
+    } else {
+        nnue_weight
+    } / 27395;
 
     eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
 
