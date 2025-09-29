@@ -581,6 +581,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let is_quiet = mv.is_quiet();
 
+        if is_quiet {
+            td.stack[td.ply + 1].quiet_move_streak += 1;
+        } else {
+            td.stack[td.ply + 1].quiet_move_streak = 0;
+        }
+
         let history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(1, mv)
@@ -708,6 +714,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= 3607 * correction_value.abs() / 1024;
             reduction -= 69 * move_count;
+            reduction += 56 * td.stack[td.ply].quiet_move_streak;
 
             if tt_pv {
                 reduction -= 427;
@@ -778,6 +785,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             reduction -= 2667 * correction_value.abs() / 1024;
             reduction -= 52 * move_count;
+            reduction += 56 * td.stack[td.ply].quiet_move_streak;
 
             if tt_pv {
                 reduction -= 750;
