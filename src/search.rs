@@ -424,7 +424,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         improvement = static_eval - td.stack[td.ply - 4].static_eval;
     }
 
-    let improving = improvement > 0;
+    let improving = improvement > correction_value.abs() / 128;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
