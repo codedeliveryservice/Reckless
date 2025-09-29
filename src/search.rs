@@ -366,9 +366,13 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     } else {
         raw_eval = evaluate(td);
-        td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
-
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        if static_eval >= beta {
+            td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, static_eval, Bound::Lower, Move::NULL, td.ply, tt_pv);
+        } else {
+            td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, td.ply, tt_pv);
+        }
+
         eval = static_eval;
     }
 
