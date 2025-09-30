@@ -985,7 +985,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(tt_slot, hash, depth.max(new_depth), raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(tt_slot, hash, depth.min(new_depth + 1), raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
