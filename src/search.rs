@@ -570,6 +570,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
+    let mut new_depth = depth - 1;
 
     while let Some(mv) = move_picker.next(td, skip_quiets) {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
@@ -692,7 +693,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         make_move(td, mv);
 
-        let mut new_depth = depth + extension - 1;
+        new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
@@ -984,7 +985,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if !excluded {
-        td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, td.ply, tt_pv);
+        td.tt.write(tt_slot, hash, depth.max(new_depth), raw_eval, best_score, bound, best_move, td.ply, tt_pv);
     }
 
     if !(in_check
