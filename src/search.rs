@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -274,8 +274,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
         {
             if tt_move.is_quiet() && tt_score >= beta {
-                let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
-                let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
+                let quiet_bonus = (ttcut_quiet_v1() * depth - ttcut_quiet_v2()).min(ttcut_quiet_v3());
+                let conthist_bonus = (ttcut_cont_v1() * depth - ttcut_cont_v2()).min(ttcut_cont_v3());
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
                 update_continuation_histories(td, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
@@ -907,14 +907,29 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
-        let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
+        let bonus_noisy = ([bonus_noisy_v1a, bonus_noisy_v1b][cut_node as usize]() * depth
+            - [bonus_noisy_v2a, bonus_noisy_v2b][cut_node as usize]())
+        .min([bonus_noisy_v3a, bonus_noisy_v3b][cut_node as usize]());
+        let malus_noisy = ([malus_noisy_v1a, malus_noisy_v1b][cut_node as usize]() * initial_depth
+            - [malus_noisy_v2a, malus_noisy_v2b][cut_node as usize]())
+        .min([malus_noisy_v3a, malus_noisy_v3b][cut_node as usize]())
+            - 24 * noisy_moves.len() as i32;
 
-        let bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32;
-        let malus_quiet = (133 * initial_depth - 51).min(1162) - 37 * quiet_moves.len() as i32;
+        let bonus_quiet = ([bonus_quiet_v1a, bonus_quiet_v1b][cut_node as usize]() * depth
+            - [bonus_quiet_v2a, bonus_quiet_v2b][cut_node as usize]())
+        .min([bonus_quiet_v3a, bonus_quiet_v3b][cut_node as usize]());
+        let malus_quiet = ([malus_quiet_v1a, malus_quiet_v1b][cut_node as usize]() * initial_depth
+            - [malus_quiet_v2a, malus_quiet_v2b][cut_node as usize]())
+        .min([malus_quiet_v3a, malus_quiet_v3b][cut_node as usize]())
+            - 37 * quiet_moves.len() as i32;
 
-        let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
-        let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
+        let bonus_cont = ([bonus_cont_v1a, bonus_cont_v1b][cut_node as usize]() * depth
+            - [bonus_cont_v2a, bonus_cont_v2b][cut_node as usize]())
+        .min([bonus_cont_v3a, bonus_cont_v3b][cut_node as usize]());
+        let malus_cont = ([malus_cont_v1a, malus_cont_v1b][cut_node as usize]() * initial_depth
+            - [malus_cont_v2a, malus_cont_v2b][cut_node as usize]())
+        .min([malus_cont_v3a, malus_cont_v3b][cut_node as usize]())
+            - 30 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -940,7 +955,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if !NODE::ROOT && td.stack[td.ply - 1].mv.is_quiet() && td.stack[td.ply - 1].move_count == 1 {
-            let malus = (78 * initial_depth - 52).min(811);
+            let malus = ([refuted_v1a, refuted_v1b][cut_node as usize]() * initial_depth
+                - [refuted_v2a, refuted_v2b][cut_node as usize]())
+            .min([refuted_v3a, refuted_v3b][cut_node as usize]());
 
             td.ply -= 1;
             update_continuation_histories(td, td.stack[td.ply].piece, td.stack[td.ply].mv.to(), -malus);
@@ -960,14 +977,19 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 * (is_valid(td.stack[td.ply - 1].static_eval) && best_score <= -td.stack[td.ply - 1].static_eval - 100)
                     as i32;
 
-            let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
+            let scaled_bonus = factor
+                * ([pcm_v1a, pcm_v1b][cut_node as usize]() * initial_depth - [pcm_v2a, pcm_v2b][cut_node as usize]())
+                    .min([pcm_v3a, pcm_v3b][cut_node as usize]())
+                / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
             if td.ply >= 2 {
                 let entry = &td.stack[td.ply - 2];
                 if entry.mv.is_some() {
-                    let bonus = (151 * initial_depth - 41).min(1630);
+                    let bonus = ([pcm2_v1a, pcm2_v1b][cut_node as usize]() * initial_depth
+                        - [pcm2_v2a, pcm2_v2b][cut_node as usize]())
+                    .min([pcm2_v3a, pcm2_v3b][cut_node as usize]());
                     td.continuation_history.update(entry.conthist, td.stack[td.ply - 1].piece, pcm_move.to(), bonus);
                 }
             }
