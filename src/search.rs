@@ -709,7 +709,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 3607 * correction_value.abs() / 1024;
             reduction -= 69 * move_count;
 
-            if tt_pv {
+            if tt_pv && tt_bound != Bound::Exact {
                 reduction -= 427;
                 reduction -= 677 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 729 * (is_valid(tt_score) && tt_depth >= depth) as i32;
@@ -779,7 +779,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             reduction -= 2667 * correction_value.abs() / 1024;
             reduction -= 52 * move_count;
 
-            if tt_pv {
+            if tt_pv && tt_bound != Bound::Exact {
                 reduction -= 750;
                 reduction -= 537 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 1081 * (is_valid(tt_score) && tt_depth >= depth) as i32;
