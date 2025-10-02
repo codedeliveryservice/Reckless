@@ -49,8 +49,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.stopped = false;
 
     td.pv_table.clear(0);
-    td.nodes.clear_local();
-    td.tb_hits.clear_local();
+    td.nodes.clear();
+    td.tb_hits.clear();
 
     td.nnue.full_refresh(&td.board);
 

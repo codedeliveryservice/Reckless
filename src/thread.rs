@@ -295,12 +295,9 @@ impl<'a> AtomicCounter<'a> {
         }
     }
 
-    pub fn clear_local(&mut self) {
+    pub fn clear(&mut self) {
         self.local = 0;
         self.buffer = 0;
-    }
-
-    pub fn clear_global(&mut self) {
         self.global.store(0, Ordering::Relaxed);
     }
 

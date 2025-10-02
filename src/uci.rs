@@ -89,8 +89,6 @@ fn go(
     let limits = parse_limits(board.side_to_move(), tokens);
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
-    threads.main_thread().tb_hits.clear_global();
-    threads.main_thread().nodes.clear_global();
     threads.main_thread().tt.increment_age();
 
     stop.store(false, Ordering::Relaxed);
