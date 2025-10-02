@@ -2,7 +2,10 @@ use super::Board;
 use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
-    pub fn make_null_move(&mut self) {
+    pub fn make_null_move<F>(&mut self, prefetch: F)
+    where
+        F: FnOnce(u64),
+    {
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
@@ -13,12 +16,14 @@ impl Board {
         self.state.captured = None;
         self.state.checkers = Bitboard::default();
 
-        self.update_threats();
-
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
+
+        prefetch(self.state.key);
+
+        self.update_threats();
     }
 
     pub fn undo_null_move(&mut self) {
@@ -30,7 +35,10 @@ impl Board {
     ///
     /// This method assumes the move has been validated as pseudo-legal and legal
     /// per `Board::is_pseudo_legal` and `Board::is_legal`.
-    pub fn make_move(&mut self, mv: Move) {
+    pub fn make_move<F>(&mut self, mv: Move, prefetch: F)
+    where
+        F: FnOnce(u64),
+    {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
@@ -78,7 +86,6 @@ impl Board {
             }
             MoveKind::EnPassant => {
                 let captured = Piece::new(!stm, PieceType::Pawn);
-
                 self.remove_piece(captured, to ^ 8);
                 self.update_hash(captured, to ^ 8);
             }
@@ -106,11 +113,11 @@ impl Board {
             }
             _ => (),
         }
-
-        self.side_to_move = !self.side_to_move;
-
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.key ^= ZOBRIST.castling[self.state.castling];
+        prefetch(self.state.key);
+
+        self.side_to_move = !self.side_to_move;
 
         self.update_threats();
         self.update_king_threats();

@@ -29,7 +29,7 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
         let mv = entry.mv;
 
         if board.is_legal(mv) {
-            board.make_move(mv);
+            board.make_move(mv, |_| {});
             nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
             board.undo_move(mv);
         }
