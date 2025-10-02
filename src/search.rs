@@ -169,7 +169,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend =
+                (800 + 20 * (td.previous_best_score - td.root_moves[0].score)).clamp(750, 1500) as f32 / 1000.0;
 
             nodes_factor * pv_stability * eval_stability * score_trend
         };
