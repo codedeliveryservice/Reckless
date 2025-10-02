@@ -3,7 +3,7 @@ use crate::{
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_size, GameOutcome},
-    thread::{PrincipalVariationTable, RootMove, ThreadData},
+    thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
@@ -48,7 +48,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.completed_depth = 0;
     td.stopped = false;
 
-    td.pv_table.clear(0);
+    td.pv.clear(0);
     td.nodes.clear();
     td.tb_hits.clear();
 
@@ -67,7 +67,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             upperbound: false,
             sel_depth: 0,
             nodes: 0,
-            pv: PrincipalVariationTable::default(),
         })
         .collect();
 
@@ -143,11 +142,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
         td.tb_hits.flush();
         td.completed_depth = depth;
 
-        if last_move == td.root_moves[0].mv {
+        if last_move == td.pv.best_move() {
             pv_stability += 1;
         } else {
             pv_stability = 0;
-            last_move = td.root_moves[0].mv;
+            last_move = td.pv.best_move();
         }
 
         if (td.root_moves[0].score - average).abs() < 12 {
@@ -178,7 +177,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
     }
 
-    if report == Report::Full || report == Report::Minimal {
+    if report != Report::None {
         td.print_uci_info(td.root_depth);
     }
 
@@ -192,8 +191,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let in_check = td.board.in_check();
     let excluded = td.stack[td.ply].excluded.is_some();
 
-    if !NODE::ROOT && NODE::PV {
-        td.pv_table.clear(td.ply);
+    if NODE::PV {
+        td.pv.clear(td.ply);
     }
 
     if td.stopped {
@@ -857,7 +856,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 root_move.score = score;
                 root_move.sel_depth = td.sel_depth;
-                root_move.pv.commit_full_root_pv(&td.pv_table, 1);
             } else {
                 root_move.score = -Score::INFINITE;
             }
@@ -871,7 +869,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 best_move = mv;
 
                 if NODE::PV {
-                    td.pv_table.update(td.ply, mv);
+                    td.pv.update(td.ply, mv);
                 }
 
                 if score >= beta {
@@ -1013,7 +1011,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
     let in_check = td.board.in_check();
 
     if NODE::PV {
-        td.pv_table.clear(td.ply);
+        td.pv.clear(td.ply);
         td.sel_depth = td.sel_depth.max(td.ply as i32);
     }
 
@@ -1067,7 +1065,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         best_score = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
 
         if is_valid(tt_score)
-            && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
                 Bound::Upper => tt_score < best_score,
                 Bound::Lower => tt_score > best_score,
@@ -1166,7 +1163,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                 alpha = score;
 
                 if NODE::PV {
-                    td.pv_table.update(td.ply, mv);
+                    td.pv.update(td.ply, mv);
                 }
 
                 if score >= beta {

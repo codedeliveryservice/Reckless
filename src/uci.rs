@@ -130,7 +130,7 @@ fn go(
 
     let mut votes = vec![0; 4096];
     for result in threads.iter() {
-        votes[result.root_moves[0].mv.encoded()] += vote_value(result);
+        votes[result.pv.best_move().encoded()] += vote_value(result);
     }
 
     let mut best = 0;
@@ -148,8 +148,8 @@ fn go(
                 return true;
             }
 
-            let best_vote = votes[best.root_moves[0].mv.encoded()];
-            let current_vote = votes[current.root_moves[0].mv.encoded()];
+            let best_vote = votes[best.pv.best_move().encoded()];
+            let current_vote = votes[current.pv.best_move().encoded()];
 
             !is_loss(current.root_moves[0].score)
                 && (current_vote > best_vote || (current_vote == best_vote && vote_value(current) > vote_value(best)))
@@ -160,11 +160,7 @@ fn go(
         }
     }
 
-    if best != 0 {
-        threads[best].print_uci_info(threads[best].completed_depth);
-    }
-
-    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&threads.main_thread().board));
+    println!("bestmove {}", threads[best].pv.best_move().to_uci(&threads.main_thread().board));
     crate::misc::dbg_print();
 
     listener.join().unwrap()

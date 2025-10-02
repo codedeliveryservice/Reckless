@@ -76,7 +76,7 @@ pub struct ThreadData<'a> {
     pub stack: Stack,
     pub nnue: Network,
     pub root_moves: Vec<RootMove>,
-    pub pv_table: PrincipalVariationTable,
+    pub pv: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
@@ -109,7 +109,7 @@ impl<'a> ThreadData<'a> {
             stack: Stack::default(),
             nnue: Network::default(),
             root_moves: Vec::new(),
-            pv_table: PrincipalVariationTable::default(),
+            pv: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
@@ -180,10 +180,12 @@ impl<'a> ThreadData<'a> {
             self.tb_hits.global(),
         );
 
-        print!(" {}", root_move.mv.to_uci(&self.board));
-
-        for mv in root_move.pv.line() {
+        for mv in self.pv.line() {
             print!(" {}", mv.to_uci(&self.board));
+        }
+
+        if self.pv.line().is_empty() {
+            print!(" {}", self.pv.best_move().to_uci(&self.board));
         }
 
         println!();
@@ -198,7 +200,6 @@ pub struct RootMove {
     pub lowerbound: bool,
     pub sel_depth: i32,
     pub nodes: u64,
-    pub pv: PrincipalVariationTable,
 }
 
 pub struct PrincipalVariationTable {
@@ -207,6 +208,10 @@ pub struct PrincipalVariationTable {
 }
 
 impl PrincipalVariationTable {
+    pub const fn best_move(&self) -> Move {
+        self.table[0][0]
+    }
+
     pub fn line(&self) -> &[Move] {
         &self.table[0][..self.len[0]]
     }
@@ -222,12 +227,6 @@ impl PrincipalVariationTable {
         for i in 0..self.len[ply + 1] {
             self.table[ply][i + 1] = self.table[ply + 1][i];
         }
-    }
-
-    pub fn commit_full_root_pv(&mut self, src: &PrincipalVariationTable, start_ply: usize) {
-        let l = src.len[start_ply].min(MAX_PLY + 1);
-        self.len[0] = l;
-        self.table[0][..l].copy_from_slice(&src.table[start_ply][..l]);
     }
 }
 
