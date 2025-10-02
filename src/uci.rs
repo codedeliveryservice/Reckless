@@ -8,7 +8,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color, Score},
+    types::{is_decisive, is_loss, is_win, Color},
 };
 
 pub fn message_loop() {
@@ -140,18 +140,11 @@ fn go(
             let best = &threads[best];
             let current = &threads[current];
 
-            if is_win(best.root_moves[0].score) {
+            if is_decisive(best.root_moves[0].score) {
                 return current.root_moves[0].score > best.root_moves[0].score;
             }
 
-            if current.root_moves[0].score != -Score::INFINITE
-                && best.root_moves[0].score != -Score::INFINITE
-                && is_loss(best.root_moves[0].score)
-            {
-                return current.root_moves[0].score < best.root_moves[0].score;
-            }
-
-            if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
+            if is_win(current.root_moves[0].score) {
                 return true;
             }
 

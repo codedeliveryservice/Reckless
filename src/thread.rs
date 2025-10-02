@@ -190,7 +190,6 @@ impl<'a> ThreadData<'a> {
     }
 }
 
-#[derive(Clone)]
 pub struct RootMove {
     pub mv: Move,
     pub score: i32,
@@ -202,7 +201,6 @@ pub struct RootMove {
     pub pv: PrincipalVariationTable,
 }
 
-#[derive(Clone)]
 pub struct PrincipalVariationTable {
     table: [[Move; MAX_PLY + 1]; MAX_PLY + 1],
     len: [usize; MAX_PLY + 1],
