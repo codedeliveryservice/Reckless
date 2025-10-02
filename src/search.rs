@@ -115,9 +115,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             // Root Search
             let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false);
 
-            td.nodes.flush();
-            td.tb_hits.flush();
-
             td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
 
             if td.stopped {
@@ -150,6 +147,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
         if !td.stopped {
             td.completed_depth = depth;
         }
+
+        td.nodes.flush();
+        td.tb_hits.flush();
 
         if report == Report::Full && !(is_loss(td.root_moves[0].display_score) && td.stopped) {
             td.print_uci_info(depth);
