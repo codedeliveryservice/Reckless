@@ -202,24 +202,9 @@ pub struct RootMove {
     pub pv: PrincipalVariationTable,
 }
 
-impl Default for RootMove {
-    fn default() -> Self {
-        Self {
-            mv: Move::NULL,
-            score: -Score::INFINITE,
-            display_score: -Score::INFINITE,
-            upperbound: false,
-            lowerbound: false,
-            sel_depth: 0,
-            nodes: 0,
-            pv: PrincipalVariationTable::default(),
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct PrincipalVariationTable {
-    table: Box<[[Move; MAX_PLY + 1]]>,
+    table: [[Move; MAX_PLY + 1]; MAX_PLY + 1],
     len: [usize; MAX_PLY + 1],
 }
 
@@ -241,17 +226,17 @@ impl PrincipalVariationTable {
         }
     }
 
-    pub fn commit_full_root_pv(&mut self, src: &Self, start_ply: usize) {
-        let len = src.len[start_ply].min(MAX_PLY + 1);
-        self.len[0] = len;
-        self.table[0][..len].copy_from_slice(&src.table[start_ply][..len]);
+    pub fn commit_full_root_pv(&mut self, src: &PrincipalVariationTable, start_ply: usize) {
+        let l = src.len[start_ply].min(MAX_PLY + 1);
+        self.len[0] = l;
+        self.table[0][..l].copy_from_slice(&src.table[start_ply][..l]);
     }
 }
 
 impl Default for PrincipalVariationTable {
     fn default() -> Self {
         Self {
-            table: vec![[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1].into_boxed_slice(),
+            table: [[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1],
             len: [0; MAX_PLY + 1],
         }
     }
@@ -315,7 +300,7 @@ impl<'a> AtomicCounter<'a> {
         self.buffer = 0;
     }
 
-    pub fn clear_global(&self) {
+    pub fn clear_global(&mut self) {
         self.global.store(0, Ordering::Relaxed);
     }
 
