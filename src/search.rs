@@ -471,6 +471,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.has_non_pawns()
         && !potential_singularity
         && !is_loss(beta)
+        && !is_win(eval)
     {
         let r = 5 + depth / 3 + ((eval - beta) / 257).min(3);
 
@@ -491,8 +492,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             return Score::ZERO;
         }
 
-        if score >= beta && !is_win(score) {
-            if td.nmp_min_ply > 0 || depth < 16 {
+        if score >= beta {
+            if (td.nmp_min_ply > 0 || depth < 16) && !is_win(score) {
                 return score;
             }
 
@@ -505,7 +506,12 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             }
 
             if verified_score >= beta {
-                return score;
+                if is_win(verified_score) {
+                    return verified_score;
+                }
+                if !is_win(score) {
+                    return score;
+                }
             }
         }
     }
