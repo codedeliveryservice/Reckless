@@ -551,6 +551,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
+                } else {
+                    // since we are not at a PV, trust the return score instead of skipping
+                    debug_assert!(cut_node);
+                    return score;
                 }
             }
         }
