@@ -98,12 +98,9 @@ fn go(
 
         for (id, td) in threads.iter_mut().enumerate() {
             let handler = scope.spawn(move || {
+                search::start(td, if id == 0 { report } else { Report::None });
                 if id == 0 {
-                    search::start(td, report);
                     stop.store(true, Ordering::Relaxed);
-                } else {
-                    td.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
-                    search::start(td, Report::None);
                 }
             });
 
