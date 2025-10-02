@@ -890,7 +890,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 bound = Bound::Exact;
                 best_move = mv;
 
-                if !NODE::ROOT && NODE::PV {
+                if NODE::PV {
                     td.pv_table.update(td.ply, mv);
                 }
 
@@ -1020,7 +1020,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 }
 
 fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i32 {
-    debug_assert!(!NODE::ROOT);
     debug_assert!(td.ply <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
