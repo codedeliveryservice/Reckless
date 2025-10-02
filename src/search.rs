@@ -474,18 +474,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     {
         let r = 5 + depth / 3 + ((eval - beta) / 257).min(3);
 
-        td.stack[td.ply].conthist = std::ptr::null_mut();
-        td.stack[td.ply].contcorrhist = std::ptr::null_mut();
-        td.stack[td.ply].piece = Piece::None;
-        td.stack[td.ply].mv = Move::NULL;
-        td.ply += 1;
-
-        td.board.make_null_move();
+        make_null_move(td);
 
         let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false);
 
-        td.board.undo_null_move();
-        td.ply -= 1;
+        undo_null_move(td);
 
         if td.stopped {
             return Score::ZERO;
@@ -1270,4 +1263,20 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
     td.ply -= 1;
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+fn make_null_move(td: &mut ThreadData) {
+    td.stack[td.ply].conthist = std::ptr::null_mut();
+    td.stack[td.ply].contcorrhist = std::ptr::null_mut();
+    td.stack[td.ply].piece = Piece::None;
+    td.stack[td.ply].mv = Move::NULL;
+    td.ply += 1;
+
+    td.board.make_null_move();
+    td.tt.prefetch(td.board.hash());
+}
+
+fn undo_null_move(td: &mut ThreadData) {
+    td.board.undo_null_move();
+    td.ply -= 1;
 }
