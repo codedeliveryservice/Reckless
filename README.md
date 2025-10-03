@@ -9,16 +9,16 @@ combines established concepts with its reckless nature, as the name suggests.
 
 ## Rating
 
-| Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | Release Date |
-| ------------------------- | ---------------------- | ----------------------- | ------------ |
-| [Reckless v0.8.0][v0.8.0] | 3765 +/- 14 [#2]       | 3609 +/- 11 [#3]        | Aug 29, 2025 |
-| [Reckless v0.7.0][v0.7.0] | 3500 +/- 12 [#68]      | 3422 +/- 12 [#72]       | Aug 23, 2024 |
-| [Reckless v0.6.0][v0.6.0] | 3386 +/- 15 [#95]      | 3317 +/- 15 [#103]      | Mar 22, 2024 |
-| [Reckless v0.5.0][v0.5.0] | 3240 +/- 17 [#133]     | 3211 +/- 17 [#140]      | Feb 4, 2024  |
-| [Reckless v0.4.0][v0.4.0] | 2934 +/- 17 [#210]     | 2926 +/- 16 [#222]      | Dec 13, 2023 |
-| [Reckless v0.3.0][v0.3.0] | 2616 +/- 19 [#297]     | 2617 +/- 19 [#321]      | Nov 6, 2023  |
-| [Reckless v0.2.0][v0.2.0] | 2349 +/- 18 [#406]     |                         | Oct 7, 2023  |
-| [Reckless v0.1.0][v0.1.0] | 2005 +/- 18 [#539]     |                         | May 16, 2023 |
+| Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | [CCRL FRC][ccrl-frc] | Release Date |
+| ------------------------- | ---------------------- | ----------------------- | -------------------- | ------------ |
+| [Reckless v0.8.0][v0.8.0] | 3765 +/- 14 [#2]       | 3609 +/- 11 [#3]        | 4077 +/- 13 [#3]     | Aug 29, 2025 |
+| [Reckless v0.7.0][v0.7.0] | 3500 +/- 12 [#68]      | 3422 +/- 12 [#72]       |                      | Aug 23, 2024 |
+| [Reckless v0.6.0][v0.6.0] | 3386 +/- 15 [#95]      | 3317 +/- 15 [#103]      |                      | Mar 22, 2024 |
+| [Reckless v0.5.0][v0.5.0] | 3240 +/- 17 [#133]     | 3211 +/- 17 [#140]      |                      | Feb 4, 2024  |
+| [Reckless v0.4.0][v0.4.0] | 2934 +/- 17 [#210]     | 2926 +/- 16 [#222]      |                      | Dec 13, 2023 |
+| [Reckless v0.3.0][v0.3.0] | 2616 +/- 19 [#297]     | 2617 +/- 19 [#321]      |                      | Nov 6, 2023  |
+| [Reckless v0.2.0][v0.2.0] | 2349 +/- 18 [#406]     |                         |                      | Oct 7, 2023  |
+| [Reckless v0.1.0][v0.1.0] | 2005 +/- 18 [#539]     |                         |                      | May 16, 2023 |
 
 [v0.1.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.1.0
 [v0.2.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.2.0
@@ -30,6 +30,7 @@ combines established concepts with its reckless nature, as the name suggests.
 [v0.8.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.8.0
 [ccrl-404]: https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on
 [crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on
+[ccrl-frc]: https://www.computerchess.org.uk/ccrl/404FRC/
 
 ## Getting started
 
@@ -37,12 +38,12 @@ combines established concepts with its reckless nature, as the name suggests.
 
 You can download precompiled builds from the [GitHub Releases page](https://github.com/codedeliveryservice/Reckless/releases).
 
-- `-generic`: Runs on virtually all CPUs, but slowest.
-- `-avx2`: Faster, supported on most modern CPUs.
 - `-avx512`: Fastest, requires a recent CPU with AVX-512 support.
+- `-avx2`: Fast, supported on most modern CPUs.
+- `-generic`: Compatible with virtually all CPUs, but significantly slower than AVX2 or AVX512 builds.
 
 > [!NOTE]
-> If you're unsure which binary to use, try the **AVX512 build first**. If it doesn't run on your system, fall back to the AVX2 build, or the generic one as a last resort.
+> If you're unsure which binary to use, try the AVX-512 build first. If it doesn't run on your system, fall back to the AVX2 build, or the generic one as a last resort.
 
 [microarchitecture]: https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 
