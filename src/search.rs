@@ -1066,7 +1066,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
-        best_score = corrected_eval(raw_eval, correction_value(td), td.board.halfmove_clock());
+        best_score = corrected_eval(raw_eval, 3 * correction_value(td) / 2, td.board.halfmove_clock());
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
