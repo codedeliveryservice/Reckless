@@ -599,15 +599,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         if !NODE::ROOT && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024).max(0);
 
-            // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= if improving || static_eval >= beta + 17 {
-                        (3728 + 998 * initial_depth * initial_depth) / 1024
-                    } else {
-                        (1904 + 470 * initial_depth * initial_depth) / 1024
-                    };
-
             // Futility Pruning (FP)
             let futility_value =
                 static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
@@ -649,6 +640,15 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             if !td.board.see(mv, threshold) {
                 continue;
             }
+
+            // Late Move Pruning (LMP)
+            skip_quiets |= !in_check
+                && move_count
+                    >= if improving || static_eval >= beta + 17 {
+                        (3728 + 998 * initial_depth * initial_depth) / 1024
+                    } else {
+                        (1904 + 470 * initial_depth * initial_depth) / 1024
+                    };
         }
 
         // Singular Extensions (SE)
