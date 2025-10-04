@@ -196,11 +196,12 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !(key != entry.key
-            || bound == Bound::Exact
-            || depth + 4 + 2 * pv as i32 > entry.depth as i32
-            || entry.flags.age() != tt_age)
+        if key == entry.key
+            && bound != Bound::Exact
+            && depth + 4 + 2 * pv as i32 <= entry.depth as i32
+            && entry.flags.age() == tt_age
         {
+            entry.flags.data = (entry.flags.data & 0b0000_0111) | (tt_age << 3);
             return;
         }
 
