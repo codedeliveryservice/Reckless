@@ -216,6 +216,11 @@ impl TranspositionTable {
         entry.flags = Flags::new(bound, pv, tt_age);
     }
 
+    pub fn refresh_age(&self, ptr: *const InternalEntry) {
+        let entry = unsafe { &mut *ptr.cast_mut() };
+        entry.flags = Flags::new(entry.flags.bound(), entry.flags.pv(), self.age());
+    }
+
     pub fn prefetch(&self, hash: u64) {
         #[cfg(target_arch = "x86_64")]
         unsafe {

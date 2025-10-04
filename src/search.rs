@@ -283,6 +283,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
+                td.tt.refresh_age(tt_slot);
                 return tt_score;
             }
         }
@@ -428,6 +429,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
+        if entry.is_some() {
+            td.tt.refresh_age(tt_slot);
+        }
         return qsearch::<NonPV>(td, alpha, beta);
     }
 
@@ -441,6 +445,10 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_loss(beta)
         && !is_win(eval)
     {
+        if entry.is_some() {
+            td.tt.refresh_age(tt_slot);
+        }
+
         return beta + (static_eval - beta) / 3;
     }
 
@@ -457,6 +465,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
+        if entry.is_some() {
+            td.tt.refresh_age(tt_slot);
+        }
         return (eval + beta) / 2;
     }
 
@@ -492,6 +503,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
 
         if score >= beta && !is_win(score) {
+            if entry.is_some() {
+                td.tt.refresh_age(tt_slot);
+            }
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
@@ -680,6 +694,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                     depth += 1;
                 }
             } else if score >= beta && !is_decisive(score) {
+                td.tt.refresh_age(tt_slot);
                 return score;
             } else if tt_score >= beta {
                 extension = -2;
