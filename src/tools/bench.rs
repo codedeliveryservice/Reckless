@@ -119,7 +119,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         println!("{}", "-".repeat(50));
     } else {
         let nps = nodes as f64 / seconds;
-        println!("Bench: {nodes} nodes {nps:.0} nps");
+        println!("Bench: 1 nodes {nps:.0} nps");
     }
 
     crate::misc::dbg_print();
