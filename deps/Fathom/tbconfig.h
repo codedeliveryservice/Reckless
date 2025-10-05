@@ -91,7 +91,7 @@
 #define TB_VALUE_MATE 32000
 #define TB_VALUE_INFINITE 32767 /* value above all normal score values */
 #define TB_VALUE_DRAW 0
-#define TB_MAX_MATE_PLY 255
+#define TB_MAX_MATE_PLY 128 /* IMPORTANT: must reflect engine's MAX_PLY */
 
 /***************************************************************************/
 /* ENGINE INTEGRATION CONFIG                                               */
