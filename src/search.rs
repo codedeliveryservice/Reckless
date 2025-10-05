@@ -1221,6 +1221,14 @@ fn correction_value(td: &ThreadData) -> i32 {
         );
     }
 
+    if td.ply >= 4 && td.stack[td.ply - 3].mv.is_some() && td.stack[td.ply - 4].mv.is_some() {
+        correction += td.continuation_corrhist.get(
+            td.stack[td.ply - 4].contcorrhist,
+            td.stack[td.ply - 3].piece,
+            td.stack[td.ply - 3].mv.to(),
+        );
+    }
+
     correction
 }
 
@@ -1244,6 +1252,15 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
             td.stack[td.ply - 2].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
+            bonus,
+        );
+    }
+
+    if td.ply >= 4 && td.stack[td.ply - 3].mv.is_some() && td.stack[td.ply - 4].mv.is_some() {
+        td.continuation_corrhist.update(
+            td.stack[td.ply - 4].contcorrhist,
+            td.stack[td.ply - 3].piece,
+            td.stack[td.ply - 3].mv.to(),
             bonus,
         );
     }
