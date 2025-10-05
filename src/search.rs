@@ -113,6 +113,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     reduction = 0;
                 }
                 s if s >= beta => {
+                    alpha = (beta - delta).max(alpha);
                     beta = (score + delta).min(Score::INFINITE);
                     reduction += 1;
                 }
