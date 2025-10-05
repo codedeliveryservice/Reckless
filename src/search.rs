@@ -2,7 +2,7 @@ use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
-    tb::{tb_probe, tb_size, GameOutcome},
+    tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -78,6 +78,13 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         let mut delta = 12;
         let mut reduction = 0;
+
+        td.root_in_tb = false;
+        td.stop_probing_tb = false;
+
+        if td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
+            tb_rank_rootmoves(td);
+        }
 
         // Aspiration Windows
         if depth >= 2 {
@@ -294,6 +301,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().len() <= tb_size()
+        && !td.stop_probing_tb
     {
         if let Some(outcome) = tb_probe(&td.board) {
             td.tb_hits.increment();

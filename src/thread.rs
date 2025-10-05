@@ -95,6 +95,8 @@ pub struct ThreadData<'a> {
     pub ply: usize,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
+    pub root_in_tb: bool,
+    pub stop_probing_tb: bool,
 }
 
 impl<'a> ThreadData<'a> {
@@ -128,6 +130,8 @@ impl<'a> ThreadData<'a> {
             ply: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
+            root_in_tb: false,
+            stop_probing_tb: false,
         }
     }
 
@@ -151,7 +155,16 @@ impl<'a> ThreadData<'a> {
         let ms = elapsed.as_millis();
 
         let root_move = &self.root_moves[0];
-        let score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
+        let mut score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
+
+        let mut upperbound = root_move.upperbound;
+        let mut lowerbound = root_move.lowerbound;
+
+        if self.root_in_tb && score.abs() <= Score::TB_WIN {
+            score = root_move.tb_score;
+            upperbound = false;
+            lowerbound = false;
+        }
 
         let score = if score.abs() < Score::TB_WIN_IN_MAX {
             format!("cp {}", normalize_to_cp(score, &self.board))
@@ -164,9 +177,9 @@ impl<'a> ThreadData<'a> {
             format!("mate {}", if score.is_positive() { mate } else { -mate })
         };
 
-        let score = if root_move.upperbound {
+        let score = if upperbound {
             format!("{score} upperbound")
-        } else if root_move.lowerbound {
+        } else if lowerbound {
             format!("{score} lowerbound")
         } else {
             score
@@ -200,6 +213,8 @@ pub struct RootMove {
     pub sel_depth: i32,
     pub nodes: u64,
     pub pv: PrincipalVariationTable,
+    pub tb_rank: i32,
+    pub tb_score: i32,
 }
 
 impl Default for RootMove {
@@ -213,6 +228,8 @@ impl Default for RootMove {
             sel_depth: 0,
             nodes: 0,
             pv: PrincipalVariationTable::default(),
+            tb_rank: 0,
+            tb_score: 0,
         }
     }
 }

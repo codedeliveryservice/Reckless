@@ -89,7 +89,7 @@ extern unsigned tb_probe_root_impl(
 
 #define TB_MAX_MOVES                (192+1)
 #define TB_MAX_CAPTURES             64
-#define TB_MAX_PLY                  256
+#define TB_MAX_PLY                  128     /* IMPORTANT: must reflect engine's MAX_PLY */
 #define TB_CASTLING_K               0x1     /* White king-side. */
 #define TB_CASTLING_Q               0x2     /* White queen-side. */
 #define TB_CASTLING_k               0x4     /* Black king-side. */
