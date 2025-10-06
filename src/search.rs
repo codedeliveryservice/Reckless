@@ -565,11 +565,6 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
-        depth -= 1;
-    }
-
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -703,6 +698,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
+
+        // Internal Iterative Reductions (IIR)
+        if new_depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+            new_depth -= 1;
+        }
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
