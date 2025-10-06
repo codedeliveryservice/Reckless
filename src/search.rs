@@ -886,7 +886,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
                 if score >= beta {
                     bound = Bound::Lower;
-                    td.stack[td.ply].cutoff_count += 1;
+                    td.stack[td.ply].cutoff_count += 1 + (history < 0) as i32;
                     break;
                 }
 
