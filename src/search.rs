@@ -118,11 +118,13 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     beta = (alpha + beta) / 2;
                     alpha = (score - delta).max(-Score::INFINITE);
                     reduction = 0;
+                    delta += delta * (50 + 20 * reduction) / 128;
                 }
                 s if s >= beta => {
                     alpha = (beta - delta).max(alpha);
                     beta = (score + delta).min(Score::INFINITE);
                     reduction += 1;
+                    delta += delta * (30 + 10 * reduction) / 128;
                 }
                 _ => {
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
@@ -133,8 +135,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             if report == Report::Full && td.nodes.global() > 10_000_000 {
                 td.print_uci_info(depth);
             }
-
-            delta += delta * (38 + 15 * reduction) / 128;
         }
 
         if !td.stopped {
