@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 use super::{ArrayVec, Move, MoveKind, Square, MAX_MOVES};
 
@@ -46,7 +46,13 @@ impl Index<usize> for MoveList {
     type Output = MoveEntry;
 
     fn index(&self, index: usize) -> &Self::Output {
-        self.inner.get(index)
+        &self.inner[index]
+    }
+}
+
+impl IndexMut<usize> for MoveList {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.inner[index]
     }
 }
 

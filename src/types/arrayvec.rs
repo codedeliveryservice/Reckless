@@ -1,4 +1,4 @@
-use std::{mem::MaybeUninit, ops::Index};
+use std::{mem::MaybeUninit, ops::{Index, IndexMut}};
 
 #[derive(Clone)]
 pub struct ArrayVec<T: Copy, const N: usize> {
@@ -18,12 +18,6 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
 
     pub const fn is_empty(&self) -> bool {
         self.len == 0
-    }
-
-    pub fn get(&self, index: usize) -> &T {
-        debug_assert!(index < self.len);
-
-        unsafe { &*self.data.get_unchecked(index).as_ptr() }
     }
 
     pub fn push(&mut self, value: T) {
@@ -67,5 +61,11 @@ impl<const N: usize, T: Copy> Index<usize> for ArrayVec<T, N> {
 
     fn index(&self, index: usize) -> &Self::Output {
         unsafe { &*self.data.get_unchecked(index).as_ptr() }
+    }
+}
+
+impl <const N: usize, T: Copy> IndexMut<usize> for ArrayVec<T, N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        unsafe { &mut *self.data.get_unchecked_mut(index).as_mut_ptr() }
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     parameters::PIECE_VALUES,
     thread::ThreadData,
-    types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
+    types::{Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -19,8 +19,8 @@ pub struct MovePicker {
     tt_move: Move,
     threshold: Option<i32>,
     stage: Stage,
-    bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    bad_noisy_len: usize,
 }
 
 impl MovePicker {
@@ -30,8 +30,8 @@ impl MovePicker {
             tt_move,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
-            bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_noisy_len: 0,
         }
     }
 
@@ -41,8 +41,8 @@ impl MovePicker {
             tt_move: Move::NULL,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_noisy_len: 0,
         }
     }
 
@@ -52,8 +52,8 @@ impl MovePicker {
             tt_move: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_noisy_len: 0,
         }
     }
 
@@ -77,25 +77,29 @@ impl MovePicker {
         }
 
         if self.stage == Stage::GoodNoisy {
-            while !self.list.is_empty() {
-                let mut index = 0;
-                for i in 1..self.list.len() {
+            while self.bad_noisy_len != self.list.len() {
+                let mut index = self.bad_noisy_len;
+                for i in self.bad_noisy_len + 1..self.list.len() {
                     if self.list[i].score > self.list[index].score {
                         index = i;
                     }
                 }
 
-                let entry = &self.list.remove(index);
+                let entry = &self.list[index];
                 if entry.mv == self.tt_move {
+                    self.list.remove(index);
                     continue;
                 }
 
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 36 + 119);
                 if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                    (self.list[index], self.list[self.bad_noisy_len]) =
+                        (self.list[self.bad_noisy_len], self.list[index]);
+                    self.bad_noisy_len += 1;
                     continue;
                 }
 
+                let entry = self.list.remove(index);
                 return Some(entry.mv);
             }
 
@@ -114,9 +118,9 @@ impl MovePicker {
 
         if self.stage == Stage::Quiet {
             if !skip_quiets {
-                while !self.list.is_empty() {
-                    let mut index = 0;
-                    for i in 1..self.list.len() {
+                while self.bad_noisy_len != self.list.len() {
+                    let mut index = self.bad_noisy_len;
+                    for i in self.bad_noisy_len + 1..self.list.len() {
                         if self.list[i].score > self.list[index].score {
                             index = i;
                         }
@@ -135,8 +139,8 @@ impl MovePicker {
         }
 
         // Stage::BadNoisy
-        while self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
+        while self.bad_noisy_idx < self.bad_noisy_len {
+            let mv = self.list[self.bad_noisy_idx].mv;
             self.bad_noisy_idx += 1;
 
             if mv == self.tt_move {
