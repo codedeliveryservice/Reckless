@@ -118,7 +118,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     beta = (alpha + beta) / 2;
                     alpha = (score - delta).max(-Score::INFINITE);
                     reduction = 0;
-                    delta += delta * (30 + 20 * reduction) / 128;
+                    delta += delta * 30 / 128;
                 }
                 s if s >= beta => {
                     alpha = (beta - delta).max(alpha);
