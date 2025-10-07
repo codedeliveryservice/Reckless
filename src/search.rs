@@ -333,7 +333,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
         }
     }
 
-    let correction_value = correction(td);
+    let mut correction_value = correction(td);
 
     let raw_eval;
     let mut static_eval;
@@ -696,7 +696,8 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 extension = -2;
             }
 
-            static_eval = corrected_eval(raw_eval, correction(td), td.board.halfmove_clock());
+            correction_value = correction(td);
+            static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         }
 
         let initial_nodes = td.nodes.local();
