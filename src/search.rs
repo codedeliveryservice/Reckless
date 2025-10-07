@@ -389,9 +389,9 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
 
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
-        && !in_check
         && !excluded
         && td.stack[td.ply - 1].mv.is_quiet()
+        && is_valid(static_eval)
         && is_valid(td.stack[td.ply - 1].static_eval)
     {
         let value = 733 * (-(static_eval + td.stack[td.ply - 1].static_eval)) / 128;
