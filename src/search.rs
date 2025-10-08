@@ -1089,22 +1089,24 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         }
 
         if best_score >= beta {
-            if !is_decisive(best_score) && !is_decisive(beta) {
-                best_score = (best_score + beta) / 2;
-            }
+            if !NODE::PV {
+                if !is_decisive(best_score) && !is_decisive(beta) {
+                    best_score = (best_score + beta) / 2;
+                }
 
-            if entry.is_none() {
-                td.tt.write(
-                    tt_slot,
-                    hash,
-                    TtDepth::SOME,
-                    raw_eval,
-                    best_score,
-                    Bound::Lower,
-                    Move::NULL,
-                    td.ply,
-                    tt_pv,
-                );
+                if entry.is_none() {
+                    td.tt.write(
+                        tt_slot,
+                        hash,
+                        TtDepth::SOME,
+                        raw_eval,
+                        best_score,
+                        Bound::Lower,
+                        Move::NULL,
+                        td.ply,
+                        tt_pv,
+                    );
+                }
             }
 
             return best_score;
@@ -1191,7 +1193,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
         return mated_in(td.ply);
     }
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+    if !NODE::PV && best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
         best_score = (best_score + beta) / 2;
     }
 
