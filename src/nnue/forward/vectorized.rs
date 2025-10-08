@@ -80,29 +80,39 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
-    let mut pairs = nnz.chunks_exact(2);
+    let mut pairs = nnz.chunks_exact(4);
 
     for pair in &mut pairs {
         let index1 = *pair.get_unchecked(0) as usize;
         let index2 = *pair.get_unchecked(1) as usize;
+        let index3 = *pair.get_unchecked(2) as usize;
+        let index4 = *pair.get_unchecked(3) as usize;
 
         let input1 = simd::splat_i32(*packed.get_unchecked(index1));
         let input2 = simd::splat_i32(*packed.get_unchecked(index2));
+        let input3 = simd::splat_i32(*packed.get_unchecked(index3));
+        let input4 = simd::splat_i32(*packed.get_unchecked(index4));
 
         let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
         let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
+        let weights3 = PARAMETERS.l1_weights.as_ptr().add(index3 * L2_SIZE * CHUNKS);
+        let weights4 = PARAMETERS.l1_weights.as_ptr().add(index4 * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
-            let weights1 = weights1.add(j * CHUNKS).cast();
-            let weights2 = weights2.add(j * CHUNKS).cast();
+            let w1 = weights1.add(j * CHUNKS).cast();
+            let w2 = weights2.add(j * CHUNKS).cast();
+            let w3 = weights3.add(j * CHUNKS).cast();
+            let w4 = weights4.add(j * CHUNKS).cast();
 
             let vector = &mut pre_activations[j / simd::F32_LANES];
-            *vector = simd::double_dpbusd(*vector, input1, *weights1, input2, *weights2);
+
+            *vector = simd::double_dpbusd(*vector, input1, *w1, input2, *w2);
+            *vector = simd::double_dpbusd(*vector, input3, *w3, input4, *w4);
         }
     }
 
-    if let Some(last) = pairs.remainder().first() {
-        let index = *last as usize;
+    for &index in pairs.remainder() {
+        let index = index as usize;
         let input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
