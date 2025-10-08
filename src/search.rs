@@ -1100,7 +1100,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32) -> i3
                     TtDepth::SOME,
                     raw_eval,
                     best_score,
-                    Bound::Lower,
+                    Bound::Exact,
                     Move::NULL,
                     td.ply,
                     tt_pv,
