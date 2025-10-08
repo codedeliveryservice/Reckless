@@ -611,7 +611,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
-                    >= if improving || static_eval >= beta + 17 {
+                    >= if (improving && static_eval > alpha) || static_eval >= beta + 17 {
                         (3728 + 998 * initial_depth * initial_depth) / 1024
                     } else {
                         (1904 + 470 * initial_depth * initial_depth) / 1024
