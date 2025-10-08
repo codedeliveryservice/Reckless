@@ -7,7 +7,7 @@ use crate::{
     },
     board::Board,
     thread::{RootMove, ThreadData},
-    types::{Color, PieceType, Score, MAX_PLY},
+    types::{Color, Move, PieceType, Score, MAX_PLY},
 };
 
 #[derive(Eq, PartialEq)]
@@ -63,6 +63,43 @@ pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
     }
 }
 
+fn reckless_move_to_tb_move(mv: Move) -> TbMove {
+    enum TbMoveTypeFlag {
+        _Normal = 0,
+        Promotion = 1,
+        EnPassant = 2,
+        Castling = 3,
+    }
+
+    fn promo_bits_from_piece(pt: crate::types::PieceType) -> u16 {
+        match pt {
+            PieceType::Knight => 0,
+            PieceType::Bishop => 1,
+            PieceType::Rook => 2,
+            PieceType::Queen => 3,
+            _ => unreachable!(),
+        }
+    }
+
+    let from = (mv.from() as u16) & 0x3F;
+    let to = (mv.to() as u16) & 0x3F;
+
+    let mut tb_move: u16 = (from << 6) | to;
+
+    if mv.is_castling() {
+        tb_move |= (TbMoveTypeFlag::Castling as u16) << 14;
+    } else if mv.is_en_passant() {
+        tb_move |= (TbMoveTypeFlag::EnPassant as u16) << 14;
+    } else if let Some(pt) = mv.promotion_piece() {
+        // promotion type field uses 2 bits (KNIGHT..QUEEN -> 0..3)
+        let promotion_bits = promo_bits_from_piece(pt);
+        tb_move |= (promotion_bits & 0x3) << 12;
+        tb_move |= (TbMoveTypeFlag::Promotion as u16) << 14;
+    }
+
+    tb_move
+}
+
 pub fn tb_rank_rootmoves(td: &mut ThreadData) {
     let mut rootmoves_in_c: mem::MaybeUninit<TbRootMoves> = mem::MaybeUninit::uninit();
 
@@ -80,7 +117,7 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
             ptr::write(
                 c_move_ptr,
                 TbRootMove {
-                    move_: root_move.mv.encoded() as TbMove,
+                    move_: reckless_move_to_tb_move(root_move.mv),
                     pv: [0; MAX_PLY],
                     pvSize: 0,
                     tbScore: 0,
@@ -91,9 +128,12 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
 
         // Helper to copy back from C struct and sort
         let update_rootmoves = |root_moves: &mut Vec<RootMove>, c_rootmoves: &TbRootMoves| {
-            for (i, rm) in root_moves.iter_mut().take(c_rootmoves.size as usize).enumerate() {
-                rm.tb_rank = c_rootmoves.moves[i].tbRank;
-                rm.tb_score = c_rootmoves.moves[i].tbScore;
+            for i in 0..c_rootmoves.size as usize {
+                let tb_move = c_rootmoves.moves[i].move_;
+                if let Some(rm) = root_moves.iter_mut().find(|rm| reckless_move_to_tb_move(rm.mv) == tb_move) {
+                    rm.tb_score = c_rootmoves.moves[i].tbScore;
+                    rm.tb_rank = c_rootmoves.moves[i].tbRank;
+                }
             }
             root_moves.sort_by(|a, b| b.tb_rank.cmp(&a.tb_rank));
         };
