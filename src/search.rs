@@ -580,7 +580,11 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
-    while let Some(mv) = move_picker.next(td, skip_quiets) {
+    while let Some(mv) = if NODE::ROOT {
+        td.root_moves.get(move_count as usize).map(|rm| rm.mv)
+    } else {
+        move_picker.next(td, skip_quiets)
+    } {
         if mv == td.stack[td.ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
