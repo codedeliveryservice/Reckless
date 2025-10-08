@@ -655,7 +655,7 @@ fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, de
                 -102 * depth - 45 * history / 1024 + 46
             };
 
-            if !td.board.see(mv, threshold) {
+            if !in_check && !td.board.see(mv, threshold) {
                 continue;
             }
         }
