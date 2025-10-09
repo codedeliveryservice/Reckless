@@ -362,6 +362,8 @@ pub mod pool {
         thread::Scope,
     };
 
+    use core_affinity::CoreId;
+
     // Handle for communicating with a worker thread.
     // Contains a sender for sending messages to the worker thread,
     // and a receiver for receiving messages from the worker thread.
@@ -446,10 +448,15 @@ pub mod pool {
         }
     }
 
-    fn make_worker_thread() -> WorkerThread {
+    fn make_worker_thread(core: Option<CoreId>) -> WorkerThread {
         let (sender, receiver) = make_work_channel();
 
         let handle = std::thread::spawn(move || {
+            if let Some(core_id) = core {
+                let flag = core_affinity::set_for_current(core_id);
+                println!("Set thread affinity to core {core_id:?}: {flag}");
+            }
+
             while let Ok(work) = receiver.receiver.recv() {
                 work();
                 let (lock, cvar) = &*receiver.completion_signal;
@@ -464,7 +471,15 @@ pub mod pool {
     }
 
     pub fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
-        (0..num_threads).map(|_| make_worker_thread()).collect()
+        let core_ids = core_affinity::get_core_ids();
+        println!("Detected {} CPU cores", core_ids.as_ref().map_or(0, |ids| ids.len()));
+
+        let mut workers = Vec::with_capacity(num_threads);
+        for i in 0..num_threads {
+            let core = core_ids.as_ref().and_then(|ids| ids.get(i % ids.len()).cloned());
+            workers.push(make_worker_thread(core));
+        }
+        workers
     }
 
     pub struct WorkerThread {

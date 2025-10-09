@@ -24,3 +24,5 @@ bindgen = "0.71.1"
 
 [dependencies]
 libc = "0.2.175"
+core_affinity = "0.8.3"
+fork_union = { version = "2.2.10", features = ["numa"] }
