@@ -1261,7 +1261,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32) {
             td.stack[td.ply - 4].contcorrhist,
             td.stack[td.ply - 1].piece,
             td.stack[td.ply - 1].mv.to(),
-            bonus,
+            bonus / 2,
         );
     }
 }
