@@ -97,15 +97,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0399f9d26e5191ce32c498bebd31e7a3ceabc2745f0ac54af3f335126c3f24b3"
 
 [[package]]
-name = "fork_union"
-version = "2.2.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ca93c2241e9998975013cd8628b52f5593cce5777b52c5856379f9f6cbe7c6"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "glob"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -215,7 +206,6 @@ dependencies = [
  "bindgen",
  "cc",
  "core_affinity",
- "fork_union",
  "libc",
 ]
 
