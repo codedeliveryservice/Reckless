@@ -33,10 +33,10 @@ impl<'a> ThreadPool<'a> {
         let nodes = self.vector[0].nodes.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        self.workers.drain(..).into_iter().for_each(pool::WorkerThread::join);
+        self.workers.drain(..).for_each(pool::WorkerThread::join);
         self.workers = pool::make_worker_threads(threads);
 
-        std::mem::drop(self.vector.drain(..).into_iter());
+        std::mem::drop(self.vector.drain(..));
         self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
     }
 
@@ -62,7 +62,7 @@ impl<'a> ThreadPool<'a> {
         let nodes = self.vector[0].nodes.global;
         let tb_hits = self.vector[0].tb_hits.global;
 
-        std::mem::drop(self.vector.drain(..).into_iter());
+        std::mem::drop(self.vector.drain(..));
         self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
     }
 }
