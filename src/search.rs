@@ -634,11 +634,12 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
-            // Continuation history pruning
+            // Continuation History Pruning (CHP)
             if !in_check
                 && is_quiet
+                && lmr_depth < 3
                 && td.stack[ply - 1].mv.is_some()
-                && td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv) < -1000 * depth
+                && td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv) < -2000 - 500 * depth
             {
                 continue;
             }
