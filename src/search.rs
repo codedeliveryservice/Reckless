@@ -1129,7 +1129,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if move_count >= 3 {
                 break;
             }
+        }
 
+        if !is_loss(best_score) {
             if in_check && mv.is_quiet() {
                 break;
             }
@@ -1140,10 +1142,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 best_score = best_score.max(futility_score);
                 continue;
             }
-        }
 
-        if !is_loss(best_score) && !td.board.see(mv, -79) {
-            continue;
+            if !is_loss(best_score) && !td.board.see(mv, -79) {
+                continue;
+            }
         }
 
         make_move(td, ply, mv);
