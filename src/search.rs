@@ -393,6 +393,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT
         && !in_check
         && !excluded
+        && eval == static_eval
         && td.stack[ply - 1].mv.is_quiet()
         && is_valid(td.stack[ply - 1].static_eval)
     {
