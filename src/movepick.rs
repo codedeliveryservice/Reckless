@@ -1,6 +1,5 @@
 use crate::{
     parameters::PIECE_VALUES,
-    search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
@@ -62,7 +61,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
+    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -97,7 +96,7 @@ impl MovePicker {
                     continue;
                 }
 
-                if NODE::ROOT {
+                if ply <= 1 {
                     self.score_noisy(td);
                 }
 
@@ -132,7 +131,7 @@ impl MovePicker {
                         continue;
                     }
 
-                    if NODE::ROOT {
+                    if ply <= 1 {
                         self.score_quiet(td, ply);
                     }
 
