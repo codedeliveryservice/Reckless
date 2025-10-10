@@ -97,7 +97,7 @@ impl MovePicker {
                     continue;
                 }
 
-                if NODE::ROOT {
+                if NODE::PV {
                     self.score_noisy(td);
                 }
 
@@ -132,7 +132,7 @@ impl MovePicker {
                         continue;
                     }
 
-                    if NODE::ROOT {
+                    if NODE::PV {
                         self.score_quiet(td, ply);
                     }
 
