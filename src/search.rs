@@ -501,6 +501,10 @@ fn search<NODE: NodeType>(
         }
 
         if score >= beta && !is_win(score) {
+            if score > static_eval {
+                update_correction_histories(td, depth, score - static_eval, ply);
+            }
+
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
