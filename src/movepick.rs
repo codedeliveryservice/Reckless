@@ -185,6 +185,11 @@ impl MovePicker {
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv);
+
+            if ply >= 1 && td.stack[ply - 1].mv.is_some() {
+                entry.score += 128
+                    * td.continuation_corrhist.get(td.stack[ply - 1].contcorrhist, td.board.moved_piece(mv), mv.to());
+            }
         }
     }
 }
