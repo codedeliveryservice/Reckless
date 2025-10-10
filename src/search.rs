@@ -483,38 +483,53 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && !is_loss(beta)
     {
-        let r = 5 + depth / 3 + ((eval - beta) / 257).min(3);
+        let allowed = tt_move.is_null() || {
+            let tt_move_history = if tt_move.is_quiet() {
+                td.quiet_history.get(td.board.threats(), td.board.side_to_move(), tt_move)
+                    + td.conthist(ply, 1, tt_move)
+                    + td.conthist(ply, 2, tt_move)
+            } else {
+                let captured = td.board.piece_on(tt_move.to()).piece_type();
+                td.noisy_history.get(td.board.threats(), td.board.moved_piece(tt_move), tt_move.to(), captured)
+            };
 
-        td.stack[ply].conthist = std::ptr::null_mut();
-        td.stack[ply].contcorrhist = std::ptr::null_mut();
-        td.stack[ply].piece = Piece::None;
-        td.stack[ply].mv = Move::NULL;
+            tt_move_history > 0
+        };
 
-        td.board.make_null_move();
+        if allowed {
+            let r = 5 + depth / 3 + ((eval - beta) / 257).min(3);
 
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+            td.stack[ply].conthist = std::ptr::null_mut();
+            td.stack[ply].contcorrhist = std::ptr::null_mut();
+            td.stack[ply].piece = Piece::None;
+            td.stack[ply].mv = Move::NULL;
 
-        td.board.undo_null_move();
+            td.board.make_null_move();
 
-        if td.stopped {
-            return Score::ZERO;
-        }
+            let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
 
-        if score >= beta && !is_win(score) {
-            if td.nmp_min_ply > 0 || depth < 16 {
-                return score;
-            }
-
-            td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
-            td.nmp_min_ply = 0;
+            td.board.undo_null_move();
 
             if td.stopped {
                 return Score::ZERO;
             }
 
-            if verified_score >= beta {
-                return score;
+            if score >= beta && !is_win(score) {
+                if td.nmp_min_ply > 0 || depth < 16 {
+                    return score;
+                }
+
+                td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
+                let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+                td.nmp_min_ply = 0;
+
+                if td.stopped {
+                    return Score::ZERO;
+                }
+
+                if verified_score >= beta {
+                    return score;
+                }
             }
         }
     }
