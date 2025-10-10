@@ -558,9 +558,21 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
 
+                if mv.is_noisy() {
+                    let bonus = (125 * depth - 57).min(1175);
+                    let captured = td.board.piece_on(mv.to()).piece_type();
+                    td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, bonus);
+                }
+
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
+            }
+
+            if mv.is_noisy() {
+                let malus = (153 * depth - 64).min(1476);
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
             }
         }
     }
