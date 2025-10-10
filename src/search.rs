@@ -478,6 +478,7 @@ fn search<NODE: NodeType>(
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 16 * depth + 158 * tt_pv as i32 - 106 * improvement / 1024 + 213
+        && correction_value.abs() < 256
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !potential_singularity
