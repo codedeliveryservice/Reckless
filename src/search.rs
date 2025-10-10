@@ -590,10 +590,11 @@ fn search<NODE: NodeType>(
 
         let is_quiet = mv.is_quiet();
 
+        let conthist1 = td.conthist(ply, 1, mv);
+        let conthist2 = td.conthist(ply, 2, mv);
+
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + conthist1 + conthist2
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -638,6 +639,8 @@ fn search<NODE: NodeType>(
             let noisy_futility_value = static_eval
                 + 123 * lmr_depth
                 + 72 * history / 1024
+                + 24 * conthist1 / 1024
+                + 24 * conthist2 / 1024
                 + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
                 + 71;
 
