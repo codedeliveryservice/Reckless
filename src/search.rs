@@ -634,6 +634,15 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
+            // Continuation history pruning
+            if !in_check
+                && is_quiet
+                && td.stack[ply - 1].mv.is_some()
+                && td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv) < -1000 * depth
+            {
+                continue;
+            }
+
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = static_eval
                 + 123 * lmr_depth
