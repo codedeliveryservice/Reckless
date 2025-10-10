@@ -10,8 +10,8 @@ mod attacks;
 mod magics;
 mod maps;
 
-const BASE_URL: &str = "https://github.com/codedeliveryservice/RecklessNetworks/raw/main";
-const NETWORK_NAME: &str = "v46-e44f9d34.nnue";
+const BASE_URL: &str = "https://github.com/codedeliveryservice/RecklessNetworks/releases/download/networks";
+const NETWORK_NAME: &str = "v45-big-8d364fa5.nnue";
 
 fn main() {
     generate_model_env();
