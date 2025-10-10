@@ -397,7 +397,7 @@ fn search<NODE: NodeType>(
         && is_valid(td.stack[ply - 1].static_eval)
     {
         let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-123, 255);
+        let bonus = value.clamp(-123, 255) + 32;
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
