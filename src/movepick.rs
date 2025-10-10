@@ -61,7 +61,9 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
+    pub fn next(
+        &mut self, td: &ThreadData, probcut_potential: Option<&[bool]>, skip_quiets: bool, ply: usize,
+    ) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -73,7 +75,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateNoisy {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
-            self.score_noisy(td);
+            self.score_noisy(td, probcut_potential);
         }
 
         if self.stage == Stage::GoodNoisy {
@@ -149,7 +151,7 @@ impl MovePicker {
         None
     }
 
-    fn score_noisy(&mut self, td: &ThreadData) {
+    fn score_noisy(&mut self, td: &ThreadData, probcut_potential: Option<&[bool]>) {
         let threats = td.board.threats();
 
         for entry in self.list.iter_mut() {
@@ -164,7 +166,8 @@ impl MovePicker {
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
             entry.score = 2007 * PIECE_VALUES[captured] / 128
-                + 1061 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
+                + 1061 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024
+                + probcut_potential.filter(|v| v[mv.encoded()]).map_or(0, |_| 2048);
         }
     }
 
