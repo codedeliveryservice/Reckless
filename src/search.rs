@@ -21,7 +21,7 @@ pub enum Report {
     Full,
 }
 
-trait NodeType {
+pub trait NodeType {
     const PV: bool;
     const ROOT: bool;
 }
@@ -532,7 +532,7 @@ fn search<NODE: NodeType>(
 
         let probcut_depth = (depth - 4).max(0);
 
-        while let Some(mv) = move_picker.next(td, true, ply) {
+        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -580,7 +580,7 @@ fn search<NODE: NodeType>(
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
-    while let Some(mv) = move_picker.next(td, skip_quiets, ply) {
+    while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
@@ -1114,7 +1114,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         _ => td.stack[ply - 1].mv.to(),
     };
 
-    while let Some(mv) = move_picker.next(td, !in_check, ply) {
+    while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
         if !td.board.is_legal(mv) {
             continue;
         }

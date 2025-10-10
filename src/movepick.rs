@@ -1,5 +1,6 @@
 use crate::{
     parameters::PIECE_VALUES,
+    search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
 };
@@ -61,7 +62,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
+    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -96,6 +97,10 @@ impl MovePicker {
                     continue;
                 }
 
+                if NODE::ROOT {
+                    self.score_noisy(td);
+                }
+
                 return Some(entry.mv);
             }
 
@@ -125,6 +130,10 @@ impl MovePicker {
                     let entry = &self.list.remove(index);
                     if entry.mv == self.tt_move {
                         continue;
+                    }
+
+                    if NODE::ROOT {
+                        self.score_quiet(td, ply);
                     }
 
                     return Some(entry.mv);
