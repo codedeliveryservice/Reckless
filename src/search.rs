@@ -763,8 +763,7 @@ fn search<NODE: NodeType>(
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
 
                     if mv.is_quiet() && score >= beta {
-                        let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
-
+                        let bonus = (1 + (move_count / new_depth)) * (155 * new_depth - 63).min(851);
                         update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
                     }
                 }
