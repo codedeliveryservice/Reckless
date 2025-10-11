@@ -821,9 +821,10 @@ fn search<NODE: NodeType>(
                 reduction -= 3034;
             }
 
+            new_depth -= (reduction >= 3072) as i32;
+
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score =
-                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node, ply + 1);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
             td.stack[ply].reduction = 0;
         }
 
