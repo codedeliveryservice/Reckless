@@ -64,19 +64,12 @@ pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
 }
 
 fn reckless_move_to_tb_move(mv: Move) -> TbMove {
-    enum TbMoveTypeFlag {
-        _Normal = 0,
-        Promotion = 1,
-        EnPassant = 2,
-        Castling = 3,
-    }
-
-    fn promo_bits_from_piece(pt: crate::types::PieceType) -> u16 {
+    fn promo_bits_from_piece(pt: PieceType) -> TbMove {
         match pt {
-            PieceType::Knight => 0,
-            PieceType::Bishop => 1,
+            PieceType::Queen => 1,
             PieceType::Rook => 2,
-            PieceType::Queen => 3,
+            PieceType::Bishop => 3,
+            PieceType::Knight => 4,
             _ => unreachable!(),
         }
     }
@@ -84,17 +77,11 @@ fn reckless_move_to_tb_move(mv: Move) -> TbMove {
     let from = (mv.from() as u16) & 0x3F;
     let to = (mv.to() as u16) & 0x3F;
 
-    let mut tb_move: u16 = (from << 6) | to;
+    let mut tb_move: TbMove = (from << 6) | to;
 
-    if mv.is_castling() {
-        tb_move |= (TbMoveTypeFlag::Castling as u16) << 14;
-    } else if mv.is_en_passant() {
-        tb_move |= (TbMoveTypeFlag::EnPassant as u16) << 14;
-    } else if let Some(pt) = mv.promotion_piece() {
-        // promotion type field uses 2 bits (KNIGHT..QUEEN -> 0..3)
-        let promotion_bits = promo_bits_from_piece(pt);
-        tb_move |= (promotion_bits & 0x3) << 12;
-        tb_move |= (TbMoveTypeFlag::Promotion as u16) << 14;
+    if let Some(pt) = mv.promotion_piece() {
+        let promotion_bits = promo_bits_from_piece(pt) & 0x7;
+        tb_move |= promotion_bits << 12;
     }
 
     tb_move
