@@ -387,6 +387,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply + 1].killer = Move::NULL;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
@@ -577,7 +578,7 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new(td.stack[ply].killer, tt_move);
     let mut skip_quiets = false;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
@@ -933,6 +934,8 @@ fn search<NODE: NodeType>(
                 bonus_noisy,
             );
         } else if !quiet_moves.is_empty() || depth > 3 {
+            td.stack[ply].killer = best_move;
+
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
