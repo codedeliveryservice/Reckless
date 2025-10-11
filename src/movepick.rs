@@ -190,6 +190,7 @@ impl MovePicker {
             }
 
             entry.score = td.quiet_history.get(threats, side, mv)
+                + td.static_eval_history.get(side, mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)

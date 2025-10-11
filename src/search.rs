@@ -389,6 +389,22 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
+    // Quiet Move Ordering Using Static-Eval
+    if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && td.stack[ply - 1].mv.is_quiet()
+        && is_valid(td.stack[ply - 1].static_eval)
+    {
+        let bonus = match static_eval.cmp(&-td.stack[ply - 1].static_eval) {
+            std::cmp::Ordering::Less => (128 * depth - 64).min(1536),
+            std::cmp::Ordering::Greater => -(32 * depth - 16).min(896),
+            _ => 0,
+        };
+
+        td.static_eval_history.update(!td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+    }
+
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check
