@@ -601,12 +601,8 @@ fn search<NODE: NodeType>(
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
-        if !improving {
-            reduction += (489 - 412 * improvement / 128).min(1243);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
+            let lmr_depth = (depth - reduction / 1024 - 1).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
@@ -726,6 +722,10 @@ fn search<NODE: NodeType>(
 
             if NODE::PV {
                 reduction -= 393 + 552 * (beta - alpha) / td.root_delta;
+            }
+
+            if !improving {
+                reduction += (489 - 412 * improvement / 128).min(1243);
             }
 
             if !tt_pv && cut_node {
