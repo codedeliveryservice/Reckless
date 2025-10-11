@@ -399,7 +399,7 @@ fn search<NODE: NodeType>(
         let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
         let bonus = value.clamp(-123, 255);
 
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+        td.static_eval_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
 
     // Hindsight reductions
