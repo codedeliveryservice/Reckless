@@ -768,8 +768,6 @@ fn search<NODE: NodeType>(
                         update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
                     }
                 }
-            } else if score > alpha && score < best_score + 16 {
-                new_depth -= 1;
             }
         }
         // Full Depth Search (FDS)
