@@ -389,19 +389,6 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
-    // Quiet Move Ordering Using Static-Eval
-    if !NODE::ROOT
-        && !in_check
-        && !excluded
-        && td.stack[ply - 1].mv.is_quiet()
-        && is_valid(td.stack[ply - 1].static_eval)
-    {
-        let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-123, 255);
-
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
-    }
-
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check
@@ -594,6 +581,7 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
+                - 2560
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
