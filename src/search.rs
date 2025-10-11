@@ -396,8 +396,11 @@ fn search<NODE: NodeType>(
         && td.stack[ply - 1].mv.is_quiet()
         && is_valid(td.stack[ply - 1].static_eval)
     {
-        let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-123, 255);
+        let bonus = match static_eval.cmp(&-td.stack[ply - 1].static_eval) {
+            std::cmp::Ordering::Greater => -(80 * depth - 32).min(840),
+            std::cmp::Ordering::Less => (80 * depth - 32).min(840),
+            _ => 0,
+        };
 
         td.static_eval_history.update(!td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
