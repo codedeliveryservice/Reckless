@@ -387,6 +387,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply + 1].killer = Move::NULL;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
@@ -737,6 +738,10 @@ fn search<NODE: NodeType>(
                 reduction -= 1049;
             }
 
+            if td.stack[ply].killer == mv {
+                reduction -= 1024;
+            }
+
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1555;
             }
@@ -803,6 +808,10 @@ fn search<NODE: NodeType>(
 
             if td.board.in_check() || !td.board.has_non_pawns() {
                 reduction -= 744;
+            }
+
+            if td.stack[ply].killer == mv {
+                reduction -= 1024;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
@@ -933,6 +942,8 @@ fn search<NODE: NodeType>(
                 bonus_noisy,
             );
         } else if !quiet_moves.is_empty() || depth > 3 {
+            td.stack[ply].killer = best_move;
+
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
