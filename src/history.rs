@@ -115,6 +115,29 @@ impl Default for NoisyHistory {
     }
 }
 
+pub struct StaticEvalHistory {
+    entries: Box<[FromToHistory<i16>; 2]>,
+}
+
+impl StaticEvalHistory {
+    const MAX_HISTORY: i32 = 8192;
+
+    pub fn get(&self, stm: Color, mv: Move) -> i32 {
+        self.entries[stm][mv.from()][mv.to()] as i32
+    }
+
+    pub fn update(&mut self, stm: Color, mv: Move, bonus: i32) {
+        let entry = &mut self.entries[stm][mv.from()][mv.to()];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for StaticEvalHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[i16; Self::SIZE]; 2]>,
