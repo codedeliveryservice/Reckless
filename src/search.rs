@@ -397,7 +397,7 @@ fn search<NODE: NodeType>(
         && is_valid(td.stack[ply - 1].static_eval)
     {
         let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-123, 255);
+        let bonus = value.clamp(-256, 512);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
@@ -594,6 +594,7 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
+                + 768
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
