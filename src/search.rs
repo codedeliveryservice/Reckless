@@ -293,6 +293,7 @@ fn search<NODE: NodeType>(
 
             if td.board.halfmove_clock() < 90 {
                 debug_assert!(is_valid(tt_score));
+                td.stack[ply].early_pruning_count += 1;
                 return tt_score;
             }
         }
@@ -388,6 +389,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
+    td.stack[ply + 2].early_pruning_count = 0;
 
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
@@ -439,6 +441,7 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
+        td.stack[ply].early_pruning_count += 1;
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
@@ -452,6 +455,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
     {
+        td.stack[ply].early_pruning_count += 1;
         return beta + (static_eval - beta) / 3;
     }
 
@@ -468,6 +472,7 @@ fn search<NODE: NodeType>(
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
+        td.stack[ply].early_pruning_count += 1;
         return (eval + beta) / 2;
     }
 
@@ -502,6 +507,7 @@ fn search<NODE: NodeType>(
 
         if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
+                td.stack[ply].early_pruning_count += 1;
                 return score;
             }
 
@@ -514,6 +520,7 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                td.stack[ply].early_pruning_count += 1;
                 return score;
             }
         }
@@ -559,6 +566,7 @@ fn search<NODE: NodeType>(
                 td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
 
                 if !is_decisive(score) {
+                    td.stack[ply].early_pruning_count += 1;
                     return score - (probcut_beta - beta);
                 }
             }
@@ -739,6 +747,8 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1555;
+            } else if td.stack[ply + 1].early_pruning_count > 2 {
+                reduction -= 555;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
@@ -807,6 +817,8 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1438;
+            } else if td.stack[ply + 1].early_pruning_count > 2 {
+                reduction -= 438;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
