@@ -962,9 +962,7 @@ fn search<NODE: NodeType>(
             let mut factor = 104;
             factor += 147 * (initial_depth > 5) as i32;
             factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
-            factor += 297
-                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
-                    as i32;
+            factor += 297 * (best_score <= -td.stack[ply - 1].static_eval - 100) as i32;
 
             let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
 
@@ -1130,7 +1128,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            if in_check && mv.is_quiet() {
+            if mv.is_quiet() {
                 break;
             }
 
