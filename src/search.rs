@@ -335,7 +335,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let correction_value = correction_value(td, ply);
+    let correction_value = correction_value(td, tt_move, ply);
 
     let raw_eval;
     let mut static_eval;
@@ -1041,12 +1041,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let hash = td.board.hash();
     let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), ply);
     let mut tt_pv = NODE::PV;
+    let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
     // QS Early TT-Cut
     if let Some(entry) = &entry {
         tt_pv |= entry.pv;
+        tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
 
@@ -1072,7 +1074,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
-        best_score = corrected_eval(raw_eval, correction_value(td, ply), td.board.halfmove_clock());
+        best_score = corrected_eval(raw_eval, correction_value(td, tt_move, ply), td.board.halfmove_clock());
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1191,7 +1193,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn correction_value(td: &ThreadData, ply: usize) -> i32 {
+fn correction_value(td: &ThreadData, tt_move: Move, ply: usize) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -1214,6 +1216,11 @@ fn correction_value(td: &ThreadData, ply: usize) -> i32 {
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
         );
+    }
+
+    if ply >= 1 && tt_move.is_some() && td.stack[ply - 1].mv.is_some() {
+        correction -=
+            td.continuation_corrhist.get(td.stack[ply - 1].contcorrhist, td.board.moved_piece(tt_move), tt_move.to());
     }
 
     correction
