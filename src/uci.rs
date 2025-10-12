@@ -88,7 +88,7 @@ fn go(
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    threads.main_thread().time_manager = TimeManager::new(limits, move_overhead);
     threads.main_thread().tb_hits.clear_global();
     threads.main_thread().nodes.clear_global();
     threads.main_thread().tt.increment_age();
@@ -112,7 +112,7 @@ fn go(
         for (t, w) in rest.iter_mut().zip(rest_workers) {
             handlers.push(scope.spawn_into(
                 || {
-                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+                    t.time_manager = TimeManager::new(Limits::Infinite, 0);
                     search::start(t, Report::None);
                 },
                 w,
