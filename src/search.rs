@@ -745,6 +745,10 @@ fn search<NODE: NodeType>(
                 reduction += 791;
             }
 
+            if !td.board.threats().contains(mv.from()) && td.board.threats().contains(mv.to()) {
+                reduction -= 1024;
+            }
+
             if depth == 2 {
                 reduction -= 1397;
             }
@@ -811,6 +815,10 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 849;
+            }
+
+            if !td.board.threats().contains(mv.from()) && td.board.threats().contains(mv.to()) {
+                reduction -= 1024;
             }
 
             if depth == 2 {
