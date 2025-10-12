@@ -1225,7 +1225,7 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
     let stm = td.board.side_to_move();
-    let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
+    let bonus = (150 * depth * diff / 128 + 64).clamp(-4194, 3164);
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
