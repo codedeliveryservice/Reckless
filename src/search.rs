@@ -514,6 +514,7 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                td.tt.write(tt_slot, hash, depth - r, raw_eval, verified_score, Bound::Lower, Move::NULL, ply, tt_pv);
                 return score;
             }
         }
