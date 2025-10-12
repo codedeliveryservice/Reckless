@@ -691,7 +691,7 @@ fn search<NODE: NodeType>(
             } else if score >= beta && !is_decisive(score) {
                 return score;
             } else if tt_score >= beta {
-                extension = -2;
+                extension = -1 - NODE::PV as i32;
             } else if cut_node {
                 extension = -2;
             }
