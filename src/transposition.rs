@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
-pub const DEFAULT_TT_SIZE: usize = 16;
+pub const DEFAULT_TT_SIZE: usize = 1024;
 
 const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
