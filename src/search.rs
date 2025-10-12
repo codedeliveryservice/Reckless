@@ -596,7 +596,7 @@ fn search<NODE: NodeType>(
                 + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured) - 1024
         };
 
         let mut reduction = td.lmr.reduction(depth, move_count);
