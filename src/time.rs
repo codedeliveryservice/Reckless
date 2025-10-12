@@ -33,9 +33,9 @@ impl TimeManager {
             }
             Limits::Fischer(main, inc) => {
                 let moves_to_go = 50;
-                let estimated_total_time = (main + moves_to_go * inc).saturating_sub(moves_to_go * move_overhead);
+                let estimated_time_left = (main + moves_to_go * inc).saturating_sub(moves_to_go * move_overhead) as f64;
 
-                let soft_bound = (0.033 * estimated_total_time as f64).min(0.443 * main as f64) as u64;
+                let soft_bound = ((0.215 * main as f64 / estimated_time_left).min(0.025) * estimated_time_left) as u64;
                 let hard_bound = (0.742 * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
 
                 soft = soft_bound.min(main.saturating_sub(move_overhead));
