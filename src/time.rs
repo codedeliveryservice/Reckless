@@ -35,11 +35,8 @@ impl TimeManager {
                 let moves_to_go = 50;
                 let estimated_total_time = (main + moves_to_go * inc).saturating_sub(moves_to_go * move_overhead);
 
-                let soft_scale = (0.051 * estimated_total_time as f64).min(0.443 * main as f64);
-                let hard_scale = 0.742;
-
-                let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
-                let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
+                let soft_bound = (0.051 * estimated_total_time as f64).min(0.443 * main as f64) as u64;
+                let hard_bound = (0.742 * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
 
                 soft = soft_bound.min(main.saturating_sub(move_overhead));
                 hard = hard_bound.min(main.saturating_sub(move_overhead));
