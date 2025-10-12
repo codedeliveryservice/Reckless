@@ -307,7 +307,6 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
     let mut main = None;
     let mut inc = None;
-    let mut moves = None;
 
     for chunk in tokens.chunks(2) {
         if let [name, value] = *chunk {
@@ -324,7 +323,6 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
                 "btime" if Color::Black == color => main = Some(value),
                 "winc" if Color::White == color => inc = Some(value),
                 "binc" if Color::Black == color => inc = Some(value),
-                "movestogo" => moves = Some(value as u64),
 
                 _ => continue,
             }
@@ -337,9 +335,5 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
     let main = main.unwrap_or_default().max(0) as u64;
     let inc = inc.unwrap_or_default().max(0) as u64;
-
-    match moves {
-        Some(moves) => Limits::Cyclic(main, inc, moves),
-        None => Limits::Fischer(main, inc),
-    }
+    Limits::Fischer(main, inc)
 }

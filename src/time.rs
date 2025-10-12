@@ -9,7 +9,6 @@ pub enum Limits {
     Time(u64),
     Nodes(u64),
     Fischer(u64, u64),
-    Cyclic(u64, u64, u64),
 }
 
 const TIME_OVERHEAD_MS: u64 = 15;
@@ -40,13 +39,6 @@ impl TimeManager {
 
                 soft = soft_bound.min(main.saturating_sub(move_overhead));
                 hard = hard_bound.min(main.saturating_sub(move_overhead));
-            }
-            Limits::Cyclic(main, inc, moves) => {
-                let main = main.saturating_sub(move_overhead);
-                let base = (main as f64 / moves as f64) + 0.75 * inc as f64;
-
-                soft = ((1.0 * base) as u64).min(main + inc);
-                hard = ((5.0 * base) as u64).min(main + inc);
             }
             _ => {
                 soft = u64::MAX;
