@@ -38,7 +38,7 @@ fn generate_syzygy_binding() {
         .flag("-Wno-deprecated-declarations")
         .flag("-Wno-sign-compare")
         .flag("-Wno-macro-redefined")
-        .flag("-march=native")
+        .flag("-mpopcnt")
         .flag("-O3")
         .compile("fathom");
 
