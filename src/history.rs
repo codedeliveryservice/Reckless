@@ -27,7 +27,6 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        let bonus = bonus.clamp(-Self::MAX_FACTORIZER, Self::MAX_FACTORIZER);
         apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
     }
 
