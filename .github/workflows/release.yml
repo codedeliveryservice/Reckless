@@ -1,0 +1,136 @@
+name: Reckless Releases
+
+on: [workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: reckless-linux-avx2
+            rust_cpu: x86-64-v3
+            sde_flag: -bdw
+
+          - os: ubuntu-latest
+            name: reckless-linux-avx512
+            rust_cpu: x86-64-v4
+            sde_flag: -skx
+
+          - os: windows-latest
+            name: reckless-windows-avx2
+            rust_cpu: x86-64-v3
+            sde_flag: -bdw
+
+          - os: windows-latest
+            name: reckless-windows-avx512
+            rust_cpu: x86-64-v4
+            sde_flag: -skx
+
+          - os: macos-latest
+            name: reckless-macos
+            rust_cpu: native
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          rustup component add llvm-tools
+          cargo install cargo-pgo
+
+      - name: Setup Intel SDE
+        if: runner.os != 'macOS'
+        uses: petarpetrovt/setup-sde@08ea32f9214634afad4f33b74841782e71768e52
+        with:
+          sdeVersion: "9.58.0"
+          environmentVariableName: SDE_PATH
+
+      - name: Instrument build for PGO
+        run: |
+          cargo pgo instrument
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Run PGO profiling benchmarks
+        if: runner.os == 'Linux'
+        run: |
+          "$SDE_PATH/sde64" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Run PGO profiling benchmarks
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          "%SDE_PATH%\sde.exe" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Run PGO profiling benchmarks
+        if: runner.os == 'macOS'
+        run: |
+          cargo pgo run -- bench
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Optimize build with PGO
+        run: |
+          cargo pgo optimize
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Rename binary with platform suffix
+        shell: bash
+        run: |
+          tuple=$(rustc --print host-tuple)
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            mv target\\$tuple\\release\\reckless.exe ${{ matrix.name }}.exe
+          else
+            mv target/$tuple/release/reckless ${{ matrix.name }}
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            ${{ matrix.name }}
+            ${{ matrix.name }}.exe
+          retention-days: 1
+
+  release:
+    name: Development release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA hash
+        id: hash
+        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6.0.0
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.4.1
+        with:
+          name: Reckless 0.9.0-dev-${{ env.COMMIT_SHA }}
+          draft: true
+          prerelease: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
