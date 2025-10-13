@@ -1,0 +1,65 @@
+name: Reckless Releases
+
+on: [push, workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }} (${{ matrix.rust_cpu }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # - target: x86_64-unknown-linux-gnu
+          #   rust_cpu: x86-64
+          #   sde_flag: 
+          # - target: x86_64-unknown-linux-gnu
+          #   rust_cpu: x86-64-v2
+          #   sde_flag: 
+          # - target: x86_64-unknown-linux-gnu
+          #   rust_cpu: x86-64-v3
+          #   sde_flag: 
+          - target: x86_64-unknown-linux-gnu
+            rust_cpu: x86-64-v4
+            sde_flag: -skx
+
+    env:
+      TARGET: ${{ matrix.target }}
+      RUST_CPU: ${{ matrix.rust_cpu }}
+      SDE_FLAG: ${{ matrix.sde_flag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          rustup component add llvm-tools
+          cargo install cargo-pgo
+
+      - name: Setup Intel SDE
+        uses: petarpetrovt/setup-sde@v3.0
+        with:
+          sdeVersion: "9.33.0"
+
+      - name: Instrument build for PGO
+        run: |
+          cargo pgo instrument
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Collect profile data using Intel SDE
+        run: |
+          ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Optimize build with PGO
+        run: |
+          cargo pgo optimize
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
