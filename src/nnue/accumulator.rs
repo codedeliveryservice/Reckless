@@ -1,25 +1,33 @@
-use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
+use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE};
 use crate::{
     board::Board,
+    nnue::Parameters,
     types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct AccumulatorCache {
     entries: Box<[[[CacheEntry; INPUT_BUCKETS]; 2]; 2]>,
 }
 
-#[derive(Clone)]
+impl AccumulatorCache {
+    pub fn new(parameters: &'static Parameters) -> Self {
+        let entry = CacheEntry::new(parameters);
+        Self { entries: Box::new([[[entry.clone(); INPUT_BUCKETS]; 2]; 2]) }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct CacheEntry {
     accumulator: Aligned<[i16; L1_SIZE]>,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
 }
 
-impl Default for CacheEntry {
-    fn default() -> Self {
+impl CacheEntry {
+    fn new(parameters: &'static Parameters) -> Self {
         Self {
-            accumulator: PARAMETERS.ft_biases.clone(),
+            accumulator: parameters.ft_biases.clone(),
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
         }
@@ -41,15 +49,17 @@ pub struct Accumulator {
 }
 
 impl Accumulator {
-    pub fn new() -> Self {
+    pub fn new(parameters: &'static Parameters) -> Self {
         Self {
-            values: Aligned::new([PARAMETERS.ft_biases.data; 2]),
+            values: Aligned::new([parameters.ft_biases.data; 2]),
             delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
             accurate: [false; 2],
         }
     }
 
-    pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
+    pub fn refresh(
+        &mut self, parameters: &'static Parameters, board: &Board, pov: Color, cache: &mut AccumulatorCache,
+    ) {
         let king = board.king_square(pov);
 
         let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
@@ -81,7 +91,7 @@ impl Accumulator {
             }
         }
 
-        unsafe { apply_changes(entry, adds, subs) };
+        unsafe { apply_changes(parameters, entry, adds, subs) };
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
@@ -90,7 +100,7 @@ impl Accumulator {
         self.accurate[pov] = true;
     }
 
-    pub fn update(&mut self, prev: &Self, board: &Board, king: Square, pov: Color) {
+    pub fn update(&mut self, parameters: &'static Parameters, prev: &Self, board: &Board, king: Square, pov: Color) {
         let Delta { mv, piece, captured } = self.delta;
 
         let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
@@ -104,7 +114,7 @@ impl Accumulator {
             let add2 = index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
             let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
 
-            self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
+            self.add2_sub2(parameters, prev, add1, add2, sub1, sub2, pov);
         } else if mv.is_capture() {
             let sub2 = if mv.is_en_passant() {
                 index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
@@ -112,20 +122,20 @@ impl Accumulator {
                 index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
             };
 
-            self.add1_sub2(prev, add1, sub1, sub2, pov);
+            self.add1_sub2(parameters, prev, add1, sub1, sub2, pov);
         } else {
-            self.add1_sub1(prev, add1, sub1, pov);
+            self.add1_sub1(parameters, prev, add1, sub1, pov);
         }
 
         self.accurate[pov] = true;
     }
 
-    fn add1_sub1(&mut self, prev: &Self, add1: usize, sub1: usize, pov: Color) {
+    fn add1_sub1(&mut self, parameters: &'static Parameters, prev: &Self, add1: usize, sub1: usize, pov: Color) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vadd1 = parameters.ft_weights[add1].as_ptr();
+        let vsub1 = parameters.ft_weights[sub1].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -138,13 +148,15 @@ impl Accumulator {
         }
     }
 
-    fn add1_sub2(&mut self, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color) {
+    fn add1_sub2(
+        &mut self, parameters: &'static Parameters, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color,
+    ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
+        let vadd1 = parameters.ft_weights[add1].as_ptr();
+        let vsub1 = parameters.ft_weights[sub1].as_ptr();
+        let vsub2 = parameters.ft_weights[sub2].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -158,14 +170,17 @@ impl Accumulator {
         }
     }
 
-    fn add2_sub2(&mut self, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize, pov: Color) {
+    fn add2_sub2(
+        &mut self, parameters: &'static Parameters, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize,
+        pov: Color,
+    ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
+        let vadd1 = parameters.ft_weights[add1].as_ptr();
+        let vadd2 = parameters.ft_weights[add2].as_ptr();
+        let vsub1 = parameters.ft_weights[sub1].as_ptr();
+        let vsub2 = parameters.ft_weights[sub2].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -181,7 +196,9 @@ impl Accumulator {
     }
 }
 
-unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+unsafe fn apply_changes(
+    parameters: &'static Parameters, entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>,
+) {
     const REGISTERS: usize = 16;
 
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
@@ -194,7 +211,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for &add in adds.iter() {
-            let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset);
+            let weights = parameters.ft_weights[add].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
@@ -202,7 +219,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset);
+            let weights = parameters.ft_weights[sub].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
