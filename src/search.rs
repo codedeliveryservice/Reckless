@@ -759,14 +759,11 @@ fn search<NODE: NodeType>(
                 new_depth += (score > best_score + 37 + 495 * depth / 128) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
-                if new_depth > reduced_depth {
-                    score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
+                score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
 
-                    if mv.is_quiet() && score >= beta {
-                        let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
-
-                        update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
-                    }
+                if mv.is_quiet() && score >= beta {
+                    let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
+                    update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
                 }
             } else if score > alpha && score < best_score + 16 {
                 new_depth -= 1;
