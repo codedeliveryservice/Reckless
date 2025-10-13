@@ -1,9 +1,16 @@
+use std::{
+    io::Write,
+    sync::{Mutex, OnceLock},
+};
+
 use crate::{
     board::Board,
     types::{Color, Move, PieceType, MAX_PLY},
 };
 
 use accumulator::{Accumulator, AccumulatorCache};
+use memmap2::Mmap;
+use tempfile::NamedTempFile;
 
 mod accumulator;
 
@@ -80,6 +87,7 @@ pub struct Network {
     stack: Box<[Accumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
+    parameters: &'static Parameters,
 }
 
 impl Network {
@@ -121,7 +129,7 @@ impl Network {
     }
 
     fn refresh(&mut self, board: &Board, pov: Color) {
-        self.stack[self.index].refresh(board, pov, &mut self.cache);
+        self.stack[self.index].refresh(self.parameters, board, pov, &mut self.cache);
     }
 
     fn update_accumulator(&mut self, board: &Board, pov: Color) {
@@ -130,7 +138,7 @@ impl Network {
 
         for i in index..self.index {
             if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
-                current.update(&prev[i], board, king, pov);
+                current.update(self.parameters, &prev[i], board, king, pov);
             }
         }
     }
@@ -164,9 +172,9 @@ impl Network {
             let ft_out = forward::activate_ft(&self.stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
+            let l1_out = forward::propagate_l1(self.parameters, ft_out, &nnz_indexes[..nnz_count]);
+            let l2_out = forward::propagate_l2(self.parameters, l1_out);
+            let l3_out = forward::propagate_l3(self.parameters, l2_out);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -175,6 +183,7 @@ impl Network {
 
 impl Default for Network {
     fn default() -> Self {
+        let parameters = load_parameters();
         let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
 
         for (byte, entry) in nnz_table.iter_mut().enumerate() {
@@ -192,15 +201,16 @@ impl Default for Network {
 
         Self {
             index: 0,
-            stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
-            cache: AccumulatorCache::default(),
+            stack: vec![Accumulator::new(parameters); MAX_PLY].into_boxed_slice(),
+            cache: AccumulatorCache::new(parameters),
             nnz_table: nnz_table.into_boxed_slice(),
+            parameters,
         }
     }
 }
 
 #[repr(C)]
-struct Parameters {
+pub struct Parameters {
     ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
@@ -211,11 +221,32 @@ struct Parameters {
     l3_biases: f32,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+pub fn load_parameters() -> &'static Parameters {
+    static LOCK: Mutex<()> = Mutex::new(());
+    static CACHED: OnceLock<Mmap> = OnceLock::new();
+
+    static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
+
+    let _guard = LOCK.lock().unwrap();
+
+    if CACHED.get().is_none() {
+        let mut tmpfile = NamedTempFile::new().unwrap();
+
+        tmpfile.write_all(EMBEDDED).unwrap();
+        tmpfile.flush().unwrap();
+
+        let file = tmpfile.as_file();
+        let mmap = unsafe { Mmap::map(file).unwrap() };
+
+        CACHED.set(mmap).unwrap();
+    }
+
+    return unsafe { &*CACHED.get().unwrap().as_ptr().cast::<Parameters>() };
+}
 
 #[repr(align(64))]
-#[derive(Clone)]
-struct Aligned<T> {
+#[derive(Copy, Clone)]
+pub struct Aligned<T> {
     data: T,
 }
 
