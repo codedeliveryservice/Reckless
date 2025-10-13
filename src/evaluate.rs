@@ -19,8 +19,12 @@ pub fn evaluate(td: &mut ThreadData) -> i32 {
 }
 
 fn material(board: &Board) -> i32 {
-    [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
+    use PieceType::*;
+    [Pawn, Knight, Bishop, Rook, Queen]
         .iter()
-        .map(|&pt| board.pieces(pt).len() as i32 * PIECE_VALUES[pt])
+        .map(|&pt| {
+            let value = if pt == Pawn { 500 } else { PIECE_VALUES[pt] };
+            board.pieces(pt).len() as i32 * value
+        })
         .sum::<i32>()
 }
