@@ -7,6 +7,7 @@ use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    parameters::*,
     stack::Stack,
     thread::pool::ScopeExt,
     time::{Limits, TimeManager},
@@ -297,7 +298,7 @@ impl Default for LmrTable {
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
-                let reduction = 970.0027 + 457.7087 * (depth as f32).ln() * (move_count as f32).ln();
+                let reduction = red1() + red2() * (depth as f32).ln() * (move_count as f32).ln();
                 table[depth][move_count] = reduction as i32;
             }
         }
