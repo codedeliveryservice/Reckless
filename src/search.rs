@@ -826,7 +826,7 @@ fn search<NODE: NodeType>(
                 td,
                 -alpha - 1,
                 -alpha,
-                new_depth - (reduction >= 3072) as i32 + 3 * (mv == tt_move && tt_score == alpha) as i32,
+                new_depth - (reduction >= 3072) as i32 + (mv == tt_move && tt_score == alpha) as i32,
                 !cut_node,
                 ply + 1,
             );
