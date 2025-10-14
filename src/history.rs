@@ -15,8 +15,8 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 1940;
-    const MAX_BUCKET: i32 = 6029;
+    const MAX_FACTORIZER: i32 = 1950;
+    const MAX_BUCKET: i32 = 5939;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
         let from_threatened = threats.contains(mv.from()) as usize;
@@ -69,8 +69,8 @@ struct NoisyHistoryEntry {
 }
 
 impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4449;
-    const MAX_BUCKET: i32 = 8148;
+    const MAX_FACTORIZER: i32 = 4556;
+    const MAX_BUCKET: i32 = 8191;
 
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
         let threatened = threats.contains(sq) as usize;
@@ -120,13 +120,13 @@ pub struct CorrectionHistory {
 }
 
 impl CorrectionHistory {
-    const MAX_HISTORY: i32 = 14734;
+    const MAX_HISTORY: i32 = 14711;
 
     const SIZE: usize = 16384;
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        (self.entries[stm][key as usize & Self::MASK] as i32) / 82
+        (self.entries[stm][key as usize & Self::MASK] as i32) / 81
     }
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
@@ -147,7 +147,7 @@ pub struct ContinuationCorrectionHistory {
 }
 
 impl ContinuationCorrectionHistory {
-    const MAX_HISTORY: i32 = 16222;
+    const MAX_HISTORY: i32 = 16591;
 
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
@@ -156,7 +156,7 @@ impl ContinuationCorrectionHistory {
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][to] as i32) / 105
+        (unsafe { &*subtable_ptr }[piece][to] as i32) / 104
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
@@ -177,7 +177,7 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 15324;
+    const MAX_HISTORY: i32 = 15617;
 
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
