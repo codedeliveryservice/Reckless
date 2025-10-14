@@ -745,6 +745,11 @@ fn search<NODE: NodeType>(
                 reduction += 791;
             }
 
+            if is_valid(tt_score) && tt_score > alpha && tt_bound == Bound::Lower && tt_depth > 1 && best_move.is_null()
+            {
+                reduction -= 791 / move_count;
+            }
+
             if depth == 2 {
                 reduction -= 1397;
             }
