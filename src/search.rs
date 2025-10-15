@@ -66,7 +66,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
-    let mut pv_stability = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -145,12 +144,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.print_uci_info(depth);
         }
 
-        if last_best_rootmove.mv == td.root_moves[0].mv {
-            pv_stability += 1;
-        } else {
-            pv_stability = 0;
-        }
-
         if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
             if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
                 td.root_moves.remove(pos);
@@ -173,13 +166,11 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let multiplier = || {
             let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
 
-            let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
-
             let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            nodes_factor * pv_stability * eval_stability * score_trend
+            nodes_factor * eval_stability * score_trend
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
