@@ -483,7 +483,7 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && !is_loss(beta)
     {
-        let r = 5 + depth / 3 + ((eval - beta) / 257).min(3);
+        let r = (5756 + 321 * depth) / 1024;
 
         td.stack[ply].conthist = std::ptr::null_mut();
         td.stack[ply].contcorrhist = std::ptr::null_mut();
