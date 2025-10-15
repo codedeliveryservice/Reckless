@@ -79,13 +79,7 @@ impl MovePicker {
 
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
-                let mut index = 0;
-                for i in 1..self.list.len() {
-                    if self.list[i].score > self.list[index].score {
-                        index = i;
-                    }
-                }
-
+                let index = self.find_best_score_index();
                 let entry = &self.list.remove(index);
                 if entry.mv == self.tt_move {
                     continue;
@@ -120,13 +114,7 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let mut index = 0;
-                    for i in 1..self.list.len() {
-                        if self.list[i].score > self.list[index].score {
-                            index = i;
-                        }
-                    }
-
+                    let index = self.find_best_score_index();
                     let entry = &self.list.remove(index);
                     if entry.mv == self.tt_move {
                         continue;
@@ -156,6 +144,10 @@ impl MovePicker {
         }
 
         None
+    }
+
+    fn find_best_score_index(&self) -> usize {
+        self.list.iter().enumerate().max_by_key(|&(_, entry)| entry.score).map(|(i, _)| i).unwrap_or(0)
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
