@@ -6,7 +6,12 @@ type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
-    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+    let absolute_bonus = bonus.abs();
+
+    let term1 = bonus - (*entry) as i32 * absolute_bonus / MAX;
+    let term2 = term1 * absolute_bonus / (2 * MAX);
+
+    *entry += (term1 - term2) as i16;
 }
 
 struct QuietHistoryEntry {
