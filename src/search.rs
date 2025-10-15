@@ -68,6 +68,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
 
+    let mut scores = vec![0; MAX_PLY as usize];
+
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -170,6 +172,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
             eval_stability = 0;
         }
 
+        scores[depth as usize] = td.root_moves[0].score;
+
         let multiplier = || {
             let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
 
@@ -177,7 +181,10 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend = (0.6
+                + 0.025 * (scores[depth as usize - 3] - td.root_moves[0].score) as f32
+                + 0.050 * (td.previous_best_score - td.root_moves[0].score) as f32)
+                .clamp(0.80, 1.45);
 
             nodes_factor * pv_stability * eval_stability * score_trend
         };
