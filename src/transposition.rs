@@ -148,6 +148,9 @@ impl TranspositionTable {
 
         let key = verification_key(hash);
 
+        let mut replacement_slot = cluster.entries.as_ptr();
+        let mut lowest_quality = i32::MAX;
+
         for entry in &cluster.entries {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
                 let hit = Entry {
@@ -161,18 +164,10 @@ impl TranspositionTable {
 
                 return (Some(hit), std::ptr::from_ref(entry));
             }
-        }
 
-        let tt_age = self.age();
-
-        let mut replacement_slot = cluster.entries.as_ptr();
-        let mut lowest_quality = i32::MAX;
-
-        for candidate in &cluster.entries {
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
-
+            let quality = entry.depth as i32 - 4 * entry.relative_age(self.age());
             if quality < lowest_quality {
-                replacement_slot = std::ptr::from_ref(candidate);
+                replacement_slot = std::ptr::from_ref(entry);
                 lowest_quality = quality;
             }
         }
