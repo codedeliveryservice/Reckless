@@ -995,6 +995,7 @@ fn search<NODE: NodeType>(
 
     if !(in_check
         || best_move.is_noisy()
+        || static_eval == tt_score
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
