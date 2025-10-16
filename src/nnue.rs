@@ -1,6 +1,6 @@
 use std::{
     io::Write,
-    sync::{Mutex, OnceLock},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
 };
 
 use accumulator::{Accumulator, AccumulatorCache};
+use libc::{c_uint, pthread_self, pthread_setaffinity_np, syscall, SYS_getcpu, CPU_SET, CPU_ZERO};
 use memmap2::Mmap;
 use tempfile::NamedTempFile;
 
@@ -221,27 +222,76 @@ pub struct Parameters {
     l3_biases: f32,
 }
 
+fn get_current_cpu_and_node() -> (usize, usize) {
+    unsafe {
+        let mut cpu: c_uint = 0;
+        let mut node: c_uint = 0;
+        let ret = syscall(SYS_getcpu, &mut cpu, &mut node, std::ptr::null_mut::<libc::c_void>());
+        if ret == 0 {
+            (cpu as usize, node as usize)
+        } else {
+            // fallback: treat CPU ID as node ID
+            let cpu = libc::sched_getcpu();
+            (cpu as usize, cpu as usize)
+        }
+    }
+}
+
+fn first_touch(mmap: &Mmap) {
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize };
+    let data = mmap.as_ptr();
+    let size = mmap.len();
+    let n_pages = (size + page_size - 1) / page_size;
+
+    for i in 0..n_pages {
+        unsafe {
+            std::ptr::read_volatile(data.add(i * page_size));
+        }
+    }
+}
+
+fn bind_thread_to_cpu(cpu: usize) {
+    unsafe {
+        let mut cpuset = std::mem::zeroed();
+        CPU_ZERO(&mut cpuset);
+        CPU_SET(cpu, &mut cpuset);
+        pthread_setaffinity_np(pthread_self(), std::mem::size_of_val(&cpuset), &cpuset);
+    }
+}
+
 pub fn load_parameters() -> &'static Parameters {
-    static LOCK: Mutex<()> = Mutex::new(());
-    static CACHED: OnceLock<Mmap> = OnceLock::new();
+    const MAX_NODES: usize = 8;
 
     static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
+    static CACHED: OnceLock<Mutex<Vec<Option<Arc<Mmap>>>>> = OnceLock::new();
 
-    let _guard = LOCK.lock().unwrap();
+    let (cpu, mut node) = get_current_cpu_and_node();
+    node %= MAX_NODES;
 
-    if CACHED.get().is_none() {
+    // println!("Current CPU: {cpu}, Node: {node}");
+
+    let cached = CACHED.get_or_init(|| Mutex::new(vec![None; MAX_NODES]));
+
+    let mut guard = cached.lock().unwrap();
+    let mmap = guard[node].get_or_insert_with(|| {
+        // println!("Loading parameters for node {node}");
+
         let mut tmpfile = NamedTempFile::new().unwrap();
-
         tmpfile.write_all(EMBEDDED).unwrap();
         tmpfile.flush().unwrap();
-
         let file = tmpfile.as_file();
+
         let mmap = unsafe { Mmap::map(file).unwrap() };
+        let mmap = Arc::new(mmap);
 
-        CACHED.set(mmap).unwrap();
-    }
+        bind_thread_to_cpu(node);
+        first_touch(&mmap);
 
-    return unsafe { &*CACHED.get().unwrap().as_ptr().cast::<Parameters>() };
+        // println!("Parameters loaded and touched on node {node}");
+        mmap
+    });
+
+    unsafe { &*(mmap.as_ptr().cast()) }
 }
 
 #[repr(align(64))]

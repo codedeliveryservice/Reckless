@@ -24,6 +24,5 @@ bindgen = "0.71.1"
 
 [dependencies]
 libc = "0.2.175"
-bytemuck = "1.24.0"
 memmap2 = "0.9.8"
 tempfile = "3.23.0"
