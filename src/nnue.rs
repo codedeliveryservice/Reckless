@@ -268,13 +268,13 @@ pub fn load_parameters() -> &'static Parameters {
     let (cpu, mut node) = get_current_cpu_and_node();
     node %= MAX_NODES;
 
-    // println!("Current CPU: {cpu}, Node: {node}");
+    println!("Current CPU: {cpu}, Node: {node}");
 
     let cached = CACHED.get_or_init(|| Mutex::new(vec![None; MAX_NODES]));
 
     let mut guard = cached.lock().unwrap();
     let mmap = guard[node].get_or_insert_with(|| {
-        // println!("Loading parameters for node {node}");
+        println!("Loading parameters for node {node}");
 
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(EMBEDDED).unwrap();
@@ -287,10 +287,11 @@ pub fn load_parameters() -> &'static Parameters {
         bind_thread_to_cpu(node);
         first_touch(&mmap);
 
-        // println!("Parameters loaded and touched on node {node}");
+        println!("Parameters loaded and touched on node {node}");
         mmap
     });
 
+    println!("Using parameters on node {node} for CPU {cpu}");
     unsafe { &*(mmap.as_ptr().cast()) }
 }
 
