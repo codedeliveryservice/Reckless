@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -959,17 +959,17 @@ fn search<NODE: NodeType>(
 
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 104;
-            factor += 147 * (initial_depth > 5) as i32;
-            factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
-            factor += 297
-                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
+            let mut factor = pcm1();
+            factor += pcm2() * (initial_depth > 5) as i32;
+            factor += pcm3() * (!in_check && best_score <= static_eval.min(raw_eval) - pcm4()) as i32;
+            factor += pcm5()
+                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - pcm6())
                     as i32;
 
-            let quiet_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
+            let quiet_bonus = factor * (pcm7() * initial_depth - pcm8()).min(pcm9()) / 128;
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, quiet_bonus);
 
-            let cont_bonus = (151 * initial_depth - 41).min(1630);
+            let cont_bonus = (pcm10() * initial_depth - pcm11()).min(pcm12());
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, pcm_move.to(), cont_bonus);
         }
     }

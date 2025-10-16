@@ -34,3 +34,18 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 pcm1: 104;
+    i32 pcm2: 147;
+    i32 pcm3: 217;
+    i32 pcm4: 132;
+    i32 pcm5: 297;
+    i32 pcm6: 100;
+    i32 pcm7: 156;
+    i32 pcm8: 42;
+    i32 pcm9: 1789;
+    i32 pcm10: 151;
+    i32 pcm11: 41;
+    i32 pcm12: 1630;
+);
