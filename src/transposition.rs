@@ -169,8 +169,12 @@ impl TranspositionTable {
         let mut lowest_quality = i32::MAX;
 
         for candidate in &cluster.entries {
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            if candidate.depth as i32 == TtDepth::NONE {
+                replacement_slot = std::ptr::from_ref(candidate);
+                return (None, replacement_slot);
+            }
 
+            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
             if quality < lowest_quality {
                 replacement_slot = std::ptr::from_ref(candidate);
                 lowest_quality = quality;
