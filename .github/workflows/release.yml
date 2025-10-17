@@ -6,59 +6,59 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-linux:
-    name: Build for Linux (${{ matrix.rust_cpu }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rust_cpu: x86-64
-            sde_flag: -pnr
-          - rust_cpu: x86-64-v2
-            sde_flag: -bdw
-          - rust_cpu: x86-64-v3
-            sde_flag: -skx
+  # build-linux:
+  #   name: Build for Linux (${{ matrix.rust_cpu }})
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - rust_cpu: x86-64
+  #           sde_flag: -pnr
+  #         - rust_cpu: x86-64-v2
+  #           sde_flag: -bdw
+  #         - rust_cpu: x86-64-v3
+  #           sde_flag: -skx
 
-    env:
-      TARGET: ${{ matrix.target }}
-      RUST_CPU: ${{ matrix.rust_cpu }}
-      SDE_FLAG: ${{ matrix.sde_flag }}
+  #   env:
+  #     TARGET: ${{ matrix.target }}
+  #     RUST_CPU: ${{ matrix.rust_cpu }}
+  #     SDE_FLAG: ${{ matrix.sde_flag }}
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+  #     - name: Setup Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
 
-      - name: Install dependencies
-        run: |
-          rustup component add llvm-tools
-          cargo install cargo-pgo
+  #     - name: Install dependencies
+  #       run: |
+  #         rustup component add llvm-tools
+  #         cargo install cargo-pgo
 
-      - name: Setup Intel SDE
-        run: |
-          wget https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-lin.tar.xz
-          tar -xf sde-external-9.58.0-2025-06-16-lin.tar.xz
-          echo "SDE_PATH=${{ github.workspace }}/sde-external-9.58.0-2025-06-16-lin" >> $GITHUB_ENV
+  #     - name: Setup Intel SDE
+  #       run: |
+  #         wget https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-lin.tar.xz
+  #         tar -xf sde-external-9.58.0-2025-06-16-lin.tar.xz
+  #         echo "SDE_PATH=${{ github.workspace }}/sde-external-9.58.0-2025-06-16-lin" >> $GITHUB_ENV
 
-      - name: Instrument build for PGO
-        run: |
-          cargo pgo instrument
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+  #     - name: Instrument build for PGO
+  #       run: |
+  #         cargo pgo instrument
+  #       env:
+  #         RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
-      - name: Run PGO profiling benchmarks
-        run: |
-          ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- cargo pgo run -- bench
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+  #     - name: Run PGO profiling benchmarks
+  #       run: |
+  #         ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+  #       env:
+  #         RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
-      - name: Optimize build with PGO
-        run: |
-          cargo pgo optimize
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+  #     - name: Optimize build with PGO
+  #       run: |
+  #         cargo pgo optimize
+  #       env:
+  #         RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
   build-windows:
     name: Build for Windows (${{ matrix.rust_cpu }})
@@ -91,7 +91,7 @@ jobs:
 
       - name: Setup Intel SDE
         run: |
-          Invoke-WebRequest -Uri https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-win.zip -OutFile sde-external-9.58.0-2025-06-16-win.zip
+          Invoke-WebRequest -Uri https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-win.zip -OutFile sde-external-9.58.0-2025-06-16-win.zip -Headers @{ 'User-Agent' = 'Mozilla/5.0' }
           Expand-Archive -Path sde-external-9.58.0-2025-06-16-win.zip -DestinationPath ${{ github.workspace }}
           echo "SDE_PATH=${{ github.workspace }}\sde-external-9.58.0-2025-06-16-win" >> $env:GITHUB_ENV
 
