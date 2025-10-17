@@ -44,7 +44,7 @@ jobs:
       - name: Setup Intel SDE
         uses: petarpetrovt/setup-sde@v3.0
         with:
-          sdeVersion: "9.33.0"
+          sdeVersion: "9.58.0"
 
       - name: Build with SDE
         run: |
