@@ -7,7 +7,7 @@ env:
 
 jobs:
   build-linux:
-    name: Build for ${{ matrix.target }} (${{ matrix.rust_cpu }})
+    name: Build for Linux (${{ matrix.rust_cpu }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -61,7 +61,7 @@ jobs:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
   build-windows:
-    name: Build for ${{ matrix.target }} (${{ matrix.rust_cpu }})
+    name: Build for Windows (${{ matrix.rust_cpu }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
