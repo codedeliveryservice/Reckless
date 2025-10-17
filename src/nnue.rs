@@ -222,7 +222,7 @@ pub struct Parameters {
     l3_biases: f32,
 }
 
-fn get_current_cpu_and_node() -> usize {
+fn get_current_node() -> usize {
     unsafe {
         let mut cpu: c_uint = 0;
         let mut node: c_uint = 0;
@@ -234,17 +234,51 @@ fn get_current_cpu_and_node() -> usize {
     }
 }
 
-pub fn load_parameters() -> &'static Parameters {
-    const MAX_NODES: usize = 4;
+fn num_available_nodes() -> usize {
+    if let Ok(entries) = std::fs::read_dir("/sys/devices/system/node/") {
+        return entries
+            .filter_map(|e| e.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with("node"))
+            .count();
+    }
 
+    return 1;
+}
+
+unsafe fn run_on_node(node: usize) {
+    let path = format!("/sys/devices/system/node/node{node}/cpulist");
+    let cpulist = std::fs::read_to_string(path).unwrap_or_default();
+
+    let mut cpuset = unsafe { std::mem::zeroed::<libc::cpu_set_t>() };
+    libc::CPU_ZERO(&mut cpuset);
+
+    for part in cpulist.trim().split(',') {
+        if let Some((start, end)) = part.split_once('-') {
+            let start = start.parse::<usize>().unwrap();
+            let end = end.parse::<usize>().unwrap();
+            for cpu in start..=end {
+                libc::CPU_SET(cpu, &mut cpuset);
+            }
+        } else if let Ok(cpu) = part.parse::<usize>() {
+            libc::CPU_SET(cpu, &mut cpuset);
+        }
+    }
+
+    libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &cpuset);
+}
+
+pub fn load_parameters() -> &'static Parameters {
     static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
     static CACHED: OnceLock<Mutex<Vec<Option<Arc<Mmap>>>>> = OnceLock::new();
 
-    let node = get_current_cpu_and_node() % MAX_NODES;
-    let cached = CACHED.get_or_init(|| Mutex::new(vec![None; MAX_NODES]));
+    let nodes = num_available_nodes();
+    let current = get_current_node();
+    let cached = CACHED.get_or_init(|| Mutex::new(vec![None; nodes]));
 
     let mut guard = cached.lock().unwrap();
-    let mmap = guard[node].get_or_insert_with(|| {
+    let mmap = guard[current].get_or_insert_with(|| {
+        unsafe { run_on_node(current) };
+
         let mut tmpfile = NamedTempFile::new().unwrap();
         tmpfile.write_all(EMBEDDED).unwrap();
         tmpfile.flush().unwrap();
