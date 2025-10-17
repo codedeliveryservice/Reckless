@@ -46,20 +46,6 @@ jobs:
         with:
           sdeVersion: "9.33.0"
 
-      - name: Instrument build for PGO
+      - name: Build with SDE
         run: |
-          cargo pgo instrument
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
-
-      - name: Collect profile data using Intel SDE
-        run: |
-          ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- cargo pgo run -- bench
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
-
-      - name: Optimize build with PGO
-        run: |
-          cargo pgo optimize
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- make RUSTFLAGS="-Ctarget-cpu=${{ matrix.rust_cpu }}"
