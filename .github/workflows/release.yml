@@ -6,23 +6,39 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-linux:
     name: Build for ${{ matrix.target }} (${{ matrix.rust_cpu }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          # - target: x86_64-unknown-linux-gnu
-          #   rust_cpu: x86-64
-          #   sde_flag: 
-          # - target: x86_64-unknown-linux-gnu
-          #   rust_cpu: x86-64-v2
-          #   sde_flag: 
-          # - target: x86_64-unknown-linux-gnu
-          #   rust_cpu: x86-64-v3
-          #   sde_flag: 
-          - target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            rust_cpu: x86-64
+            sde_flag: -pnr
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            rust_cpu: x86-64-v3
+            sde_flag: -bdw
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
             rust_cpu: x86-64-v4
+            sde_flag: -skx
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust_cpu: x86-64
+            sde_flag: -pnr
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust_cpu: x86-64-v2
+            sde_flag: -bdw
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust_cpu: x86-64-v3
             sde_flag: -skx
 
     env:
@@ -52,9 +68,17 @@ jobs:
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
-      - name: Collect profile data using Intel SDE
+      - name: Run PGO profiling benchmarks on Linux
+        if: runner.os == 'Linux'
         run: |
           ${{ env.SDE_PATH }}/sde64 ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+
+      - name: Run PGO profiling benchmarks on Windows
+        if: runner.os == 'Windows'
+        run: |
+          ${{ env.SDE_PATH }}\sde64.exe ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
