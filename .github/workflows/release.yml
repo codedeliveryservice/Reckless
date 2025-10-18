@@ -93,6 +93,15 @@ jobs:
           sdeVersion: "9.58.0"
           environmentVariableName: SDE_PATH
 
+      - name: Verify installations
+        run: |
+          rustc --print cfg
+          rustc --print sysroot
+          cargo --version
+          rustc --version
+          cargo pgo --version
+          dir "%SDE_PATH%"
+
       - name: Instrument build for PGO
         run: |
           cargo pgo instrument
