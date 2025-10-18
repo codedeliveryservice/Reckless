@@ -577,6 +577,7 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
+    let mut alpha_raises = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
 
@@ -889,7 +890,8 @@ fn search<NODE: NodeType>(
                     break;
                 }
 
-                if depth > 2 && depth < 17 && !is_decisive(score) {
+                if depth > 2 && alpha_raises < 2 && !is_decisive(score) {
+                    alpha_raises += 1;
                     depth -= 1;
                 }
 
