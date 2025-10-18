@@ -954,9 +954,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3) {
-        tt_pv |= td.stack[ply - 1].tt_pv;
-
+    if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = 104;
@@ -979,6 +977,8 @@ fn search<NODE: NodeType>(
             }
         }
     }
+
+    tt_pv |= !NODE::ROOT && bound == Bound::Upper && td.stack[ply - 1].tt_pv && (!quiet_moves.is_empty() || depth > 3);
 
     debug_assert!(alpha < beta);
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
