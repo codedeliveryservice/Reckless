@@ -954,7 +954,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3) {
+    if !NODE::ROOT && bound == Bound::Upper {
         tt_pv |= td.stack[ply - 1].tt_pv;
 
         let pcm_move = td.stack[ply - 1].mv;
