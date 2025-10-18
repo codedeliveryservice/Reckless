@@ -890,7 +890,7 @@ fn search<NODE: NodeType>(
                     break;
                 }
 
-                if depth > 2 && alpha_raises < 2 && !is_decisive(score) {
+                if depth > 2 && alpha_raises < 3 && !is_decisive(score) {
                     alpha_raises += 1;
                     depth -= 1;
                 }
