@@ -918,10 +918,10 @@ fn search<NODE: NodeType>(
         let bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
         let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
 
-        let bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32;
+        let bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32 - 192 * quiet_moves.is_empty() as i32;
         let malus_quiet = (133 * initial_depth - 51).min(1162) - 37 * quiet_moves.len() as i32;
 
-        let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
+        let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32 - 192 * quiet_moves.is_empty() as i32;
         let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
@@ -932,7 +932,7 @@ fn search<NODE: NodeType>(
                 td.board.piece_on(best_move.to()).piece_type(),
                 bonus_noisy,
             );
-        } else if !quiet_moves.is_empty() || depth > 3 {
+        } else {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
