@@ -49,8 +49,7 @@ jobs:
 
       - name: Run PGO profiling benchmarks
         run: |
-          SDE="$SDE_PATH/sde64"
-          "$SDE" $SDE_FLAG -- cargo pgo run -- bench
+          "$SDE_PATH/sde64" $SDE_FLAG -- cargo pgo run -- bench
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
@@ -103,8 +102,7 @@ jobs:
       - name: Run PGO profiling benchmarks
         shell: pwsh
         run: |
-          SDE="$(cygpath -u "$SDE_PATH")/sde64.exe"
-          "$SDE" $SDE_FLAG -- cargo pgo run -- bench
+          "%SDE_PATH%/sde64.exe" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
