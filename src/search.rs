@@ -932,7 +932,7 @@ fn search<NODE: NodeType>(
                 td.board.piece_on(best_move.to()).piece_type(),
                 bonus_noisy,
             );
-        } else if !quiet_moves.is_empty() || depth > 3 {
+        } else if !quiet_moves.is_empty() || depth > 3 || NODE::PV {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
@@ -954,7 +954,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3) {
+    if !NODE::ROOT && bound == Bound::Upper && (!quiet_moves.is_empty() || depth > 3 || NODE::PV) {
         tt_pv |= td.stack[ply - 1].tt_pv;
 
         let pcm_move = td.stack[ply - 1].mv;
