@@ -90,10 +90,10 @@ jobs:
           cargo install cargo-pgo
 
       - name: Setup Intel SDE
-        run: |
-          Invoke-WebRequest -Uri https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-win.zip -OutFile sde-external-9.58.0-2025-06-16-win.zip -Headers @{ 'User-Agent' = 'Mozilla/5.0' }
-          Expand-Archive -Path sde-external-9.58.0-2025-06-16-win.zip -DestinationPath ${{ github.workspace }}
-          echo "SDE_PATH=${{ github.workspace }}\sde-external-9.58.0-2025-06-16-win" >> $env:GITHUB_ENV
+        uses: petarpetrovt/setup-sde@v3.0
+        with:
+          sdeVersion: "9.58.0"
+          environmentVariableName: SDE_PATH
 
       - name: Instrument build for PGO
         run: |
@@ -103,7 +103,7 @@ jobs:
 
       - name: Run PGO profiling benchmarks
         run: |
-          ${{ env.SDE_PATH }}\sde64.exe ${{ matrix.sde_flag }} -- cargo pgo run -- bench
+          $env:SDE_PATH + '\sde64.exe' ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
