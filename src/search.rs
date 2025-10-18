@@ -959,24 +959,18 @@ fn search<NODE: NodeType>(
 
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 104;
-            factor += 147 * (initial_depth > 5) as i32;
-            factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
-            factor += 297
-                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
+            let mut factor = 101;
+            factor += 145 * (initial_depth >= 6) as i32;
+            factor += 207 * (!in_check && best_score <= static_eval.min(raw_eval) - 130) as i32;
+            factor += 288
+                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 102)
                     as i32;
 
-            let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
+            let quiet_bonus = factor * (144 * initial_depth - 43).min(1717) / 128;
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, quiet_bonus);
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
-
-            if ply >= 2 {
-                let entry = &td.stack[ply - 2];
-                if entry.mv.is_some() {
-                    let bonus = (151 * initial_depth - 41).min(1630);
-                    td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-                }
-            }
+            let cont_bonus = (124 * initial_depth - 42).min(1550);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, pcm_move.to(), cont_bonus);
         }
     }
 
