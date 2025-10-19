@@ -585,6 +585,14 @@ fn search<NODE: NodeType>(
             continue;
         }
 
+        if NODE::ROOT && td.root_in_tb {
+            debug_assert!(td.root_moves[0].tb_rank == td.root_moves.iter().map(|rm| rm.tb_rank).max().unwrap_or(0));
+
+            if td.root_moves.iter().any(|rm| rm.mv == mv && rm.tb_rank != td.root_moves[0].tb_rank) {
+                continue;
+            }
+        }
+
         move_count += 1;
         td.stack[ply].move_count = move_count;
 
@@ -1117,14 +1125,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
         if !td.board.is_legal(mv) {
             continue;
-        }
-
-        if NODE::ROOT && td.root_in_tb {
-            debug_assert!(td.root_moves[0].tb_rank == td.root_moves.iter().map(|rm| rm.tb_rank).max().unwrap_or(0));
-
-            if td.root_moves.iter().any(|rm| rm.mv == mv && rm.tb_rank != td.root_moves[0].tb_rank) {
-                continue;
-            }
         }
 
         move_count += 1;
