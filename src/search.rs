@@ -532,6 +532,7 @@ fn search<NODE: NodeType>(
 
         let probcut_depth = (depth - 4).max(0);
 
+        let mut tried_tt_move = false;
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
@@ -541,6 +542,7 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
+            tried_tt_move |= mv == tt_move;
             make_move(td, ply, mv);
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
@@ -557,6 +559,10 @@ fn search<NODE: NodeType>(
 
             if score >= probcut_beta {
                 td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
+
+                if tt_move.is_some() && mv != tt_move && !tried_tt_move {
+                    return score;
+                }
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
