@@ -267,7 +267,10 @@ fn search<NODE: NodeType>(
 
     // Search Early TT-Cut
     if let Some(entry) = &entry {
-        tt_move = entry.mv;
+        if !excluded {
+            tt_move = entry.mv;
+        }
+
         tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_depth = entry.depth;
@@ -566,7 +569,7 @@ fn search<NODE: NodeType>(
     }
 
     // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+    if !excluded && depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
         depth -= 1;
     }
 
