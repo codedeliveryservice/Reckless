@@ -978,7 +978,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    tt_pv |= !NODE::ROOT && bound == Bound::Upper && td.stack[ply - 1].tt_pv && (!quiet_moves.is_empty() || depth > 3);
+    tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
     debug_assert!(alpha < beta);
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
