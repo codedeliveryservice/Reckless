@@ -283,9 +283,9 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta {
-                let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
-                let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
+            if cut_node && tt_move.is_quiet() && tt_score >= beta {
+                let quiet_bonus = (141 * depth - 72).min(1544);
+                let conthist_bonus = (99 * depth - 61).min(1509);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
