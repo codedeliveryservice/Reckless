@@ -950,9 +950,12 @@ fn search<NODE: NodeType>(
             }
         }
 
-        for &mv in noisy_moves.iter() {
+        for (i, &mv) in noisy_moves.iter().enumerate() {
+            let weight = 128 - 26 * i as i32 / (noisy_moves.len() as i32 - 1).max(1);
+            let malus = weight * malus_noisy / 128;
+
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus);
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count == 1 {
