@@ -686,7 +686,7 @@ fn search<NODE: NodeType>(
             }
 
             if score < singular_beta {
-                let double_margin = 2 + 277 * NODE::PV as i32;
+                let double_margin = 2 + 277 * NODE::PV as i32 - td.tt_move_history.get() / 128;
                 let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
                 extension = 1;
@@ -959,6 +959,10 @@ fn search<NODE: NodeType>(
             let malus = (78 * initial_depth - 52).min(811);
 
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+        }
+
+        if !NODE::PV {
+            td.tt_move_history.update(if best_move == tt_move { 768 } else { -512 });
         }
     }
 

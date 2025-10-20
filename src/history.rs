@@ -201,6 +201,28 @@ impl Default for ContinuationHistory {
     }
 }
 
+pub struct TTMoveHistory {
+    entry: i16,
+}
+
+impl TTMoveHistory {
+    const MAX_HISTORY: i32 = 8192;
+
+    pub fn get(&self) -> i32 {
+        self.entry as i32
+    }
+
+    pub fn update(&mut self, bonus: i32) {
+        apply_bonus::<{ Self::MAX_HISTORY }>(&mut self.entry, bonus);
+    }
+}
+
+impl Default for TTMoveHistory {
+    fn default() -> Self {
+        Self { entry: 0 }
+    }
+}
+
 fn zeroed_box<T>() -> Box<T> {
     unsafe {
         let layout = std::alloc::Layout::new::<T>();
