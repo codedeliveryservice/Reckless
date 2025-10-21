@@ -404,8 +404,9 @@ fn search<NODE: NodeType>(
 
     // Hindsight reductions
     if !NODE::ROOT
-        && !in_check
         && !excluded
+        && is_valid(static_eval)
+        && is_valid(td.stack[ply - 1].static_eval)
         && td.stack[ply - 1].reduction >= 2397
         && static_eval + td.stack[ply - 1].static_eval < 0
     {
@@ -414,10 +415,10 @@ fn search<NODE: NodeType>(
 
     if !NODE::ROOT
         && !tt_pv
-        && !in_check
         && !excluded
         && depth >= 2
         && td.stack[ply - 1].reduction >= 963
+        && is_valid(static_eval)
         && is_valid(td.stack[ply - 1].static_eval)
         && static_eval + td.stack[ply - 1].static_eval > 63
     {
