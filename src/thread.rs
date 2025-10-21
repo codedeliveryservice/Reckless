@@ -282,23 +282,25 @@ impl Default for PrincipalVariationTable {
 }
 
 pub struct LmrTable {
-    table: Box<[[i32; MAX_MOVES + 1]]>,
+    table: Box<[[[i32; MAX_MOVES + 1]; MAX_MOVES + 1]]>,
 }
 
 impl LmrTable {
-    pub const fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth as usize][move_count as usize]
+    pub const fn reduction(&self, is_quiet: bool, depth: i32, move_count: i32) -> i32 {
+        self.table[is_quiet as usize][depth as usize][move_count as usize]
     }
 }
 
 impl Default for LmrTable {
     fn default() -> Self {
-        let mut table = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
+        let mut table = vec![[[0; MAX_MOVES + 1]; MAX_MOVES + 1]; 2].into_boxed_slice();
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
-                let reduction = 970.0027 + 457.7087 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
+                let ln_depth_move = (depth as f32).ln() * (move_count as f32).ln();
+
+                table[0][depth][move_count] = (485.0013 + 399.2794 * ln_depth_move) as i32;
+                table[1][depth][move_count] = (970.0027 + 457.7087 * ln_depth_move) as i32;
             }
         }
 
