@@ -335,7 +335,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let correction_value = correction_value(td, ply);
+    let correction_value = correction_value(td, ply, tt_move);
 
     let raw_eval;
     let mut static_eval;
@@ -1006,7 +1006,7 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval, ply);
+        update_correction_histories(td, depth, best_score - static_eval, ply, tt_move);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -1080,7 +1080,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
-        best_score = corrected_eval(raw_eval, correction_value(td, ply), td.board.halfmove_clock());
+        best_score = corrected_eval(raw_eval, correction_value(td, ply, Move::NULL), td.board.halfmove_clock());
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1199,7 +1199,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn correction_value(td: &ThreadData, ply: usize) -> i32 {
+fn correction_value(td: &ThreadData, ply: usize, tt_move: Move) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -1224,6 +1224,10 @@ fn correction_value(td: &ThreadData, ply: usize) -> i32 {
         );
     }
 
+    if tt_move.is_some() {
+        correction += td.tt_move_corrhist.get(stm, tt_move.encoded() as u64);
+    }
+
     correction
 }
 
@@ -1231,7 +1235,7 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize, tt_move: Move) {
     let stm = td.board.side_to_move();
     let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
 
@@ -1258,6 +1262,10 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
             td.stack[ply - 1].mv.to(),
             bonus,
         );
+    }
+
+    if tt_move.is_some() {
+        td.tt_move_corrhist.update(stm, tt_move.encoded() as u64, bonus);
     }
 }
 
