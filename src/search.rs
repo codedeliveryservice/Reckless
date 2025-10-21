@@ -923,14 +923,20 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
+        let mut bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
         let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
 
-        let bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32;
+        let mut bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32;
         let malus_quiet = (133 * initial_depth - 51).min(1162) - 37 * quiet_moves.len() as i32;
 
-        let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
+        let mut bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
         let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
+
+        if tt_score <= alpha && tt_bound == Bound::Upper {
+            bonus_noisy *= 3;
+            bonus_quiet *= 3;
+            bonus_cont *= 3;
+        }
 
         if best_move.is_noisy() {
             td.noisy_history.update(
