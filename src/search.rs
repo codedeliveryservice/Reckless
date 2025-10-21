@@ -607,7 +607,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(is_quiet, depth, move_count);
+        let mut reduction = td.lmr.reduction(true, depth, move_count);
 
         if !improving {
             reduction += (489 - 412 * improvement / 128).min(1243);
@@ -716,6 +716,12 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
+            let mut reduction = td.lmr.reduction(is_quiet, depth, move_count);
+
+            if !improving {
+                reduction += (489 - 412 * improvement / 128).min(1243);
+            }
+
             if is_quiet {
                 reduction += 489;
                 reduction -= 137 * history / 1024;
@@ -784,6 +790,12 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            let mut reduction = td.lmr.reduction(is_quiet, depth, move_count);
+
+            if !improving {
+                reduction += (489 - 412 * improvement / 128).min(1243);
+            }
+
             if is_quiet {
                 reduction += 380;
                 reduction -= 153 * history / 1024;
