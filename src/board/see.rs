@@ -11,6 +11,10 @@ impl super::Board {
     ///
     /// Promotions and castling always pass this check.
     pub fn see(&self, mv: Move, threshold: i32) -> bool {
+        if mv.is_noisy() && !self.threats().contains(mv.to()) {
+            return true;
+        }
+
         if mv.is_promotion() || mv.is_castling() {
             return true;
         }
