@@ -196,10 +196,6 @@ impl TranspositionTable {
         let key = verification_key(hash);
         let tt_age = self.age();
 
-        if !(entry.key == key && mv.is_null()) {
-            entry.mv = mv;
-        }
-
         if !(key != entry.key
             || bound == Bound::Exact
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
@@ -211,6 +207,10 @@ impl TranspositionTable {
         // Adjust mate distance from "plies from the root" to "plies from the current position"
         if is_decisive(score) && is_valid(score) {
             score += score.signum() * ply as i32;
+        }
+
+        if !(entry.key == key && mv.is_null()) {
+            entry.mv = mv;
         }
 
         entry.key = key;
