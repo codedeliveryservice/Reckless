@@ -856,6 +856,8 @@ fn search<NODE: NodeType>(
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
 
             root_move.nodes += td.nodes.local() - initial_nodes;
+            root_move.average_score =
+                if root_move.average_score == -Score::INFINITE { score } else { (root_move.average_score + score) / 2 };
 
             if move_count == 1 || score > alpha {
                 match score {

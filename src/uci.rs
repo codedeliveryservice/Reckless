@@ -137,8 +137,8 @@ fn go(
         listener
     });
 
-    let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let min_score = threads.iter().map(|v| v.root_moves[0].average_score).min().unwrap();
+    let vote_value = |td: &ThreadData| (td.root_moves[0].average_score - min_score + 10) * td.completed_depth;
 
     let mut votes = vec![0; 4096];
     for result in threads.iter() {
