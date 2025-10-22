@@ -1168,9 +1168,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         if score > best_score {
             best_score = score;
+            best_move = mv;
 
             if score > alpha {
-                best_move = mv;
                 alpha = score;
 
                 if NODE::PV {
