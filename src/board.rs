@@ -31,6 +31,7 @@ struct InternalState {
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
+    capturing_square: Option<Square>,
     threats: Bitboard,
     pinned: [Bitboard; Color::NUM],
     checkers: Bitboard,
@@ -188,6 +189,10 @@ impl Board {
 
     pub fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
+    }
+
+    pub fn is_recapture(&self, mv: Move) -> bool {
+        self.state.capturing_square.is_some_and(|sq| mv.to() == sq)
     }
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
