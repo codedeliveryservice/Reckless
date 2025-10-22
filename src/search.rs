@@ -665,7 +665,7 @@ fn search<NODE: NodeType>(
                 -102 * depth - 45 * history / 1024 + 46
             };
 
-            if !td.board.see(mv, threshold) {
+            if (is_quiet || td.board.threats().contains(mv.to())) && !td.board.see(mv, threshold) {
                 continue;
             }
         }
