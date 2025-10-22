@@ -561,6 +561,8 @@ fn search<NODE: NodeType>(
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
+            } else {
+                td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv);
             }
         }
     }
