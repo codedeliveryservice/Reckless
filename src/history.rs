@@ -90,19 +90,20 @@ impl NoisyHistoryEntry {
 }
 
 pub struct NoisyHistory {
-    // [piece][to][captured_piece_type][to_threatened]
-    entries: Box<PieceToHistory<NoisyHistoryEntry>>,
+    // [previous_capture][piece][to][captured_piece_type][to_threatened]
+    entries: Box<[PieceToHistory<NoisyHistoryEntry>; 2]>,
 }
 
 impl NoisyHistory {
-    pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType) -> i32 {
-        let entry = &self.entries[piece][sq];
+    pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, previous_capture: bool) -> i32 {
+        let entry = &self.entries[previous_capture as usize][piece][sq];
         (entry.factorizer + entry.bucket(threats, sq, captured)) as i32
     }
 
-    pub fn update(&mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, bonus: i32) {
-        let entry = &mut self.entries[piece][sq];
-
+    pub fn update(
+        &mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, previous_capture: bool, bonus: i32,
+    ) {
+        let entry = &mut self.entries[previous_capture as usize][piece][sq];
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, sq, captured, bonus);
     }

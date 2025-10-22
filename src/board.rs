@@ -190,6 +190,10 @@ impl Board {
         self.frc = frc;
     }
 
+    pub fn previous_capture(&self) -> bool {
+        self.state.captured.is_some()
+    }
+
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);

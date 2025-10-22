@@ -604,7 +604,13 @@ fn search<NODE: NodeType>(
                 + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(
+                td.board.threats(),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured,
+                td.board.previous_capture(),
+            )
         };
 
         let mut reduction = td.lmr.reduction(depth, move_count);
@@ -940,6 +946,7 @@ fn search<NODE: NodeType>(
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
+                td.board.previous_capture(),
                 bonus_noisy,
             );
         } else {
@@ -954,7 +961,15 @@ fn search<NODE: NodeType>(
 
         for &mv in noisy_moves.iter() {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+
+            td.noisy_history.update(
+                td.board.threats(),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured,
+                td.board.previous_capture(),
+                -malus_noisy,
+            );
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count == 1 {
