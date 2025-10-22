@@ -196,10 +196,6 @@ impl TranspositionTable {
         let key = verification_key(hash);
         let tt_age = self.age();
 
-        if !(entry.key == key && mv.is_null()) {
-            entry.mv = mv;
-        }
-
         if !(key != entry.key
             || bound == Bound::Exact
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
@@ -218,6 +214,7 @@ impl TranspositionTable {
         entry.score = score as i16;
         entry.eval = eval as i16;
         entry.flags = Flags::new(bound, pv, tt_age);
+        entry.mv = mv;
     }
 
     pub fn prefetch(&self, hash: u64) {
