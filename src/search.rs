@@ -662,7 +662,7 @@ fn search<NODE: NodeType>(
                     + 5 * lmr_depth * (static_eval < alpha) as i32
                     + 16
             } else {
-                -102 * depth - 45 * history / 1024 + 46
+                -102 * depth - 45 * history / 1024 + 46 - 100 * is_valid(tt_score) as i32
             };
 
             if !td.board.see(mv, threshold) {
