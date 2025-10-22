@@ -665,7 +665,7 @@ fn search<NODE: NodeType>(
                 -102 * depth - 45 * history / 1024 + 46
             };
 
-            if !td.board.see(mv, threshold) {
+            if !td.board.see(mv, threshold) && !is_valid(tt_score) {
                 continue;
             }
         }
