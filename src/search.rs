@@ -348,6 +348,7 @@ fn search<NODE: NodeType>(
         eval = Score::NONE;
 
         if is_valid(tt_score)
+            && !is_decisive(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha,
                 Bound::Lower => tt_score >= beta,
