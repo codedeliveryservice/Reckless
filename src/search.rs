@@ -743,6 +743,10 @@ fn search<NODE: NodeType>(
                 reduction += 934 * tt_move.is_null() as i32;
             }
 
+            if tt_move.is_quiet() {
+                reduction -= 768;
+            }
+
             if td.board.in_check() || !td.board.has_non_pawns() {
                 reduction -= 1049;
             }
@@ -809,6 +813,10 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1478;
                 reduction += 1048 * tt_move.is_null() as i32;
+            }
+
+            if tt_move.is_quiet() {
+                reduction -= 768;
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
