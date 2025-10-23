@@ -1143,17 +1143,19 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if in_check && mv.is_quiet() {
                 break;
             }
+        }
 
+        if !is_loss(best_score) {
             let futility_score = futility_base + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 best_score = best_score.max(futility_score);
                 continue;
             }
-        }
 
-        if !is_loss(best_score) && !td.board.see(mv, -79) {
-            continue;
+            if !td.board.see(mv, -79) {
+                continue;
+            }
         }
 
         make_move(td, ply, mv);
