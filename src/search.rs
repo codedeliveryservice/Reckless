@@ -1097,7 +1097,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         if best_score >= beta {
             if !is_decisive(best_score) && !is_decisive(beta) {
-                best_score = (best_score + beta) / 2;
+                best_score = (3 * best_score + beta) / 4;
             }
 
             if entry.is_none() {
@@ -1189,7 +1189,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
-        best_score = (best_score + beta) / 2;
+        best_score = (3 * best_score + beta) / 4;
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
