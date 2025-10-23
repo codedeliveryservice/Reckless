@@ -766,7 +766,7 @@ fn search<NODE: NodeType>(
             td.stack[ply].reduction = 0;
 
             if score > alpha && new_depth > reduced_depth {
-                new_depth += (score > best_score + 37 + 495 * depth / 128) as i32;
+                new_depth += (score > best_score + 37 + 495 * depth / 128 || best_score < alpha - 24) as i32;
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
