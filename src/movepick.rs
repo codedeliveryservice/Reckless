@@ -152,6 +152,8 @@ impl MovePicker {
 
     fn score_noisy(&mut self, td: &ThreadData, ply: usize) {
         let threats = td.board.threats();
+        let previous_square =
+            if ply > 0 && td.stack[ply - 1].mv.is_some() { td.stack[ply - 1].mv.to() } else { Square::None };
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
@@ -160,9 +162,6 @@ impl MovePicker {
                 entry.score = -32768;
                 continue;
             }
-
-            let previous_square =
-                if ply > 0 && td.stack[ply - 1].mv.is_some() { td.stack[ply - 1].mv.to() } else { Square::None };
 
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
