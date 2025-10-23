@@ -665,7 +665,7 @@ fn search<NODE: NodeType>(
                 -102 * depth - 45 * history / 1024 + 46
             };
 
-            if !td.board.see(mv, threshold) {
+            if move_picker.stage() != Stage::GoodNoisy && !td.board.see(mv, threshold) {
                 continue;
             }
         }
