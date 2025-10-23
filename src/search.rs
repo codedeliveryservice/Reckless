@@ -525,6 +525,7 @@ fn search<NODE: NodeType>(
     if cut_node
         && depth >= 3
         && !is_decisive(beta)
+        && !is_decisive(static_eval)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
     {
