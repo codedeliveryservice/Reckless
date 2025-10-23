@@ -619,15 +619,14 @@ fn search<NODE: NodeType>(
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
-                    >= if improving || static_eval >= beta + 17 {
+                    >= if improving || eval >= beta + 17 {
                         (3728 + 998 * initial_depth * initial_depth) / 1024
                     } else {
                         (1904 + 470 * initial_depth * initial_depth) / 1024
                     };
 
             // Futility Pruning (FP)
-            let futility_value =
-                static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
+            let futility_value = eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (eval >= alpha) as i32 + 83;
 
             if !in_check
                 && is_quiet
@@ -643,7 +642,7 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = static_eval
+            let noisy_futility_value = eval
                 + 123 * lmr_depth
                 + 72 * history / 1024
                 + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
@@ -658,9 +657,7 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -325 * lmr_depth * lmr_depth / 16 - 31 * history / 1024
-                    + 5 * lmr_depth * (static_eval < alpha) as i32
-                    + 16
+                -325 * lmr_depth * lmr_depth / 16 - 31 * history / 1024 + 5 * lmr_depth * (eval < alpha) as i32 + 16
             } else {
                 -102 * depth - 45 * history / 1024 + 46
             };
