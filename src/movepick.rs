@@ -165,7 +165,8 @@ impl MovePicker {
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
             entry.score = 2007 * PIECE_VALUES[captured] / 128
-                + 1061 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024;
+                + 1061 * td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured) / 1024
+                + 512 * (mv.to() == td.board.capturing_square()) as i32;
         }
     }
 
