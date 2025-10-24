@@ -3,6 +3,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
+    parameters::PIECE_VALUES,
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
 
@@ -44,6 +45,7 @@ pub struct Board {
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Box<ArrayVec<InternalState, 2048>>,
+    material: i32,
     fullmove_number: usize,
     castling_rights: [u8; Square::NUM],
     castling_path: [Bitboard; 16],
@@ -124,6 +126,10 @@ impl Board {
         !self.state.checkers.is_empty()
     }
 
+    pub const fn material(&self) -> i32 {
+        self.material
+    }
+
     pub fn colors(&self, color: Color) -> Bitboard {
         self.colors[color]
     }
@@ -194,12 +200,14 @@ impl Board {
         self.mailbox[square] = piece;
         self.colors[piece.piece_color()].set(square);
         self.pieces[piece.piece_type()].set(square);
+        self.material += PIECE_VALUES[piece.piece_type()];
     }
 
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
         self.colors[piece.piece_color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
+        self.material -= PIECE_VALUES[piece.piece_type()];
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
@@ -563,6 +571,7 @@ impl Default for Board {
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Box::new(ArrayVec::new()),
+            material: 0,
             fullmove_number: 0,
             castling_rights: [0b1111; Square::NUM],
             castling_path: [Bitboard::default(); 16],

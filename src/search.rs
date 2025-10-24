@@ -7,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        PieceType, Score, Square, MAX_PLY,
     },
 };
 
@@ -705,6 +705,13 @@ fn search<NODE: NodeType>(
             } else if cut_node {
                 extension = -2;
             }
+        } else if !NODE::ROOT
+            && !excluded
+            && PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] > PIECE_VALUES[PieceType::Pawn]
+            && td.board.material() - PIECE_VALUES[PieceType::Pawn] * (td.board.pieces(PieceType::Pawn).len() as i32)
+                < 2048
+        {
+            extension = 1;
         }
 
         let initial_nodes = td.nodes.local();
