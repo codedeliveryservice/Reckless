@@ -24,6 +24,7 @@ struct InternalState {
     pawn_key: u64,
     minor_key: u64,
     major_key: u64,
+    kings_key: u64,
     non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
@@ -86,6 +87,10 @@ impl Board {
 
     pub const fn major_key(&self) -> u64 {
         self.state.major_key
+    }
+
+    pub const fn kings_key(&self) -> u64 {
+        self.state.kings_key
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
@@ -219,6 +224,7 @@ impl Board {
             } else {
                 self.state.minor_key ^= key;
                 self.state.major_key ^= key;
+                self.state.kings_key ^= key;
             }
         }
     }
