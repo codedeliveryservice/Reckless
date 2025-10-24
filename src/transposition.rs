@@ -196,7 +196,8 @@ impl TranspositionTable {
         let key = verification_key(hash);
         let tt_age = self.age();
 
-        if !(entry.key == key && mv.is_null()) {
+        if entry.key != key || (mv.is_some() && (entry.mv.is_null() || depth + 4 + 2 * pv as i32 > entry.depth as i32))
+        {
             entry.mv = mv;
         }
 
