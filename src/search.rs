@@ -707,6 +707,10 @@ fn search<NODE: NodeType>(
             }
         }
 
+        if !NODE::ROOT && !excluded && extension == 0 && mv == tt_move && td.board.halfmove_clock() >= 50 {
+            extension = 1;
+        }
+
         let initial_nodes = td.nodes.local();
 
         make_move(td, ply, mv);
