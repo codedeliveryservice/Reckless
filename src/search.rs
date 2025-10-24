@@ -102,7 +102,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.root_delta = beta - alpha;
 
             // Root Search
-            let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
+            let score = search::<Root>(td, alpha, beta, (depth - reduction.min(3)).max(1), false, 0);
 
             td.nodes.flush();
             td.tb_hits.flush();
