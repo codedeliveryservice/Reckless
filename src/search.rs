@@ -1205,8 +1205,8 @@ fn correction_value(td: &ThreadData, ply: usize) -> i32 {
 
     let mut correction = td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
-        + td.pawn_corrhist.get(stm, td.board.pawn_keys(Color::White))
-        + td.pawn_corrhist.get(stm, td.board.pawn_keys(Color::Black))
+        + td.pawn_corrhist.get(stm, td.board.pawn_king_keys(Color::White)) / 2
+        + td.pawn_corrhist.get(stm, td.board.pawn_king_keys(Color::Black)) / 2
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
 
@@ -1240,8 +1240,8 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
     td.major_corrhist.update(stm, td.board.major_key(), bonus);
 
-    td.pawn_corrhist.update(stm, td.board.pawn_keys(Color::White), bonus);
-    td.pawn_corrhist.update(stm, td.board.pawn_keys(Color::Black), bonus);
+    td.pawn_corrhist.update(stm, td.board.pawn_king_keys(Color::White), bonus);
+    td.pawn_corrhist.update(stm, td.board.pawn_king_keys(Color::Black), bonus);
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
