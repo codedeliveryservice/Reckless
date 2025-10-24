@@ -565,11 +565,6 @@ fn search<NODE: NodeType>(
         }
     }
 
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
-        depth -= 1;
-    }
-
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -611,6 +606,11 @@ fn search<NODE: NodeType>(
 
         if !improving {
             reduction += (489 - 412 * improvement / 128).min(1243);
+        }
+
+        // Internal Iterative Reductions (IIR)
+        if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+            reduction += 1024;
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
