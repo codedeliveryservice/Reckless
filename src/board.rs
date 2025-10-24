@@ -212,13 +212,10 @@ impl Board {
         } else {
             self.state.non_pawn_keys[piece.piece_color()] ^= key;
 
-            if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
-                self.state.minor_key ^= key;
-            } else if [PieceType::Rook, PieceType::Queen].contains(&piece.piece_type()) {
-                self.state.major_key ^= key;
-            } else {
-                self.state.minor_key ^= key;
-                self.state.major_key ^= key;
+            match piece.piece_type() {
+                PieceType::Knight | PieceType::Bishop => self.state.minor_key ^= key,
+                PieceType::Rook | PieceType::Queen => self.state.major_key ^= key,
+                _ => (),
             }
         }
     }
