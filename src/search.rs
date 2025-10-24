@@ -705,11 +705,12 @@ fn search<NODE: NodeType>(
             } else if cut_node {
                 extension = -2;
             }
-        } else if !NODE::ROOT
+        }
+
+        if !NODE::ROOT
             && !excluded
             && PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] > PIECE_VALUES[PieceType::Pawn]
-            && td.board.material() - PIECE_VALUES[PieceType::Pawn] * (td.board.pieces(PieceType::Pawn).len() as i32)
-                < 2048
+            && td.board.material() < 2048
         {
             extension = 1;
         }
