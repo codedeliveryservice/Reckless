@@ -743,7 +743,7 @@ fn search<NODE: NodeType>(
                 reduction += 934 * tt_move.is_null() as i32;
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
+            if td.board.in_check() || !td.board.has_non_pawns() || td.board.occupancies().len() <= 7 {
                 reduction -= 1049;
             }
 
@@ -811,7 +811,7 @@ fn search<NODE: NodeType>(
                 reduction += 1048 * tt_move.is_null() as i32;
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
+            if td.board.in_check() || !td.board.has_non_pawns() || td.board.occupancies().len() <= 7 {
                 reduction -= 744;
             }
 
