@@ -283,7 +283,7 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
                 let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
                 let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
 
