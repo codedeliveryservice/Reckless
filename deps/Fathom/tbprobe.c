@@ -111,44 +111,7 @@ using namespace std;
 #endif
 
 // population count implementation
-#undef TB_SOFTWARE_POP_COUNT
-
-#if defined(TB_CUSTOM_POP_COUNT)
-#define popcount(x) TB_CUSTOM_POP_COUNT(x)
-#elif defined(TB_NO_HW_POP_COUNT)
-#define TB_SOFTWARE_POP_COUNT
-#elif defined (__GNUC__) && defined(__x86_64__) && defined(__SSE4_2__)
-#include <popcntintrin.h>
-#define popcount(x)             (int)_mm_popcnt_u64((x))
-#elif defined(_MSC_VER) && (_MSC_VER >= 1500) && defined(_M_AMD64)
-#include <nmmintrin.h>
-#define popcount(x)             (int)_mm_popcnt_u64((x))
-#else
-// try to use a builtin
-#if defined (__has_builtin)
-#if __has_builtin(__builtin_popcountll)
 #define popcount(x) __builtin_popcountll((x))
-#else
-#define TB_SOFTWARE_POP_COUNT
-#endif
-#else
-#define TB_SOFTWARE_POP_COUNT
-#endif
-#endif
-
-#ifdef TB_SOFTWARE_POP_COUNT
-// Not a recognized compiler/architecture that has popcount, and
-// no builtin available: fall back to a software popcount. This one
-// is still reasonably fast.
-static inline unsigned tb_software_popcount(uint64_t x)
-{
-    x = x - ((x >> 1) & 0x5555555555555555ull);
-    x = (x & 0x3333333333333333ull) + ((x >> 2) & 0x3333333333333333ull);
-    x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0full;
-    return (x * 0x0101010101010101ull) >> 56;
-}
-#define popcount(x) tb_software_popcount(x)
-#endif
 
 // LSB (least-significant bit) implementation
 #ifdef TB_CUSTOM_LSB
