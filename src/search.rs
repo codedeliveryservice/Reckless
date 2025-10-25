@@ -65,7 +65,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut average = Score::NONE;
     let mut last_best_rootmove = RootMove::default();
 
-    let mut eval_stability = 0;
+    let mut eval_history = Vec::new();
     let mut pv_stability = 0;
 
     // Iterative Deepening
@@ -164,18 +164,17 @@ pub fn start(td: &mut ThreadData, report: Report) {
             break;
         }
 
-        if (td.root_moves[0].score - average).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
-        }
+        eval_history.push(td.root_moves[0].score);
 
         let multiplier = || {
             let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
-            let eval_stability = 1.2 - 0.04 * eval_stability.min(8) as f32;
+            let eval_stability = (0.025
+                * (eval_history.last().unwrap() - eval_history.get((depth as usize).saturating_sub(3)).unwrap()).abs()
+                    as f32)
+                .clamp(0.75, 1.25);
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
