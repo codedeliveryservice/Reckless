@@ -68,6 +68,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
 
+    let root_static_eval = evaluate(td);
+
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         td.sel_depth = 0;
@@ -179,7 +181,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            nodes_factor * pv_stability * eval_stability * score_trend
+            let complexity = if !is_decisive(td.root_moves[0].score) {
+                (0.0045 * (depth as f32).ln() * (root_static_eval - td.root_moves[0].score).abs() as f32)
+                    .clamp(0.95, 1.35)
+            } else {
+                0.0
+            };
+
+            nodes_factor * pv_stability * eval_stability * score_trend * complexity
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
