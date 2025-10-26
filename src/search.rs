@@ -970,6 +970,7 @@ fn search<NODE: NodeType>(
         if pcm_move.is_quiet() {
             let mut factor = 104;
             factor += 147 * (initial_depth > 5) as i32;
+            factor += 184 * (td.stack[ply - 1].move_count > 8) as i32;
             factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
             factor += 297
                 * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
