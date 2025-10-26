@@ -720,6 +720,7 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 reduction += 489;
                 reduction -= 137 * history / 1024;
+                reduction += 900 * (tt_move.is_noisy() as i32);
             } else {
                 reduction += 488;
                 reduction -= 109 * history / 1024;
