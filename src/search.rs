@@ -109,6 +109,27 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
 
+            if last_best_rootmove.mv == td.root_moves[0].mv {
+                pv_stability += 1;
+            } else {
+                pv_stability = 0;
+            }
+
+            if (td.root_moves[0].score - average).abs() < 12 {
+                eval_stability += 1;
+            } else {
+                eval_stability = 0;
+            }
+
+            if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
+                if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
+                    td.root_moves.remove(pos);
+                    td.root_moves.insert(0, last_best_rootmove.clone());
+                }
+            } else {
+                last_best_rootmove = td.root_moves[0].clone();
+            }
+
             if td.stopped {
                 break;
             }
@@ -145,29 +166,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.print_uci_info(depth);
         }
 
-        if last_best_rootmove.mv == td.root_moves[0].mv {
-            pv_stability += 1;
-        } else {
-            pv_stability = 0;
-        }
-
-        if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
-            if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
-                td.root_moves.remove(pos);
-                td.root_moves.insert(0, last_best_rootmove.clone());
-            }
-        } else {
-            last_best_rootmove = td.root_moves[0].clone();
-        }
-
         if td.stopped {
             break;
-        }
-
-        if (td.root_moves[0].score - average).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
         }
 
         let multiplier = || {
