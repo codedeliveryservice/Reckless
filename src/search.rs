@@ -440,7 +440,14 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+        let score = qsearch::<NonPV>(td, alpha, beta, ply);
+
+        if score < alpha && td.stack[ply - 1].mv.is_quiet() {
+            let bonus = (151 * initial_depth - 41).min(1630);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+        }
+
+        return score;
     }
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
