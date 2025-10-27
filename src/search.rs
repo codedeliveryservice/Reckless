@@ -453,6 +453,11 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
     {
+        if td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+            let malus = (64 * initial_depth - 64).min(640);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+        }
+
         return beta + (static_eval - beta) / 3;
     }
 
@@ -469,6 +474,11 @@ fn search<NODE: NodeType>(
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
+        if td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+            let malus = (64 * initial_depth - 64).min(640);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+        }
+
         return (eval + beta) / 2;
     }
 
