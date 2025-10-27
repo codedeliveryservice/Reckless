@@ -414,7 +414,6 @@ fn search<NODE: NodeType>(
     }
 
     if !NODE::ROOT
-        && !tt_pv
         && !in_check
         && !excluded
         && depth >= 2
