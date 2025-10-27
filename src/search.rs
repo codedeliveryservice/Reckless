@@ -603,6 +603,7 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
+                - 384
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
