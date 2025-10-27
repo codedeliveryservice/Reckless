@@ -15,13 +15,11 @@ else
 endif
 
 ifeq ($(ENV),UNIX)
-	PGO_MOVE := mv "target/$(TARGET_TUPLE)/release/reckless" "$(NAME)"
+	PGO_MOVE := mv "target/debug/reckless" "$(NAME)"
 else
-	PGO_MOVE := move /Y "target\$(TARGET_TUPLE)\release\reckless.exe" "$(NAME)"
+	PGO_MOVE := move /Y "target\debug\reckless.exe" "$(NAME)"
 endif
 
 rule:
-	cargo pgo instrument
-	cargo pgo run -- bench
-	cargo pgo optimize
+	cargo build
 	$(PGO_MOVE)
