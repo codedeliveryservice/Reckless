@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::*,
+    parameters::PIECE_VALUES,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -968,16 +968,16 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = v1();
-            factor -= td.stack[ply - 1].history.clamp(-v2(), v3()) / v4();
-            factor += v5() * (initial_depth > v14()) as i32;
-            factor += v6() * (td.stack[ply - 1].move_count > v15()) as i32;
-            factor += v7() * (!in_check && best_score <= static_eval.min(raw_eval) - v8()) as i32;
-            factor += v9()
-                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - v10())
+            let mut factor = 107;
+            factor -= td.stack[ply - 1].history.clamp(-2128, 2060) / 149;
+            factor += 141 * (initial_depth > 5) as i32;
+            factor += 192 * (td.stack[ply - 1].move_count > 8) as i32;
+            factor += 226 * (!in_check && best_score <= static_eval.min(raw_eval) - 131) as i32;
+            factor += 301
+                * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 106)
                     as i32;
 
-            let scaled_bonus = factor * (v11() * initial_depth - v12()).min(v13()) / 128;
+            let scaled_bonus = factor * (154 * initial_depth - 43).min(1821) / 128;
 
             if scaled_bonus > 0 {
                 td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
@@ -986,7 +986,7 @@ fn search<NODE: NodeType>(
             if ply >= 2 {
                 let entry = &td.stack[ply - 2];
                 if entry.mv.is_some() {
-                    let bonus = (v16() * initial_depth - v17()).min(v18());
+                    let bonus = (150 * initial_depth - 40).min(1656);
                     td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
                 }
             }
