@@ -700,6 +700,11 @@ fn search<NODE: NodeType>(
                     depth += 1;
                 }
             } else if score >= beta && !is_decisive(score) {
+                if is_quiet {
+                    let malus = (133 * depth - 51).min(1162);
+                    td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -malus);
+                }
+
                 return score;
             } else if tt_score >= beta {
                 extension = -2;
