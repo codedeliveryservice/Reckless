@@ -490,6 +490,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].contcorrhist = std::ptr::null_mut();
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
+        td.stack[ply].history = 0;
 
         td.board.make_null_move();
 
@@ -542,7 +543,7 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
-            make_move(td, ply, mv);
+            make_move(td, ply, mv, 0);
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
@@ -710,7 +711,7 @@ fn search<NODE: NodeType>(
 
         let initial_nodes = td.nodes.local();
 
-        make_move(td, ply, mv);
+        make_move(td, ply, mv, history);
 
         let mut new_depth = depth + extension - 1;
         let mut score = Score::ZERO;
@@ -975,9 +976,13 @@ fn search<NODE: NodeType>(
                 * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
                     as i32;
 
+            factor += (-td.stack[ply - 1].history).clamp(-2048, 2048) / 150;
+
             let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            if scaled_bonus > 0 {
+                td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            }
 
             if ply >= 2 {
                 let entry = &td.stack[ply - 2];
@@ -1156,7 +1161,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             continue;
         }
 
-        make_move(td, ply, mv);
+        make_move(td, ply, mv, 0);
 
         let score = -qsearch::<NODE>(td, -beta, -alpha, ply + 1);
 
@@ -1274,8 +1279,9 @@ fn update_continuation_histories(td: &mut ThreadData, ply: usize, piece: Piece, 
     }
 }
 
-fn make_move(td: &mut ThreadData, ply: usize, mv: Move) {
+fn make_move(td: &mut ThreadData, ply: usize, mv: Move, history: i32) {
     td.stack[ply].mv = mv;
+    td.stack[ply].history = history;
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
