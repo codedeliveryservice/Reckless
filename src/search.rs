@@ -531,6 +531,8 @@ fn search<NODE: NodeType>(
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
 
+        let mut pc_noisy_moves = ArrayVec::<Move, 32>::new();
+
         let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
@@ -559,10 +561,28 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
 
+                let bonus_noisy = (125 * (probcut_depth + 1) - 57).min(1175) - 70;
+                td.noisy_history.update(
+                    td.board.threats(),
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    td.board.piece_on(mv.to()).piece_type(),
+                    bonus_noisy,
+                );
+
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
             }
+
+            pc_noisy_moves.push(mv);
+        }
+
+        let malus_noisy = (153 * (probcut_depth + 1) - 64).min(1476) - 24 * pc_noisy_moves.len() as i32;
+
+        for &mv in pc_noisy_moves.iter() {
+            let captured = td.board.piece_on(mv.to()).piece_type();
+            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
         }
     }
 
