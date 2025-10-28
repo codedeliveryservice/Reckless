@@ -445,6 +445,7 @@ fn search<NODE: NodeType>(
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
     if !tt_pv
+        && cut_node
         && is_valid(eval)
         && !excluded
         && depth < 9
@@ -458,6 +459,7 @@ fn search<NODE: NodeType>(
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
+        && cut_node
         && is_valid(eval)
         && !excluded
         && eval >= beta
