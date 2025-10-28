@@ -7,6 +7,7 @@ use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    parameters::*,
     stack::Stack,
     thread::pool::ScopeExt,
     time::{Limits, TimeManager},
@@ -94,7 +95,7 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub lmr: LmrTable,
+    pub reduction: ReductionTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub root_depth: i32,
@@ -128,7 +129,7 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
-            lmr: LmrTable::default(),
+            reduction: ReductionTable::default(),
             optimism: [0; 2],
             stopped: false,
             root_depth: 0,
@@ -281,28 +282,43 @@ impl Default for PrincipalVariationTable {
     }
 }
 
-pub struct LmrTable {
-    table: Box<[[i32; MAX_MOVES + 1]]>,
+pub struct ReductionTable {
+    pruning: Box<[[i32; MAX_MOVES + 1]]>,
+    lmr: Box<[[i32; MAX_MOVES + 1]]>,
+    fds: Box<[[i32; MAX_MOVES + 1]]>,
 }
 
-impl LmrTable {
-    pub const fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth as usize][move_count as usize]
+impl ReductionTable {
+    pub const fn pruning(&self, depth: i32, move_count: i32) -> i32 {
+        self.pruning[depth as usize][move_count as usize]
+    }
+
+    pub const fn lmr(&self, depth: i32, move_count: i32) -> i32 {
+        self.lmr[depth as usize][move_count as usize]
+    }
+
+    pub const fn fds(&self, depth: i32, move_count: i32) -> i32 {
+        self.fds[depth as usize][move_count as usize]
     }
 }
 
-impl Default for LmrTable {
+impl Default for ReductionTable {
     fn default() -> Self {
-        let mut table = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
+        let mut pruning = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
+        let mut lmr = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
+        let mut fds = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
 
         for depth in 1..MAX_MOVES {
             for move_count in 1..MAX_MOVES {
-                let reduction = 970.0027 + 457.7087 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
+                let v = (depth as f32).ln() * (move_count as f32).ln();
+
+                pruning[depth][move_count] = (red1() + red2() * v) as i32;
+                lmr[depth][move_count] = (red3() + red4() * v) as i32;
+                fds[depth][move_count] = (red5() + red6() * v) as i32;
             }
         }
 
-        Self { table }
+        Self { pruning, lmr, fds }
     }
 }
 
