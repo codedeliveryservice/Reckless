@@ -948,7 +948,12 @@ fn search<NODE: NodeType>(
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                td.quiet_history.update(
+                    td.board.threats(),
+                    td.board.side_to_move(),
+                    mv,
+                    -malus_quiet * (1 + (mv == tt_move) as i32),
+                );
                 update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }
