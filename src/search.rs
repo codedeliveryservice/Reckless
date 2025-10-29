@@ -963,8 +963,8 @@ fn search<NODE: NodeType>(
         }
     } else if tt_move.is_some() && tt_score >= beta && tt_bound == Bound::Lower {
         if tt_move.is_quiet() {
-            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -malus_quiet / 2);
-            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), -malus_cont / 2);
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -malus_quiet / 6);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), -malus_cont / 6);
         } else {
             let captured = td.board.piece_on(tt_move.to()).piece_type();
             td.noisy_history.update(
@@ -972,7 +972,7 @@ fn search<NODE: NodeType>(
                 td.board.moved_piece(tt_move),
                 tt_move.to(),
                 captured,
-                -malus_noisy / 2,
+                -malus_noisy / 6,
             );
         }
     }
