@@ -925,15 +925,14 @@ fn search<NODE: NodeType>(
         return if in_check { mated_in(ply) } else { Score::DRAW };
     }
 
+    let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
+    let malus_quiet = (133 * initial_depth - 51).min(1162) - 37 * quiet_moves.len() as i32;
+    let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
+
     if best_move.is_some() {
         let bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
-        let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
-
         let bonus_quiet = (152 * depth - 73).min(1569) - 64 * cut_node as i32;
-        let malus_quiet = (133 * initial_depth - 51).min(1162) - 37 * quiet_moves.len() as i32;
-
         let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
-        let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -961,6 +960,21 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
             let malus = (78 * initial_depth - 52).min(811);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+        }
+    } else if !NODE::ROOT && !excluded && ply < 2 * td.root_depth as usize && tt_move.is_some() && potential_singularity
+    {
+        if tt_move.is_quiet() {
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -malus_quiet);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), -malus_cont);
+        } else {
+            let captured = td.board.piece_on(tt_move.to()).piece_type();
+            td.noisy_history.update(
+                td.board.threats(),
+                td.board.moved_piece(tt_move),
+                tt_move.to(),
+                captured,
+                -malus_noisy,
+            );
         }
     }
 
