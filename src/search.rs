@@ -62,7 +62,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
-    let mut average = Score::NONE;
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -76,7 +75,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 12;
+        let mut delta = 6;
         let mut reduction = 0;
 
         td.root_in_tb = false;
@@ -88,6 +87,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         // Aspiration Windows
         if depth >= 2 {
+            let average = td.root_moves[0].average_score;
+
             delta += average * average / 24616;
 
             alpha = (average - delta).max(-Score::INFINITE);
@@ -126,10 +127,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     reduction += 1;
                     delta += delta * (50 + 10 * reduction) / 128;
                 }
-                _ => {
-                    average = if average == Score::NONE { score } else { (average + score) / 2 };
-                    break;
-                }
+                _ => break,
             }
 
             if report == Report::Full && td.nodes.global() > 10_000_000 {
@@ -164,7 +162,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             break;
         }
 
-        if (td.root_moves[0].score - average).abs() < 12 {
+        if (td.root_moves[0].score - td.root_moves[0].average_score).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
@@ -857,6 +855,8 @@ fn search<NODE: NodeType>(
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
 
             root_move.nodes += td.nodes.local() - initial_nodes;
+            root_move.average_score =
+                if root_move.average_score == -Score::INFINITE { score } else { (root_move.average_score + score) / 2 };
 
             if move_count == 1 || score > alpha {
                 match score {
