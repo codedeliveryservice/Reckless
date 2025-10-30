@@ -594,6 +594,14 @@ fn search<NODE: NodeType>(
             }
         }
 
+        if NODE::ROOT && td.id == 2 && !td.root_in_tb && move_count == 0 {
+            depth += 2;
+        }
+
+        if NODE::ROOT && td.id == 2 && !td.root_in_tb && move_count == 1 && best_move.is_some() {
+            break;
+        }
+
         move_count += 1;
         td.stack[ply].move_count = move_count;
 
