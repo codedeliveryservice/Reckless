@@ -101,6 +101,7 @@ fn go(
         let (t1, rest) = threads.vector.split_first_mut().unwrap();
         let (w1, rest_workers) = threads.workers.split_first().unwrap();
 
+        t1.id = 0;
         handlers.push(scope.spawn_into(
             || {
                 search::start(t1, report);
@@ -109,7 +110,8 @@ fn go(
             w1,
         ));
 
-        for (t, w) in rest.iter_mut().zip(rest_workers) {
+        for (idx, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
+            t.id = idx + 1;
             handlers.push(scope.spawn_into(
                 || {
                     t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
