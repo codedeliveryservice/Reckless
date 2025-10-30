@@ -76,6 +76,7 @@ impl<'a> Index<usize> for ThreadPool<'a> {
 }
 
 pub struct ThreadData<'a> {
+    pub id: usize,
     pub tt: &'a TranspositionTable,
     pub stop: &'a AtomicBool,
     pub nodes: AtomicCounter<'a>,
@@ -110,6 +111,7 @@ pub struct ThreadData<'a> {
 impl<'a> ThreadData<'a> {
     pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
         Self {
+            id: 0,
             tt,
             stop,
             nodes: AtomicCounter::new(nodes),
