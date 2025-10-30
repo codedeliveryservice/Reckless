@@ -425,8 +425,14 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+    let potential_singularity = !NODE::ROOT
+        && ply < 2 * td.root_depth as usize
+        && !excluded
+        && depth >= 5
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score);
 
     let mut improvement = 0;
 
@@ -674,7 +680,7 @@ fn search<NODE: NodeType>(
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && ply < 2 * td.root_depth as usize && mv == tt_move && potential_singularity {
+        if potential_singularity && mv == tt_move {
             debug_assert!(is_valid(tt_score));
 
             let singular_beta = tt_score - depth;
