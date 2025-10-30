@@ -138,9 +138,10 @@ fn go(
     });
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let vote_value =
+        |td: &ThreadData| ((td.root_moves[0].score - min_score + 10) as u64).pow(2) * td.completed_depth as u64;
 
-    let mut votes = vec![0; 4096];
+    let mut votes = vec![0u64; 4096];
     for result in threads.iter() {
         votes[result.root_moves[0].mv.encoded()] += vote_value(result);
     }
