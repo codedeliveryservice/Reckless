@@ -1004,7 +1004,8 @@ fn search<NODE: NodeType>(
         td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
     }
 
-    if !(in_check
+    if !(NODE::ROOT
+        || in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
