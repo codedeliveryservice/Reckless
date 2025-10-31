@@ -608,27 +608,30 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
-
-        if !improving {
-            reduction += (489 - 412 * improvement / 128).min(1243);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
+            let mut reduction = td.reduction.pruning(depth, move_count);
+
+            if !improving {
+                reduction += (467 - 390 * improvement / 128).min(1225);
+            }
+
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || static_eval >= beta + 17 {
-                        (3728 + 998 * initial_depth * initial_depth) / 1024
+                        (3797 + 1048 * initial_depth * initial_depth) / 1024
                     } else {
-                        (1904 + 470 * initial_depth * initial_depth) / 1024
+                        (1752 + 459 * initial_depth * initial_depth) / 1024
                     };
 
             // Futility Pruning (FP)
-            let futility_value =
-                static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
+            let futility_value = static_eval
+                + 102 * lmr_depth
+                + 48 * history / 1024
+                + 97 * (static_eval >= alpha) as i32
+                + 86;
 
             if !in_check
                 && is_quiet
@@ -645,10 +648,10 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = static_eval
-                + 123 * lmr_depth
-                + 72 * history / 1024
-                + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 71;
+                + 120 * lmr_depth
+                + 73 * history / 1024
+                + 95 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + 69;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
@@ -659,11 +662,11 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -325 * lmr_depth * lmr_depth / 16 - 31 * history / 1024
-                    + 5 * lmr_depth * (static_eval < alpha) as i32
-                    + 16
+                -316 * lmr_depth * lmr_depth / 16 - 32 * history / 1024
+                    + 81 * lmr_depth * (static_eval < alpha) as i32 / 16
+                    + 17
             } else {
-                -102 * depth - 45 * history / 1024 + 46
+                -91 * depth - 46 * history / 1024 + 48
             };
 
             if !td.board.see(mv, threshold) {
@@ -717,47 +720,53 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
+            let mut reduction = td.reduction.lmr(depth, move_count);
+
             if is_quiet {
-                reduction += 489;
-                reduction -= 137 * history / 1024;
+                reduction += 463;
+                reduction -= 146 * history / 1024;
             } else {
-                reduction += 488;
-                reduction -= 109 * history / 1024;
-                reduction -= 46 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
+                reduction += 457;
+                reduction -= 97 * history / 1024;
+                reduction -= 44 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
-            reduction -= 3607 * correction_value.abs() / 1024;
-            reduction -= 69 * move_count;
+            reduction -= 3599 * correction_value.abs() / 1024;
+            reduction -= 78 * move_count;
 
             if tt_pv {
-                reduction -= 427;
-                reduction -= 677 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 729 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 443;
+                reduction -= 789 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 782 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
             if NODE::PV {
-                reduction -= 393 + 552 * (beta - alpha) / td.root_delta;
+                reduction -= 372 + 585 * (beta - alpha) / td.root_delta;
             }
 
             if !tt_pv && cut_node {
-                reduction += 1675;
-                reduction += 934 * tt_move.is_null() as i32;
+                reduction += 1978;
+                reduction += 1011 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (375 - 447 * improvement / 128).min(1495);
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 1049;
+                reduction -= 960;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1555;
+                reduction += 1511;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 791;
+                reduction += 768;
             }
 
             if depth == 2 {
-                reduction -= 1397;
+                reduction -= 1393;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
@@ -785,51 +794,58 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            let mut reduction = td.reduction.fds(depth, move_count);
+
             if is_quiet {
-                reduction += 380;
-                reduction -= 153 * history / 1024;
+                reduction += 325;
+                reduction -= 177 * history / 1024;
             } else {
-                reduction += 355;
+                reduction += 332;
                 reduction -= 68 * history / 1024;
-                reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
+                reduction -= 41 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
-            reduction -= 2667 * correction_value.abs() / 1024;
-            reduction -= 52 * move_count;
+            reduction -= 2412 * correction_value.abs() / 1024;
+            reduction -= 47 * move_count;
 
             if tt_pv {
-                reduction -= 750;
-                reduction -= 537 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 1081 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 752;
+                reduction -= 568 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 918 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
             if NODE::PV {
-                reduction -= 491 + 780 * (beta - alpha) / td.root_delta;
+                reduction -= 515;
+                reduction -= 843 * (beta - alpha) / td.root_delta;
             }
 
             if !tt_pv && cut_node {
-                reduction += 1478;
-                reduction += 1048 * tt_move.is_null() as i32;
+                reduction += 1605;
+                reduction += 1104 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (416 - 411 * improvement / 128).min(1182);
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 744;
+                reduction -= 639;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1438;
+                reduction += 1567;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 849;
+                reduction += 800;
             }
 
             if depth == 2 {
-                reduction -= 1052;
+                reduction -= 1029;
             }
 
             if mv == tt_move {
-                reduction -= 3034;
+                reduction -= 3300;
             }
 
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
