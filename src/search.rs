@@ -452,6 +452,7 @@ fn search<NODE: NodeType>(
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && td.completed_depth > 7
     {
         return beta + (static_eval - beta) / 3;
     }
@@ -468,6 +469,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
+        && td.completed_depth > 7
     {
         return (eval + beta) / 2;
     }
