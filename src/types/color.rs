@@ -4,6 +4,7 @@ use std::{
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[repr(u8)]
 pub enum Color {
     White,
     Black,

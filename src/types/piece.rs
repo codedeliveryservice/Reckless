@@ -6,6 +6,7 @@ use std::{
 use super::Color;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[repr(u8)]
 pub enum Piece {
     WhitePawn,
     BlackPawn,
@@ -30,6 +31,8 @@ impl Piece {
     }
 
     pub const fn from_index(index: usize) -> Self {
+        debug_assert!(index < Self::NUM);
+
         unsafe { std::mem::transmute(index as u8) }
     }
 
