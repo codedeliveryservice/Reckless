@@ -1009,7 +1009,7 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval, ply);
+        update_correction_histories(td, depth, best_score, static_eval, correction_value, ply);
     }
 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -1226,16 +1226,18 @@ fn correction_value(td: &ThreadData, ply: usize) -> i32 {
         );
     }
 
-    correction
+    correction + td.pawn_corr_corrhist.get(stm, td.board.pawn_key())
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
+fn update_correction_histories(
+    td: &mut ThreadData, depth: i32, best_score: i32, static_eval: i32, correction_value: i32, ply: usize,
+) {
     let stm = td.board.side_to_move();
-    let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
+    let bonus = (150 * depth * (best_score - static_eval) / 128).clamp(-4194, 3164);
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
@@ -1260,6 +1262,11 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
             td.stack[ply - 1].mv.to(),
             bonus,
         );
+    }
+
+    if !is_decisive(best_score) && !is_decisive(static_eval) {
+        let bonus = (32 * depth * (best_score - static_eval - correction_value) / 128).clamp(-256, 256);
+        td.pawn_corr_corrhist.update(stm, td.board.pawn_key(), bonus);
     }
 }
 
