@@ -5,7 +5,10 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{
+        ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, HashCorrectionHistory, NoisyHistory,
+        QuietHistory,
+    },
     nnue::Network,
     stack::Stack,
     thread::pool::ScopeExt,
@@ -94,6 +97,7 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
+    pub hash_corrhist: HashCorrectionHistory,
     pub lmr: LmrTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
@@ -128,6 +132,7 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
+            hash_corrhist: HashCorrectionHistory::default(),
             lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
