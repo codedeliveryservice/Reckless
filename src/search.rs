@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
@@ -129,7 +127,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
-            if report == Report::Full && td.shared.aggregate_nodes() > 10_000_000 {
+            if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
                 td.print_uci_info(depth);
             }
         }
@@ -303,7 +301,7 @@ fn search<NODE: NodeType>(
         && !td.stop_probing_tb
     {
         if let Some(outcome) = tb_probe(&td.board) {
-            td.shared.tb_hits[td.id].fetch_add(1, Ordering::Relaxed);
+            td.shared.tb_hits.increment(td.id);
 
             let (score, bound) = match outcome {
                 GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
@@ -1293,7 +1291,7 @@ fn make_move(td: &mut ThreadData, ply: usize, mv: Move) {
     td.stack[ply].contcorrhist =
         td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
 
-    td.shared.nodes[td.id].fetch_add(1, Ordering::Relaxed);
+    td.shared.nodes.increment(td.id);
 
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);

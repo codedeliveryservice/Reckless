@@ -1,7 +1,8 @@
 use std::{
+    cell::UnsafeCell,
     ops::Index,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
@@ -17,43 +18,50 @@ use crate::{
     types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
+pub struct Counter<const SIZE: usize> {
+    inner: UnsafeCell<[u64; SIZE]>,
+}
+
+unsafe impl<const SIZE: usize> Sync for Counter<SIZE> {}
+
+impl<const SIZE: usize> Counter<SIZE> {
+    pub fn aggregate(&self) -> u64 {
+        unsafe { *self.inner.get() }.iter().copied().sum()
+    }
+
+    pub fn get(&self, id: usize) -> u64 {
+        unsafe { (*self.inner.get())[id] }
+    }
+
+    pub fn increment(&self, id: usize) {
+        unsafe { (*self.inner.get())[id] += 1 }
+    }
+
+    pub fn reset(&self) {
+        for value in unsafe { &mut *self.inner.get() } {
+            *value = 0;
+        }
+    }
+}
+
+impl Default for Counter<{ SharedContext::MAX_THREADS }> {
+    fn default() -> Self {
+        Self { inner: UnsafeCell::new([0; SharedContext::MAX_THREADS]) }
+    }
+}
+
+#[derive(Default)]
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub stop: AtomicBool,
-    pub nodes: [AtomicU64; Self::MAX_THREADS],
-    pub tb_hits: [AtomicU64; Self::MAX_THREADS],
+    pub nodes: Counter<{ Self::MAX_THREADS }>,
+    pub tb_hits: Counter<{ Self::MAX_THREADS }>,
 }
 
 unsafe impl Send for SharedContext {}
 
 impl SharedContext {
     const MAX_THREADS: usize = 512;
-
-    pub fn aggregate_nodes(&self) -> u64 {
-        self.nodes.iter().map(|nodes| nodes.load(Ordering::Relaxed)).sum()
-    }
-
-    pub fn aggregate_tb_hits(&self) -> u64 {
-        self.tb_hits.iter().map(|tb_hits| tb_hits.load(Ordering::Relaxed)).sum()
-    }
-
-    pub fn reset_counters(&self) {
-        for id in 0..Self::MAX_THREADS {
-            self.nodes[id].store(0, Ordering::Relaxed);
-            self.tb_hits[id].store(0, Ordering::Relaxed);
-        }
-    }
-}
-
-impl Default for SharedContext {
-    fn default() -> Self {
-        Self {
-            tt: TranspositionTable::default(),
-            stop: AtomicBool::default(),
-            nodes: std::array::from_fn(|_| AtomicU64::default()),
-            tb_hits: std::array::from_fn(|_| AtomicU64::default()),
-        }
-    }
 }
 
 pub struct ThreadPool {
@@ -175,7 +183,7 @@ impl ThreadData {
     }
 
     pub fn nodes(&self) -> u64 {
-        self.shared.nodes[self.id].load(Ordering::Relaxed)
+        self.shared.nodes.get(self.id)
     }
 
     pub fn get_stop(&self) -> bool {
@@ -194,7 +202,7 @@ impl ThreadData {
 
     pub fn print_uci_info(&self, depth: i32) {
         let elapsed = self.time_manager.elapsed();
-        let nps = self.shared.aggregate_nodes() as f64 / elapsed.as_secs_f64();
+        let nps = self.shared.nodes.aggregate() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
 
         let root_move = &self.root_moves[0];
@@ -231,9 +239,9 @@ impl ThreadData {
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             root_move.sel_depth,
-            self.shared.aggregate_nodes(),
+            self.shared.nodes.aggregate(),
             self.shared.tt.hashfull(),
-            self.shared.aggregate_tb_hits(),
+            self.shared.tb_hits.aggregate(),
         );
 
         print!(" {}", root_move.mv.to_uci(&self.board));

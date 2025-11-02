@@ -86,8 +86,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     for position in POSITIONS {
         let now = Instant::now();
 
-        td.shared.reset_counters();
-
+        td.shared.nodes.reset();
         td.board = Board::from_fen(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 

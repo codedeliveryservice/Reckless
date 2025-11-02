@@ -86,7 +86,8 @@ fn go(
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
 
-    shared.reset_counters();
+    shared.nodes.reset();
+    shared.tb_hits.reset();
     shared.tt.increment_age();
     shared.stop.store(false, Ordering::Relaxed);
 
