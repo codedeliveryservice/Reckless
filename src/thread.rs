@@ -1,6 +1,9 @@
 use std::{
     ops::Index,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
+    },
 };
 
 use crate::{
@@ -14,33 +17,83 @@ use crate::{
     types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
-pub struct ThreadPool<'a> {
-    pub workers: Vec<pool::WorkerThread>,
-    pub vector: Vec<Box<ThreadData<'a>>>,
+#[repr(align(64))]
+struct AlignedAtomicU64 {
+    inner: AtomicU64,
 }
 
-impl<'a> ThreadPool<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
+pub struct Counter<const SIZE: usize> {
+    shards: [AlignedAtomicU64; SIZE],
+}
+
+unsafe impl<const SIZE: usize> Sync for Counter<SIZE> {}
+
+impl<const SIZE: usize> Counter<SIZE> {
+    pub fn aggregate(&self) -> u64 {
+        self.shards.iter().map(|shard| shard.inner.load(Ordering::Relaxed)).sum()
+    }
+
+    pub fn get(&self, id: usize) -> u64 {
+        self.shards[id].inner.load(Ordering::Relaxed)
+    }
+
+    pub fn increment(&self, id: usize) {
+        self.shards[id].inner.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn reset(&self) {
+        for shard in &self.shards {
+            shard.inner.store(0, Ordering::Relaxed);
+        }
+    }
+}
+
+impl Default for Counter<{ SharedContext::MAX_THREADS }> {
+    fn default() -> Self {
+        Self {
+            shards: std::array::from_fn(|_| AlignedAtomicU64 { inner: AtomicU64::default() }),
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct SharedContext {
+    pub tt: TranspositionTable,
+    pub stop: AtomicBool,
+    pub nodes: Counter<{ Self::MAX_THREADS }>,
+    pub tb_hits: Counter<{ Self::MAX_THREADS }>,
+}
+
+unsafe impl Send for SharedContext {}
+
+impl SharedContext {
+    const MAX_THREADS: usize = 512;
+}
+
+pub struct ThreadPool {
+    pub workers: Vec<pool::WorkerThread>,
+    pub vector: Vec<Box<ThreadData>>,
+}
+
+impl ThreadPool {
+    pub fn new(shared: Arc<SharedContext>) -> Self {
         let workers = pool::make_worker_threads(1);
-        let data = make_thread_data(tt, stop, nodes, tb_hits, &workers);
+        let data = make_thread_data(shared, &workers);
 
         Self { workers, vector: data }
     }
 
     pub fn set_count(&mut self, threads: usize) {
-        let tt = self.vector[0].tt;
-        let stop = self.vector[0].stop;
-        let nodes = self.vector[0].nodes.global;
-        let tb_hits = self.vector[0].tb_hits.global;
+        let shared = self.vector[0].shared.clone();
 
         self.workers.drain(..).for_each(pool::WorkerThread::join);
         self.workers = pool::make_worker_threads(threads);
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
+        self.vector = make_thread_data(shared, &self.workers);
     }
 
-    pub fn main_thread(&mut self) -> &mut ThreadData<'a> {
+    pub fn main_thread(&mut self) -> &mut ThreadData {
         &mut self.vector[0]
     }
 
@@ -48,38 +101,33 @@ impl<'a> ThreadPool<'a> {
         self.vector.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Box<ThreadData<'a>>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Box<ThreadData>> {
         self.vector.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<ThreadData<'a>>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<ThreadData>> {
         self.vector.iter_mut()
     }
 
     pub fn clear(&mut self) {
-        let tt = self.vector[0].tt;
-        let stop = self.vector[0].stop;
-        let nodes = self.vector[0].nodes.global;
-        let tb_hits = self.vector[0].tb_hits.global;
+        let shared = self.vector[0].shared.clone();
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(tt, stop, nodes, tb_hits, &self.workers);
+        self.vector = make_thread_data(shared, &self.workers);
     }
 }
 
-impl<'a> Index<usize> for ThreadPool<'a> {
-    type Output = ThreadData<'a>;
+impl Index<usize> for ThreadPool {
+    type Output = ThreadData;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.vector[index]
     }
 }
 
-pub struct ThreadData<'a> {
-    pub tt: &'a TranspositionTable,
-    pub stop: &'a AtomicBool,
-    pub nodes: AtomicCounter<'a>,
-    pub tb_hits: AtomicCounter<'a>,
+pub struct ThreadData {
+    pub id: usize,
+    pub shared: Arc<SharedContext>,
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Stack,
@@ -107,13 +155,11 @@ pub struct ThreadData<'a> {
     pub stop_probing_tb: bool,
 }
 
-impl<'a> ThreadData<'a> {
-    pub fn new(tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64) -> Self {
+impl ThreadData {
+    pub fn new(shared: Arc<SharedContext>) -> Self {
         Self {
-            tt,
-            stop,
-            nodes: AtomicCounter::new(nodes),
-            tb_hits: AtomicCounter::new(tb_hits),
+            id: 0,
+            shared,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
@@ -142,8 +188,12 @@ impl<'a> ThreadData<'a> {
         }
     }
 
+    pub fn nodes(&self) -> u64 {
+        self.shared.nodes.get(self.id)
+    }
+
     pub fn get_stop(&self) -> bool {
-        self.stop.load(Ordering::Relaxed)
+        self.shared.stop.load(Ordering::Relaxed)
     }
 
     pub fn conthist(&self, ply: usize, index: usize, mv: Move) -> i32 {
@@ -158,7 +208,7 @@ impl<'a> ThreadData<'a> {
 
     pub fn print_uci_info(&self, depth: i32) {
         let elapsed = self.time_manager.elapsed();
-        let nps = self.nodes.global() as f64 / elapsed.as_secs_f64();
+        let nps = self.shared.nodes.aggregate() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
 
         let root_move = &self.root_moves[0];
@@ -195,9 +245,9 @@ impl<'a> ThreadData<'a> {
         print!(
             "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
             root_move.sel_depth,
-            self.nodes.global(),
-            self.tt.hashfull(),
-            self.tb_hits.global(),
+            self.shared.nodes.aggregate(),
+            self.shared.tt.hashfull(),
+            self.shared.tb_hits.aggregate(),
         );
 
         print!(" {}", root_move.mv.to_uci(&self.board));
@@ -306,62 +356,16 @@ impl Default for LmrTable {
     }
 }
 
-pub struct AtomicCounter<'a> {
-    buffer: u64,
-    local: u64,
-    global: &'a AtomicU64,
-}
-
-impl<'a> AtomicCounter<'a> {
-    pub const fn new(global: &'a AtomicU64) -> Self {
-        Self { buffer: 0, local: 0, global }
-    }
-
-    pub const fn local(&self) -> u64 {
-        self.local + self.buffer
-    }
-
-    pub fn global(&self) -> u64 {
-        self.buffer + self.global.load(Ordering::Relaxed)
-    }
-
-    pub fn increment(&mut self) {
-        const BUFFER_SIZE: u64 = 2048;
-
-        self.buffer += 1;
-        if self.buffer >= BUFFER_SIZE {
-            self.flush();
-        }
-    }
-
-    pub fn clear_local(&mut self) {
-        self.local = 0;
-        self.buffer = 0;
-    }
-
-    pub fn clear_global(&self) {
-        self.global.store(0, Ordering::Relaxed);
-    }
-
-    pub fn flush(&mut self) {
-        self.local += self.buffer;
-        self.global.fetch_add(self.buffer, Ordering::Relaxed);
-        self.buffer = 0;
-    }
-}
-
-pub fn make_thread_data<'a>(
-    tt: &'a TranspositionTable, stop: &'a AtomicBool, nodes: &'a AtomicU64, tb_hits: &'a AtomicU64,
-    worker_threads: &[pool::WorkerThread],
-) -> Vec<Box<ThreadData<'a>>> {
-    std::thread::scope(|scope| -> Vec<Box<ThreadData<'a>>> {
+pub fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[pool::WorkerThread]) -> Vec<Box<ThreadData>> {
+    std::thread::scope(|scope| -> Vec<Box<ThreadData>> {
         let handles = worker_threads
             .iter()
             .map(|worker| {
                 let (tx, rx) = std::sync::mpsc::channel();
+                let shared = shared.clone();
                 let join_handle = scope.spawn_into(
                     move || {
-                        tx.send(Box::new(ThreadData::new(tt, stop, nodes, tb_hits))).unwrap();
+                        tx.send(Box::new(ThreadData::new(shared))).unwrap();
                     },
                     worker,
                 );

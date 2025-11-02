@@ -1,10 +1,10 @@
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{atomic::Ordering, Arc};
 
 use crate::{
     board::Board,
     search::{self, Report},
     tb::tb_initilize,
-    thread::{pool::ScopeExt, ThreadData, ThreadPool},
+    thread::{pool::ScopeExt, SharedContext, ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
@@ -12,13 +12,9 @@ use crate::{
 };
 
 pub fn message_loop() {
-    static STOP: AtomicBool = AtomicBool::new(false);
+    let shared = Arc::new(SharedContext::default());
 
-    let tt = TranspositionTable::default();
-    let nodes = AtomicU64::new(0);
-    let tb_hits = AtomicU64::new(0);
-
-    let mut threads = ThreadPool::new(&tt, &STOP, &nodes, &tb_hits);
+    let mut threads = ThreadPool::new(shared.clone());
     let mut frc = false;
     let mut move_overhead = 100;
     let mut report = Report::Full;
@@ -31,14 +27,14 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &STOP, report, move_overhead, tokens),
+            ["go", tokens @ ..] => next_command = go(&mut threads, &shared, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, frc, tokens),
             ["setoption", tokens @ ..] => {
-                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &tt, tokens)
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &shared.tt, tokens)
             }
-            ["ucinewgame"] => reset(&mut threads, &tt),
+            ["ucinewgame"] => reset(&mut threads, &shared.tt),
 
-            ["stop"] => STOP.store(true, Ordering::Relaxed),
+            ["stop"] => shared.stop.store(true, Ordering::Relaxed),
             ["quit"] => break,
 
             // Non-UCI commands
@@ -83,17 +79,17 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 }
 
 fn go(
-    threads: &mut ThreadPool, stop: &'static AtomicBool, report: Report, move_overhead: u64, tokens: &[&str],
+    threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, move_overhead: u64, tokens: &[&str],
 ) -> Option<String> {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
-    threads.main_thread().tb_hits.clear_global();
-    threads.main_thread().nodes.clear_global();
-    threads.main_thread().tt.increment_age();
 
-    stop.store(false, Ordering::Relaxed);
+    shared.nodes.reset();
+    shared.tb_hits.reset();
+    shared.tt.increment_age();
+    shared.stop.store(false, Ordering::Relaxed);
 
     let listener = std::thread::scope(|scope| {
         let mut handlers = Vec::new();
@@ -104,27 +100,29 @@ fn go(
         handlers.push(scope.spawn_into(
             || {
                 search::start(t1, report);
-                stop.store(true, Ordering::Relaxed);
+                shared.stop.store(true, Ordering::Relaxed);
             },
             w1,
         ));
 
-        for (t, w) in rest.iter_mut().zip(rest_workers) {
+        for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
             handlers.push(scope.spawn_into(
-                || {
+                move || {
                     t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+                    t.id = index + 1;
                     search::start(t, Report::None);
                 },
                 w,
             ));
         }
 
-        let listener = std::thread::spawn(|| loop {
+        let shared = shared.clone();
+        let listener = std::thread::spawn(move || loop {
             let command = read_stdin();
             match command.as_str().trim() {
                 "isready" => println!("readyok"),
                 "stop" => {
-                    stop.store(true, Ordering::Relaxed);
+                    shared.stop.store(true, Ordering::Relaxed);
                     return None;
                 }
                 _ => return Some(command),

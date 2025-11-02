@@ -7,17 +7,13 @@
 //! Note that although it can be used as a benchmarking tool,
 //! it is not comprehensive enough to be definitive.
 
-use std::{
-    sync::atomic::{AtomicBool, AtomicU64},
-    time::Instant,
-};
+use std::{sync::Arc, time::Instant};
 
 use crate::{
     board::Board,
     search::{self, Report},
-    thread::ThreadData,
+    thread::{SharedContext, ThreadData},
     time::{Limits, TimeManager},
-    transposition::TranspositionTable,
 };
 
 const POSITIONS: &[&str] = &[
@@ -79,12 +75,8 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
 
     let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
-    let tt = TranspositionTable::default();
-    let stop = AtomicBool::new(false);
-    let nodes = AtomicU64::new(0);
-    let tb_hits = AtomicU64::new(0);
-
-    let mut td = ThreadData::new(&tt, &stop, &nodes, &tb_hits);
+    let shared = Arc::new(SharedContext::default());
+    let mut td = ThreadData::new(shared);
 
     let time = Instant::now();
 
@@ -94,19 +86,20 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     for position in POSITIONS {
         let now = Instant::now();
 
+        td.shared.nodes.reset();
         td.board = Board::from_fen(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
         search::start(&mut td, Report::None);
 
-        nodes += td.nodes.local();
+        nodes += td.nodes();
         index += 1;
 
         let seconds = now.elapsed().as_secs_f64();
-        let nps = td.nodes.local() as f64 / seconds;
+        let nps = td.nodes() as f64 / seconds;
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes.local());
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes());
         }
     }
 

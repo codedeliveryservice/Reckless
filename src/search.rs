@@ -49,8 +49,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.stopped = false;
 
     td.pv_table.clear(0);
-    td.nodes.clear_local();
-    td.tb_hits.clear_local();
 
     td.nnue.full_refresh(&td.board);
 
@@ -104,9 +102,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
             // Root Search
             let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
-            td.nodes.flush();
-            td.tb_hits.flush();
-
             td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
 
             if td.stopped {
@@ -132,7 +127,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 }
             }
 
-            if report == Report::Full && td.nodes.global() > 10_000_000 {
+            if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
                 td.print_uci_info(depth);
             }
         }
@@ -171,7 +166,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes.local() as f32);
+            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
 
             let pv_stability = 1.25 - 0.05 * pv_stability.min(8) as f32;
 
@@ -257,7 +252,7 @@ fn search<NODE: NodeType>(
     let initial_depth = depth;
 
     let hash = td.board.hash();
-    let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), ply);
+    let (entry, tt_slot) = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
@@ -306,7 +301,7 @@ fn search<NODE: NodeType>(
         && !td.stop_probing_tb
     {
         if let Some(outcome) = tb_probe(&td.board) {
-            td.tb_hits.increment();
+            td.shared.tb_hits.increment(td.id);
 
             let (score, bound) = match outcome {
                 GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
@@ -319,7 +314,7 @@ fn search<NODE: NodeType>(
                 || (bound == Bound::Upper && score <= alpha)
             {
                 let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.tt.write(tt_slot, hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv);
+                td.shared.tt.write(tt_slot, hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv);
                 return score;
             }
 
@@ -377,7 +372,7 @@ fn search<NODE: NodeType>(
         }
     } else {
         raw_eval = evaluate(td);
-        td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv);
+        td.shared.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv);
 
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
@@ -557,7 +552,7 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
+                td.shared.tt.write(tt_slot, hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
@@ -708,7 +703,7 @@ fn search<NODE: NodeType>(
             }
         }
 
-        let initial_nodes = td.nodes.local();
+        let initial_nodes = td.nodes();
 
         make_move(td, ply, mv);
 
@@ -854,9 +849,10 @@ fn search<NODE: NodeType>(
         }
 
         if NODE::ROOT {
+            let current_nodes = td.nodes();
             let root_move = td.root_moves.iter_mut().find(|v| v.mv == mv).unwrap();
 
-            root_move.nodes += td.nodes.local() - initial_nodes;
+            root_move.nodes += current_nodes - initial_nodes;
 
             if move_count == 1 || score > alpha {
                 match score {
@@ -1001,7 +997,7 @@ fn search<NODE: NodeType>(
     }
 
     if !excluded {
-        td.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
+        td.shared.tt.write(tt_slot, hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
     }
 
     if !(in_check
@@ -1051,7 +1047,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let hash = td.board.hash();
-    let (entry, tt_slot) = td.tt.read(hash, td.board.halfmove_clock(), ply);
+    let (entry, tt_slot) = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1103,7 +1099,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             if entry.is_none() {
-                td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv);
+                td.shared.tt.write(
+                    tt_slot,
+                    hash,
+                    TtDepth::SOME,
+                    raw_eval,
+                    best_score,
+                    Bound::Lower,
+                    Move::NULL,
+                    ply,
+                    tt_pv,
+                );
             }
 
             return best_score;
@@ -1196,7 +1202,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv);
+    td.shared.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv);
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
@@ -1285,10 +1291,12 @@ fn make_move(td: &mut ThreadData, ply: usize, mv: Move) {
     td.stack[ply].contcorrhist =
         td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
 
-    td.nodes.increment();
+    td.shared.nodes.increment(td.id);
+
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
-    td.tt.prefetch(td.board.hash());
+
+    td.shared.tt.prefetch(td.board.hash());
 }
 
 fn undo_move(td: &mut ThreadData, mv: Move) {
