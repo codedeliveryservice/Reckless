@@ -967,7 +967,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 104;
+            let mut factor = 79;
             factor += 147 * (initial_depth > 5) as i32;
             factor += 184 * (td.stack[ply - 1].move_count > 8) as i32;
             factor += 128 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
