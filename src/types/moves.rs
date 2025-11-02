@@ -42,11 +42,11 @@ impl Move {
     }
 
     pub const fn from(self) -> Square {
-        unsafe { mem::transmute((self.0 & 0b0000_0000_0011_1111) as u8) }
+        Square::new((self.0 & 0b0000_0000_0011_1111) as u8)
     }
 
     pub const fn to(self) -> Square {
-        unsafe { mem::transmute(((self.0 & 0b0000_1111_1100_0000) >> 6) as u8) }
+        Square::new(((self.0 & 0b0000_1111_1100_0000) >> 6) as u8)
     }
 
     pub const fn encoded(self) -> usize {

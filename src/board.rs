@@ -416,7 +416,8 @@ impl Board {
             }
 
             if mv.is_double_push() {
-                return from.shift(2 * offset) == to
+                return from.rank() == (if self.side_to_move == Color::White { 1 } else { 6 })
+                    && from.shift(2 * offset) == to
                     && !self.occupancies().contains(from.shift(offset))
                     && !self.occupancies().contains(to);
             }

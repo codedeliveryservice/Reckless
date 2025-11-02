@@ -32,15 +32,23 @@ pub struct Flags {
 
 impl Flags {
     pub const fn new(bound: Bound, pv: bool, age: u8) -> Self {
+        debug_assert!(age <= AGE_MASK);
+
         Self { data: (bound as u8) | ((pv as u8) << 2) | (age << 3) }
     }
 
     pub const fn bound(self) -> Bound {
-        unsafe { std::mem::transmute(self.data & 0b11) }
+        match self.data & 0b11 {
+            0 => Bound::None,
+            1 => Bound::Exact,
+            2 => Bound::Lower,
+            3 => Bound::Upper,
+            _ => unreachable!(),
+        }
     }
 
     pub const fn pv(self) -> bool {
-        (self.data & 0b100) != 0
+        (self.data & (1 << 2)) != 0
     }
 
     pub const fn age(self) -> u8 {

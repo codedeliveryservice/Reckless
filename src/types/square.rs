@@ -6,6 +6,7 @@ use super::Bitboard;
 ///
 /// [LERFM]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+#[repr(u8)]
 #[rustfmt::skip]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -23,16 +24,12 @@ pub enum Square {
 impl Square {
     pub const NUM: usize = 64;
 
-    /// Creates a new square from the given value.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the value is in the range `0..64`.
     pub const fn new(value: u8) -> Self {
+        debug_assert!(value < Self::NUM as u8);
+
         unsafe { std::mem::transmute(value) }
     }
 
-    /// Creates a square from the given rank and file.
     pub const fn from_rank_file(rank: u8, file: u8) -> Self {
         Self::new((rank << 3) | file)
     }
@@ -45,9 +42,11 @@ impl Square {
         self as u8 >> 3
     }
 
-    /// Shifts the square by the given offset.
     pub const fn shift(self, offset: i8) -> Self {
-        Self::new((self as i8 + offset) as u8)
+        let value = self as i8 + offset;
+        debug_assert!(0 <= value && value < Self::NUM as i8);
+
+        Self::new(value as u8)
     }
 
     pub const fn to_bb(self) -> Bitboard {

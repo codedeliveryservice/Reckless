@@ -292,7 +292,6 @@ fn search<NODE: NodeType>(
             }
 
             if td.board.halfmove_clock() < 90 {
-                debug_assert!(is_valid(tt_score));
                 return tt_score;
             }
         }
@@ -991,7 +990,6 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    debug_assert!(alpha < beta);
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
     }
@@ -1012,6 +1010,7 @@ fn search<NODE: NodeType>(
         update_correction_histories(td, depth, best_score - static_eval, ply);
     }
 
+    debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
     best_score
@@ -1171,7 +1170,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
             if score > alpha {
                 best_move = mv;
-                alpha = score;
 
                 if NODE::PV {
                     td.pv_table.update(ply, mv);
@@ -1180,6 +1178,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 if score >= beta {
                     break;
                 }
+
+                alpha = score;
             }
         }
     }
@@ -1196,6 +1196,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     td.tt.write(tt_slot, hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv);
 
+    debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
     best_score
