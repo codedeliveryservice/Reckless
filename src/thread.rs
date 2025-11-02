@@ -11,7 +11,7 @@ use crate::{
     thread::pool::ScopeExt,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
+    types::{normalize_to_cp, Move, Score, MAX_PLY},
 };
 
 pub struct ThreadPool<'a> {
@@ -94,7 +94,6 @@ pub struct ThreadData<'a> {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub lmr: LmrTable,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub root_depth: i32,
@@ -128,7 +127,6 @@ impl<'a> ThreadData<'a> {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
-            lmr: LmrTable::default(),
             optimism: [0; 2],
             stopped: false,
             root_depth: 0,
@@ -278,31 +276,6 @@ impl Default for PrincipalVariationTable {
             table: vec![[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1].into_boxed_slice(),
             len: [0; MAX_PLY + 1],
         }
-    }
-}
-
-pub struct LmrTable {
-    table: Box<[[i32; MAX_MOVES + 1]]>,
-}
-
-impl LmrTable {
-    pub const fn reduction(&self, depth: i32, move_count: i32) -> i32 {
-        self.table[depth as usize][move_count as usize]
-    }
-}
-
-impl Default for LmrTable {
-    fn default() -> Self {
-        let mut table = vec![[0; MAX_MOVES + 1]; MAX_MOVES + 1].into_boxed_slice();
-
-        for depth in 1..MAX_MOVES {
-            for move_count in 1..MAX_MOVES {
-                let reduction = 970.0027 + 457.7087 * (depth as f32).ln() * (move_count as f32).ln();
-                table[depth][move_count] = reduction as i32;
-            }
-        }
-
-        Self { table }
     }
 }
 

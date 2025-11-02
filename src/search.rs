@@ -607,7 +607,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
+        let mut reduction = 970 + 310 * depth.ilog2() as i32 * move_count.ilog2() as i32;
 
         if !improving {
             reduction += (489 - 412 * improvement / 128).min(1243);
