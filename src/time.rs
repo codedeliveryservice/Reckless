@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::thread::ThreadData;
+use crate::thread::{Status, ThreadData};
 
 #[derive(Clone, Debug)]
 pub enum Limits {
@@ -81,7 +81,7 @@ impl TimeManager {
             return false;
         }
 
-        if td.nodes() & 2047 == 2047 && td.get_stop() {
+        if td.nodes() & 2047 == 2047 && td.shared.status.get() == Status::STOPPED {
             return true;
         }
 

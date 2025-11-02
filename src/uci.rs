@@ -1,10 +1,10 @@
-use std::sync::{atomic::Ordering, Arc};
+use std::sync::Arc;
 
 use crate::{
     board::Board,
     search::{self, Report},
     tb::tb_initilize,
-    thread::{pool::ScopeExt, SharedContext, ThreadData, ThreadPool},
+    thread::{pool::ScopeExt, SharedContext, Status, ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
@@ -18,23 +18,23 @@ pub fn message_loop() {
     let mut frc = false;
     let mut move_overhead = 100;
     let mut report = Report::Full;
-    let mut next_command = None;
 
-    loop {
-        let command = next_command.take().unwrap_or_else(read_stdin);
-        let tokens = command.split_whitespace().collect::<Vec<_>>();
+    let rx = spawn_listener(shared.clone());
+
+    while let Ok(message) = rx.recv() {
+        let tokens = message.split_whitespace().collect::<Vec<_>>();
         match tokens.as_slice() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => next_command = go(&mut threads, &shared, report, move_overhead, tokens),
+            ["go", tokens @ ..] => go(&mut threads, &shared, report, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, frc, tokens),
             ["setoption", tokens @ ..] => {
                 set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &shared.tt, tokens)
             }
             ["ucinewgame"] => reset(&mut threads, &shared.tt),
 
-            ["stop"] => shared.stop.store(true, Ordering::Relaxed),
+            ["stop"] => shared.status.set(Status::STOPPED),
             ["quit"] => break,
 
             // Non-UCI commands
@@ -45,9 +45,33 @@ pub fn message_loop() {
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
-            _ => eprintln!("Unknown command: '{}'", command.trim_end()),
+            _ => eprintln!("Unknown command: '{}'", message.trim_end()),
         };
     }
+}
+
+fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    std::thread::spawn(move || loop {
+        let mut message = String::new();
+        std::io::stdin().read_line(&mut message).unwrap();
+
+        match message.trim_end() {
+            "isready" => println!("readyok"),
+            "stop" => shared.status.set(Status::STOPPED),
+            _ => {
+                // According to the UCI specs, commands that are unexpected
+                // in the current state should be ignored silently.
+                // (https://backscattering.de/chess/uci/#unexpected)
+                if shared.status.get() != Status::RUNNING {
+                    tx.send(message).unwrap();
+                }
+            }
+        }
+    });
+
+    rx
 }
 
 fn uci() {
@@ -78,9 +102,7 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(
-    threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, move_overhead: u64, tokens: &[&str],
-) -> Option<String> {
+fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, move_overhead: u64, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
@@ -89,9 +111,9 @@ fn go(
     shared.nodes.reset();
     shared.tb_hits.reset();
     shared.tt.increment_age();
-    shared.stop.store(false, Ordering::Relaxed);
+    shared.status.set(Status::RUNNING);
 
-    let listener = std::thread::scope(|scope| {
+    std::thread::scope(|scope| {
         let mut handlers = Vec::new();
 
         let (t1, rest) = threads.vector.split_first_mut().unwrap();
@@ -100,7 +122,7 @@ fn go(
         handlers.push(scope.spawn_into(
             || {
                 search::start(t1, report);
-                shared.stop.store(true, Ordering::Relaxed);
+                shared.status.set(Status::STOPPED);
             },
             w1,
         ));
@@ -116,23 +138,9 @@ fn go(
             ));
         }
 
-        let shared = shared.clone();
-        let listener = std::thread::spawn(move || loop {
-            let command = read_stdin();
-            match command.as_str().trim() {
-                "isready" => println!("readyok"),
-                "stop" => {
-                    shared.stop.store(true, Ordering::Relaxed);
-                    return None;
-                }
-                _ => return Some(command),
-            }
-        });
-
         for handler in handlers {
             handler.join();
         }
-        listener
     });
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
@@ -189,8 +197,6 @@ fn go(
 
     println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&threads.main_thread().board));
     crate::misc::dbg_print();
-
-    listener.join().unwrap()
 }
 
 fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
@@ -290,12 +296,6 @@ fn eval(td: &mut ThreadData) {
 
 fn display(td: &mut ThreadData) {
     println!("FEN: {}", td.board.to_fen());
-}
-
-fn read_stdin() -> String {
-    let mut buf = String::new();
-    std::io::stdin().read_line(&mut buf).unwrap();
-    buf
 }
 
 fn parse_limits(color: Color, tokens: &[&str]) -> Limits {

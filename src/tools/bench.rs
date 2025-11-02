@@ -12,7 +12,7 @@ use std::{sync::Arc, time::Instant};
 use crate::{
     board::Board,
     search::{self, Report},
-    thread::{SharedContext, ThreadData},
+    thread::{SharedContext, Status, ThreadData},
     time::{Limits, TimeManager},
 };
 
@@ -86,6 +86,7 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
     for position in POSITIONS {
         let now = Instant::now();
 
+        td.shared.status.set(Status::RUNNING);
         td.shared.nodes.reset();
         td.board = Board::from_fen(position).unwrap();
         td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);

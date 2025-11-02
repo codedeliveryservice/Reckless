@@ -2,7 +2,7 @@ use std::{
     cell::UnsafeCell,
     ops::Index,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicUsize, Ordering},
         Arc,
     },
 };
@@ -56,10 +56,39 @@ impl<const SIZE: usize> Default for Counter<SIZE> {
     }
 }
 
+pub struct Status {
+    inner: AtomicUsize,
+}
+
+impl Status {
+    pub const STOPPED: usize = 0;
+    pub const RUNNING: usize = 1;
+
+    pub fn get(&self) -> usize {
+        self.inner.load(Ordering::Acquire)
+    }
+
+    pub fn set(&self, status: usize) {
+        self.inner.store(status, Ordering::Release)
+    }
+}
+
+impl Clone for Status {
+    fn clone(&self) -> Self {
+        Self { inner: AtomicUsize::new(self.inner.load(Ordering::Relaxed)) }
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self { inner: AtomicUsize::new(Self::STOPPED) }
+    }
+}
+
 #[derive(Default)]
 pub struct SharedContext {
     pub tt: TranspositionTable,
-    pub stop: AtomicBool,
+    pub status: Status,
     pub nodes: Counter<{ Self::MAX_THREADS }>,
     pub tb_hits: Counter<{ Self::MAX_THREADS }>,
 }
@@ -190,10 +219,6 @@ impl ThreadData {
 
     pub fn nodes(&self) -> u64 {
         self.shared.nodes.get(self.id)
-    }
-
-    pub fn get_stop(&self) -> bool {
-        self.shared.stop.load(Ordering::Relaxed)
     }
 
     pub fn conthist(&self, ply: usize, index: usize, mv: Move) -> i32 {
