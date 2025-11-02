@@ -532,7 +532,7 @@ fn search<NODE: NodeType>(
 
         let probcut_depth = (depth - 4).max(0);
 
-        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
+        while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -561,6 +561,10 @@ fn search<NODE: NodeType>(
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
                 }
+            }
+
+            if in_check && mv.is_quiet() {
+                break;
             }
         }
     }
