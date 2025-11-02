@@ -701,9 +701,9 @@ fn search<NODE: NodeType>(
             } else if score >= beta && !is_decisive(score) {
                 return score;
             } else if tt_score >= beta {
-                extension = -2;
+                depth -= 2;
             } else if cut_node {
-                extension = -2;
+                depth -= 2;
             }
         }
 
