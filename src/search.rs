@@ -93,7 +93,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
 
-            td.optimism[td.board.side_to_move()] = 119 * average / (average.abs() + 237);
+            td.optimism[td.board.side_to_move()] = (96.0 * (average as f32 / 256.0).tanh()) as i32;
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
         }
 
