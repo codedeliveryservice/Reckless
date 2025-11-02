@@ -13,6 +13,10 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            name: reckless-linux-generic
+            rust_cpu: x86-64
+
+          - os: ubuntu-latest
             name: reckless-linux-avx2
             rust_cpu: x86-64-v3
             sde_flag: -bdw
@@ -21,6 +25,10 @@ jobs:
             name: reckless-linux-avx512
             rust_cpu: x86-64-v4
             sde_flag: -skx
+
+          - os: windows-latest
+            name: reckless-windows-generic
+            rust_cpu: x86-64
 
           - os: windows-latest
             name: reckless-windows-avx2
@@ -49,7 +57,7 @@ jobs:
           cargo install cargo-pgo
 
       - name: Setup Intel SDE
-        if: runner.os != 'macOS'
+        if: matrix.name != 'reckless-macos' && matrix.name != 'reckless-linux-generic' && matrix.name != 'reckless-windows-generic'
         uses: petarpetrovt/setup-sde@08ea32f9214634afad4f33b74841782e71768e52
         with:
           sdeVersion: "9.58.0"
@@ -62,14 +70,14 @@ jobs:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
       - name: Run PGO profiling benchmarks
-        if: runner.os == 'Linux'
+        if: matrix.name == 'reckless-linux-avx2' || matrix.name == 'reckless-linux-avx512'
         run: |
           "$SDE_PATH/sde64" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
       - name: Run PGO profiling benchmarks
-        if: runner.os == 'Windows'
+        if: matrix.name == 'reckless-windows-avx2' || matrix.name == 'reckless-windows-avx512'
         shell: cmd
         run: |
           "%SDE_PATH%\sde.exe" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
@@ -77,7 +85,7 @@ jobs:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
 
       - name: Run PGO profiling benchmarks
-        if: runner.os == 'macOS'
+        if: matrix.name == 'reckless-macos' || matrix.name == 'reckless-linux-generic' || matrix.name == 'reckless-windows-generic'
         run: |
           cargo pgo run -- bench
         env:
