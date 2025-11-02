@@ -519,6 +519,44 @@ fn search<NODE: NodeType>(
         }
     }
 
+    if cut_node
+        && !excluded
+        && is_valid(eval)
+        && is_valid(static_eval)
+        && eval >= beta
+        && eval >= static_eval
+        && static_eval >= beta - 16 * depth + 158 * tt_pv as i32 - 106 * improvement / 1024 + 213
+        && td.board.has_non_pawns()
+        && !potential_singularity
+        && !is_loss(beta)
+    {
+        let r = (5756 + 321 * depth) / 1024;
+
+        let mut move_picker = MovePicker::new_qsearch();
+
+        while let Some(mv) = move_picker.next::<NODE>(td, false, ply) {
+            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
+                continue;
+            }
+
+            make_move(td, ply, mv);
+
+            let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+
+            undo_move(td, mv);
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if score >= beta && !is_win(score) {
+                return score;
+            }
+
+            break;
+        }
+    }
+
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
 
