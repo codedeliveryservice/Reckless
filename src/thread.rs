@@ -1,7 +1,8 @@
 use std::{
+    cell::UnsafeCell,
     ops::Index,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
@@ -18,41 +19,40 @@ use crate::{
 };
 
 #[repr(align(64))]
-struct AlignedAtomicU64 {
-    inner: AtomicU64,
+#[derive(Copy, Clone)]
+struct AlignedU64 {
+    inner: u64,
 }
 
 pub struct Counter<const SIZE: usize> {
-    shards: [AlignedAtomicU64; SIZE],
+    shards: UnsafeCell<[AlignedU64; SIZE]>,
 }
 
 unsafe impl<const SIZE: usize> Sync for Counter<SIZE> {}
 
 impl<const SIZE: usize> Counter<SIZE> {
     pub fn aggregate(&self) -> u64 {
-        self.shards.iter().map(|shard| shard.inner.load(Ordering::Relaxed)).sum()
+        unsafe { &*self.shards.get() }.iter().map(|shard| shard.inner).sum()
     }
 
     pub fn get(&self, id: usize) -> u64 {
-        self.shards[id].inner.load(Ordering::Relaxed)
+        unsafe { (*self.shards.get())[id].inner }
     }
 
     pub fn increment(&self, id: usize) {
-        self.shards[id].inner.fetch_add(1, Ordering::Relaxed);
+        unsafe { (*self.shards.get())[id].inner += 1 };
     }
 
     pub fn reset(&self) {
-        for shard in &self.shards {
-            shard.inner.store(0, Ordering::Relaxed);
+        for shard in unsafe { &mut *self.shards.get() } {
+            shard.inner = 0;
         }
     }
 }
 
-impl Default for Counter<{ SharedContext::MAX_THREADS }> {
+impl<const SIZE: usize> Default for Counter<SIZE> {
     fn default() -> Self {
-        Self {
-            shards: std::array::from_fn(|_| AlignedAtomicU64 { inner: AtomicU64::default() }),
-        }
+        Self { shards: UnsafeCell::new([AlignedU64 { inner: 0 }; SIZE]) }
     }
 }
 
