@@ -5,7 +5,7 @@ type PieceToHistory<T> = [[T; 64]; 13];
 type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
-    let bonus = bonus.clamp(-MAX, MAX);
+    let bonus = bonus.clamp(-MAX / 4, MAX / 4);
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
