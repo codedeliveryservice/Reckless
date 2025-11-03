@@ -457,9 +457,11 @@ fn search<NODE: NodeType>(
         && !excluded
         && eval >= beta
         && eval
-            >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+            >= beta + 157 * depth * depth / 16 + 31 * depth
+                - (improvement / 12).clamp(-64, 128)
+                - (23 * cut_node as i32)
                 + 580 * correction_value.abs() / 1024
-                + 24
+                - 10
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
