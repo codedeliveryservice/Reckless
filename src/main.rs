@@ -1,5 +1,9 @@
 #![allow(clippy::if_same_then_else)]
 
+use std::sync::Arc;
+
+use crate::{thread::SharedContext, tools::BenchOptions, uci::spawn_listener};
+
 mod board;
 mod evaluate;
 mod history;
@@ -25,7 +29,15 @@ fn main() {
     lookup::init();
 
     match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(None),
-        _ => uci::message_loop(),
+        Some("bench") => {
+            let tokens = std::env::args().skip(2).collect::<Vec<_>>();
+            tools::bench(BenchOptions::parse(tokens));
+        }
+        _ => {
+            let shared = Arc::new(SharedContext::default());
+            let rx = spawn_listener(shared.clone());
+
+            uci::message_loop(rx, shared);
+        }
     }
 }

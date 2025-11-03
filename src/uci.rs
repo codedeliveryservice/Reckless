@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 
 use crate::{
     board::Board,
@@ -6,22 +6,18 @@ use crate::{
     tb::tb_initilize,
     thread::{pool::ScopeExt, SharedContext, Status, ThreadData, ThreadPool},
     time::{Limits, TimeManager},
-    tools,
+    tools::{self, BenchOptions},
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
     types::{is_decisive, is_loss, is_win, Color, Score},
 };
 
-pub fn message_loop() {
-    let shared = Arc::new(SharedContext::default());
-
+pub fn message_loop(rx: mpsc::Receiver<(String, mpsc::Sender<()>)>, shared: Arc<SharedContext>) {
     let mut threads = ThreadPool::new(shared.clone());
     let mut frc = false;
     let mut move_overhead = 100;
     let mut report = Report::Full;
 
-    let rx = spawn_listener(shared.clone());
-
-    while let Ok(message) = rx.recv() {
+    while let Ok((message, ack_tx)) = rx.recv() {
         let tokens = message.split_whitespace().collect::<Vec<_>>();
         match tokens.as_slice() {
             ["uci"] => uci(),
@@ -41,17 +37,19 @@ pub fn message_loop() {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
-            ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
+            ["bench", v @ ..] => tools::bench(BenchOptions::parse(v)),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
             _ => eprintln!("Unknown command: '{}'", message.trim_end()),
         };
+
+        let _ = ack_tx.send(());
     }
 }
 
-fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<String> {
-    let (tx, rx) = std::sync::mpsc::channel();
+pub fn spawn_listener(shared: Arc<SharedContext>) -> mpsc::Receiver<(String, mpsc::Sender<()>)> {
+    let (tx, rx) = mpsc::channel::<(String, mpsc::Sender<()>)>();
 
     std::thread::spawn(move || loop {
         let mut message = String::new();
@@ -65,7 +63,8 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
                 // in the current state should be ignored silently.
                 // (https://backscattering.de/chess/uci/#unexpected)
                 if shared.status.get() != Status::RUNNING {
-                    tx.send(message).unwrap();
+                    let (ack_tx, _) = mpsc::channel();
+                    tx.send((message, ack_tx)).unwrap();
                 }
             }
         }

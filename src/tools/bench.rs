@@ -7,14 +7,12 @@
 //! Note that although it can be used as a benchmarking tool,
 //! it is not comprehensive enough to be definitive.
 
-use std::{sync::Arc, time::Instant};
-
-use crate::{
-    board::Board,
-    search::{self, Report},
-    thread::{SharedContext, Status, ThreadData},
-    time::{Limits, TimeManager},
+use std::{
+    sync::{mpsc, Arc},
+    time::Instant,
 };
+
+use crate::{thread::SharedContext, uci};
 
 const POSITIONS: &[&str] = &[
     "2k5/2P3p1/3r1p2/7p/2RB2rP/3K2P1/5P2/8 w - - 1 48",
@@ -64,57 +62,64 @@ const POSITIONS: &[&str] = &[
     "8/8/5pk1/5Nn1/R3r1P1/8/6K1/8 w - - 4 65",
 ];
 
-const DEFAULT_DEPTH: i32 = 12;
+#[derive(Debug)]
+pub struct BenchOptions {
+    pub hash: i32,
+    pub threads: i32,
+    pub depth: i32,
+}
 
-pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
-    if PRETTY {
-        println!("{}", "-".repeat(50));
-        println!("{:>15} {:>13} {:>15}", "Nodes", "Elapsed", "NPS");
-        println!("{}", "-".repeat(50));
+impl BenchOptions {
+    pub fn parse<I: IntoIterator<Item = S>, S: AsRef<str>>(tokens: I) -> Self {
+        const DEFAULT_HASH: i32 = 16;
+        const DEFAULT_THREADS: i32 = 1;
+        const DEFAULT_DEPTH: i32 = 12;
+
+        let mut iter = tokens.into_iter();
+
+        let hash = iter.next().and_then(|s| s.as_ref().parse().ok()).unwrap_or(DEFAULT_HASH);
+        let threads = iter.next().and_then(|s| s.as_ref().parse().ok()).unwrap_or(DEFAULT_THREADS);
+        let depth = iter.next().and_then(|s| s.as_ref().parse().ok()).unwrap_or(DEFAULT_DEPTH);
+
+        Self { depth, hash, threads }
     }
+}
 
-    let depth = depth.unwrap_or(DEFAULT_DEPTH);
-
+pub fn bench(options: BenchOptions) {
     let shared = Arc::new(SharedContext::default());
-    let mut td = ThreadData::new(shared);
+    let (tx, rx) = mpsc::channel::<(String, mpsc::Sender<()>)>();
+
+    let send = |msg: String| {
+        let (ack_tx, ack_rx) = mpsc::channel();
+        tx.send((msg, ack_tx)).unwrap();
+        let _ = ack_rx.recv();
+    };
+
+    {
+        let shared = shared.clone();
+        std::thread::spawn(move || uci::message_loop(rx, shared));
+    }
 
     let time = Instant::now();
 
+    send("setoption name Minimal value true".to_string());
+    send(format!("setoption name Threads value {}", options.threads));
+    send(format!("setoption name Hash value {}", options.hash));
+
     let mut nodes = 0;
-    let mut index = 0;
 
     for position in POSITIONS {
-        let now = Instant::now();
+        send(format!("position fen {position}"));
+        send(format!("go depth {}", options.depth));
 
-        td.shared.status.set(Status::RUNNING);
-        td.shared.nodes.reset();
-        td.board = Board::from_fen(position).unwrap();
-        td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
-
-        search::start(&mut td, Report::None);
-
-        nodes += td.nodes();
-        index += 1;
-
-        let seconds = now.elapsed().as_secs_f64();
-        let nps = td.nodes() as f64 / seconds;
-
-        if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes());
-        }
+        nodes += shared.nodes.aggregate();
     }
+
+    send("quit".to_string());
 
     let seconds = time.elapsed().as_secs_f64();
     let nps = nodes as f64 / seconds;
-
-    if PRETTY {
-        println!("{}", "-".repeat(50));
-        println!("{nodes:>15} {seconds:>12.3}s {nps:>15.0} N/s");
-        println!("{}", "-".repeat(50));
-    } else {
-        let nps = nodes as f64 / seconds;
-        println!("Bench: {nodes} nodes {nps:.0} nps");
-    }
+    println!("Bench: {nodes} nodes {nps:.0} nps");
 
     crate::misc::dbg_print();
 }
