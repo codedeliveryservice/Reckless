@@ -479,6 +479,8 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && !is_loss(beta)
     {
+        debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
+
         let r = (5756 + 321 * depth) / 1024;
 
         td.stack[ply].conthist = std::ptr::null_mut();
