@@ -385,6 +385,8 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
+    let mut static_eval_bonus = Score::NONE;
+
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
         && !in_check
@@ -395,6 +397,7 @@ fn search<NODE: NodeType>(
         let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
         let bonus = value.clamp(-123, 255);
 
+        static_eval_bonus = bonus;
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
 
@@ -974,7 +977,11 @@ fn search<NODE: NodeType>(
                 * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
                     as i32;
 
-            let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
+            let mut scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
+
+            if is_valid(static_eval_bonus) && static_eval_bonus < 0 {
+                scaled_bonus += -static_eval_bonus;
+            }
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
