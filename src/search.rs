@@ -420,8 +420,12 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+    let potential_singularity = (NODE::PV || cut_node)
+        && depth >= 5
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score);
 
     let mut improvement = 0;
 
