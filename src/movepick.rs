@@ -147,7 +147,7 @@ impl MovePicker {
     }
 
     fn find_best_score_index(&self) -> usize {
-        self.list.iter().enumerate().max_by_key(|&(_, entry)| entry.score).map(|(i, _)| i).unwrap_or(0)
+        self.list.iter().enumerate().max_by_key(|&(_, entry)| entry.score).map(|(i, _)| i).unwrap()
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {

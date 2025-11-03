@@ -140,6 +140,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.print_uci_info(depth);
         }
 
+        if (td.root_moves[0].score - average).abs() < 12 {
+            eval_stability += 1;
+        } else {
+            eval_stability = 0;
+        }
+
         if last_best_rootmove.mv == td.root_moves[0].mv {
             pv_stability += 1;
         } else {
@@ -157,12 +163,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         if td.stopped {
             break;
-        }
-
-        if (td.root_moves[0].score - average).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
         }
 
         let multiplier = || {
@@ -253,20 +253,20 @@ fn search<NODE: NodeType>(
 
     let hash = td.board.hash();
     let (entry, tt_slot) = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
-
     let mut tt_pv = NODE::PV;
 
     // Search Early TT-Cut
     if let Some(entry) = &entry {
-        tt_move = entry.mv;
-        tt_pv |= entry.pv;
-        tt_score = entry.score;
         tt_depth = entry.depth;
+        tt_move = entry.mv;
+        tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_pv |= entry.pv;
 
         if !NODE::PV
             && !excluded
@@ -829,9 +829,10 @@ fn search<NODE: NodeType>(
                 reduction -= 3034;
             }
 
+            let reduced_depth = new_depth - (reduction >= 3072) as i32;
+
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score =
-                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node, ply + 1);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             td.stack[ply].reduction = 0;
         }
 
@@ -1050,15 +1051,16 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let hash = td.board.hash();
     let (entry, tt_slot) = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
-    let mut tt_pv = NODE::PV;
+
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut tt_pv = NODE::PV;
 
     // QS Early TT-Cut
     if let Some(entry) = &entry {
-        tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_pv |= entry.pv;
 
         if is_valid(tt_score)
             && match tt_bound {

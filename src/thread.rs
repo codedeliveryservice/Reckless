@@ -18,41 +18,35 @@ use crate::{
     types::{normalize_to_cp, Move, Score, MAX_MOVES, MAX_PLY},
 };
 
-#[repr(align(64))]
-#[derive(Copy, Clone)]
-struct AlignedU64 {
-    inner: u64,
-}
-
 pub struct Counter<const SIZE: usize> {
-    shards: UnsafeCell<[AlignedU64; SIZE]>,
+    shards: UnsafeCell<[u64; SIZE]>,
 }
 
 unsafe impl<const SIZE: usize> Sync for Counter<SIZE> {}
 
 impl<const SIZE: usize> Counter<SIZE> {
     pub fn aggregate(&self) -> u64 {
-        unsafe { &*self.shards.get() }.iter().map(|shard| shard.inner).sum()
+        unsafe { &*self.shards.get() }.iter().sum()
     }
 
     pub fn get(&self, id: usize) -> u64 {
-        unsafe { (*self.shards.get())[id].inner }
+        unsafe { (*self.shards.get())[id] }
     }
 
     pub fn increment(&self, id: usize) {
-        unsafe { (*self.shards.get())[id].inner += 1 };
+        unsafe { (*self.shards.get())[id] += 1 };
     }
 
     pub fn reset(&self) {
         for shard in unsafe { &mut *self.shards.get() } {
-            shard.inner = 0;
+            *shard = 0;
         }
     }
 }
 
 impl<const SIZE: usize> Default for Counter<SIZE> {
     fn default() -> Self {
-        Self { shards: UnsafeCell::new([AlignedU64 { inner: 0 }; SIZE]) }
+        Self { shards: UnsafeCell::new([0; SIZE]) }
     }
 }
 
