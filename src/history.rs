@@ -15,7 +15,7 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 1940;
+    const MAX_FACTORIZER: i32 = 4096;
     const MAX_BUCKET: i32 = 6029;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
@@ -52,7 +52,7 @@ impl QuietHistory {
     pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
         let entry = &mut self.entries[stm][mv.from()][mv.to()];
 
-        entry.update_factorizer(bonus);
+        entry.update_factorizer(2 * bonus);
         entry.update_bucket(threats, mv, bonus);
     }
 }
@@ -69,7 +69,7 @@ struct NoisyHistoryEntry {
 }
 
 impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4449;
+    const MAX_FACTORIZER: i32 = 8192;
     const MAX_BUCKET: i32 = 8148;
 
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
@@ -103,7 +103,7 @@ impl NoisyHistory {
     pub fn update(&mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, bonus: i32) {
         let entry = &mut self.entries[piece][sq];
 
-        entry.update_factorizer(bonus);
+        entry.update_factorizer(2 * bonus);
         entry.update_bucket(threats, sq, captured, bonus);
     }
 }
