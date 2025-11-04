@@ -144,7 +144,12 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
     });
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let vote_value = |td: &ThreadData| -> i32 {
+        let score = td.root_moves[0].score;
+        let depth = td.completed_depth as i32;
+
+        (score - min_score).max(0) * (1 + (depth + (depth * depth) / 8))
+    };
 
     let mut votes = vec![0; 4096];
     for result in threads.iter() {
