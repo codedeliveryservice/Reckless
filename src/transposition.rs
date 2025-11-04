@@ -142,7 +142,7 @@ impl TranspositionTable {
         self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, *const InternalEntry) {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
             unsafe { &*self.ptr().add(index) }
@@ -161,42 +161,45 @@ impl TranspositionTable {
                     mv: entry.mv,
                 };
 
-                return (Some(hit), std::ptr::from_ref(entry));
+                return Some(hit);
             }
         }
 
-        let tt_age = self.age();
-
-        let mut replacement_slot = cluster.entries.as_ptr();
-        let mut lowest_quality = i32::MAX;
-
-        for candidate in &cluster.entries {
-            if candidate.depth as i32 == TtDepth::NONE {
-                replacement_slot = std::ptr::from_ref(candidate);
-                return (None, replacement_slot);
-            }
-
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
-            if quality < lowest_quality {
-                replacement_slot = std::ptr::from_ref(candidate);
-                lowest_quality = quality;
-            }
-        }
-
-        (None, replacement_slot)
+        None
     }
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, ptr: *const InternalEntry, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move,
-        ply: usize, pv: bool,
+        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
-        let entry = unsafe { &mut *ptr.cast_mut() };
+        let cluster = {
+            let index = index(hash, self.len());
+            unsafe { &mut *self.ptr().add(index) }
+        };
+
         let key = verification_key(hash);
         let tt_age = self.age();
+
+        let mut replacement_slot = None;
+        let mut lowest_quality = i32::MAX;
+
+        for candidate in &mut cluster.entries {
+            if candidate.key == key || candidate.depth as i32 == TtDepth::NONE {
+                replacement_slot = Some(candidate);
+                break;
+            }
+
+            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            if quality < lowest_quality {
+                replacement_slot = Some(candidate);
+                lowest_quality = quality;
+            }
+        }
+
+        let entry = replacement_slot.unwrap();
 
         if !(entry.key == key && mv.is_null()) {
             entry.mv = mv;
