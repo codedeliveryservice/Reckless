@@ -71,7 +71,7 @@ pub enum Bound {
 /// Internal representation of a transposition table entry (10 bytes).
 #[repr(C)]
 #[derive(Clone)]
-pub struct InternalEntry {
+struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
@@ -175,7 +175,7 @@ impl TranspositionTable {
         }
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, usize) {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
             unsafe { &*self.ptr().add(index) }
@@ -184,7 +184,7 @@ impl TranspositionTable {
         let view = cluster.view();
         let key = verification_key(hash);
 
-        for (i, entry) in view.entries.iter().enumerate() {
+        for entry in view.entries.iter() {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
                 let hit = Entry {
                     depth: entry.depth as i32,
@@ -194,37 +194,18 @@ impl TranspositionTable {
                     pv: entry.flags.pv(),
                     mv: entry.mv,
                 };
-
-                return (Some(hit), i);
+                return Some(hit);
             }
         }
-
-        let tt_age = self.age();
-
-        let mut replacement_slot = 0;
-        let mut lowest_quality = i32::MAX;
-
-        for (i, candidate) in view.entries.iter().enumerate() {
-            if candidate.depth as i32 == TtDepth::NONE {
-                replacement_slot = i;
-                return (None, replacement_slot);
-            }
-
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
-            if quality < lowest_quality {
-                replacement_slot = i;
-                lowest_quality = quality;
-            }
-        }
-
-        (None, replacement_slot)
+        None
     }
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, slot: usize, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize,
-        pv: bool,
+        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize, pv: bool,
     ) {
+        // (None, replacement_slot)
+
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
@@ -234,10 +215,26 @@ impl TranspositionTable {
         };
 
         let mut view = cluster.view();
-        let entry = &mut view.entries[slot];
-
         let key = verification_key(hash);
         let tt_age = self.age();
+
+        let mut replacement_slot = 0;
+        let mut lowest_quality = i32::MAX;
+
+        for (i, candidate) in view.entries.iter().enumerate() {
+            if candidate.depth as i32 == TtDepth::NONE {
+                replacement_slot = i;
+                break;
+            }
+
+            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            if quality < lowest_quality {
+                replacement_slot = i;
+                lowest_quality = quality;
+            }
+        }
+
+        let entry = &mut view.entries[replacement_slot];
 
         if !(entry.key == key && mv.is_null()) {
             entry.mv = mv;
@@ -248,6 +245,7 @@ impl TranspositionTable {
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
             || entry.flags.age() != tt_age)
         {
+            cluster.store(view);
             return;
         }
 
