@@ -467,6 +467,16 @@ fn search<NODE: NodeType>(
         return (eval + beta) / 2;
     }
 
+    if cut_node
+        && is_valid(tt_score)
+        && tt_bound == Bound::Lower
+        && tt_score >= beta + 300
+        && !is_decisive(beta)
+        && !is_decisive(tt_score)
+    {
+        return beta + 300;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
