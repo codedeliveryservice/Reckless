@@ -1,4 +1,7 @@
-use std::cell::UnsafeCell;
+use std::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
@@ -90,10 +93,34 @@ impl InternalEntry {
     }
 }
 
-#[derive(Clone)]
+#[repr(align(32))]
+struct ClusterView {
+    entries: [InternalEntry; ENTRIES_PER_CLUSTER],
+}
+
 #[repr(align(32))]
 struct Cluster {
-    entries: [InternalEntry; ENTRIES_PER_CLUSTER],
+    blocks: [AtomicU64; 4],
+}
+
+impl Cluster {
+    fn view(&self) -> ClusterView {
+        let block1 = self.blocks[0].load(Ordering::Relaxed);
+        let block2 = self.blocks[1].load(Ordering::Relaxed);
+        let block3 = self.blocks[2].load(Ordering::Relaxed);
+        let block4 = self.blocks[3].load(Ordering::Relaxed);
+
+        unsafe { std::mem::transmute::<[u64; 4], ClusterView>([block1, block2, block3, block4]) }
+    }
+
+    fn store(&self, view: ClusterView) {
+        let [block1, block2, block3, block4]: [u64; 4] = unsafe { std::mem::transmute::<ClusterView, [u64; 4]>(view) };
+
+        self.blocks[0].store(block1, Ordering::Relaxed);
+        self.blocks[1].store(block2, Ordering::Relaxed);
+        self.blocks[2].store(block3, Ordering::Relaxed);
+        self.blocks[3].store(block4, Ordering::Relaxed);
+    }
 }
 
 /// The transposition table is used to cache previously performed search results.
@@ -134,7 +161,7 @@ impl TranspositionTable {
 
         let mut count = 0;
         for cluster in clusters.iter().take(1000) {
-            for entry in &cluster.entries {
+            for entry in &cluster.view().entries {
                 count += (entry.flags.bound() != Bound::None && entry.flags.age() == age) as usize;
             }
         }
@@ -148,15 +175,16 @@ impl TranspositionTable {
         }
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, *const InternalEntry) {
+    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: usize) -> (Option<Entry>, usize) {
         let cluster = {
             let index = index(hash, self.len());
             unsafe { &*self.ptr().add(index) }
         };
 
+        let view = cluster.view();
         let key = verification_key(hash);
 
-        for entry in &cluster.entries {
+        for (i, entry) in view.entries.iter().enumerate() {
             if key == entry.key && entry.depth != TtDepth::NONE as i8 {
                 let hit = Entry {
                     depth: entry.depth as i32,
@@ -167,24 +195,24 @@ impl TranspositionTable {
                     mv: entry.mv,
                 };
 
-                return (Some(hit), std::ptr::from_ref(entry));
+                return (Some(hit), i);
             }
         }
 
         let tt_age = self.age();
 
-        let mut replacement_slot = cluster.entries.as_ptr();
+        let mut replacement_slot = 0;
         let mut lowest_quality = i32::MAX;
 
-        for candidate in &cluster.entries {
+        for (i, candidate) in view.entries.iter().enumerate() {
             if candidate.depth as i32 == TtDepth::NONE {
-                replacement_slot = std::ptr::from_ref(candidate);
+                replacement_slot = i;
                 return (None, replacement_slot);
             }
 
             let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
             if quality < lowest_quality {
-                replacement_slot = std::ptr::from_ref(candidate);
+                replacement_slot = i;
                 lowest_quality = quality;
             }
         }
@@ -194,13 +222,20 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, ptr: *const InternalEntry, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move,
-        ply: usize, pv: bool,
+        &self, slot: usize, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: usize,
+        pv: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
-        let entry = unsafe { &mut *ptr.cast_mut() };
+        let cluster = {
+            let index = index(hash, self.len());
+            unsafe { &*self.ptr().add(index) }
+        };
+
+        let mut view = cluster.view();
+        let entry = &mut view.entries[slot];
+
         let key = verification_key(hash);
         let tt_age = self.age();
 
@@ -226,6 +261,8 @@ impl TranspositionTable {
         entry.score = score as i16;
         entry.eval = eval as i16;
         entry.flags = Flags::new(bound, pv, tt_age);
+
+        cluster.store(view);
     }
 
     pub fn prefetch(&self, hash: u64) {
