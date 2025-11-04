@@ -193,6 +193,7 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
 
     if best != 0 {
         threads[best].print_uci_info(threads[best].completed_depth);
+        threads[0].previous_best_score = threads[best].root_moves[0].score;
     }
 
     println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&threads.main_thread().board));

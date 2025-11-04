@@ -1,5 +1,5 @@
 use std::{
-    ops::Index,
+    ops::{Index, IndexMut},
     sync::{
         atomic::{AtomicU64, AtomicUsize, Ordering},
         Arc,
@@ -151,6 +151,12 @@ impl Index<usize> for ThreadPool {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.vector[index]
+    }
+}
+
+impl IndexMut<usize> for ThreadPool {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.vector[index]
     }
 }
 
