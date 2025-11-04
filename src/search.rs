@@ -924,7 +924,7 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let v = 256 * (best_move == tt_move) as i32;
+        let v = 128 * (best_move == tt_move) as i32;
 
         let bonus_noisy = (125 * depth - 98).min(1175) - 70 * cut_node as i32 + v;
         let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
