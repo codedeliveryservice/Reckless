@@ -69,8 +69,8 @@ pub enum Bound {
 }
 
 /// Internal representation of a transposition table entry (10 bytes).
-#[derive(Clone)]
 #[repr(C)]
+#[derive(Clone)]
 pub struct InternalEntry {
     key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
@@ -105,21 +105,21 @@ struct Cluster {
 
 impl Cluster {
     fn view(&self) -> ClusterView {
-        let block1 = self.blocks[0].load(Ordering::Relaxed);
-        let block2 = self.blocks[1].load(Ordering::Relaxed);
-        let block3 = self.blocks[2].load(Ordering::Relaxed);
-        let block4 = self.blocks[3].load(Ordering::Relaxed);
+        let a = self.blocks[0].load(Ordering::Relaxed);
+        let b = self.blocks[1].load(Ordering::Relaxed);
+        let c = self.blocks[2].load(Ordering::Relaxed);
+        let d = self.blocks[3].load(Ordering::Relaxed);
 
-        unsafe { std::mem::transmute::<[u64; 4], ClusterView>([block1, block2, block3, block4]) }
+        unsafe { std::mem::transmute::<[u64; 4], ClusterView>([a, b, c, d]) }
     }
 
     fn store(&self, view: ClusterView) {
-        let [block1, block2, block3, block4]: [u64; 4] = unsafe { std::mem::transmute::<ClusterView, [u64; 4]>(view) };
+        let [a, b, c, d] = unsafe { std::mem::transmute::<ClusterView, [u64; 4]>(view) };
 
-        self.blocks[0].store(block1, Ordering::Relaxed);
-        self.blocks[1].store(block2, Ordering::Relaxed);
-        self.blocks[2].store(block3, Ordering::Relaxed);
-        self.blocks[3].store(block4, Ordering::Relaxed);
+        self.blocks[0].store(a, Ordering::Relaxed);
+        self.blocks[1].store(b, Ordering::Relaxed);
+        self.blocks[2].store(c, Ordering::Relaxed);
+        self.blocks[3].store(d, Ordering::Relaxed);
     }
 }
 
@@ -248,6 +248,7 @@ impl TranspositionTable {
             || depth + 4 + 2 * pv as i32 > entry.depth as i32
             || entry.flags.age() != tt_age)
         {
+            cluster.store(view);
             return;
         }
 
