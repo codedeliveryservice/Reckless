@@ -433,6 +433,8 @@ fn search<NODE: NodeType>(
 
     let improving = improvement > 0;
 
+    let assume_cut = cut_node || (is_valid(tt_score) && tt_bound == Bound::Lower && tt_score >= beta);
+
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
         return qsearch::<NonPV>(td, alpha, beta, ply);
@@ -768,7 +770,7 @@ fn search<NODE: NodeType>(
                 new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
-                    score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
+                    score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !assume_cut, ply + 1);
 
                     if mv.is_quiet() && score >= beta {
                         let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
@@ -831,7 +833,7 @@ fn search<NODE: NodeType>(
 
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
             score =
-                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node, ply + 1);
+                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !assume_cut, ply + 1);
             td.stack[ply].reduction = 0;
         }
 
