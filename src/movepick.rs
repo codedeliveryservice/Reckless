@@ -181,11 +181,8 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = td.quiet_history.get(threats, side, mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
-                + td.conthist(ply, 4, mv)
-                + td.conthist(ply, 6, mv);
+            let indices = [1, 2, 4, 6];
+            entry.score = td.quiet_history.get(threats, side, mv) + td.multi_conthist(ply, &indices, mv);
         }
     }
 }

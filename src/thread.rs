@@ -221,14 +221,15 @@ impl ThreadData {
         self.shared.nodes.get(self.id)
     }
 
-    pub fn conthist(&self, ply: usize, index: usize, mv: Move) -> i32 {
-        if ply < index || self.stack[ply - index].mv.is_null() {
-            return 0;
-        }
-
+    pub fn multi_conthist(&self, ply: usize, indices: &[usize], mv: Move) -> i32 {
         let piece = self.board.piece_on(mv.from());
         let sq = mv.to();
-        self.continuation_history.get(self.stack[ply - index].conthist, piece, sq)
+
+        indices
+            .iter()
+            .take_while(|&&index| ply >= index && !self.stack[ply - index].mv.is_null())
+            .map(|&index| self.continuation_history.get(self.stack[ply - index].conthist, piece, sq))
+            .sum()
     }
 
     pub fn print_uci_info(&self, depth: i32) {

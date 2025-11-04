@@ -597,9 +597,7 @@ fn search<NODE: NodeType>(
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + td.multi_conthist(ply, &[1, 2], mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -1268,9 +1266,10 @@ fn update_continuation_histories(td: &mut ThreadData, ply: usize, piece: Piece, 
     for offset in [1, 2, 3, 4, 6] {
         if ply >= offset {
             let entry = &td.stack[ply - offset];
-            if entry.mv.is_some() {
-                td.continuation_history.update(entry.conthist, piece, sq, bonus);
+            if entry.mv.is_null() {
+                break;
             }
+            td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }
 }
