@@ -645,6 +645,7 @@ fn search<NODE: NodeType>(
                 + 123 * lmr_depth
                 + 72 * history / 1024
                 + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + 150 * (mv.to() == td.board.recapture_square()) as i32
                 + 71;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
