@@ -723,7 +723,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
-            reduction -= 69 * move_count;
+            reduction -= 69 * move_count * !is_valid(tt_score) as i32;
 
             if tt_pv {
                 reduction -= 427;
@@ -791,7 +791,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 2667 * correction_value.abs() / 1024;
-            reduction -= 52 * move_count;
+            reduction -= 52 * move_count * !is_valid(tt_score) as i32;
 
             if tt_pv {
                 reduction -= 750;
