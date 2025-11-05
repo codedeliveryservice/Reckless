@@ -49,7 +49,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.stopped = false;
 
     td.pv_table.clear(0);
-
     td.nnue.full_refresh(&td.board);
 
     td.root_moves = td
@@ -140,6 +139,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.print_uci_info(depth);
         }
 
+        if (td.root_moves[0].score - average).abs() < 12 {
+            eval_stability += 1;
+        } else {
+            eval_stability = 0;
+        }
+
         if last_best_rootmove.mv == td.root_moves[0].mv {
             pv_stability += 1;
         } else {
@@ -157,12 +162,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         if td.stopped {
             break;
-        }
-
-        if (td.root_moves[0].score - average).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
         }
 
         let multiplier = || {
@@ -253,20 +252,20 @@ fn search<NODE: NodeType>(
 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
-
     let mut tt_pv = NODE::PV;
 
     // Search Early TT-Cut
     if let Some(entry) = &entry {
-        tt_move = entry.mv;
-        tt_pv |= entry.pv;
-        tt_score = entry.score;
         tt_depth = entry.depth;
+        tt_move = entry.mv;
+        tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_pv |= entry.pv;
 
         if !NODE::PV
             && !excluded
@@ -295,10 +294,10 @@ fn search<NODE: NodeType>(
     // Tablebases Probe
     if !NODE::ROOT
         && !excluded
+        && !td.stop_probing_tb
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().len() <= tb_size()
-        && !td.stop_probing_tb
     {
         if let Some(outcome) = tb_probe(&td.board) {
             td.shared.tb_hits.increment(td.id);
@@ -471,12 +470,12 @@ fn search<NODE: NodeType>(
     if cut_node
         && !in_check
         && !excluded
+        && !potential_singularity
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 16 * depth + 158 * tt_pv as i32 - 106 * improvement / 1024 + 213
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
-        && !potential_singularity
         && !is_loss(beta)
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
@@ -671,7 +670,7 @@ fn search<NODE: NodeType>(
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && ply < 2 * td.root_depth as usize && mv == tt_move && potential_singularity {
+        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as usize {
             debug_assert!(is_valid(tt_score));
 
             let singular_beta = tt_score - depth;
@@ -829,9 +828,10 @@ fn search<NODE: NodeType>(
                 reduction -= 3034;
             }
 
+            let reduced_depth = new_depth - (reduction >= 3072) as i32;
+
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score =
-                -search::<NonPV>(td, -alpha - 1, -alpha, new_depth - (reduction >= 3072) as i32, !cut_node, ply + 1);
+            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             td.stack[ply].reduction = 0;
         }
 
@@ -1050,23 +1050,24 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+
     let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
     // QS Early TT-Cut
     if let Some(entry) = &entry {
-        tt_pv |= entry.pv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        tt_pv |= entry.pv;
 
         if is_valid(tt_score)
+            && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha,
                 Bound::Lower => tt_score >= beta,
                 _ => true,
             }
-            && (!NODE::PV || !is_decisive(tt_score))
         {
             return tt_score;
         }
@@ -1119,10 +1120,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
-    let previous_square = match td.stack[ply - 1].mv {
-        Move::NULL => Square::None,
-        _ => td.stack[ply - 1].mv.to(),
-    };
+    let previous_square = if td.stack[ply - 1].mv.is_some() { td.stack[ply - 1].mv.to() } else { Square::None };
 
     while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
         if !td.board.is_legal(mv) {

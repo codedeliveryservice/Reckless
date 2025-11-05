@@ -99,9 +99,9 @@ impl Accumulator {
         let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
 
         if mv.is_castling() {
-            let (rook_from, root_to) = board.get_castling_rook(mv.to());
+            let (rook_from, rook_to) = board.get_castling_rook(mv.to());
 
-            let add2 = index(piece.piece_color(), PieceType::Rook, root_to, king, pov);
+            let add2 = index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
             let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
 
             self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
