@@ -1126,7 +1126,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.last_captured_square() {
+        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -1138,16 +1138,19 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if in_check && mv.is_quiet() {
                 break;
             }
-
-            let futility_score = futility_base + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
-
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                continue;
-            }
         }
 
-        if !is_loss(best_score) && !td.board.see(mv, -79) {
-            continue;
+        if !is_loss(best_score) {
+            if !in_check
+                && futility_base + 32 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128 <= alpha
+                && !td.board.see(mv, 1)
+            {
+                continue;
+            }
+
+            if !td.board.see(mv, -79) {
+                continue;
+            }
         }
 
         make_move(td, ply, mv);
