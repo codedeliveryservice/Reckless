@@ -160,9 +160,9 @@ impl Board {
                 self.add_piece(Piece::new(!stm, PieceType::Pawn), to ^ 8);
             }
             MoveKind::Castling => {
-                let (rook_from, root_to) = self.get_castling_rook(to);
+                let (rook_from, rook_to) = self.get_castling_rook(to);
 
-                self.remove_piece(Piece::new(stm, PieceType::Rook), root_to);
+                self.remove_piece(Piece::new(stm, PieceType::Rook), rook_to);
                 self.remove_piece(piece, to);
 
                 self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
