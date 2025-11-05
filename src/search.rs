@@ -470,7 +470,6 @@ fn search<NODE: NodeType>(
     if cut_node
         && !in_check
         && !excluded
-        && !potential_singularity
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 16 * depth + 158 * tt_pv as i32 - 106 * improvement / 1024 + 213
@@ -480,7 +479,7 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5756 + 321 * depth) / 1024;
+        let r = (5756 + 321 * depth - 1024 * potential_singularity as i32) / 1024;
 
         td.stack[ply].conthist = std::ptr::null_mut();
         td.stack[ply].contcorrhist = std::ptr::null_mut();
