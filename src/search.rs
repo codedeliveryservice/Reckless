@@ -479,7 +479,7 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5756 + 321 * depth - 1024 * potential_singularity as i32) / 1024;
+        let r = (5756 + 321 * depth + 1024 * !potential_singularity as i32) / 1024;
 
         td.stack[ply].conthist = std::ptr::null_mut();
         td.stack[ply].contcorrhist = std::ptr::null_mut();
