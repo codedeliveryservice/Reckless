@@ -70,12 +70,20 @@ impl super::Board {
             }
 
             // Capturing a piece may reveal a new sliding attacker
-            if [PieceType::Pawn, PieceType::Bishop, PieceType::Queen].contains(&attacker) {
-                attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+            match attacker {
+                PieceType::Pawn | PieceType::Bishop => {
+                    attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+                }
+                PieceType::Rook => {
+                    attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
+                }
+                PieceType::Queen => {
+                    attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+                    attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
+                }
+                _ => {}
             }
-            if [PieceType::Rook, PieceType::Queen].contains(&attacker) {
-                attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
-            }
+
             attackers &= occupancies;
         }
 

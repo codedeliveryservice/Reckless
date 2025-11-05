@@ -69,7 +69,7 @@ impl Status {
     }
 
     pub fn set(&self, status: usize) {
-        self.inner.store(status, Ordering::Release)
+        self.inner.store(status, Ordering::Release);
     }
 }
 

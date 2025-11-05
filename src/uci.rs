@@ -217,8 +217,8 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
-                for uci_move in rest.iter() {
-                    make_uci_move(&mut board, uci_move)
+                for uci_move in rest {
+                    make_uci_move(&mut board, uci_move);
                 }
                 break;
             }
@@ -294,7 +294,7 @@ fn eval(td: &mut ThreadData) {
     println!("{eval}");
 }
 
-fn display(td: &mut ThreadData) {
+fn display(td: &ThreadData) {
     println!("FEN: {}", td.board.to_fen());
 }
 
