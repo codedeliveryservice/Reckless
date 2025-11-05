@@ -1,4 +1,5 @@
 use crate::{
+    misc::dbg_stats,
     parameters::PIECE_VALUES,
     search::NodeType,
     thread::ThreadData,
@@ -164,8 +165,11 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 16 * PIECE_VALUES[captured]
-                + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+            entry.score = td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+
+            if mv.to() != td.board.recapture_square() {
+                entry.score += 16 * PIECE_VALUES[captured];
+            }
         }
     }
 
