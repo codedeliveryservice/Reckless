@@ -615,6 +615,7 @@ fn search<NODE: NodeType>(
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
+                && td.board.has_non_pawns()
                 && move_count
                     >= if improving || static_eval >= beta + 17 {
                         (3728 + 998 * initial_depth * initial_depth) / 1024
