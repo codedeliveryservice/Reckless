@@ -407,8 +407,8 @@ fn search<NODE: NodeType>(
         depth += 1;
     }
 
-    if !NODE::ROOT
-        && !tt_pv
+    if !NODE::PV
+        && !is_valid(tt_score)
         && !in_check
         && !excluded
         && depth >= 2
