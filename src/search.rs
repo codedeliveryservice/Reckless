@@ -702,6 +702,8 @@ fn search<NODE: NodeType>(
             } else if cut_node {
                 extension = -2;
             }
+        } else if NODE::PV && mv == tt_move && mv.is_noisy() && mv.to() == td.board.recapture_square() {
+            extension = 1;
         }
 
         let initial_nodes = td.nodes();
