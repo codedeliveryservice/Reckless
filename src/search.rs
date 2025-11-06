@@ -1123,8 +1123,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
-    let previous_square = if td.stack[ply - 1].mv.is_some() { td.stack[ply - 1].mv.to() } else { Square::None };
-
     while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
         if !td.board.is_legal(mv) {
             continue;
@@ -1132,7 +1130,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != previous_square {
+        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
