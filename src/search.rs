@@ -704,7 +704,7 @@ fn search<NODE: NodeType>(
             } else if cut_node {
                 extension = -2;
             }
-        } else if NODE::PV && mv == tt_move && mv.is_noisy() && mv.to() == td.board.recapture_square() {
+        } else if NODE::PV && mv == tt_move && !is_quiet && mv.to() == td.board.recapture_square() {
             extension = 1;
         }
 
@@ -773,9 +773,8 @@ fn search<NODE: NodeType>(
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
 
-                    if mv.is_quiet() && score >= beta {
+                    if is_quiet && score >= beta {
                         let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
-
                         update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
                     }
                 }
@@ -911,10 +910,10 @@ fn search<NODE: NodeType>(
         }
 
         if mv != best_move && move_count < 32 {
-            if mv.is_noisy() {
-                noisy_moves.push(mv);
-            } else {
+            if is_quiet {
                 quiet_moves.push(mv);
+            } else {
+                noisy_moves.push(mv);
             }
         }
     }
