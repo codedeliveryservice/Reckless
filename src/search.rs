@@ -798,12 +798,7 @@ fn search<NODE: NodeType>(
 
             if tt_pv {
                 reduction -= 750;
-                reduction -= 537 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 1081 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if NODE::PV {
-                reduction -= 491 + 780 * (beta - alpha) / td.root_delta;
             }
 
             if !tt_pv && cut_node {
@@ -811,16 +806,8 @@ fn search<NODE: NodeType>(
                 reduction += 1048 * tt_move.is_null() as i32;
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 744;
-            }
-
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1438;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 849;
             }
 
             if depth == 2 {
