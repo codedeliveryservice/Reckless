@@ -482,18 +482,19 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (6308 + 321 * depth) / 1024;
+        let r = 6308 + 321 * depth;
 
         td.stack[ply].conthist = std::ptr::null_mut();
         td.stack[ply].contcorrhist = std::ptr::null_mut();
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
+        td.stack[ply].reduction = r;
 
         td.board.make_null_move();
-
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
-
+        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r / 1024, false, ply + 1);
         td.board.undo_null_move();
+
+        td.stack[ply].reduction = 0;
 
         if td.stopped {
             return Score::ZERO;
