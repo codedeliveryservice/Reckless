@@ -840,7 +840,7 @@ fn search<NODE: NodeType>(
         }
 
         // Principal Variation Search (PVS)
-        if NODE::PV && (move_count == 1 || score > alpha) {
+        if NODE::PV && (move_count == 1 || (alpha < score && score < beta)) {
             if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
                 new_depth = new_depth.max(1);
             }
