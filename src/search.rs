@@ -359,7 +359,7 @@ fn search<NODE: NodeType>(
         eval = static_eval;
     } else if let Some(entry) = &entry {
         raw_eval = if is_valid(entry.eval) { entry.eval } else { evaluate(td) };
-        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        static_eval = corrected_eval(raw_eval, correction_value);
         eval = static_eval;
 
         if is_valid(tt_score)
@@ -375,7 +375,7 @@ fn search<NODE: NodeType>(
         raw_eval = evaluate(td);
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv);
 
-        static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        static_eval = corrected_eval(raw_eval, correction_value);
         eval = static_eval;
     }
 
@@ -1073,7 +1073,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.eval) => entry.eval,
             _ => evaluate(td),
         };
-        best_score = corrected_eval(raw_eval, correction_value(td, ply), td.board.halfmove_clock());
+        best_score = corrected_eval(raw_eval, correction_value(td, ply));
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1216,8 +1216,8 @@ fn correction_value(td: &ThreadData, ply: usize) -> i32 {
     correction
 }
 
-fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
+fn corrected_eval(eval: i32, correction_value: i32) -> i32 {
+    (eval + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
