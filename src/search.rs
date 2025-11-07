@@ -637,7 +637,6 @@ fn search<NODE: NodeType>(
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
-                skip_quiets = true;
                 continue;
             }
 
