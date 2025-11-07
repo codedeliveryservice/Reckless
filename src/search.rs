@@ -432,7 +432,7 @@ fn search<NODE: NodeType>(
         improvement = static_eval - td.stack[ply - 4].static_eval;
     }
 
-    let improving = improvement > 0;
+    let improving = improvement >= 0;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
