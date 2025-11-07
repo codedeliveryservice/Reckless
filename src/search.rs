@@ -448,6 +448,7 @@ fn search<NODE: NodeType>(
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && tt_bound != Bound::Upper
     {
         return beta + (static_eval - beta) / 3;
     }
@@ -479,6 +480,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && tt_bound != Bound::Upper
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
