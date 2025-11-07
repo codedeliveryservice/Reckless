@@ -439,6 +439,10 @@ fn search<NODE: NodeType>(
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
+    if !NODE::PV && depth >= 2 && !in_check && eval < alpha - 320 - 50 * initial_depth * initial_depth {
+        depth -= 1;
+    }
+
     // Static Evaluation Reverse Futility Pruning (SERFP)
     if !tt_pv
         && is_valid(eval)
