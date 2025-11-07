@@ -925,7 +925,7 @@ fn search<NODE: NodeType>(
         let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
 
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
-            let bonus = (current_search_count + (move_count / depth)) * (155 * depth - 63).min(851);
+            let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
 
