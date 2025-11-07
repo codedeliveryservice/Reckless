@@ -479,7 +479,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
     {
-        depth -= 1;
+        depth /= 2;
     }
 
     // Reverse Futility Reduction (RFR)
@@ -496,7 +496,7 @@ fn search<NODE: NodeType>(
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
-        depth -= 1;
+        depth /= 2;
     }
 
     // Null Move Pruning (NMP)
