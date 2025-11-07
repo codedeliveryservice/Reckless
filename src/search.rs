@@ -261,6 +261,7 @@ fn search<NODE: NodeType>(
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
+    let mut refused_to_cut = false;
     // Search Early TT-Cut
     if let Some(entry) = &entry {
         tt_depth = entry.depth;
@@ -290,6 +291,7 @@ fn search<NODE: NodeType>(
             if td.board.halfmove_clock() < 90 {
                 return tt_score;
             }
+            refused_to_cut = true;
         }
     }
 
@@ -448,6 +450,7 @@ fn search<NODE: NodeType>(
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && !refused_to_cut
     {
         return beta + (static_eval - beta) / 3;
     }
@@ -464,6 +467,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
+        && !refused_to_cut
     {
         return (eval + beta) / 2;
     }
@@ -479,6 +483,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && !refused_to_cut
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
