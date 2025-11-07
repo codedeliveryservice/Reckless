@@ -205,10 +205,16 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !(key != entry.key
-            || bound == Bound::Exact
-            || depth + 4 + 2 * pv as i32 > entry.depth as i32
-            || entry.flags.age() != tt_age)
+        let value = |bound: Bound, depth: i32| match bound {
+            Bound::Exact => depth + 8,
+            Bound::Lower => depth + 4,
+            Bound::Upper => depth + 3,
+            Bound::None => depth,
+        };
+
+        if !(entry.key != key
+            || entry.flags.age() != tt_age
+            || value(bound, depth) + 2 * pv as i32 > entry.depth as i32)
         {
             return;
         }
