@@ -83,7 +83,7 @@ pub struct Network {
     stack: Box<[Accumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
-    matrix: Vec<Vec<u32>>,
+    matrix: Box<[[i32; L1_SIZE / 2]]>,
 }
 
 impl Network {
@@ -172,8 +172,11 @@ impl Network {
 
             for i in 0..L1_SIZE / 2 {
                 if ft_out[i] != 0 {
+                    let row = &mut self.matrix[i];
                     for j in 0..L1_SIZE / 2 {
-                        self.matrix[i][j] += (ft_out[j] != 0) as u32;
+                        if ft_out[j] != 0 {
+                            row[j] += 1;
+                        }
                     }
                 }
             }
@@ -209,7 +212,7 @@ impl Default for Network {
             stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
-            matrix: vec![vec![0; L1_SIZE / 2]; L1_SIZE / 2],
+            matrix: vec![[0; L1_SIZE / 2]; L1_SIZE / 2].into_boxed_slice(),
         }
     }
 }
