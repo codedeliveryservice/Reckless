@@ -448,6 +448,7 @@ fn search<NODE: NodeType>(
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && td.board.halfmove_clock() < 90
     {
         return beta + (static_eval - beta) / 3;
     }
@@ -464,6 +465,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
+        && td.board.halfmove_clock() < 90
     {
         return (eval + beta) / 2;
     }
@@ -479,6 +481,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && td.board.halfmove_clock() < 90
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
