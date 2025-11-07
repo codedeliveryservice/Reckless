@@ -444,6 +444,7 @@ fn search<NODE: NodeType>(
         && is_valid(eval)
         && !excluded
         && depth < 9
+        && depth > tt_depth
         && eval >= beta
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
