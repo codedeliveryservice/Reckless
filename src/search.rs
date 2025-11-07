@@ -468,6 +468,24 @@ fn search<NODE: NodeType>(
         return (eval + beta) / 2;
     }
 
+    // Reverse Futility Reduction (RFR)
+    if !tt_pv
+        && depth >= 2
+        && depth < 7
+        && is_valid(eval)
+        && !excluded
+        && eval >= beta
+        && eval
+            >= beta + 60 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+                + 580 * correction_value.abs() / 1024
+                + 24
+        && !is_loss(beta)
+        && !is_win(eval)
+        && tt_bound != Bound::Upper
+    {
+        depth /= 2;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
