@@ -452,20 +452,33 @@ fn search<NODE: NodeType>(
         return beta + (static_eval - beta) / 3;
     }
 
-    // Reverse Futility Pruning (RFP)
     if !tt_pv
         && is_valid(eval)
         && !excluded
         && eval >= beta
-        && eval
-            >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
-                + 580 * correction_value.abs() / 1024
-                + 24
         && !is_loss(beta)
         && !is_win(eval)
         && tt_bound != Bound::Upper
     {
-        return (eval + beta) / 2;
+        // Reverse Futility Pruning (RFP)
+        if eval
+            >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+                + 580 * correction_value.abs() / 1024
+                + 24
+        {
+            return (eval + beta) / 2;
+        }
+
+        // Reverse Futility Reduction (RFR)
+        if depth >= 2
+            && depth < 9
+            && eval
+                >= beta + 45 * depth - (71 * improving as i32) - (23 * cut_node as i32)
+                    + 580 * correction_value.abs() / 1024
+                    + 24
+        {
+            depth /= 2;
+        }
     }
 
     // Null Move Pruning (NMP)
