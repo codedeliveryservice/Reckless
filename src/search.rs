@@ -523,6 +523,7 @@ fn search<NODE: NodeType>(
 
     if cut_node
         && depth >= 3
+        && !potential_singularity
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
