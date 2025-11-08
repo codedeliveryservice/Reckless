@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicPtr, AtomicU16, AtomicU64, AtomicU8, AtomicUsize, Ordering};
 
 use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
 
@@ -13,7 +13,7 @@ const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
-const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
+const _: () = assert!(std::mem::size_of::<InternalEntry>() == 8);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -65,11 +65,9 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (10 bytes).
 #[derive(Clone)]
 #[repr(C)]
 pub struct InternalEntry {
-    key: u16,     // 2 bytes
     mv: Move,     // 2 bytes
     score: i16,   // 2 bytes
     eval: i16,    // 2 bytes
@@ -90,10 +88,30 @@ impl InternalEntry {
     }
 }
 
-#[derive(Clone)]
 #[repr(align(32))]
 struct Cluster {
-    entries: [InternalEntry; ENTRIES_PER_CLUSTER],
+    data: [AtomicU64; ENTRIES_PER_CLUSTER],
+    keys: [AtomicU16; ENTRIES_PER_CLUSTER],
+}
+
+impl Cluster {
+    fn load_key(&self, index: usize) -> u16 {
+        self.keys[index].load(Ordering::Relaxed)
+    }
+
+    fn store_key(&self, index: usize, key: u16) {
+        self.keys[index].store(key, Ordering::Relaxed);
+    }
+
+    fn load_data(&self, index: usize) -> InternalEntry {
+        let data = self.data[index].load(Ordering::Relaxed);
+        unsafe { std::mem::transmute(data) }
+    }
+
+    fn store_data(&self, index: usize, data: InternalEntry) {
+        let data = unsafe { std::mem::transmute(data) };
+        self.data[index].store(data, Ordering::Relaxed);
+    }
 }
 
 /// The transposition table is used to cache previously performed search results.
@@ -130,7 +148,8 @@ impl TranspositionTable {
 
         let mut count = 0;
         for cluster in clusters.iter().take(1000) {
-            for entry in &cluster.entries {
+            for index in 0..ENTRIES_PER_CLUSTER {
+                let entry = cluster.load_data(index);
                 count += (entry.flags.bound() != Bound::None && entry.flags.age() == age) as usize;
             }
         }
@@ -148,17 +167,20 @@ impl TranspositionTable {
             unsafe { &*self.ptr().add(index) }
         };
 
-        let key = verification_key(hash);
+        let verification_key = verification_key(hash);
 
-        for entry in &cluster.entries {
-            if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+        for index in 0..ENTRIES_PER_CLUSTER {
+            let key = cluster.load_key(index);
+            let data = cluster.load_data(index);
+
+            if verification_key == key && data.depth != TtDepth::NONE as i8 {
                 let hit = Entry {
-                    depth: entry.depth as i32,
-                    score: score_from_tt(entry.score as i32, ply, halfmove_clock),
-                    eval: entry.eval as i32,
-                    bound: entry.flags.bound(),
-                    pv: entry.flags.pv(),
-                    mv: entry.mv,
+                    depth: data.depth as i32,
+                    score: score_from_tt(data.score as i32, ply, halfmove_clock),
+                    eval: data.eval as i32,
+                    bound: data.flags.bound(),
+                    pv: data.flags.pv(),
+                    mv: data.mv,
                 };
 
                 return Some(hit);
@@ -177,39 +199,43 @@ impl TranspositionTable {
 
         let cluster = {
             let index = index(hash, self.len());
-            unsafe { &mut *self.ptr().add(index) }
+            unsafe { &*self.ptr().add(index) }
         };
 
-        let key = verification_key(hash);
+        let verification_key = verification_key(hash);
         let tt_age = self.age();
 
         let mut replacement_slot = None;
         let mut lowest_quality = i32::MAX;
 
-        for candidate in &mut cluster.entries {
-            if candidate.key == key || candidate.depth as i32 == TtDepth::NONE {
-                replacement_slot = Some(candidate);
+        for index in 0..ENTRIES_PER_CLUSTER {
+            let key = cluster.load_key(index);
+            let data = cluster.load_data(index);
+
+            if key == verification_key || data.depth as i32 == TtDepth::NONE {
+                replacement_slot = Some((key, data, index));
                 break;
             }
 
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            let quality = data.depth as i32 - 4 * data.relative_age(tt_age);
             if quality < lowest_quality {
-                replacement_slot = Some(candidate);
+                replacement_slot = Some((key, data, index));
                 lowest_quality = quality;
             }
         }
 
-        let entry = replacement_slot.unwrap();
+        let (key, mut data, index) = replacement_slot.unwrap();
 
-        if !(entry.key == key && mv.is_null()) {
-            entry.mv = mv;
+        if !(key == verification_key && mv.is_null()) {
+            data.mv = mv;
         }
 
-        if !(key != entry.key
+        if !(key != verification_key
             || bound == Bound::Exact
-            || depth + 4 + 2 * pv as i32 > entry.depth as i32
-            || entry.flags.age() != tt_age)
+            || depth + 4 + 2 * pv as i32 > data.depth as i32
+            || data.flags.age() != tt_age)
         {
+            cluster.store_data(index, data);
             return;
         }
 
@@ -218,11 +244,13 @@ impl TranspositionTable {
             score += score.signum() * ply as i32;
         }
 
-        entry.key = key;
-        entry.depth = depth as i8;
-        entry.score = score as i16;
-        entry.eval = eval as i16;
-        entry.flags = Flags::new(bound, pv, tt_age);
+        data.depth = depth as i8;
+        data.score = score as i16;
+        data.eval = eval as i16;
+        data.flags = Flags::new(bound, pv, tt_age);
+
+        cluster.store_key(index, verification_key);
+        cluster.store_data(index, data);
     }
 
     pub fn prefetch(&self, hash: u64) {
