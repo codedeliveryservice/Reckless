@@ -626,6 +626,14 @@ fn search<NODE: NodeType>(
                         (1904 + 470 * initial_depth * initial_depth) / 1024
                     };
 
+            if is_quiet
+                && lmr_depth < 5
+                && td.conthist(ply, 1, mv) < -35 * depth * depth
+                && td.conthist(ply, 2, mv) < -35 * depth * depth
+            {
+                continue;
+            }
+
             // Futility Pruning (FP)
             let futility_value =
                 static_eval + 105 * lmr_depth + 49 * history / 1024 + 95 * (static_eval >= alpha) as i32 + 83;
