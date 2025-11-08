@@ -439,33 +439,14 @@ fn search<NODE: NodeType>(
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
-    // Static Evaluation Reverse Futility Pruning (SERFP)
-    if !tt_pv
-        && is_valid(eval)
-        && !excluded
-        && depth < 9
-        && eval >= beta
-        && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
-        && !is_loss(beta)
-        && !is_win(eval)
-    {
-        return beta + (static_eval - beta) / 3;
-    }
-
     // Reverse Futility Pruning (RFP)
-    if !tt_pv
-        && is_valid(eval)
-        && !excluded
-        && eval >= beta
-        && eval
-            >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
-                + 580 * correction_value.abs() / 1024
-                + 24
-        && !is_loss(beta)
-        && !is_win(eval)
-        && tt_bound != Bound::Upper
-    {
-        return (eval + beta) / 2;
+    if !tt_pv && !excluded && is_valid(eval) && eval >= beta && !is_loss(beta) && !is_win(eval) {
+        let rfp_margin = 157 * depth * depth / 16 + 31 * depth;
+        let serfp_margin = 75 * depth;
+
+        if eval >= beta + (rfp_margin + serfp_margin) / 2 - 71 * improving as i32 + correction_value.abs() / 2 {
+            return (2 * beta + eval) / 3;
+        }
     }
 
     // Null Move Pruning (NMP)
