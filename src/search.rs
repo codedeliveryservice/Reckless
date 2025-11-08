@@ -657,6 +657,10 @@ fn search<NODE: NodeType>(
                 break;
             }
 
+            if !is_quiet && lmr_depth < 4 && history < -512 * depth {
+                continue;
+            }
+
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
                 -325 * lmr_depth * lmr_depth / 16 - 31 * history / 1024
