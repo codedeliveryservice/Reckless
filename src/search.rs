@@ -974,11 +974,8 @@ fn search<NODE: NodeType>(
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_some() {
-                let bonus = (151 * initial_depth - 41).min(1630);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-            }
+            let bonus = (151 * initial_depth - 41).min(1630);
+            td.continuation_history.update(td.stack[ply - 2].conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
         }
     }
 
@@ -1227,31 +1224,23 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        td.continuation_corrhist.update(
-            td.stack[ply - 2].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-            bonus,
-        );
-    }
-
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        td.continuation_corrhist.update(
-            td.stack[ply - 4].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-            bonus,
-        );
-    }
+    td.continuation_corrhist.update(
+        td.stack[ply - 2].contcorrhist,
+        td.stack[ply - 1].piece,
+        td.stack[ply - 1].mv.to(),
+        bonus,
+    );
+    td.continuation_corrhist.update(
+        td.stack[ply - 4].contcorrhist,
+        td.stack[ply - 1].piece,
+        td.stack[ply - 1].mv.to(),
+        bonus,
+    );
 }
 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 3, 4, 6] {
-        let entry = &td.stack[ply - offset];
-        if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, bonus);
-        }
+        td.continuation_history.update(td.stack[ply - offset].conthist, piece, sq, bonus);
     }
 }
 

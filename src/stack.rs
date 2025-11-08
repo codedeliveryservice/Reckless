@@ -37,7 +37,8 @@ unsafe impl Send for StackEntry {}
 
 impl Default for StackEntry {
     fn default() -> Self {
-        static mut SENTINEL: [[i16; 64]; 13] = [[0; 64]; 13];
+        static mut SENTINEL1: [[i16; 64]; 13] = [[0; 64]; 13];
+        static mut SENTINEL2: [[i16; 64]; 13] = [[0; 64]; 13];
 
         Self {
             mv: Move::NULL,
@@ -49,8 +50,8 @@ impl Default for StackEntry {
             cutoff_count: 0,
             move_count: 0,
             reduction: 0,
-            conthist: &raw mut SENTINEL,
-            contcorrhist: &raw mut SENTINEL,
+            conthist: &raw mut SENTINEL1,
+            contcorrhist: &raw mut SENTINEL2,
         }
     }
 }
