@@ -441,21 +441,24 @@ fn search<NODE: NodeType>(
 
     // Static Evaluation Reverse Futility Pruning (SERFP)
     if !tt_pv
-        && is_valid(eval)
+        && !potential_singularity
         && !excluded
+        && is_valid(eval)
         && depth < 9
         && eval >= beta
         && static_eval >= beta + 75 * depth - (85 * improving as i32) + 580 * correction_value.abs() / 1024
         && !is_loss(beta)
         && !is_win(eval)
+        && tt_bound != Bound::Upper
     {
         return beta + (static_eval - beta) / 3;
     }
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
-        && is_valid(eval)
+        && !potential_singularity
         && !excluded
+        && is_valid(eval)
         && eval >= beta
         && eval
             >= beta + 157 * depth * depth / 16 + 31 * depth - (71 * improving as i32) - (23 * cut_node as i32)
