@@ -221,14 +221,8 @@ impl ThreadData {
         self.shared.nodes.get(self.id)
     }
 
-    pub fn conthist(&self, ply: usize, index: usize, mv: Move) -> i32 {
-        if ply < index || self.stack[ply - index].mv.is_null() {
-            return 0;
-        }
-
-        let piece = self.board.piece_on(mv.from());
-        let sq = mv.to();
-        self.continuation_history.get(self.stack[ply - index].conthist, piece, sq)
+    pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {
+        self.continuation_history.get(self.stack[ply - index].conthist, self.board.piece_on(mv.from()), mv.to())
     }
 
     pub fn print_uci_info(&self, depth: i32) {

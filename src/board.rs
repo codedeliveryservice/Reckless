@@ -229,7 +229,7 @@ impl Board {
     }
 
     /// Checks if the position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self, ply: usize) -> bool {
+    pub fn is_draw(&self, ply: isize) -> bool {
         self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
     }
 

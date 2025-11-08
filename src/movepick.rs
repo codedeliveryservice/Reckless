@@ -62,7 +62,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: usize) -> Option<Move> {
+    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -169,7 +169,7 @@ impl MovePicker {
         }
     }
 
-    fn score_quiet(&mut self, td: &ThreadData, ply: usize) {
+    fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.threats();
         let side = td.board.side_to_move();
 

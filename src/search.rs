@@ -191,16 +191,16 @@ pub fn start(td: &mut ThreadData, report: Report) {
 }
 
 fn search<NODE: NodeType>(
-    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: usize,
+    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: isize,
 ) -> i32 {
-    debug_assert!(ply <= MAX_PLY);
+    debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_some();
 
     if !NODE::ROOT && NODE::PV {
-        td.pv_table.clear(ply);
+        td.pv_table.clear(ply as usize);
     }
 
     if td.stopped {
@@ -212,7 +212,7 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply) {
+    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -233,7 +233,7 @@ fn search<NODE: NodeType>(
             return Score::DRAW;
         }
 
-        if ply >= MAX_PLY - 1 {
+        if ply as usize >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { evaluate(td) };
         }
 
@@ -484,8 +484,8 @@ fn search<NODE: NodeType>(
 
         let r = (6308 + 321 * depth) / 1024;
 
-        td.stack[ply].conthist = std::ptr::null_mut();
-        td.stack[ply].contcorrhist = std::ptr::null_mut();
+        td.stack[ply].conthist = td.stack.sentinel().conthist;
+        td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
 
@@ -674,7 +674,7 @@ fn search<NODE: NodeType>(
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as usize {
+        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as isize {
             debug_assert!(is_valid(tt_score));
 
             let singular_beta = tt_score - depth;
@@ -880,7 +880,7 @@ fn search<NODE: NodeType>(
                 best_move = mv;
 
                 if !NODE::ROOT && NODE::PV {
-                    td.pv_table.update(ply, mv);
+                    td.pv_table.update(ply as usize, mv);
                 }
 
                 if score >= beta {
@@ -1012,12 +1012,12 @@ fn search<NODE: NodeType>(
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: usize) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: isize) -> i32 {
     debug_assert!(!NODE::ROOT);
-    debug_assert!(ply <= MAX_PLY);
+    debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    if alpha < Score::ZERO && td.board.upcoming_repetition(ply) {
+    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -1027,7 +1027,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let in_check = td.board.in_check();
 
     if NODE::PV {
-        td.pv_table.clear(ply);
+        td.pv_table.clear(ply as usize);
         td.sel_depth = td.sel_depth.max(ply as i32);
     }
 
@@ -1040,7 +1040,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return Score::DRAW;
     }
 
-    if ply >= MAX_PLY - 1 {
+    if ply as usize >= MAX_PLY - 1 {
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
@@ -1164,7 +1164,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 best_move = mv;
 
                 if NODE::PV {
-                    td.pv_table.update(ply, mv);
+                    td.pv_table.update(ply as usize, mv);
                 }
 
                 if score >= beta {
@@ -1194,7 +1194,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn correction_value(td: &ThreadData, ply: usize) -> i32 {
+fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
     let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -1226,7 +1226,7 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
 
@@ -1256,7 +1256,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 }
 
-fn update_continuation_histories(td: &mut ThreadData, ply: usize, piece: Piece, sq: Square, bonus: i32) {
+fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 3, 4, 6] {
         if ply >= offset {
             let entry = &td.stack[ply - offset];
@@ -1267,7 +1267,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: usize, piece: Piece, 
     }
 }
 
-fn make_move(td: &mut ThreadData, ply: usize, mv: Move) {
+fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].mv = mv;
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
