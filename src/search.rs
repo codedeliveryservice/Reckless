@@ -644,11 +644,7 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = static_eval
-                + 123 * lmr_depth
-                + 72 * history / 1024
-                + 94 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 71;
+            let noisy_futility_value = static_eval + 123 * lmr_depth + 72 * history / 1024 + 100;
 
             if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
