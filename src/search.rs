@@ -578,6 +578,7 @@ fn search<NODE: NodeType>(
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
+    let mut current_search_count = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
@@ -593,6 +594,7 @@ fn search<NODE: NodeType>(
         }
 
         move_count += 1;
+        current_search_count = 0;
         td.stack[ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
@@ -765,6 +767,7 @@ fn search<NODE: NodeType>(
             td.stack[ply].reduction = reduction;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
             td.stack[ply].reduction = 0;
+            current_search_count += 1;
 
             if score > alpha && new_depth > reduced_depth {
                 new_depth += (score > best_score + 37 + 495 * depth / 128) as i32;
@@ -772,11 +775,7 @@ fn search<NODE: NodeType>(
 
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
-
-                    if is_quiet && score >= beta {
-                        let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
-                        update_continuation_histories(td, ply, td.stack[ply].piece, mv.to(), bonus);
-                    }
+                    current_search_count += 1;
                 }
             } else if score > alpha && score < best_score + 16 {
                 new_depth -= 1;
@@ -823,6 +822,7 @@ fn search<NODE: NodeType>(
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             td.stack[ply].reduction = 0;
+            current_search_count += 1;
         }
 
         // Principal Variation Search (PVS)
@@ -832,6 +832,7 @@ fn search<NODE: NodeType>(
             }
 
             score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            current_search_count += 1;
         }
 
         undo_move(td, mv);
@@ -922,6 +923,11 @@ fn search<NODE: NodeType>(
 
         let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
         let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
+
+        if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
+            let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
+            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+        }
 
         if best_move.is_noisy() {
             td.noisy_history.update(
