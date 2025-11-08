@@ -426,9 +426,9 @@ fn search<NODE: NodeType>(
 
     let mut improvement = 0;
 
-    if ply >= 2 && is_valid(td.stack[ply - 2].static_eval) && !in_check {
+    if is_valid(td.stack[ply - 2].static_eval) && !in_check {
         improvement = static_eval - td.stack[ply - 2].static_eval;
-    } else if ply >= 4 && is_valid(td.stack[ply - 4].static_eval) && !in_check {
+    } else if is_valid(td.stack[ply - 4].static_eval) && !in_check {
         improvement = static_eval - td.stack[ply - 4].static_eval;
     }
 
@@ -974,12 +974,10 @@ fn search<NODE: NodeType>(
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-            if ply >= 2 {
-                let entry = &td.stack[ply - 2];
-                if entry.mv.is_some() {
-                    let bonus = (151 * initial_depth - 41).min(1630);
-                    td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-                }
+            let entry = &td.stack[ply - 2];
+            if entry.mv.is_some() {
+                let bonus = (151 * initial_depth - 41).min(1630);
+                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
         }
     }
@@ -1197,29 +1195,21 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
+    td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
-
-    if ply >= 2 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.continuation_corrhist.get(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        );
-    }
-
-    if ply >= 4 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        )
+        + td.continuation_corrhist.get(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        );
-    }
-
-    correction
+        )
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
@@ -1237,7 +1227,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if ply >= 2 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
+    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1246,7 +1236,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
         );
     }
 
-    if ply >= 4 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
+    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1258,11 +1248,9 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 3, 4, 6] {
-        if ply >= offset {
-            let entry = &td.stack[ply - offset];
-            if entry.mv.is_some() {
-                td.continuation_history.update(entry.conthist, piece, sq, bonus);
-            }
+        let entry = &td.stack[ply - offset];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }
 }
