@@ -638,6 +638,8 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
+        dbg_stats(history, is_quiet as usize);
+
         let mut reduction = td.lmr.reduction(depth, move_count);
 
         if !improving {
@@ -956,18 +958,17 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 79;
-            factor += 147 * (initial_depth > 5) as i32;
-            factor += 184 * (td.stack[ply - 1].move_count > 8) as i32;
-            factor += 128 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
-            factor += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
-            factor += 297
+            let mut bonus = 79;
+            bonus += (156 * initial_depth - 42).min(1789);
+            bonus += 147 * (initial_depth > 5) as i32;
+            bonus += 184 * (td.stack[ply - 1].move_count > 8) as i32;
+            bonus += 128 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
+            bonus += 217 * (!in_check && best_score <= static_eval.min(raw_eval) - 132) as i32;
+            bonus += 297
                 * (is_valid(td.stack[ply - 1].static_eval) && best_score <= -td.stack[ply - 1].static_eval - 100)
                     as i32;
 
-            let scaled_bonus = factor * (156 * initial_depth - 42).min(1789) / 128;
-
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
 
             let entry = &td.stack[ply - 2];
             if entry.mv.is_some() {
