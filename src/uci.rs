@@ -103,10 +103,8 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
 }
 
 fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, move_overhead: u64, tokens: &[&str]) {
-    let board = &threads.main_thread().board;
-    let limits = parse_limits(board.side_to_move(), tokens);
-
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    let thread_count = threads.len();
+    let limits = parse_limits(threads.main_thread().board.side_to_move(), tokens);
 
     shared.nodes.reset();
     shared.tb_hits.reset();
@@ -121,6 +119,10 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
 
         handlers.push(scope.spawn_into(
             || {
+                t1.id = 0;
+                t1.thread_count = thread_count;
+                t1.time_manager = TimeManager::new(limits, t1.board.fullmove_number(), move_overhead);
+
                 search::start(t1, report);
                 shared.status.set(Status::STOPPED);
             },
@@ -130,8 +132,10 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
         for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
             handlers.push(scope.spawn_into(
                 move || {
-                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
                     t.id = index + 1;
+                    t.thread_count = thread_count;
+                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+
                     search::start(t, Report::None);
                 },
                 w,
