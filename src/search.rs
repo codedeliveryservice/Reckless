@@ -64,11 +64,15 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
+    let mut best_move_changes = 0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
+        best_move_changes /= 2;
+
         td.sel_depth = 0;
         td.root_depth = depth;
+        td.best_move_changes = 0;
 
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
@@ -151,6 +155,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
             pv_stability = 0;
         }
 
+        best_move_changes += td.best_move_changes;
+
         if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
             if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
                 td.root_moves.remove(pos);
@@ -175,7 +181,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
 
-            nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor
+            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+
+            nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
@@ -850,6 +858,10 @@ fn search<NODE: NodeType>(
                 root_move.score = score;
                 root_move.sel_depth = td.sel_depth;
                 root_move.pv.commit_full_root_pv(&td.pv_table, 1);
+
+                if move_count > 1 {
+                    td.best_move_changes += 1;
+                }
             } else {
                 root_move.score = -Score::INFINITE;
             }
