@@ -421,9 +421,6 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
-
     let mut improvement = 0;
 
     if is_valid(td.stack[ply - 2].static_eval) && !in_check {
@@ -451,11 +448,57 @@ fn search<NODE: NodeType>(
         return beta + (eval - beta) / 3;
     }
 
+    // Singular Extensions (SE)
+    let mut extension = 0;
+
+    if !NODE::ROOT
+        && !excluded
+        && depth >= 5
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && ply < 2 * td.root_depth as isize
+    {
+        debug_assert!(is_valid(tt_score));
+
+        let singular_beta = tt_score - depth;
+        let singular_depth = (depth - 1) / 2;
+
+        td.stack[ply].excluded = tt_move;
+        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        td.stack[ply].excluded = Move::NULL;
+
+        if td.stopped {
+            return Score::ZERO;
+        }
+
+        if score < singular_beta {
+            let double_margin = 2 + 277 * NODE::PV as i32;
+            let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+
+            extension = 1;
+            extension += (score < singular_beta - double_margin) as i32;
+            extension += (score < singular_beta - triple_margin) as i32;
+
+            if extension > 1 && depth < 14 {
+                depth += 1;
+            }
+        } else if score >= beta && !is_decisive(score) {
+            return score;
+        } else if tt_score >= beta {
+            extension = -2;
+        } else if cut_node {
+            extension = -2;
+        }
+    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
+        extension = 1;
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
         && !excluded
-        && !potential_singularity
         && eval >= beta
         && eval >= static_eval
         && static_eval >= beta - 12 * depth + 158 * tt_pv as i32 - 106 * improvement / 1024 + 233
@@ -654,50 +697,11 @@ fn search<NODE: NodeType>(
             }
         }
 
-        // Singular Extensions (SE)
-        let mut extension = 0;
-
-        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as isize {
-            debug_assert!(is_valid(tt_score));
-
-            let singular_beta = tt_score - depth;
-            let singular_depth = (depth - 1) / 2;
-
-            td.stack[ply].excluded = tt_move;
-            let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
-            td.stack[ply].excluded = Move::NULL;
-
-            if td.stopped {
-                return Score::ZERO;
-            }
-
-            if score < singular_beta {
-                let double_margin = 2 + 277 * NODE::PV as i32;
-                let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
-
-                extension = 1;
-                extension += (score < singular_beta - double_margin) as i32;
-                extension += (score < singular_beta - triple_margin) as i32;
-
-                if extension > 1 && depth < 14 {
-                    depth += 1;
-                }
-            } else if score >= beta && !is_decisive(score) {
-                return score;
-            } else if tt_score >= beta {
-                extension = -2;
-            } else if cut_node {
-                extension = -2;
-            }
-        } else if NODE::PV && mv == tt_move && !is_quiet && mv.to() == td.board.recapture_square() {
-            extension = 1;
-        }
-
         let initial_nodes = td.nodes();
 
         make_move(td, ply, mv);
 
-        let mut new_depth = depth + extension - 1;
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
