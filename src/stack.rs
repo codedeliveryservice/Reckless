@@ -3,12 +3,18 @@ use std::ops::{Index, IndexMut};
 use crate::types::{Move, Piece, Score, MAX_PLY};
 
 pub struct Stack {
-    data: [StackEntry; MAX_PLY + 8],
+    data: [StackEntry; MAX_PLY + 16],
+}
+
+impl Stack {
+    pub fn sentinel(&mut self) -> &mut StackEntry {
+        unsafe { self.data.get_unchecked_mut(0) }
+    }
 }
 
 impl Default for Stack {
     fn default() -> Self {
-        Self { data: [StackEntry::default(); MAX_PLY + 8] }
+        Self { data: [StackEntry::default(); MAX_PLY + 16] }
     }
 }
 
@@ -31,6 +37,8 @@ unsafe impl Send for StackEntry {}
 
 impl Default for StackEntry {
     fn default() -> Self {
+        static mut SENTINEL: [[i16; 64]; 13] = [[0; 64]; 13];
+
         Self {
             mv: Move::NULL,
             piece: Piece::None,
@@ -41,22 +49,24 @@ impl Default for StackEntry {
             cutoff_count: 0,
             move_count: 0,
             reduction: 0,
-            conthist: std::ptr::null_mut(),
-            contcorrhist: std::ptr::null_mut(),
+            conthist: &raw mut SENTINEL,
+            contcorrhist: &raw mut SENTINEL,
         }
     }
 }
 
-impl Index<usize> for Stack {
+impl Index<isize> for Stack {
     type Output = StackEntry;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        unsafe { self.data.get_unchecked(index) }
+    fn index(&self, index: isize) -> &Self::Output {
+        debug_assert!(index + 8 >= 0 && index < MAX_PLY as isize + 16);
+        unsafe { self.data.get_unchecked((index + 8) as usize) }
     }
 }
 
-impl IndexMut<usize> for Stack {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        unsafe { self.data.get_unchecked_mut(index) }
+impl IndexMut<isize> for Stack {
+    fn index_mut(&mut self, index: isize) -> &mut Self::Output {
+        debug_assert!(index + 8 >= 0 && index < MAX_PLY as isize + 16);
+        unsafe { self.data.get_unchecked_mut((index + 8) as usize) }
     }
 }

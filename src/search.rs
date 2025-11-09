@@ -191,16 +191,16 @@ pub fn start(td: &mut ThreadData, report: Report) {
 }
 
 fn search<NODE: NodeType>(
-    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: usize,
+    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: isize,
 ) -> i32 {
-    debug_assert!(ply <= MAX_PLY);
+    debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_some();
 
     if !NODE::ROOT && NODE::PV {
-        td.pv_table.clear(ply);
+        td.pv_table.clear(ply as usize);
     }
 
     if td.stopped {
@@ -212,7 +212,7 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply) {
+    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -233,7 +233,7 @@ fn search<NODE: NodeType>(
             return Score::DRAW;
         }
 
-        if ply >= MAX_PLY - 1 {
+        if ply as usize >= MAX_PLY - 1 {
             return if in_check { Score::DRAW } else { evaluate(td) };
         }
 
@@ -426,9 +426,9 @@ fn search<NODE: NodeType>(
 
     let mut improvement = 0;
 
-    if ply >= 2 && is_valid(td.stack[ply - 2].static_eval) && !in_check {
+    if is_valid(td.stack[ply - 2].static_eval) && !in_check {
         improvement = static_eval - td.stack[ply - 2].static_eval;
-    } else if ply >= 4 && is_valid(td.stack[ply - 4].static_eval) && !in_check {
+    } else if is_valid(td.stack[ply - 4].static_eval) && !in_check {
         improvement = static_eval - td.stack[ply - 4].static_eval;
     }
 
@@ -484,8 +484,8 @@ fn search<NODE: NodeType>(
 
         let r = (6308 + 321 * depth) / 1024;
 
-        td.stack[ply].conthist = std::ptr::null_mut();
-        td.stack[ply].contcorrhist = std::ptr::null_mut();
+        td.stack[ply].conthist = td.stack.sentinel().conthist;
+        td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
 
@@ -674,7 +674,7 @@ fn search<NODE: NodeType>(
         // Singular Extensions (SE)
         let mut extension = 0;
 
-        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as usize {
+        if !NODE::ROOT && !excluded && mv == tt_move && potential_singularity && ply < 2 * td.root_depth as isize {
             debug_assert!(is_valid(tt_score));
 
             let singular_beta = tt_score - depth;
@@ -880,7 +880,7 @@ fn search<NODE: NodeType>(
                 best_move = mv;
 
                 if !NODE::ROOT && NODE::PV {
-                    td.pv_table.update(ply, mv);
+                    td.pv_table.update(ply as usize, mv);
                 }
 
                 if score >= beta {
@@ -974,12 +974,10 @@ fn search<NODE: NodeType>(
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-            if ply >= 2 {
-                let entry = &td.stack[ply - 2];
-                if entry.mv.is_some() {
-                    let bonus = (151 * initial_depth - 41).min(1630);
-                    td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-                }
+            let entry = &td.stack[ply - 2];
+            if entry.mv.is_some() {
+                let bonus = (151 * initial_depth - 41).min(1630);
+                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
         }
     }
@@ -1012,12 +1010,12 @@ fn search<NODE: NodeType>(
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: usize) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: isize) -> i32 {
     debug_assert!(!NODE::ROOT);
-    debug_assert!(ply <= MAX_PLY);
+    debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    if alpha < Score::ZERO && td.board.upcoming_repetition(ply) {
+    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
@@ -1027,7 +1025,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let in_check = td.board.in_check();
 
     if NODE::PV {
-        td.pv_table.clear(ply);
+        td.pv_table.clear(ply as usize);
         td.sel_depth = td.sel_depth.max(ply as i32);
     }
 
@@ -1040,7 +1038,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return Score::DRAW;
     }
 
-    if ply >= MAX_PLY - 1 {
+    if ply as usize >= MAX_PLY - 1 {
         return if in_check { Score::DRAW } else { evaluate(td) };
     }
 
@@ -1164,7 +1162,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 best_move = mv;
 
                 if NODE::PV {
-                    td.pv_table.update(ply, mv);
+                    td.pv_table.update(ply as usize, mv);
                 }
 
                 if score >= beta {
@@ -1194,39 +1192,31 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn correction_value(td: &ThreadData, ply: usize) -> i32 {
+fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
-    let mut correction = td.pawn_corrhist.get(stm, td.board.pawn_key())
+    td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
-
-    if ply >= 2 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.continuation_corrhist.get(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        );
-    }
-
-    if ply >= 4 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        correction += td.continuation_corrhist.get(
+        )
+        + td.continuation_corrhist.get(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        );
-    }
-
-    correction
+        )
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: usize) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
 
@@ -1237,7 +1227,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if ply >= 2 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
+    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1246,7 +1236,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
         );
     }
 
-    if ply >= 4 && td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
+    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1256,18 +1246,16 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 }
 
-fn update_continuation_histories(td: &mut ThreadData, ply: usize, piece: Piece, sq: Square, bonus: i32) {
+fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 3, 4, 6] {
-        if ply >= offset {
-            let entry = &td.stack[ply - offset];
-            if entry.mv.is_some() {
-                td.continuation_history.update(entry.conthist, piece, sq, bonus);
-            }
+        let entry = &td.stack[ply - offset];
+        if entry.mv.is_some() {
+            td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }
 }
 
-fn make_move(td: &mut ThreadData, ply: usize, mv: Move) {
+fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].mv = mv;
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
