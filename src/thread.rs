@@ -191,7 +191,7 @@ impl ThreadData {
             id: 0,
             shared,
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite, 0, 0),
+            time_manager: TimeManager::new(Limits::Infinite, 0),
             stack: Stack::default(),
             nnue: Network::default(),
             root_moves: Vec::new(),
