@@ -37,7 +37,7 @@ impl TimeManager {
                 let main = main.saturating_sub(move_overhead);
                 let total = (main + MOVES_TO_GO * inc).saturating_sub(MOVES_TO_GO * TIME_OVERHEAD_MS);
 
-                let soft_bound = (0.200 * main as f64).min(0.050 * total as f64);
+                let soft_bound = (0.2 * main as f64).min(0.05 * total as f64);
                 let hard_bound = 0.742 * main as f64;
 
                 soft = (soft_bound as u64).min(main);
