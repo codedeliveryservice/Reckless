@@ -510,7 +510,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta + 259 - 65 * improving as i32;
+    let probcut_beta = beta + 210 + 40 * i32::ilog2(depth) as i32 - 65 * improving as i32;
 
     if cut_node
         && depth >= 3
@@ -718,6 +718,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
+            reduction -= 768 * excluded as i32;
             reduction -= 69 * move_count;
 
             if tt_pv {
