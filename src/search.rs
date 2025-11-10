@@ -992,7 +992,8 @@ fn search<NODE: NodeType>(
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= static_eval)
-        || (bound == Bound::Lower && best_score <= static_eval))
+        || (bound == Bound::Lower && best_score <= static_eval)
+        || (depth < 3 && move_count == 1 && tt_bound == Bound::Lower))
     {
         update_correction_histories(td, depth, best_score - static_eval, ply);
     }
