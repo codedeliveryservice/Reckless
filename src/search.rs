@@ -269,6 +269,8 @@ fn search<NODE: NodeType>(
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
+    let correction_value = correction_value(td, ply);
+
     // Search Early TT-Cut
     if let Some(entry) = &entry {
         tt_depth = entry.depth;
@@ -276,6 +278,19 @@ fn search<NODE: NodeType>(
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.pv;
+
+        if !in_check && is_valid(entry.eval) {
+            let static_eval = corrected_eval(entry.eval, correction_value, td.board.halfmove_clock());
+
+            // Hindsight reductions
+            if !NODE::ROOT
+                && !excluded
+                && td.stack[ply - 1].reduction >= 2397
+                && static_eval + td.stack[ply - 1].static_eval < 0
+            {
+                depth += 1;
+            }
+        }
 
         if !NODE::PV
             && !excluded
@@ -299,6 +314,7 @@ fn search<NODE: NodeType>(
                 return tt_score;
             }
         }
+        depth = initial_depth;
     }
 
     // Tablebases Probe
@@ -337,8 +353,6 @@ fn search<NODE: NodeType>(
             }
         }
     }
-
-    let correction_value = correction_value(td, ply);
 
     let raw_eval;
     let mut static_eval;
