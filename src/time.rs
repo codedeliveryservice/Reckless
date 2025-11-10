@@ -32,13 +32,16 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let total = (main + 50 * inc - 50 * move_overhead).max(1);
+                const MOVES_TO_GO: u64 = 50;
 
-                let soft_bound = (0.420 * main.saturating_sub(move_overhead) as f64).min(0.050 * total as f64);
-                let hard_bound = (0.742 * main.saturating_sub(move_overhead) as f64).min(5.750 * soft_bound);
+                let main = main.saturating_sub(move_overhead);
+                let total = (main + MOVES_TO_GO * inc).saturating_sub(MOVES_TO_GO * TIME_OVERHEAD_MS);
 
-                soft = (soft_bound as u64).min(main.saturating_sub(move_overhead));
-                hard = (hard_bound as u64).min(main.saturating_sub(move_overhead));
+                let soft_bound = (0.200 * main as f64).min(0.050 * total as f64);
+                let hard_bound = 0.742 * main as f64;
+
+                soft = (soft_bound as u64).min(main);
+                hard = (hard_bound as u64).min(main);
             }
             Limits::Cyclic(main, inc, moves) => {
                 let main = main.saturating_sub(move_overhead);
