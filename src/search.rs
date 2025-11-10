@@ -720,6 +720,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
+            reduction -= 768 * excluded as i32;
             reduction -= 69 * move_count;
 
             if tt_pv {
