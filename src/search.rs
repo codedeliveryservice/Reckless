@@ -284,14 +284,6 @@ fn search<NODE: NodeType>(
 
             // Hindsight reductions
             if !NODE::ROOT
-                && !excluded
-                && td.stack[ply - 1].reduction >= 2397
-                && static_eval + td.stack[ply - 1].static_eval < 0
-            {
-                depth += 1;
-            }
-
-            if !NODE::ROOT
                 && !tt_pv
                 && !excluded
                 && depth >= 2
