@@ -510,9 +510,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta
-        + ((probcut_base_scale() * 210.0) + (probcut_depth_scale() * 40.0 * i32::ilog2(depth) as f32)
-            - (probcut_improving_scale() * 65.0 * improving as i32 as f32)) as i32;
+    let probcut_beta = beta + 277 + 19 * i32::ilog2(depth) as i32 - 67 * improving as i32;
 
     if cut_node
         && depth >= 3
@@ -720,7 +718,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
-            reduction -= (excluded_scale() * 768.0) as i32 * excluded as i32;
+            reduction -= 828 * excluded as i32;
             reduction -= 69 * move_count;
 
             if tt_pv {
