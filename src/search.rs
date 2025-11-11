@@ -443,7 +443,12 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
+    if !NODE::PV
+        && !in_check
+        && tt_move.is_null()
+        && tt_bound != Bound::Lower
+        && eval < alpha - 320 - 237 * initial_depth * initial_depth
+    {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
