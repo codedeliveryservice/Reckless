@@ -8,7 +8,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color, Score},
+    types::Color,
 };
 
 pub fn message_loop() {
@@ -143,49 +143,23 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
         }
     });
 
-    let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
-
-    let mut votes = vec![0; 4096];
-    for result in threads.iter() {
-        votes[result.root_moves[0].mv.encoded()] += vote_value(result);
-    }
-
     let mut best = 0;
 
     match &threads[best].time_manager.limits() {
         Limits::Depth(_) => {}
         _ => {
-            for current in 1..threads.len() {
-                let is_better_candidate = || -> bool {
-                    let best = &threads[best];
-                    let current = &threads[current];
+            // Try to read TT entry for the root position
+            let root_board = &threads.main_thread().board;
+            if let Some(entry) = shared.tt.read(root_board.hash(), root_board.halfmove_clock(), 0) {
+                let tt_mv = entry.mv;
 
-                    if is_win(best.root_moves[0].score) {
-                        return current.root_moves[0].score > best.root_moves[0].score;
+                if !tt_mv.is_null() {
+                    for (idx, td) in threads.iter().enumerate() {
+                        if td.root_moves[0].mv == tt_mv {
+                            best = idx;
+                            break;
+                        }
                     }
-
-                    if current.root_moves[0].score != -Score::INFINITE
-                        && best.root_moves[0].score != -Score::INFINITE
-                        && is_loss(best.root_moves[0].score)
-                    {
-                        return current.root_moves[0].score < best.root_moves[0].score;
-                    }
-
-                    if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
-                        return true;
-                    }
-
-                    let best_vote = votes[best.root_moves[0].mv.encoded()];
-                    let current_vote = votes[current.root_moves[0].mv.encoded()];
-
-                    !is_loss(current.root_moves[0].score)
-                        && (current_vote > best_vote
-                            || (current_vote == best_vote && vote_value(current) > vote_value(best)))
-                };
-
-                if is_better_candidate() {
-                    best = current;
                 }
             }
         }
