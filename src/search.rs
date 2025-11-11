@@ -512,8 +512,7 @@ fn search<NODE: NodeType>(
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
 
-    if cut_node
-        && depth >= 3
+    if depth >= 3
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
@@ -536,7 +535,7 @@ fn search<NODE: NodeType>(
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, !cut_node, ply + 1);
             }
 
             undo_move(td, mv);
