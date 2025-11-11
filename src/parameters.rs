@@ -34,3 +34,10 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    f32 excluded_scale: 1.0;
+    f32 probcut_base_scale: 1.0;
+    f32 probcut_depth_scale: 1.0;
+    f32 probcut_improving_scale: 1.0;
+);

@@ -1,7 +1,7 @@
 use crate::{
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -510,7 +510,9 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta + 210 + 40 * i32::ilog2(depth) as i32 - 65 * improving as i32;
+    let probcut_beta = beta
+        + ((probcut_base_scale() * 210.0) + (probcut_depth_scale() * 40.0 * i32::ilog2(depth) as f32)
+            - (probcut_improving_scale() * 65.0 * improving as i32 as f32)) as i32;
 
     if cut_node
         && depth >= 3
@@ -718,7 +720,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
-            reduction -= 768 * excluded as i32;
+            reduction -= (excluded_scale() * 768.0) as i32 * excluded as i32;
             reduction -= 69 * move_count;
 
             if tt_pv {
