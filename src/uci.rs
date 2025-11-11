@@ -7,7 +7,7 @@ use crate::{
     thread::{pool::ScopeExt, SharedContext, Status, ThreadData, ThreadPool},
     time::{Limits, TimeManager},
     tools,
-    transposition::{TranspositionTable, DEFAULT_TT_SIZE},
+    transposition::{Bound, TranspositionTable, DEFAULT_TT_SIZE},
     types::{is_decisive, is_loss, is_win, Color, Score},
 };
 
@@ -189,6 +189,22 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
                 }
             }
         }
+    }
+
+    let hash = threads[best].board.hash();
+    let entry = threads[best].shared.tt.read(hash, threads[best].board.halfmove_clock(), 0);
+
+    if let Some(entry) = &entry {
+        threads[best].shared.tt.write(
+            hash,
+            threads[best].completed_depth,
+            entry.eval,
+            threads[best].root_moves[0].score,
+            Bound::Exact,
+            threads[best].root_moves[0].mv,
+            0,
+            true,
+        );
     }
 
     if best != 0 {
