@@ -455,6 +455,7 @@ fn search<NODE: NodeType>(
         && eval >= beta + 10 * depth * depth + 30 * depth - (75 * improving as i32) + correction_value.abs() / 2
         && !is_loss(beta)
         && !is_win(eval)
+        && !potential_singularity
     {
         return beta + (eval - beta) / 3;
     }
