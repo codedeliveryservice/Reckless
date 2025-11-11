@@ -567,17 +567,21 @@ fn search<NODE: NodeType>(
         debug_assert!(is_valid(tt_score));
 
         let singular_beta = tt_score - depth;
-        let singular_depth = (depth - 1) / 2;
+        let mut score = Score::NONE;
 
-        td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
-        td.stack[ply].excluded = Move::NULL;
+        if !cut_node {
+            let singular_depth = (depth - 1) / 2;
 
-        if td.stopped {
-            return Score::ZERO;
+            td.stack[ply].excluded = tt_move;
+            score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+            td.stack[ply].excluded = Move::NULL;
+
+            if td.stopped {
+                return Score::ZERO;
+            }
         }
 
-        if score < singular_beta {
+        if cut_node || score < singular_beta {
             let double_margin = 2 + 277 * NODE::PV as i32;
             let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
@@ -591,8 +595,6 @@ fn search<NODE: NodeType>(
         } else if score >= beta && !is_decisive(score) {
             return score;
         } else if tt_score >= beta {
-            extension = -2;
-        } else if cut_node {
             extension = -2;
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
