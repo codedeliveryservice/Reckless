@@ -546,10 +546,12 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
+                let failfirm_score = score - (probcut_beta - beta);
+
+                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, failfirm_score, Bound::Lower, mv, ply, tt_pv);
 
                 if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
+                    return failfirm_score;
                 }
             }
         }
