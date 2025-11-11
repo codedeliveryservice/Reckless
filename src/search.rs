@@ -580,12 +580,14 @@ fn search<NODE: NodeType>(
         if score < singular_beta {
             let double_margin = 2 + 277 * NODE::PV as i32;
             let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+            let quadruple_margin = 256 + 348 * NODE::PV as i32 - 32 * correction_value.abs() / 128;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
             extension += (score < singular_beta - triple_margin) as i32;
+            extension += (score < singular_beta - quadruple_margin) as i32;
 
-            if extension > 1 && depth < 14 {
+            if 1 < extension && extension < 4 && depth < 14 {
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
