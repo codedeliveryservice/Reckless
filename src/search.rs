@@ -691,7 +691,7 @@ fn search<NODE: NodeType>(
             let threshold = if is_quiet {
                 -20 * lmr_depth * lmr_depth - 31 * history / 1024 + 5 * lmr_depth * (static_eval < alpha) as i32 + 16
             } else {
-                -102 * depth - 45 * history / 1024 + 46
+                -102 * depth - 45 * history / 1024 + 46 + 50 * (move_picker.stage() == Stage::BadNoisy) as i32
             };
 
             if !td.board.see(mv, threshold) {
