@@ -1185,7 +1185,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn correction_value(td: &ThreadData, ply: isize) -> i32 {
+pub(crate) fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
     td.pawn_corrhist.get(stm, td.board.pawn_key())
@@ -1205,11 +1205,11 @@ fn correction_value(td: &ThreadData, ply: isize) -> i32 {
         )
 }
 
-fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
+pub(crate) fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
+pub(crate) fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
 

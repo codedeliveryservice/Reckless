@@ -191,6 +191,23 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
         }
     }
 
+    if !(threads[best].board.in_check() || threads[best].root_moves[0].mv.is_noisy()) {
+        let hash = threads[best].board.hash();
+        let entry = threads[best].shared.tt.read(hash, threads[best].board.halfmove_clock(), 0);
+        if let Some(entry) = entry {
+            for idx in 0..threads.len() {
+                let completed_depth = threads[best].completed_depth;
+                let score_delta = threads[best].root_moves[0].score
+                    - search::corrected_eval(
+                        entry.eval,
+                        search::correction_value(&threads.vector[idx], 0),
+                        threads[best].board.halfmove_clock(),
+                    );
+                search::update_correction_histories(&mut threads.vector[idx], completed_depth, score_delta, 0);
+            }
+        }
+    }
+
     if best != 0 {
         threads[best].print_uci_info(threads[best].completed_depth);
     }
