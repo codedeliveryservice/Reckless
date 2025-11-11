@@ -570,7 +570,7 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        let mut score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
         if td.stopped {
@@ -578,6 +578,16 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
+            if score >= beta && !is_decisive(score) {
+                td.stack[ply].excluded = tt_move;
+                score = search::<NonPV>(td, beta - 1, beta, singular_depth, cut_node, ply);
+                td.stack[ply].excluded = Move::NULL;
+
+                if score >= beta && !is_decisive(score) {
+                    return score;
+                }
+            }
+
             let double_margin = 2 + 277 * NODE::PV as i32;
             let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
