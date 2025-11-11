@@ -512,8 +512,7 @@ fn search<NODE: NodeType>(
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
 
-    if cut_node
-        && depth >= 3
+    if depth >= 3
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
