@@ -739,7 +739,7 @@ fn search<NODE: NodeType>(
                 reduction -= 1049;
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
+            if td.stack[ply + 1].cutoff_count > 2 - !(NODE::PV || cut_node) as i32 {
                 reduction += 1555;
             }
 
