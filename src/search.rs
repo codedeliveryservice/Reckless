@@ -155,7 +155,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
             pv_stability = 0;
         }
 
-        best_move_changes += td.best_move_changes;
+        best_move_changes += td.shared.best_move_changes.aggregate();
+        td.shared.best_move_changes.reset();
 
         if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
             if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
@@ -181,7 +182,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
 
-            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+            let best_move_stability = 1.0 + best_move_changes as f32 / (8.0 * td.thread_count as f32 + 1.0);
 
             nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
         };
@@ -858,7 +859,7 @@ fn search<NODE: NodeType>(
                 root_move.pv.commit_full_root_pv(&td.pv_table, 1);
 
                 if move_count > 1 {
-                    td.best_move_changes += 1;
+                    td.shared.best_move_changes.increment(td.id);
                 }
             } else {
                 root_move.score = -Score::INFINITE;

@@ -91,6 +91,7 @@ pub struct SharedContext {
     pub status: Status,
     pub nodes: Counter<{ Self::MAX_THREADS }>,
     pub tb_hits: Counter<{ Self::MAX_THREADS }>,
+    pub best_move_changes: Counter<{ Self::MAX_THREADS }>,
 }
 
 unsafe impl Send for SharedContext {}
@@ -156,6 +157,7 @@ impl Index<usize> for ThreadPool {
 
 pub struct ThreadData {
     pub id: usize,
+    pub thread_count: usize,
     pub shared: Arc<SharedContext>,
     pub board: Board,
     pub time_manager: TimeManager,
@@ -189,6 +191,7 @@ impl ThreadData {
     pub fn new(shared: Arc<SharedContext>) -> Self {
         Self {
             id: 0,
+            thread_count: 1,
             shared,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
