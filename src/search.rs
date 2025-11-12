@@ -740,7 +740,7 @@ fn search<NODE: NodeType>(
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1555;
+                reduction += 1555 + 768 * !(NODE::PV || cut_node) as i32;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
