@@ -181,11 +181,15 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = td.quiet_history.get(threats, side, mv)
-                + td.conthist(ply, 1, mv)
+            entry.score = (2 + (td.board.in_check()) as i32) * td.quiet_history.get(threats, side, mv)
+                + 2 * td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv);
+
+            if td.board.might_give_check_if_you_squint(mv) {
+                entry.score += 12591;
+            }
         }
     }
 }

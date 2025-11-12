@@ -52,20 +52,26 @@ impl Wrapper {
     }
 
     fn gini_mean_difference(&self) -> f64 {
-        let vals = self.values.lock().unwrap();
-        let len = vals.len();
-        if len < 2 {
+        let locked_values = self.values.lock().unwrap();
+        let number_of_values = locked_values.len();
+
+        if number_of_values < 2 {
             return 0.0;
         }
 
-        let mut sorted = vals.to_vec();
-        sorted.sort_unstable();
-        let mut sum = 0;
-        for (i, &val) in sorted.iter().enumerate() {
-            sum += val * (2 * (i as i64) + 1 - len as i64);
+        let mut sorted_values = locked_values.to_vec();
+        sorted_values.sort_unstable();
+
+        let mut accumulated_sum: i128 = 0;
+        let number_of_values_i128 = number_of_values as i128;
+
+        for (index, &value) in sorted_values.iter().enumerate() {
+            let coefficient = 2 * (index as i128) + 1 - number_of_values_i128;
+            accumulated_sum += (value as i128) * coefficient;
         }
 
-        2.0 * sum as f64 / (len as i64 as f64 * (len as i64 as f64 - 1.0))
+        let denominator = (number_of_values_i128 as f64) * ((number_of_values_i128 - 1) as f64);
+        2.0 * (accumulated_sum as f64) / denominator
     }
 
     fn min(&self) -> i64 {
