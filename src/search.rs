@@ -650,7 +650,7 @@ fn search<NODE: NodeType>(
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
-                    >= if improving || static_eval >= beta + 17 {
+                    >= if improving || static_eval >= beta + 17 || tt_move.is_noisy() {
                         (3728 + 998 * initial_depth * initial_depth) / 1024
                     } else {
                         (1904 + 470 * initial_depth * initial_depth) / 1024
