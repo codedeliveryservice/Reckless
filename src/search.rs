@@ -492,6 +492,7 @@ fn search<NODE: NodeType>(
 
         if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
+                td.stack[ply].cutoff_count += 1;
                 return score;
             }
 
@@ -504,6 +505,7 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                td.stack[ply].cutoff_count += 1;
                 return score;
             }
         }
