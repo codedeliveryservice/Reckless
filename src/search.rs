@@ -77,7 +77,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 12;
+        let mut delta = 6;
         let mut reduction = 0;
 
         td.root_in_tb = false;
@@ -89,7 +89,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         // Aspiration Windows
         if depth >= 2 {
-            delta += average * average / 24616;
+            delta += average * average / 24616 + 12 * (depth < 10) as i32;
 
             alpha = (average - delta).max(-Score::INFINITE);
             beta = (average + delta).min(Score::INFINITE);
