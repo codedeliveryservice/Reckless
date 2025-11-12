@@ -97,6 +97,7 @@ impl Position {
             castling_rooks[CastlingKind::BlackQueenside as usize] = rook_from;
         }
 
+        board.castling_rooks = castling_rooks;
         board
     }
 }
