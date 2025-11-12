@@ -89,7 +89,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (wdl -> occurrences)
-        let mut f = File::create(make_path(".wdl")).unwrap();
+        let mut f = File::create(make_path(".wdl.csv")).unwrap();
         writeln!(f, "outcome,count").unwrap();
         for (i, &c) in statistics.wdl.iter().enumerate() {
             writeln!(f, "{i},{c}").unwrap();
@@ -98,7 +98,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (ply count -> occurrences)
-        let mut f = File::create(make_path(".lengths")).unwrap();
+        let mut f = File::create(make_path(".lengths.csv")).unwrap();
         writeln!(f, "ply_count,count").unwrap();
         let mut items: Vec<_> = statistics.lengths.iter().collect();
         items.sort_by_key(|(k, _)| *k);
@@ -109,7 +109,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (score -> occurrences)
-        let mut f = File::create(make_path(".scores")).unwrap();
+        let mut f = File::create(make_path(".scores.csv")).unwrap();
         writeln!(f, "score,count").unwrap();
         let mut items: Vec<_> = statistics.scores.iter().collect();
         items.sort_by_key(|(k, _)| *k);
@@ -120,7 +120,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (opening_scores -> occurrences)
-        let mut f = File::create(make_path(".opening_scores")).unwrap();
+        let mut f = File::create(make_path(".opening_scores.csv")).unwrap();
         writeln!(f, "score,count").unwrap();
         let mut items: Vec<_> = statistics.opening_scores.iter().collect();
         items.sort_by_key(|(k, _)| *k);
@@ -131,7 +131,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (opening_ply -> occurrences)
-        let mut f = File::create(make_path(".opening_ply")).unwrap();
+        let mut f = File::create(make_path(".opening_ply.csv")).unwrap();
         writeln!(f, "ply,count").unwrap();
         let mut items: Vec<_> = statistics.opening_ply.iter().collect();
         items.sort_by_key(|(k, _)| *k);
@@ -142,7 +142,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (piece_count -> occurrences)
-        let mut f = File::create(make_path(".pieces")).unwrap();
+        let mut f = File::create(make_path(".pieces.csv")).unwrap();
         writeln!(f, "piece_count,count").unwrap();
         let mut items: Vec<_> = statistics.pieces.iter().collect();
         items.sort_by_key(|(k, _)| *k);
@@ -153,7 +153,7 @@ fn export_statistics(input: &String, statistics: Statistics) {
 
     {
         // (king_square_index -> occurrences)
-        let mut f = File::create(make_path(".king_positions")).unwrap();
+        let mut f = File::create(make_path(".king_positions.csv")).unwrap();
         writeln!(f, "square_index,count").unwrap();
         let mut items: Vec<_> = statistics.king_positions.iter().collect();
         items.sort_by_key(|(k, _)| *k);
