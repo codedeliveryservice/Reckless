@@ -7,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        PieceType, Score, Square, MAX_PLY,
     },
 };
 
@@ -706,6 +706,8 @@ fn search<NODE: NodeType>(
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
 
+        let mut pvs_reduction = reduction;
+
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
             if is_quiet {
@@ -816,11 +818,56 @@ fn search<NODE: NodeType>(
 
         // Principal Variation Search (PVS)
         if NODE::PV && (move_count == 1 || score > alpha) {
+            let recalculated_history = if is_quiet {
+                td.quiet_history.get(td.board.prior_threats(), !td.board.side_to_move(), mv)
+                    + td.conthist(ply, 1, mv)
+                    + td.conthist(ply, 2, mv)
+            } else {
+                td.noisy_history.get(
+                    td.board.prior_threats(),
+                    td.board.piece_on(mv.to()),
+                    mv.to(),
+                    td.board.captured().map_or(PieceType::None, |p| p.piece_type()),
+                )
+            };
+
+            if is_quiet {
+                pvs_reduction += 380;
+                pvs_reduction -= 153 * recalculated_history / 1024;
+            } else {
+                pvs_reduction += 355;
+                pvs_reduction -= 68 * recalculated_history / 1024;
+                pvs_reduction -=
+                    47 * PIECE_VALUES[td.board.captured().map_or(PieceType::None, |p| p.piece_type())] / 128;
+            }
+
+            pvs_reduction -= 2667 * correction_value.abs() / 1024;
+            pvs_reduction -= 52 * move_count;
+
+            if tt_pv {
+                pvs_reduction -= 750;
+                pvs_reduction -= 1081 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if td.stack[ply + 1].cutoff_count > 2 {
+                pvs_reduction += 1438;
+            }
+
+            if depth == 2 {
+                pvs_reduction -= 1052;
+            }
+
+            if mv == tt_move {
+                pvs_reduction -= 3034;
+            }
+
             if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
                 new_depth = new_depth.max(1);
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            let reduced_depth = new_depth - (pvs_reduction >= 3072) as i32;
+
+            score = -search::<PV>(td, -beta, -alpha, reduced_depth, false, ply + 1);
             current_search_count += 1;
         }
 

@@ -113,6 +113,10 @@ impl Board {
         self.state.recapture_square
     }
 
+    pub const fn captured(&self) -> Option<Piece> {
+        self.state.captured
+    }
+
     pub const fn en_passant(&self) -> Square {
         self.state.en_passant
     }
