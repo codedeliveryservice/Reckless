@@ -994,6 +994,23 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
+        if !NODE::ROOT
+            && !in_check
+            && !excluded
+            && td.stack[ply - 1].mv.is_quiet()
+            && is_valid(td.stack[ply - 1].static_eval)
+        {
+            let reverse_static_hist = -(733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128);
+            let bonus = reverse_static_hist.clamp(-255, 123);
+
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+
+            let best_score_hist = 733 * (-(best_score + td.stack[ply - 1].static_eval)) / 128;
+            let bonus = best_score_hist.clamp(-123, 255);
+
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+        }
+
         update_correction_histories(td, depth, best_score - static_eval, ply);
     }
 
