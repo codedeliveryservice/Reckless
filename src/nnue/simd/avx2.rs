@@ -68,6 +68,14 @@ pub unsafe fn clamp_f32(x: __m256, min: __m256, max: __m256) -> __m256 {
     _mm256_max_ps(_mm256_min_ps(x, max), min)
 }
 
+pub unsafe fn mul_f32(a: __m256, b: __m256) -> __m256 {
+    _mm256_mul_ps(a, b)
+}
+
+pub unsafe fn min_f32(a: __m256, b: __m256) -> __m256 {
+    _mm256_min_ps(a, b)
+}
+
 pub unsafe fn dpbusd(i32s: __m256i, u8s: __m256i, i8s: __m256i) -> __m256i {
     let pairwise = _mm256_maddubs_epi16(u8s, i8s);
     let widened = _mm256_madd_epi16(pairwise, _mm256_set1_epi16(1));

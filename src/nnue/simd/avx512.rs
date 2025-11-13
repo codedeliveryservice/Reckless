@@ -68,6 +68,14 @@ pub unsafe fn clamp_f32(x: __m512, min: __m512, max: __m512) -> __m512 {
     _mm512_max_ps(_mm512_min_ps(x, max), min)
 }
 
+pub unsafe fn mul_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_mul_ps(a, b)
+}
+
+pub unsafe fn min_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_min_ps(a, b)
+}
+
 pub unsafe fn dpbusd(i32s: __m512i, u8s: __m512i, i8s: __m512i) -> __m512i {
     let pairwise = _mm512_maddubs_epi16(u8s, i8s);
     let widened = _mm512_madd_epi16(pairwise, _mm512_set1_epi16(1));
