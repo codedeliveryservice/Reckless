@@ -566,7 +566,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
 
-        let singular_beta = tt_score - depth;
+        let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
