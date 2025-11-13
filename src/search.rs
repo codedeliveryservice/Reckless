@@ -394,18 +394,11 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
-    // Quiet Move Ordering Using Static-Eval
-    if !NODE::ROOT
+    let policy_update = !NODE::ROOT
         && !in_check
         && !excluded
         && td.stack[ply - 1].mv.is_quiet()
-        && is_valid(td.stack[ply - 1].static_eval)
-    {
-        let value = 733 * (-(static_eval + td.stack[ply - 1].static_eval)) / 128;
-        let bonus = value.clamp(-123, 255);
-
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
-    }
+        && is_valid(td.stack[ply - 1].static_eval);
 
     // Hindsight reductions
     if !NODE::ROOT
@@ -456,7 +449,11 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
     {
-        return beta + (eval - beta) / 3;
+        let score = beta + (eval - beta) / 3;
+        if policy_update {
+            update_policy(td, ply, score);
+        }
+        return score;
     }
 
     // Null Move Pruning (NMP)
@@ -492,6 +489,9 @@ fn search<NODE: NodeType>(
 
         if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
+                if policy_update {
+                    update_policy(td, ply, score);
+                }
                 return score;
             }
 
@@ -504,6 +504,9 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                if policy_update {
+                    update_policy(td, ply, score);
+                }
                 return score;
             }
         }
@@ -549,7 +552,11 @@ fn search<NODE: NodeType>(
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv);
 
                 if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
+                    let score = score - (probcut_beta - beta);
+                    if policy_update {
+                        update_policy(td, ply, score);
+                    }
+                    return score;
                 }
             }
         }
@@ -589,6 +596,9 @@ fn search<NODE: NodeType>(
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
+            if policy_update {
+                update_policy(td, ply, score);
+            }
             return score;
         } else if tt_score >= beta {
             extension = -2;
@@ -994,7 +1004,13 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
+        if policy_update {
+            update_policy(td, ply, best_score);
+        }
+
         update_correction_histories(td, depth, best_score - static_eval, ply);
+    } else if policy_update {
+        update_policy(td, ply, static_eval);
     }
 
     debug_assert!(alpha < beta);
@@ -1246,6 +1262,15 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
             td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }
+}
+
+fn update_policy(td: &mut ThreadData, ply: isize, score: i32) {
+    let prev_eval = td.stack[ply - 1].static_eval;
+    let value = 733 * (-(score + prev_eval)) / 128;
+
+    let bonus = value.clamp(-123, 255);
+
+    td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
 }
 
 fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
