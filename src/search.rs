@@ -994,7 +994,14 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval, ply);
+        let diff = best_score - static_eval;
+        if !NODE::ROOT && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].static_eval) {
+            let best_score_hist = -733 * diff / 128;
+            let bonus = best_score_hist.clamp(-255, 255);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+        }
+
+        update_correction_histories(td, depth, diff, ply);
     }
 
     debug_assert!(alpha < beta);
