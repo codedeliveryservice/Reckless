@@ -802,7 +802,7 @@ fn search<NODE: NodeType>(
                 reduction -= 1052;
             }
 
-            if mv == tt_move {
+            if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
                 reduction -= 3034;
             }
 
