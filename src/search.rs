@@ -977,10 +977,6 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
-        best_score = (best_score * depth + beta) / (depth + 1);
-    }
-
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
@@ -999,6 +995,10 @@ fn search<NODE: NodeType>(
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
+
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
+        best_score = (best_score * depth + beta) / (depth + 1);
+    }
 
     best_score
 }
