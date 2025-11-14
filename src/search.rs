@@ -865,10 +865,15 @@ fn search<NODE: NodeType>(
             }
         }
 
-        if score > best_score {
+        let increment = (score == best_score
+            && ply + 2 >= td.root_depth as isize
+            && td.nodes() & 15 == 0
+            && !is_win(score.abs() + 1)) as i32;
+
+        if score + increment > best_score {
             best_score = score;
 
-            if score > alpha {
+            if score + increment > alpha {
                 bound = Bound::Exact;
                 best_move = mv;
 
