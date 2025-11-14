@@ -1240,7 +1240,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
 }
 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
-    for offset in [1, 2, 3, 4, 6] {
+    for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_some() {
             td.continuation_history.update(entry.conthist, piece, sq, bonus);
