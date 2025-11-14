@@ -975,6 +975,14 @@ fn search<NODE: NodeType>(
         }
     }
 
+    if !(in_check
+        || best_move.is_noisy()
+        || (bound == Bound::Upper && best_score >= static_eval)
+        || (bound == Bound::Lower && best_score <= static_eval))
+    {
+        update_correction_histories(td, depth, best_score - static_eval, ply);
+    }
+
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
@@ -987,14 +995,6 @@ fn search<NODE: NodeType>(
 
     if !excluded {
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
-    }
-
-    if !(in_check
-        || best_move.is_noisy()
-        || (bound == Bound::Upper && best_score >= static_eval)
-        || (bound == Bound::Lower && best_score <= static_eval))
-    {
-        update_correction_histories(td, depth, best_score - static_eval, ply);
     }
 
     debug_assert!(alpha < beta);
