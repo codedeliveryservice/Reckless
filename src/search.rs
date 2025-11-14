@@ -562,6 +562,8 @@ fn search<NODE: NodeType>(
 
     // Singular Extensions (SE)
     let mut extension = 0;
+    let mut singular_score = Score::NONE;
+    let mut singular_bound = Bound::None;
 
     if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
@@ -570,26 +572,28 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
         if td.stopped {
             return Score::ZERO;
         }
 
-        if score < singular_beta {
+        singular_bound = if singular_score >= singular_beta { Bound::Lower } else { Bound::Upper };
+
+        if singular_score < singular_beta {
             let double_margin = 2 + 277 * NODE::PV as i32;
             let triple_margin = 67 + 315 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
             extension = 1;
-            extension += (score < singular_beta - double_margin) as i32;
-            extension += (score < singular_beta - triple_margin) as i32;
+            extension += (singular_score < singular_beta - double_margin) as i32;
+            extension += (singular_score < singular_beta - triple_margin) as i32;
 
             if extension > 1 && depth < 14 {
                 depth += 1;
             }
-        } else if score >= beta && !is_decisive(score) {
-            return score;
+        } else if singular_score >= beta && !is_decisive(singular_score) {
+            return singular_score;
         } else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
@@ -654,7 +658,7 @@ fn search<NODE: NodeType>(
                         (3728 + 998 * initial_depth * initial_depth) / 1024
                     } else {
                         (1904 + 470 * initial_depth * initial_depth) / 1024
-                    };
+                    } - 1 * (singular_bound == Bound::Upper && singular_score < alpha) as i32;
 
             // Futility Pruning (FP)
             let futility_value =
