@@ -640,7 +640,7 @@ fn search<NODE: NodeType>(
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
-        if !improving {
+        if !improving && static_eval < beta + 17 {
             reduction += (489 - 412 * improvement / 128).min(1243);
         }
 
