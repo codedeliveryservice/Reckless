@@ -917,11 +917,6 @@ fn search<NODE: NodeType>(
         let bonus_cont = (102 * depth - 56).min(1223) - 65 * cut_node as i32;
         let malus_cont = (306 * initial_depth - 46).min(1018) - 30 * quiet_moves.len() as i32;
 
-        if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
-            let bonus = (1 + (move_count / depth)) * (155 * depth - 63).min(851);
-            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
-        }
-
         if best_move.is_noisy() {
             td.noisy_history.update(
                 td.board.threats(),
@@ -948,6 +943,11 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
             let malus = (78 * initial_depth - 52).min(811);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+        }
+
+        if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
+            let bonus = (232 * depth - 94).min(1400);
+            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
     }
 
