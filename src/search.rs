@@ -609,6 +609,7 @@ fn search<NODE: NodeType>(
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
+    let mut failed_research_count = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
@@ -718,6 +719,7 @@ fn search<NODE: NodeType>(
             }
 
             reduction -= 3607 * correction_value.abs() / 1024;
+            reduction -= 512 * failed_research_count;
             reduction -= 69 * move_count;
 
             if tt_pv {
@@ -765,6 +767,10 @@ fn search<NODE: NodeType>(
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
                     current_search_count += 1;
+
+                    if score <= alpha {
+                        failed_research_count += 1;
+                    }
                 }
             } else if score > alpha && score < best_score + 16 {
                 new_depth -= 1;
