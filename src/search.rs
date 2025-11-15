@@ -589,7 +589,10 @@ fn search<NODE: NodeType>(
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
-            return score;
+            if depth < 7 {
+                return score;
+            }
+            depth = singular_depth;
         } else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
