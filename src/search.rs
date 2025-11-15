@@ -986,7 +986,7 @@ fn search<NODE: NodeType>(
     }
 
     if !excluded {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
+        td.shared.tt.write(hash, initial_depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
     }
 
     if !(in_check
