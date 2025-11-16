@@ -373,7 +373,7 @@ fn search<NODE: NodeType>(
         if is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score < eval,
-                Bound::Lower => tt_score > eval,
+                Bound::Lower => tt_score > eval && (cut_node || depth > 5),
                 _ => true,
             }
         {
