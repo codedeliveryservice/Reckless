@@ -730,6 +730,10 @@ fn search<NODE: NodeType>(
                 reduction -= 393 + 552 * (beta - alpha) / td.root_delta;
             }
 
+            if tt_move.is_noisy() && move_picker.stage() == Stage::Quiet {
+                reduction += 960;
+            }
+
             if !tt_pv && cut_node {
                 reduction += 1675;
                 reduction += 934 * tt_move.is_null() as i32;
