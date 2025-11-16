@@ -642,6 +642,8 @@ fn search<NODE: NodeType>(
 
         let mut reduction = td.lmr.reduction(depth, move_count);
 
+        reduction += 1024 * alpha_raise_count;
+
         if !improving {
             reduction += (489 - 412 * improvement / 128).min(1243);
         }
@@ -705,8 +707,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth =
-            if move_count == 1 { depth + extension - 1 } else { (depth - alpha_raise_count - 1).max(0) };
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
