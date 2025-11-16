@@ -1057,7 +1057,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
         {
             if tt_score >= beta {
-                return (tt_score + beta) / 2;
+                let tt_depth = entry.depth.max(1);
+                return (tt_score * tt_depth + beta) / (tt_depth + 1);
             }
             return tt_score;
         }
