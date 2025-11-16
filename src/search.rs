@@ -1056,6 +1056,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 _ => true,
             }
         {
+            if tt_score >= beta {
+                return (tt_score + beta) / 2;
+            }
             return tt_score;
         }
     }
