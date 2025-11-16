@@ -608,6 +608,8 @@ fn search<NODE: NodeType>(
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
+
+    let mut alpha_raise_count = 0;
     let mut current_search_count = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
@@ -651,9 +653,9 @@ fn search<NODE: NodeType>(
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || static_eval >= beta + 17 {
-                        (3728 + 998 * initial_depth * initial_depth) / 1024
+                        (3728 + 998 * depth * depth) / 1024
                     } else {
-                        (1904 + 470 * initial_depth * initial_depth) / 1024
+                        (1904 + 470 * depth * depth) / 1024
                     };
 
             // Futility Pruning (FP)
@@ -703,7 +705,8 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
+        let mut new_depth =
+            if move_count == 1 { depth + extension - 1 } else { (depth - alpha_raise_count - 1).max(0) };
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
@@ -883,7 +886,7 @@ fn search<NODE: NodeType>(
                 }
 
                 if depth > 2 && depth < 17 && !is_decisive(score) {
-                    depth -= 1;
+                    alpha_raise_count += 1;
                 }
 
                 alpha = score;
