@@ -1042,14 +1042,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
     let mut tt_pv = NODE::PV;
-    let mut tt_score = Score::NONE;
-    let mut tt_bound = Bound::None;
 
     // QS Early TT-Cut
     if let Some(entry) = &entry {
-        tt_score = entry.score;
-        tt_bound = entry.bound;
         tt_pv |= entry.pv;
+
+        let tt_score = entry.score;
+        let tt_bound = entry.bound;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1075,17 +1074,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         };
         best_score = corrected_eval(raw_eval, correction_value(td, ply), td.board.halfmove_clock());
 
-        if is_valid(tt_score)
-            && (!NODE::PV || !is_decisive(tt_score))
-            && match tt_bound {
-                Bound::Upper => tt_score < best_score,
-                Bound::Lower => tt_score > best_score,
-                _ => true,
-            }
-        {
-            best_score = tt_score;
-        }
-
         if best_score >= beta {
             if !is_decisive(best_score) && !is_decisive(beta) {
                 best_score = (best_score + beta) / 2;
@@ -1102,7 +1090,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             alpha = best_score;
         }
 
-        futility_base = best_score + 79;
+        futility_base = best_score + 133;
     }
 
     let mut best_move = Move::NULL;
