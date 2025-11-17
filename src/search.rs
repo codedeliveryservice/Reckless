@@ -296,6 +296,9 @@ fn search<NODE: NodeType>(
             }
 
             if td.board.halfmove_clock() < 90 {
+                if tt_score >= beta && !is_decisive(tt_score) && !is_decisive(alpha) {
+                    tt_score = (tt_score * depth + beta) / (depth + 1);
+                }
                 return tt_score;
             }
         }
