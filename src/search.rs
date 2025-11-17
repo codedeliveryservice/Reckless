@@ -407,6 +407,10 @@ fn search<NODE: NodeType>(
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
 
+    if depth > 2 && is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+        depth -= 1;
+    }
+
     // Hindsight reductions
     if !NODE::ROOT
         && !in_check
@@ -744,10 +748,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1555;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 791;
             }
 
             if depth == 2 {
