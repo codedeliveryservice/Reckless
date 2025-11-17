@@ -458,6 +458,7 @@ fn search<NODE: NodeType>(
                 + 32 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(eval)
+        && !(tt_bound == Bound::Upper && eval == tt_score)
     {
         return beta + (eval - beta) / 3;
     }
