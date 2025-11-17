@@ -444,6 +444,10 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 320 - 237 * initial_depth * initial_depth {
+        if excluded {
+            return eval;
+        }
+
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
