@@ -3,7 +3,7 @@ use crate::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         queen_attacks, rook_attacks,
     },
-    types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
+    types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, MoveKind, Piece, PieceType, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -249,10 +249,10 @@ impl Board {
     /// paper to detect cycles one ply before they appear in the search of a game tree.
     ///
     /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
-    pub fn upcoming_repetition(&self, ply: usize) -> bool {
+    pub fn upcoming_repetition(&self, ply: usize) -> Option<Move> {
         let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
         if hm < 3 {
-            return false;
+            return None;
         }
 
         let s = |v: usize| self.state_stack[self.state_stack.len() - v].key;
@@ -279,17 +279,20 @@ impl Board {
             }
 
             if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
-                if ply > d {
-                    return true;
-                }
+                if ply > d || self.state.repetition != 0 {
+                    let from = cuckoo_a(i);
+                    let to = cuckoo_b(i);
 
-                if self.state.repetition != 0 {
-                    return true;
+                    if self.piece_on(to).piece_type() == PieceType::None {
+                        return Some(Move::new(from, to, MoveKind::Normal));
+                    } else {
+                        return Some(Move::new(to, from, MoveKind::Normal));
+                    }
                 }
             }
         }
 
-        false
+        None
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {

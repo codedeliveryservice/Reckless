@@ -220,10 +220,13 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = Score::ZERO;
-        if alpha >= beta {
-            return alpha;
+    if !NODE::ROOT && alpha < Score::ZERO {
+        let reversable_move = td.board.upcoming_repetition(ply as usize);
+        if reversable_move.is_some_and(|mv| mv != td.stack[ply].excluded) {
+            alpha = Score::ZERO;
+            if alpha >= beta {
+                return alpha;
+            }
         }
     }
 
@@ -1011,10 +1014,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = Score::ZERO;
-        if alpha >= beta {
-            return alpha;
+    if alpha < Score::ZERO {
+        let reversable_move = td.board.upcoming_repetition(ply as usize);
+        if reversable_move.is_some_and(|mv| mv != td.stack[ply].excluded) {
+            alpha = Score::ZERO;
+            if alpha >= beta {
+                return alpha;
+            }
         }
     }
 
