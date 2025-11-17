@@ -980,7 +980,7 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) && tt_bound != Bound::Exact {
         best_score = (best_score * depth + beta) / (depth + 1);
     }
 
