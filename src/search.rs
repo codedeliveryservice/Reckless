@@ -455,7 +455,7 @@ fn search<NODE: NodeType>(
         && eval
             >= beta + 10 * depth * depth + 30 * depth - (75 * improving as i32)
                 + correction_value.abs() / 2
-                + 32 * (depth == 1) as i32
+                + 64 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(eval)
     {
