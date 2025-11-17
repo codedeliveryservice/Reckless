@@ -220,7 +220,7 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
+    if !NODE::ROOT && alpha < Score::ZERO && !excluded && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
             return alpha;
