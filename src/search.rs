@@ -514,16 +514,16 @@ fn search<NODE: NodeType>(
 
     // ProbCut
     let probcut_beta = beta + 259 - 65 * improving as i32;
+    let probcut_depth = (depth - 4).max(0);
 
     if cut_node
         && depth >= 3
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
+        && !(is_valid(tt_score) && tt_pv && tt_depth >= probcut_depth)
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - static_eval);
-
-        let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
