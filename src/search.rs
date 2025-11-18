@@ -459,7 +459,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(eval)
     {
-        return beta + (eval - beta) / 3;
+        return (eval * depth + beta) / (depth + 1);
     }
 
     // Null Move Pruning (NMP)
