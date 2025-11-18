@@ -199,7 +199,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 }
 
 fn search<NODE: NodeType>(
-    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: isize,
+    td: &mut ThreadData, mut alpha: i32, mut beta: i32, mut depth: i32, cut_node: bool, ply: isize,
 ) -> i32 {
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
@@ -213,6 +213,10 @@ fn search<NODE: NodeType>(
 
     if td.stopped {
         return Score::ZERO;
+    }
+
+    if depth <= 0 && td.stack[ply - 1].tt_pv && !NODE::PV {
+        depth = 1;
     }
 
     // Qsearch Dive
@@ -257,7 +261,7 @@ fn search<NODE: NodeType>(
     let mut best_score = -Score::INFINITE;
     let mut max_score = Score::INFINITE;
 
-    let mut depth = depth.min(MAX_PLY as i32 - 1);
+    depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
     let hash = td.board.hash();
