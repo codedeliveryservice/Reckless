@@ -421,12 +421,17 @@ fn search<NODE: NodeType>(
         && !tt_pv
         && !in_check
         && !excluded
-        && depth >= 2
         && td.stack[ply - 1].reduction >= 963
         && is_valid(td.stack[ply - 1].static_eval)
         && static_eval + td.stack[ply - 1].static_eval > 63
     {
         depth -= 1;
+        if depth == 0 {
+            if static_eval >= beta && !is_decisive(beta) {
+                return beta + (static_eval - beta) / 3;
+            }
+            return static_eval;
+        }
     }
 
     let potential_singularity =
