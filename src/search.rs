@@ -1180,6 +1180,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
+    tt_pv |= bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
+
     td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv);
 
     debug_assert!(alpha < beta);
