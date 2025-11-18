@@ -421,12 +421,18 @@ fn search<NODE: NodeType>(
         && !tt_pv
         && !in_check
         && !excluded
-        && depth >= 2
         && td.stack[ply - 1].reduction >= 963
         && is_valid(td.stack[ply - 1].static_eval)
         && static_eval + td.stack[ply - 1].static_eval > 63
     {
         depth -= 1;
+        if depth == 0 {
+            let score = qsearch::<NonPV>(td, alpha, beta, ply);
+            if score >= beta && !is_decisive(score) && !is_decisive(beta) {
+                return beta + (score - beta) / 3;
+            }
+            return score;
+        }
     }
 
     let potential_singularity =
