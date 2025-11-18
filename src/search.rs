@@ -429,6 +429,11 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
+    // Internal Iterative Reductions (IIR)
+    if depth >= 4 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+        depth -= 1;
+    }
+
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
@@ -556,11 +561,6 @@ fn search<NODE: NodeType>(
                 }
             }
         }
-    }
-
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
-        depth -= 1;
     }
 
     // Singular Extensions (SE)
