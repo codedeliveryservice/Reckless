@@ -25,6 +25,7 @@ struct InternalState {
     minor_key: u64,
     major_key: u64,
     non_pawn_keys: [u64; Color::NUM],
+    threats_key: u64,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -87,6 +88,10 @@ impl Board {
 
     pub const fn major_key(&self) -> u64 {
         self.state.major_key
+    }
+
+    pub const fn threats_key(&self) -> u64 {
+        self.state.threats_key
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
@@ -490,6 +495,14 @@ impl Board {
         }
 
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
+
+        let mut k = self.state.threats.0;
+        k ^= k >> 33;
+        k = k.wrapping_mul(0xff51afd7ed558ccd);
+        k ^= k >> 33;
+        k = k.wrapping_mul(0xc4ceb9fe1a85ec53);
+        k ^= k >> 33;
+        self.state.threats_key = k;
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,

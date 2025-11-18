@@ -1194,6 +1194,7 @@ fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
+        + td.threat_corrhist.get(stm, td.board.threats_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + td.continuation_corrhist.get(
@@ -1219,6 +1220,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
     td.major_corrhist.update(stm, td.board.major_key(), bonus);
+    td.threat_corrhist.update(stm, td.board.threats_key(), bonus);
 
     td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
