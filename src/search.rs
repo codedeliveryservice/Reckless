@@ -1215,13 +1215,14 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bonus = (150 * depth * diff / 128).clamp(-4194, 3164);
+    let base = correction_value(td, ply);
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
-    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
-    td.major_corrhist.update(stm, td.board.major_key(), bonus);
+    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus, base);
+    td.minor_corrhist.update(stm, td.board.minor_key(), bonus, base);
+    td.major_corrhist.update(stm, td.board.major_key(), bonus, base);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus, base);
+    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus, base);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
@@ -1229,6 +1230,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
             bonus,
+            base,
         );
     }
 
@@ -1238,6 +1240,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
             bonus,
+            base,
         );
     }
 }

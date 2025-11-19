@@ -9,6 +9,11 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+fn apply_bonus_with_base<const MAX: i32>(entry: &mut i16, bonus: i32, base: i32) {
+    let bonus = bonus.clamp(-MAX, MAX);
+    *entry += (bonus - bonus.abs() * base / MAX).clamp(-(*entry as i32 + MAX), MAX - *entry as i32) as i16;
+}
+
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -129,9 +134,9 @@ impl CorrectionHistory {
         (self.entries[stm][key as usize & Self::MASK] as i32) / 82
     }
 
-    pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
+    pub fn update(&mut self, stm: Color, key: u64, bonus: i32, base: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        apply_bonus_with_base::<{ Self::MAX_HISTORY }>(entry, bonus, base);
     }
 }
 
@@ -159,9 +164,9 @@ impl ContinuationCorrectionHistory {
         (unsafe { &*subtable_ptr }[piece][to] as i32) / 105
     }
 
-    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
+    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32, base: i32) {
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus_with_base::<{ Self::MAX_HISTORY }>(entry, bonus, base);
     }
 }
 
