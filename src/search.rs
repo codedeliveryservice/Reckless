@@ -450,16 +450,15 @@ fn search<NODE: NodeType>(
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
-        && is_valid(eval)
-        && eval >= beta
-        && eval
+        && is_valid(static_eval)
+        && static_eval >= beta
+        && static_eval
             >= beta + 10 * depth * depth + 30 * depth - (75 * improving as i32)
                 + correction_value.abs() / 2
                 + 32 * (depth == 1) as i32
         && !is_loss(beta)
-        && !is_win(eval)
     {
-        return beta + (eval - beta) / 3;
+        return beta + (static_eval - beta) / 3;
     }
 
     // Null Move Pruning (NMP)
