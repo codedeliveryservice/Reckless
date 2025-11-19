@@ -122,7 +122,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     alpha = (beta - delta).max(alpha);
                     beta = (score + delta).min(Score::INFINITE);
                     reduction += 1;
-                    delta += delta * (50 + 10 * reduction) / 128;
+                    delta += delta * 64 / 128;
                 }
                 _ => {
                     average = if average == Score::NONE { score } else { (average + score) / 2 };
