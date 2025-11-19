@@ -692,7 +692,7 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -20 * lmr_depth * lmr_depth - 31 * history / 1024 + 5 * lmr_depth * (static_eval < alpha) as i32 + 16
+                -20 * lmr_depth * lmr_depth - 31 * history / 1024 + 23
             } else {
                 -102 * depth - 45 * history / 1024 + 46
             };
