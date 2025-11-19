@@ -592,6 +592,9 @@ fn search<NODE: NodeType>(
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
+            let bonus = (102 * singular_depth - 56).min(1223);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), bonus);
+
             return (score * singular_depth + beta) / (singular_depth + 1);
         } else if tt_score >= beta {
             extension = -2;
