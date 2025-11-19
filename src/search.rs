@@ -269,73 +269,12 @@ fn search<NODE: NodeType>(
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
-    // Search Early TT-Cut
     if let Some(entry) = &entry {
         tt_depth = entry.depth;
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.pv;
-
-        if !NODE::PV
-            && !excluded
-            && tt_depth > depth - (tt_score < beta) as i32
-            && is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
-                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
-                _ => true,
-            }
-        {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
-                let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
-                let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
-
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
-            }
-
-            if td.board.halfmove_clock() < 90 {
-                return tt_score;
-            }
-        }
-    }
-
-    // Tablebases Probe
-    if !NODE::ROOT
-        && !excluded
-        && !td.stop_probing_tb
-        && td.board.halfmove_clock() == 0
-        && td.board.castling().raw() == 0
-        && td.board.occupancies().len() <= tb_size()
-    {
-        if let Some(outcome) = tb_probe(&td.board) {
-            td.shared.tb_hits.increment(td.id);
-
-            let (score, bound) = match outcome {
-                GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
-                GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
-                GameOutcome::Draw => (Score::DRAW, Bound::Exact),
-            };
-
-            if bound == Bound::Exact
-                || (bound == Bound::Lower && score >= beta)
-                || (bound == Bound::Upper && score <= alpha)
-            {
-                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv);
-                return score;
-            }
-
-            if NODE::PV {
-                if bound == Bound::Lower {
-                    best_score = score;
-                    alpha = alpha.max(best_score);
-                } else {
-                    max_score = score;
-                }
-            }
-        }
     }
 
     let correction_value = correction_value(td, ply);
@@ -387,13 +326,6 @@ fn search<NODE: NodeType>(
         eval = static_eval;
     }
 
-    td.stack[ply].static_eval = static_eval;
-    td.stack[ply].tt_move = tt_move;
-    td.stack[ply].tt_pv = tt_pv;
-    td.stack[ply].reduction = 0;
-    td.stack[ply].move_count = 0;
-    td.stack[ply + 2].cutoff_count = 0;
-
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
         && !in_check
@@ -428,6 +360,74 @@ fn search<NODE: NodeType>(
     {
         depth -= 1;
     }
+
+    // Search Early TT-Cut
+    if !NODE::PV
+        && !excluded
+        && is_valid(tt_score)
+        && tt_depth > depth - (tt_score < beta) as i32
+        && match tt_bound {
+            Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
+            Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+            _ => true,
+        }
+    {
+        if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            let quiet_bonus = (141 * depth - 72).min(1544) + 68 * !cut_node as i32;
+            let conthist_bonus = (99 * depth - 61).min(1509) + 65 * !cut_node as i32;
+
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+        }
+
+        if td.board.halfmove_clock() < 90 {
+            return tt_score;
+        }
+    }
+
+    // Tablebases Probe
+    if !NODE::ROOT
+        && !excluded
+        && !td.stop_probing_tb
+        && td.board.halfmove_clock() == 0
+        && td.board.castling().raw() == 0
+        && td.board.occupancies().len() <= tb_size()
+    {
+        if let Some(outcome) = tb_probe(&td.board) {
+            td.shared.tb_hits.increment(td.id);
+
+            let (score, bound) = match outcome {
+                GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
+                GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
+                GameOutcome::Draw => (Score::DRAW, Bound::Exact),
+            };
+
+            if bound == Bound::Exact
+                || (bound == Bound::Lower && score >= beta)
+                || (bound == Bound::Upper && score <= alpha)
+            {
+                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
+                td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv);
+                return score;
+            }
+
+            if NODE::PV {
+                if bound == Bound::Lower {
+                    best_score = score;
+                    alpha = alpha.max(best_score);
+                } else {
+                    max_score = score;
+                }
+            }
+        }
+    }
+
+    td.stack[ply].static_eval = static_eval;
+    td.stack[ply].tt_move = tt_move;
+    td.stack[ply].tt_pv = tt_pv;
+    td.stack[ply].reduction = 0;
+    td.stack[ply].move_count = 0;
+    td.stack[ply + 2].cutoff_count = 0;
 
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
