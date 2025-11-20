@@ -59,7 +59,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
-    let mut average = Score::NONE;
+    td.multi_pv = td.multi_pv.min(td.root_moves.len() as i32);
+
+    let mut average = vec![Score::NONE; td.multi_pv as usize];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -87,51 +89,78 @@ pub fn start(td: &mut ThreadData, report: Report) {
             tb_rank_rootmoves(td);
         }
 
-        // Aspiration Windows
-        if depth >= 2 {
-            delta += average * average / 24616;
-
-            alpha = (average - delta).max(-Score::INFINITE);
-            beta = (average + delta).min(Score::INFINITE);
-
-            td.optimism[td.board.side_to_move()] = 119 * average / (average.abs() + 237);
-            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+        for rm in &mut td.root_moves {
+            rm.previous_score = rm.score;
         }
 
-        loop {
-            td.stack = Default::default();
-            td.root_delta = beta - alpha;
+        td.pv_start = 0;
+        td.pv_end = 0;
 
-            // Root Search
-            let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
+        for index in 0..td.multi_pv {
+            td.pv_index = index as usize;
 
-            td.root_moves.sort_by(|a, b| b.score.cmp(&a.score));
-
-            if td.stopped {
-                break;
+            if td.pv_index == td.pv_end {
+                td.pv_start = td.pv_end;
+                while td.pv_end < td.root_moves.len() {
+                    if td.root_moves[td.pv_end].tb_rank != td.root_moves[td.pv_start].tb_rank {
+                        break;
+                    }
+                    td.pv_end += 1;
+                }
             }
 
-            match score {
-                s if s <= alpha => {
-                    beta = (3 * alpha + beta) / 4;
-                    alpha = (score - delta).max(-Score::INFINITE);
-                    reduction = 0;
-                    delta += delta * 30 / 128;
-                }
-                s if s >= beta => {
-                    alpha = (beta - delta).max(alpha);
-                    beta = (score + delta).min(Score::INFINITE);
-                    reduction += 1;
-                    delta += delta * 64 / 128;
-                }
-                _ => {
-                    average = if average == Score::NONE { score } else { (average + score) / 2 };
+            // Aspiration Windows
+            if depth >= 2 {
+                delta += average[td.pv_index] * average[td.pv_index] / 24616;
+
+                alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
+                beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+
+                td.optimism[td.board.side_to_move()] = 119 * average[td.pv_index] / (average[td.pv_index].abs() + 237);
+                td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+            }
+
+            loop {
+                td.stack = Default::default();
+                td.root_delta = beta - alpha;
+
+                // Root Search
+                let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
+
+                td.root_moves[td.pv_index..td.pv_end].sort_by(|a, b| b.score.cmp(&a.score));
+
+                if td.stopped {
                     break;
                 }
-            }
 
-            if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
-                td.print_uci_info(depth);
+                match score {
+                    s if s <= alpha => {
+                        beta = (3 * alpha + beta) / 4;
+                        alpha = (score - delta).max(-Score::INFINITE);
+                        reduction = 0;
+                        delta += delta * 30 / 128;
+                    }
+                    s if s >= beta => {
+                        alpha = (beta - delta).max(alpha);
+                        beta = (score + delta).min(Score::INFINITE);
+                        reduction += 1;
+                        delta += delta * 64 / 128;
+                    }
+                    _ => {
+                        average[td.pv_index] = if average[td.pv_index] == Score::NONE {
+                            score
+                        } else {
+                            (average[td.pv_index] + score) / 2
+                        };
+                        break;
+                    }
+                }
+
+                td.root_moves[td.pv_start..td.pv_index + 1].sort_by(|a, b| b.score.cmp(&a.score));
+
+                if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
+                    td.print_uci_info(depth);
+                }
             }
         }
 
@@ -139,11 +168,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
             td.completed_depth = depth;
         }
 
-        if report == Report::Full && !(is_loss(td.root_moves[0].display_score) && td.stopped) {
+        if report == Report::Full
+            && !(is_loss(td.root_moves[0].display_score) && td.stopped)
+            && (td.stopped || td.pv_index as i32 + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
+        {
             td.print_uci_info(depth);
         }
 
-        if (td.root_moves[0].score - average).abs() < 12 {
+        if (td.root_moves[0].score - average[td.pv_index]).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
@@ -626,6 +658,10 @@ fn search<NODE: NodeType>(
             }
         }
 
+        if NODE::ROOT && !td.root_moves[td.pv_index..td.pv_end].iter().any(|rm| rm.mv == mv) {
+            continue;
+        }
+
         move_count += 1;
         current_search_count = 0;
         td.stack[ply].move_count = move_count;
@@ -860,7 +896,7 @@ fn search<NODE: NodeType>(
                 root_move.sel_depth = td.sel_depth;
                 root_move.pv.commit_full_root_pv(&td.pv_table, 1);
 
-                if move_count > 1 {
+                if move_count > 1 && td.pv_index == 0 {
                     td.best_move_changes += 1;
                 }
             } else {
@@ -988,7 +1024,7 @@ fn search<NODE: NodeType>(
         best_score = best_score.min(max_score);
     }
 
-    if !excluded {
+    if !(excluded || NODE::ROOT && td.pv_index > 0) {
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
     }
 

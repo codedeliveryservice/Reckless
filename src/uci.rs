@@ -8,7 +8,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color, Score},
+    types::{is_decisive, is_loss, is_win, Color, Score, MAX_MOVES},
 };
 
 pub fn message_loop() {
@@ -16,6 +16,7 @@ pub fn message_loop() {
 
     let mut threads = ThreadPool::new(shared.clone());
     let mut frc = false;
+    let mut multi_pv = 1;
     let mut move_overhead = 100;
     let mut report = Report::Full;
 
@@ -27,10 +28,10 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut threads, &shared, report, move_overhead, tokens),
+            ["go", tokens @ ..] => go(&mut threads, &shared, report, multi_pv, move_overhead, tokens),
             ["position", tokens @ ..] => position(&mut threads, frc, tokens),
             ["setoption", tokens @ ..] => {
-                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &shared.tt, tokens)
+                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &mut multi_pv, &shared.tt, tokens)
             }
             ["ucinewgame"] => reset(&mut threads, &shared.tt),
 
@@ -84,6 +85,7 @@ fn uci() {
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
     println!("option name UCI_Chess960 type check default false");
+    println!("option name MultiPV type spin default 1 min 1 max {}", MAX_MOVES);
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -102,11 +104,15 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, move_overhead: u64, tokens: &[&str]) {
+fn go(
+    threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, multi_pv: i32, move_overhead: u64,
+    tokens: &[&str],
+) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
     threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    threads.main_thread().multi_pv = multi_pv;
 
     shared.nodes.reset();
     shared.tb_hits.reset();
@@ -153,40 +159,37 @@ fn go(threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, mov
 
     let mut best = 0;
 
-    match &threads[best].time_manager.limits() {
-        Limits::Depth(_) => {}
-        _ => {
-            for current in 1..threads.len() {
-                let is_better_candidate = || -> bool {
-                    let best = &threads[best];
-                    let current = &threads[current];
+    if matches!(threads[best].time_manager.limits(), Limits::Depth(_)) && threads[0].multi_pv == 1 {
+        for current in 1..threads.len() {
+            let is_better_candidate = || -> bool {
+                let best = &threads[best];
+                let current = &threads[current];
 
-                    if is_win(best.root_moves[0].score) {
-                        return current.root_moves[0].score > best.root_moves[0].score;
-                    }
-
-                    if current.root_moves[0].score != -Score::INFINITE
-                        && best.root_moves[0].score != -Score::INFINITE
-                        && is_loss(best.root_moves[0].score)
-                    {
-                        return current.root_moves[0].score < best.root_moves[0].score;
-                    }
-
-                    if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
-                        return true;
-                    }
-
-                    let best_vote = votes[best.root_moves[0].mv.encoded()];
-                    let current_vote = votes[current.root_moves[0].mv.encoded()];
-
-                    !is_loss(current.root_moves[0].score)
-                        && (current_vote > best_vote
-                            || (current_vote == best_vote && vote_value(current) > vote_value(best)))
-                };
-
-                if is_better_candidate() {
-                    best = current;
+                if is_win(best.root_moves[0].score) {
+                    return current.root_moves[0].score > best.root_moves[0].score;
                 }
+
+                if current.root_moves[0].score != -Score::INFINITE
+                    && best.root_moves[0].score != -Score::INFINITE
+                    && is_loss(best.root_moves[0].score)
+                {
+                    return current.root_moves[0].score < best.root_moves[0].score;
+                }
+
+                if current.root_moves[0].score != -Score::INFINITE && is_decisive(current.root_moves[0].score) {
+                    return true;
+                }
+
+                let best_vote = votes[best.root_moves[0].mv.encoded()];
+                let current_vote = votes[current.root_moves[0].mv.encoded()];
+
+                !is_loss(current.root_moves[0].score)
+                    && (current_vote > best_vote
+                        || (current_vote == best_vote && vote_value(current) > vote_value(best)))
+            };
+
+            if is_better_candidate() {
+                best = current;
             }
         }
     }
@@ -243,8 +246,8 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
 }
 
 fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, tt: &TranspositionTable,
-    tokens: &[&str],
+    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, multi_pv: &mut i32,
+    tt: &TranspositionTable, tokens: &[&str],
 ) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -275,6 +278,10 @@ fn set_option(
         ["name", "UCI_Chess960", "value", v] => {
             *frc = v.parse().unwrap_or_default();
             println!("info string set UCI_Chess960 to {v}");
+        }
+        ["name", "MultiPV", "value", v] => {
+            *multi_pv = v.parse().unwrap_or_default();
+            println!("info string set MultiPV to {v}");
         }
         #[cfg(feature = "spsa")]
         ["name", name, "value", v] => {
