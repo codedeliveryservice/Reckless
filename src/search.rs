@@ -650,14 +650,6 @@ fn search<NODE: NodeType>(
             continue;
         }
 
-        if NODE::ROOT && td.root_in_tb {
-            debug_assert!(td.root_moves[0].tb_rank == td.root_moves.iter().map(|rm| rm.tb_rank).max().unwrap_or(0));
-
-            if td.root_moves.iter().any(|rm| rm.mv == mv && rm.tb_rank != td.root_moves[0].tb_rank) {
-                continue;
-            }
-        }
-
         if NODE::ROOT && !td.root_moves[td.pv_index..td.pv_end].iter().any(|rm| rm.mv == mv) {
             continue;
         }
