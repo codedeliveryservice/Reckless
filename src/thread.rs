@@ -157,6 +157,7 @@ impl Index<usize> for ThreadPool {
 pub struct ThreadData {
     pub id: usize,
     pub shared: Arc<SharedContext>,
+    pub multi_pv: i32,
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Stack,
@@ -183,6 +184,9 @@ pub struct ThreadData {
     pub previous_best_score: i32,
     pub root_in_tb: bool,
     pub stop_probing_tb: bool,
+    pub pv_index: usize,
+    pub pv_start: usize,
+    pub pv_end: usize,
 }
 
 impl ThreadData {
@@ -190,6 +194,7 @@ impl ThreadData {
         Self {
             id: 0,
             shared,
+            multi_pv: 1,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::default(),
@@ -216,6 +221,9 @@ impl ThreadData {
             previous_best_score: 0,
             root_in_tb: false,
             stop_probing_tb: false,
+            pv_index: 0,
+            pv_start: 0,
+            pv_end: 0,
         }
     }
 
@@ -232,52 +240,64 @@ impl ThreadData {
         let nps = self.shared.nodes.aggregate() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
 
-        let root_move = &self.root_moves[0];
-        let mut score = if root_move.score == -Score::INFINITE { root_move.display_score } else { root_move.score };
+        for pv_index in 0..self.multi_pv {
+            let pv_index = pv_index as usize;
+            let root_move = &self.root_moves[pv_index];
 
-        let mut upperbound = root_move.upperbound;
-        let mut lowerbound = root_move.lowerbound;
+            let updated = root_move.score != -Score::INFINITE;
 
-        if self.root_in_tb && score.abs() <= Score::TB_WIN {
-            score = root_move.tb_score;
-            upperbound = false;
-            lowerbound = false;
-        }
+            if depth == 1 && !updated && pv_index > 0 {
+                continue;
+            }
 
-        let score = if score.abs() < Score::TB_WIN_IN_MAX {
-            format!("cp {}", normalize_to_cp(score, &self.board))
-        } else if score.abs() <= Score::TB_WIN {
-            let ply = Score::TB_WIN - score.abs();
-            let cp_score = 20_000 - ply;
-            format!("cp {}", if score.is_positive() { cp_score } else { -cp_score })
-        } else {
-            let mate = (Score::MATE - score.abs() + if score.is_positive() { 1 } else { 0 }) / 2;
-            format!("mate {}", if score.is_positive() { mate } else { -mate })
-        };
+            let depth = if updated { depth } else { (depth - 1).max(1) };
+            let mut score = if updated { root_move.display_score } else { root_move.previous_score };
 
-        let score = if upperbound {
-            format!("{score} upperbound")
-        } else if lowerbound {
-            format!("{score} lowerbound")
-        } else {
-            score
-        };
+            let mut upperbound = root_move.upperbound;
+            let mut lowerbound = root_move.lowerbound;
 
-        print!(
-            "info depth {depth} seldepth {} score {score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
+            if self.root_in_tb && score.abs() <= Score::TB_WIN {
+                score = root_move.tb_score;
+                upperbound = false;
+                lowerbound = false;
+            }
+
+            let mut score_str = if score.abs() < Score::TB_WIN_IN_MAX {
+                format!("cp {}", normalize_to_cp(score, &self.board))
+            } else if score.abs() <= Score::TB_WIN {
+                let ply = Score::TB_WIN - score.abs();
+                let cp_score = 20_000 - ply;
+                format!("cp {}", if score.is_positive() { cp_score } else { -cp_score })
+            } else {
+                let mate = (Score::MATE - score.abs() + if score.is_positive() { 1 } else { 0 }) / 2;
+                format!("mate {}", if score.is_positive() { mate } else { -mate })
+            };
+
+            if upperbound {
+                score_str = format!("{score_str} upperbound");
+            } else if lowerbound {
+                score_str = format!("{score_str} lowerbound");
+            }
+
+            // Print the UCI info line
+            print!(
+            "info depth {depth} seldepth {} multipv {} score {} nodes {} time {ms} nps {:.0} hashfull {} tbhits {} pv",
             root_move.sel_depth,
+            pv_index + 1,
+            score_str,
             self.shared.nodes.aggregate(),
+            nps,
             self.shared.tt.hashfull(),
             self.shared.tb_hits.aggregate(),
-        );
+            );
 
-        print!(" {}", root_move.mv.to_uci(&self.board));
+            print!(" {}", root_move.mv.to_uci(&self.board));
+            for mv in root_move.pv.line() {
+                print!(" {}", mv.to_uci(&self.board));
+            }
 
-        for mv in root_move.pv.line() {
-            print!(" {}", mv.to_uci(&self.board));
+            println!();
         }
-
-        println!();
     }
 }
 
@@ -285,6 +305,7 @@ impl ThreadData {
 pub struct RootMove {
     pub mv: Move,
     pub score: i32,
+    pub previous_score: i32,
     pub display_score: i32,
     pub upperbound: bool,
     pub lowerbound: bool,
@@ -300,6 +321,7 @@ impl Default for RootMove {
         Self {
             mv: Move::NULL,
             score: -Score::INFINITE,
+            previous_score: -Score::INFINITE,
             display_score: -Score::INFINITE,
             upperbound: false,
             lowerbound: false,
