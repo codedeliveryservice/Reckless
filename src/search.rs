@@ -939,8 +939,8 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (116 * depth - 52).min(1134) - 69 * cut_node as i32;
-        let malus_noisy = (151 * initial_depth - 54).min(1380) - 24 * noisy_moves.len() as i32;
+        let bonus_noisy = (125 * depth - 57).min(1175) - 70 * cut_node as i32;
+        let malus_noisy = (153 * initial_depth - 64).min(1476) - 24 * noisy_moves.len() as i32;
 
         let bonus_quiet = (160 * depth - 66).min(1527) - 60 * cut_node as i32;
         let malus_quiet = (131 * initial_depth - 48).min(1116) - 40 * quiet_moves.len() as i32;
