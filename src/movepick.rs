@@ -176,6 +176,11 @@ impl MovePicker {
 
             entry.score = 16 * PIECE_VALUES[captured]
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+
+            if !threats.contains(mv.to()) {
+                let side = td.board.side_to_move();
+                entry.score += td.quiet_history.get(threats, side, mv) / 6;
+            }
         }
     }
 
