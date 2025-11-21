@@ -68,6 +68,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
 
+    td.quiet_history.decay();
+
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         best_move_changes /= 2;

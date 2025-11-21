@@ -43,6 +43,10 @@ pub struct QuietHistory {
     entries: Box<[FromToHistory<QuietHistoryEntry>; 2]>,
 }
 
+fn decay_i16(x: &mut i16) {
+    *x -= *x / 4;
+}
+
 impl QuietHistory {
     pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
         let entry = &self.entries[stm][mv.from()][mv.to()];
@@ -54,6 +58,22 @@ impl QuietHistory {
 
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, mv, bonus);
+    }
+
+    pub fn decay(&mut self) {
+        for stm in 0..2 {
+            for from in 0..64 {
+                for to in 0..64 {
+                    let e = &mut self.entries[stm][from][to];
+                    decay_i16(&mut e.factorizer);
+                    for a in 0..2 {
+                        for b in 0..2 {
+                            decay_i16(&mut e.buckets[a][b])
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
