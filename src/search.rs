@@ -472,7 +472,7 @@ fn search<NODE: NodeType>(
         improvement = static_eval - td.stack[ply - 4].static_eval;
     }
 
-    let improving = improvement > 0;
+    let improving = improvement > 0 && !potential_singularity;
 
     // Razoring
     if !NODE::PV && !in_check && eval < alpha - 278 - 257 * initial_depth * initial_depth {
