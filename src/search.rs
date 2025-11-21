@@ -1095,6 +1095,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut futility_base = Score::NONE;
     let mut raw_eval = Score::NONE;
 
+    let mut noisy_moves = ArrayVec::<Move, 32>::new();
+
     // Evaluation
     if !in_check {
         raw_eval = match &entry {
@@ -1196,6 +1198,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 alpha = score;
             }
         }
+
+        if mv != best_move && move_count < 32 {
+            noisy_moves.push(mv);
+        }
     }
 
     if in_check && move_count == 0 {
@@ -1212,6 +1218,24 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
+
+    let bonus_noisy = 116 - 52;
+    let malus_noisy = (151 - 54) - 24 * noisy_moves.len() as i32;
+
+    if best_move.is_noisy() {
+        td.qs_noisy_history.update(
+            td.board.threats(),
+            td.board.moved_piece(best_move),
+            best_move.to(),
+            td.board.piece_on(best_move.to()).piece_type(),
+            bonus_noisy,
+        );
+    }
+
+    for &mv in noisy_moves.iter() {
+        let captured = td.board.piece_on(mv.to()).piece_type();
+        td.qs_noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+    }
 
     best_score
 }

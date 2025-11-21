@@ -22,6 +22,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    qs: bool,
 }
 
 impl MovePicker {
@@ -33,6 +34,7 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            qs: false,
         }
     }
 
@@ -44,6 +46,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            qs: false,
         }
     }
 
@@ -55,6 +58,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            qs: true,
         }
     }
 
@@ -176,6 +180,10 @@ impl MovePicker {
 
             entry.score = 16 * PIECE_VALUES[captured]
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+
+            if self.qs {
+                entry.score += td.qs_noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+            }
         }
     }
 
