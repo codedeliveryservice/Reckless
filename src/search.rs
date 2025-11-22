@@ -1017,7 +1017,8 @@ fn search<NODE: NodeType>(
     }
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv);
+        let optimal_move = if NODE::PV && tt_move.is_some() { tt_move } else { best_move };
+        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, optimal_move, ply, tt_pv);
     }
 
     if !(in_check
