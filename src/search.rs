@@ -624,6 +624,10 @@ fn search<NODE: NodeType>(
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
+            if !in_check && score > static_eval {
+                update_correction_histories(td, singular_depth, score - static_eval, ply);
+            }
+
             return (score * singular_depth + beta) / (singular_depth + 1);
         } else if tt_score >= beta {
             extension = -2;
