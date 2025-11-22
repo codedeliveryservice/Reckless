@@ -410,6 +410,9 @@ fn search<NODE: NodeType>(
             }
         {
             eval = tt_score;
+            if tt_bound == Bound::Exact && !is_decisive(tt_score) {
+                static_eval = tt_score;
+            }
         }
     } else {
         raw_eval = evaluate(td);
