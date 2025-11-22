@@ -373,7 +373,7 @@ fn search<NODE: NodeType>(
     let correction_value = correction_value(td, ply);
 
     let raw_eval;
-    let mut static_eval;
+    let static_eval;
     let mut eval;
 
     // Evaluation
@@ -381,18 +381,6 @@ fn search<NODE: NodeType>(
         raw_eval = Score::NONE;
         static_eval = Score::NONE;
         eval = Score::NONE;
-
-        if is_valid(tt_score)
-            && !is_decisive(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score <= alpha,
-                Bound::Lower => tt_score >= beta,
-                _ => true,
-            }
-        {
-            eval = tt_score;
-            static_eval = tt_score;
-        }
     } else if excluded {
         raw_eval = td.stack[ply].static_eval;
         static_eval = raw_eval;
@@ -482,7 +470,7 @@ fn search<NODE: NodeType>(
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
-        && is_valid(eval)
+        && !in_check
         && eval >= beta
         && eval
             >= beta + 1192 * depth * depth / 128 + 29 * depth - (73 * improving as i32)
