@@ -604,6 +604,11 @@ fn search<NODE: NodeType>(
         let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
         let singular_depth = (depth - 1) / 2;
 
+        // Multi-Cut RFP
+        if !in_check && cut_node && singular_beta >= probcut_beta {
+            return (tt_score * singular_depth + beta) / (singular_depth + 1);
+        }
+
         td.stack[ply].excluded = tt_move;
         let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
