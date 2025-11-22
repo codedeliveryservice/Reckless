@@ -623,7 +623,7 @@ fn search<NODE: NodeType>(
             if extension > 1 && depth < 14 {
                 depth += 1;
             }
-        } else if score >= beta && !is_decisive(score) {
+        } else if !tt_pv && score >= beta && !is_decisive(score) {
             return (score * singular_depth + beta) / (singular_depth + 1);
         } else if tt_score >= beta {
             extension = -2;
