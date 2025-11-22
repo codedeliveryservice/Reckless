@@ -1,3 +1,5 @@
+use std::cell::UnsafeCell;
+
 use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 
 type FromToHistory<T> = [[T; 64]; 64];
@@ -200,6 +202,37 @@ impl Default for ContinuationHistory {
         Self { entries: zeroed_box() }
     }
 }
+
+pub struct HashMoveHistory {
+    // [side_to_move][key]
+    entries: UnsafeCell<Box<[[i16; Self::SIZE]; 2]>>,
+}
+
+impl HashMoveHistory {
+    const MAX_HISTORY: i32 = 8192;
+
+    const SIZE: usize = 16384;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, stm: Color, key: u64) -> i32 {
+        let entries = unsafe { &*self.entries.get() };
+        entries[stm][key as usize & Self::MASK] as i32
+    }
+
+    pub fn update(&self, stm: Color, key: u64, bonus: i32) {
+        let entries = unsafe { &mut *self.entries.get() };
+        let entry = &mut entries[stm][key as usize & Self::MASK];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for HashMoveHistory {
+    fn default() -> Self {
+        Self { entries: UnsafeCell::new(zeroed_box()) }
+    }
+}
+
+unsafe impl Sync for HashMoveHistory {}
 
 fn zeroed_box<T>() -> Box<T> {
     unsafe {

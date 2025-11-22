@@ -613,8 +613,10 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin = 2 + 276 * NODE::PV as i32;
-            let triple_margin = 66 + 325 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
+            let tt_move_history = td.shared.hash_move_history.get(td.board.side_to_move(), td.board.pawn_key());
+
+            let double_margin = 2 + 276 * NODE::PV as i32 - tt_move_history / 128;
+            let triple_margin = 66 + 325 * NODE::PV as i32 - tt_move_history / 128 - 16 * correction_value.abs() / 128;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
@@ -979,6 +981,11 @@ fn search<NODE: NodeType>(
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
             let bonus = (238 * depth - 86).min(1500);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+        }
+
+        if !NODE::PV && tt_move.is_some() {
+            let bonus = if tt_move == best_move { 512 } else { -1024 };
+            td.shared.hash_move_history.update(td.board.side_to_move(), td.board.pawn_key(), bonus);
         }
     }
 

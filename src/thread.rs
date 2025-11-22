@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     board::Board,
-    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, HashMoveHistory, NoisyHistory, QuietHistory},
     nnue::Network,
     stack::Stack,
     thread::pool::ScopeExt,
@@ -89,6 +89,7 @@ impl Default for Status {
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
+    pub hash_move_history: HashMoveHistory,
     pub nodes: Counter<{ Self::MAX_THREADS }>,
     pub tb_hits: Counter<{ Self::MAX_THREADS }>,
 }
