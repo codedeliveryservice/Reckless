@@ -35,7 +35,7 @@ impl TimeManager {
                 const MTG: u64 = 50;
 
                 let main = main.saturating_sub(move_overhead);
-                let total = (main + inc * (MTG - 1)).saturating_sub(TIME_OVERHEAD_MS * (MTG + 2));
+                let total = (main + inc * MTG).saturating_sub(TIME_OVERHEAD_MS * MTG);
 
                 let soft_bound = (0.125 * main as f64).min(0.025 * total as f64) as u64;
                 let hard_bound = (0.742 * main as f64 + 0.75 * inc as f64) as u64;
