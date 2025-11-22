@@ -324,7 +324,14 @@ fn search<NODE: NodeType>(
                 let conthist_bonus = (102 * depth - 62).min(1618);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+                update_continuation_histories(
+                    td,
+                    ply,
+                    tt_move,
+                    td.board.moved_piece(tt_move),
+                    tt_move.to(),
+                    conthist_bonus,
+                );
             }
 
             if td.board.halfmove_clock() < 90 {
@@ -958,11 +965,18 @@ fn search<NODE: NodeType>(
             );
         } else {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
+            update_continuation_histories(
+                td,
+                ply,
+                best_move,
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                bonus_cont,
+            );
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -malus_cont);
+                update_continuation_histories(td, ply, mv, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }
 
@@ -973,12 +987,19 @@ fn search<NODE: NodeType>(
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
             let malus = (77 * initial_depth - 50).min(817);
-            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+            update_continuation_histories(
+                td,
+                ply - 1,
+                td.stack[ply - 1].mv,
+                td.stack[ply - 1].piece,
+                td.stack[ply - 1].mv.to(),
+                -malus,
+            );
         }
 
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
             let bonus = (238 * depth - 86).min(1500);
-            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+            update_continuation_histories(td, ply, best_move, td.stack[ply].piece, best_move.to(), bonus);
         }
     }
 
@@ -999,9 +1020,14 @@ fn search<NODE: NodeType>(
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
             let entry = &td.stack[ply - 2];
+            let base = td.conthist(ply, 1, pcm_move)
+                + td.conthist(ply, 2, pcm_move)
+                + td.conthist(ply, 4, pcm_move)
+                + td.conthist(ply, 6, pcm_move);
+
             if entry.mv.is_some() {
                 let bonus = (166 * initial_depth - 42).min(1495);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
+                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus, base);
             }
         }
     }
@@ -1270,11 +1296,13 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 }
 
-fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
+fn update_continuation_histories(td: &mut ThreadData, ply: isize, mv: Move, piece: Piece, sq: Square, bonus: i32) {
+    let base = td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv) + td.conthist(ply, 4, mv) + td.conthist(ply, 6, mv);
+
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, bonus);
+            td.continuation_history.update(entry.conthist, piece, sq, bonus, base);
         }
     }
 }
