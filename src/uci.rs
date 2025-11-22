@@ -111,7 +111,7 @@ fn go(
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
+    threads.main_thread().time_manager = TimeManager::new(limits, move_overhead);
     threads.main_thread().multi_pv = multi_pv;
 
     shared.nodes.reset();
@@ -136,7 +136,7 @@ fn go(
         for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
             handlers.push(scope.spawn_into(
                 move || {
-                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+                    t.time_manager = TimeManager::new(Limits::Infinite, 0);
                     t.id = index + 1;
                     search::start(t, Report::None);
                 },

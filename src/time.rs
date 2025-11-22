@@ -22,7 +22,7 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
+    pub fn new(limits: Limits, move_overhead: u64) -> Self {
         let soft;
         let hard;
 
@@ -32,14 +32,16 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let soft_scale = 0.024 + 0.042 * (1.0 - (-0.045 * fullmove_number as f64).exp());
-                let hard_scale = 0.742;
+                const MTG: u64 = 50;
 
-                let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
-                let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
+                let main = main.saturating_sub(move_overhead);
+                let total = (main + inc * (MTG - 1)).saturating_sub(TIME_OVERHEAD_MS * (MTG + 2));
 
-                soft = soft_bound.min(main.saturating_sub(move_overhead));
-                hard = hard_bound.min(main.saturating_sub(move_overhead));
+                let soft_bound = (0.125 * main as f64).min(0.025 * total as f64) as u64;
+                let hard_bound = (0.742 * main as f64 + 0.75 * inc as f64) as u64;
+
+                soft = soft_bound.min(main);
+                hard = hard_bound.min(main);
             }
             Limits::Cyclic(main, inc, moves) => {
                 let main = main.saturating_sub(move_overhead);
