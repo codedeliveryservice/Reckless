@@ -958,7 +958,7 @@ fn search<NODE: NodeType>(
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
-                bonus_noisy,
+                bonus_noisy * (1 + 2 * (move_picker.stage() == Stage::BadNoisy) as i32),
             );
         } else {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
