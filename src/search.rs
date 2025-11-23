@@ -445,6 +445,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && td.stack[ply - 1].reduction >= 2606
         && static_eval + td.stack[ply - 1].static_eval < 0
+        && td.quiet_history.get(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv) > 0
     {
         depth += 1;
     }
