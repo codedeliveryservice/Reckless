@@ -485,7 +485,9 @@ fn search<NODE: NodeType>(
         && is_valid(eval)
         && eval >= beta
         && eval
-            >= beta + 1192 * depth * depth / 128 + 29 * depth - (73 * improving as i32)
+            >= beta + 1192 * depth * depth / 128 + 29 * depth
+                - (73 * improving as i32)
+                - 12 * (static_eval > -td.stack[ply - 1].static_eval) as i32
                 + 562 * correction_value.abs() / 1024
                 + 31 * (depth == 1) as i32
         && !is_loss(beta)
