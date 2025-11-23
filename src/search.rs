@@ -624,6 +624,7 @@ fn search<NODE: NodeType>(
                 depth += 1;
             }
         } else if score >= beta && !is_decisive(score) {
+            td.stack[ply].cutoff_count += 1;
             return (score * singular_depth + beta) / (singular_depth + 1);
         } else if tt_score >= beta {
             extension = -2;
