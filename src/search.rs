@@ -987,6 +987,7 @@ fn search<NODE: NodeType>(
         if pcm_move.is_quiet() {
             let mut factor = 82;
             factor += 150 * (initial_depth > 5) as i32;
+            factor += 200 * (cut_node && tt_bound == Bound::Lower) as i32;
             factor += 205 * (td.stack[ply - 1].move_count > 8) as i32;
             factor += 124 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
             factor += 190 * (!in_check && best_score <= static_eval.min(raw_eval) - 128) as i32;
