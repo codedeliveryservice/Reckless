@@ -170,7 +170,8 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, pv: bool,
+        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
+        force: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
@@ -205,10 +206,10 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !(key != entry.key
-            || bound == Bound::Exact
-            || depth + 4 + 2 * pv as i32 > entry.depth as i32
-            || entry.flags.age() != tt_age)
+        if !force
+            && key == entry.key
+            && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
+            && entry.flags.age() == tt_age
         {
             return;
         }
@@ -222,7 +223,7 @@ impl TranspositionTable {
         entry.depth = depth as i8;
         entry.score = score as i16;
         entry.eval = eval as i16;
-        entry.flags = Flags::new(bound, pv, tt_age);
+        entry.flags = Flags::new(bound, tt_pv, tt_age);
     }
 
     pub fn prefetch(&self, hash: u64) {
