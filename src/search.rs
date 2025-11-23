@@ -942,7 +942,7 @@ fn search<NODE: NodeType>(
         let bonus_noisy = (116 * depth - 52).min(1134) - 69 * cut_node as i32;
         let malus_noisy = (151 * initial_depth - 54).min(1380) - 24 * noisy_moves.len() as i32;
 
-        let bonus_quiet = (160 * depth - 66).min(1527) - 60 * cut_node as i32;
+        let mut bonus_quiet = (160 * depth - 66).min(1527) - 60 * cut_node as i32;
         let malus_quiet = (131 * initial_depth - 48).min(1116) - 40 * quiet_moves.len() as i32;
 
         let bonus_cont = (97 * depth - 62).min(1129) - 69 * cut_node as i32;
@@ -957,6 +957,10 @@ fn search<NODE: NodeType>(
                 bonus_noisy,
             );
         } else {
+            if tt_move == best_move && td.quiet_history.get(td.board.threats(), td.board.side_to_move(), tt_move) < 0 {
+                bonus_quiet *= 2;
+            }
+
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
