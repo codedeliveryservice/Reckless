@@ -211,7 +211,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
+            let recapture_factor = if td.root_moves[0].mv.to() == td.board.last_move_square() { 0.9 } else { 1.0 };
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
@@ -630,7 +630,7 @@ fn search<NODE: NodeType>(
         } else if cut_node {
             extension = -2;
         }
-    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
+    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.last_move_square() {
         extension = 1;
     }
 
@@ -761,7 +761,7 @@ fn search<NODE: NodeType>(
                 reduction -= 395 + 515 * (beta - alpha) / td.root_delta;
             }
 
-            if NODE::PV && mv.is_noisy() && mv.to() == td.board.recapture_square() {
+            if NODE::PV && mv.is_noisy() && mv.to() == td.board.last_move_square() {
                 reduction -= 1024;
             }
 
@@ -1159,7 +1159,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
+        if !is_loss(best_score) && mv.to() != td.board.last_move_square() {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }

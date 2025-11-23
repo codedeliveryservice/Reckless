@@ -31,7 +31,7 @@ struct InternalState {
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
-    recapture_square: Square,
+    last_move_square: Square,
     threats: Bitboard,
     pinned: [Bitboard; Color::NUM],
     checkers: Bitboard,
@@ -109,8 +109,8 @@ impl Board {
         self.state_stack[self.state_stack.len() - 1].threats
     }
 
-    pub const fn recapture_square(&self) -> Square {
-        self.state.recapture_square
+    pub const fn last_move_square(&self) -> Square {
+        self.state.last_move_square
     }
 
     pub const fn en_passant(&self) -> Square {
