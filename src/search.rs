@@ -458,7 +458,7 @@ fn search<NODE: NodeType>(
         && is_valid(td.stack[ply - 1].static_eval)
         && static_eval + td.stack[ply - 1].static_eval > 59
     {
-        depth -= 1;
+        depth -= 1 + (depth >= 3 && td.stack[ply + 1].cutoff_count > 3) as i32;
     }
 
     let potential_singularity =
