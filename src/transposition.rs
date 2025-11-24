@@ -226,7 +226,7 @@ impl TranspositionTable {
         entry.flags = Flags::new(bound, tt_pv, tt_age);
     }
 
-    pub fn prefetch(&self, hash: u64) {
+    pub fn prefetch_read(&self, hash: u64) {
         #[cfg(target_arch = "x86_64")]
         unsafe {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
@@ -234,6 +234,21 @@ impl TranspositionTable {
             let index = index(hash, self.len());
             let ptr = self.ptr().add(index).cast();
             _mm_prefetch::<_MM_HINT_T0>(ptr);
+        }
+
+        // No prefetching for non-x86_64 architectures
+        #[cfg(not(target_arch = "x86_64"))]
+        let _ = hash;
+    }
+
+    pub fn prefetch_write(&self, hash: u64) {
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_ET0};
+
+            let index = index(hash, self.len());
+            let ptr = self.ptr().add(index).cast();
+            _mm_prefetch::<_MM_HINT_ET0>(ptr);
         }
 
         // No prefetching for non-x86_64 architectures

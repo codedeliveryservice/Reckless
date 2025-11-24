@@ -938,6 +938,10 @@ fn search<NODE: NodeType>(
         return if in_check { mated_in(ply) } else { Score::DRAW };
     }
 
+    if !(excluded || NODE::ROOT && td.pv_index > 0) {
+        td.shared.tt.prefetch_write(td.board.hash());
+    }
+
     if best_move.is_some() {
         let bonus_noisy = (116 * depth - 52).min(1134) - 69 * cut_node as i32;
         let malus_noisy = (151 * initial_depth - 54).min(1380) - 24 * noisy_moves.len() as i32;
@@ -1302,7 +1306,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.nnue.push(mv, &td.board);
     td.board.make_move(mv);
 
-    td.shared.tt.prefetch(td.board.hash());
+    td.shared.tt.prefetch_read(td.board.hash());
 }
 
 fn undo_move(td: &mut ThreadData, mv: Move) {
