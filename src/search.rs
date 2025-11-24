@@ -761,6 +761,10 @@ fn search<NODE: NodeType>(
                 reduction -= 395 + 515 * (beta - alpha) / td.root_delta;
             }
 
+            if NODE::PV && mv.is_noisy() && mv.to() == td.board.recapture_square() {
+                reduction -= 1024;
+            }
+
             if !tt_pv && cut_node {
                 reduction += 1772;
                 reduction += 1078 * tt_move.is_null() as i32;
