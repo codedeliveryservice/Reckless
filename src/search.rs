@@ -641,9 +641,11 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
+    let mut current_search_count = 0;
+    let mut alpha_raise_count = 0;
+
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
-    let mut current_search_count = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
@@ -669,7 +671,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = td.lmr.reduction(depth, move_count);
+        let mut reduction = td.lmr.reduction(depth, move_count - alpha_raise_count);
 
         if !improving {
             reduction += (461 - 321 * improvement / 128).min(1373);
@@ -918,6 +920,7 @@ fn search<NODE: NodeType>(
                 }
 
                 alpha = score;
+                alpha_raise_count += 1;
             }
         }
 
