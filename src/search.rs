@@ -426,6 +426,8 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
+    let complexity = if !is_decisive(eval) { (static_eval - eval).abs() } else { 0 };
+
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
         && !in_check
@@ -483,6 +485,7 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !excluded
         && is_valid(eval)
+        && complexity < 64
         && eval >= beta
         && eval
             >= beta + 1192 * depth * depth / 128 + 29 * depth - (73 * improving as i32)
