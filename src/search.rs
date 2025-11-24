@@ -515,7 +515,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
 
-        td.board.make_null_move();
+        td.board.make_null_move(|hash| td.shared.tt.prefetch(hash));
 
         let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
 
@@ -1304,9 +1304,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.shared.nodes.increment(td.id);
 
     td.nnue.push(mv, &td.board);
-    td.board.make_move(mv);
-
-    td.shared.tt.prefetch(td.board.hash());
+    td.board.make_move(mv, |hash| td.shared.tt.prefetch(hash));
 }
 
 fn undo_move(td: &mut ThreadData, mv: Move) {

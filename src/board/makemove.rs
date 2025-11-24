@@ -2,24 +2,26 @@ use super::Board;
 use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
-    pub fn make_null_move(&mut self) {
-        self.side_to_move = !self.side_to_move;
+    pub fn make_null_move<P: FnOnce(u64)>(&mut self, prefetch: P) {
         self.state_stack.push(self.state);
 
         self.state.key ^= ZOBRIST.side;
         self.state.key ^= ZOBRIST.castling[self.state.castling];
-        self.state.plies_from_null = 0;
-        self.state.repetition = 0;
-        self.state.captured = None;
-        self.state.recapture_square = Square::None;
-        self.state.checkers = Bitboard::default();
-
-        self.update_threats();
 
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
+
+        prefetch(self.state.key);
+
+        self.side_to_move = !self.side_to_move;
+        self.state.plies_from_null = 0;
+        self.state.repetition = 0;
+        self.state.captured = None;
+        self.state.recapture_square = Square::None;
+        self.state.checkers = Bitboard::default();
+        self.update_threats();
     }
 
     pub fn undo_null_move(&mut self) {
@@ -31,7 +33,7 @@ impl Board {
     ///
     /// This method assumes the move has been validated as pseudo-legal and legal
     /// per `Board::is_pseudo_legal` and `Board::is_legal`.
-    pub fn make_move(&mut self, mv: Move) {
+    pub fn make_move<P: FnOnce(u64)>(&mut self, mv: Move, prefetch: P) {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
@@ -115,6 +117,8 @@ impl Board {
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.key ^= ZOBRIST.castling[self.state.castling];
+
+        prefetch(self.state.key);
 
         self.update_threats();
         self.update_king_threats();
