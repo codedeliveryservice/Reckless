@@ -1029,7 +1029,8 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= static_eval)
         || (bound == Bound::Lower && best_score <= static_eval))
     {
-        update_correction_histories(td, depth, best_score - static_eval, ply);
+        let complexity = if !is_decisive(eval) { (static_eval - eval).abs() } else { 0 };
+        update_correction_histories(td, depth, best_score - static_eval, complexity, ply);
     }
 
     debug_assert!(alpha < beta);
@@ -1254,9 +1255,11 @@ fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
     (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
+fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, complexity: i32, ply: isize) {
     let stm = td.board.side_to_move();
-    let bonus = (164 * depth * diff / 128).clamp(-4607, 2647);
+
+    let factor = 1 + (complexity + 1).ilog2() as i32;
+    let bonus = (64 * depth * diff * factor / 128).clamp(-4607, 2647);
 
     td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
     td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
