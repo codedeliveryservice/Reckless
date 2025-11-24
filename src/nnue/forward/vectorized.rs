@@ -133,7 +133,7 @@ pub unsafe fn propagate_l1(
 pub unsafe fn propagate_l2(
     parameters: &'static Parameters, l1_out: Aligned<[f32; L2_SIZE]>,
 ) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = parameters.l2_biases.clone();
+    let mut output = parameters.l2_biases;
 
     for i in 0..L2_SIZE {
         let input = simd::splat_f32(l1_out[i]);

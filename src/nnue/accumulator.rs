@@ -13,7 +13,7 @@ pub struct AccumulatorCache {
 impl AccumulatorCache {
     pub fn new(parameters: &'static Parameters) -> Self {
         let entry = CacheEntry::new(parameters);
-        Self { entries: Box::new([[[entry.clone(); INPUT_BUCKETS]; 2]; 2]) }
+        Self { entries: Box::new([[[entry; INPUT_BUCKETS]; 2]; 2]) }
     }
 }
 
@@ -27,7 +27,7 @@ pub struct CacheEntry {
 impl CacheEntry {
     fn new(parameters: &'static Parameters) -> Self {
         Self {
-            accumulator: parameters.ft_biases.clone(),
+            accumulator: parameters.ft_biases,
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
         }

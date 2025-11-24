@@ -4,3 +4,4 @@ target
 *.pdb
 reckless*
 bindings.rs
+numa_bindings.rs

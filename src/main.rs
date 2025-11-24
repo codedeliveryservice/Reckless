@@ -21,8 +21,16 @@ mod uci;
 #[allow(warnings)]
 mod bindings;
 
+#[allow(warnings)]
+mod numa_bindings;
+
 fn main() {
     lookup::init();
+
+    assert!(
+        unsafe { numa_bindings::numa_available() } != -1,
+        "NUMA is not available on this system, but the binary was built with NUMA support."
+    );
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(None),

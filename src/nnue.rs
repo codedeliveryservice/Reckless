@@ -9,8 +9,6 @@ use crate::{
 };
 
 use accumulator::{Accumulator, AccumulatorCache};
-use memmap2::Mmap;
-use tempfile::NamedTempFile;
 
 mod accumulator;
 
@@ -222,26 +220,34 @@ pub struct Parameters {
 }
 
 pub fn load_parameters() -> &'static Parameters {
+    use crate::numa_bindings::{numa_max_node, numa_node_of_cpu};
+
+    use libc::sched_getcpu;
+    use memmap2::Mmap;
+    use tempfile::NamedTempFile;
+
     static LOCK: Mutex<()> = Mutex::new(());
-    static CACHED: OnceLock<Mmap> = OnceLock::new();
+    static CACHED: OnceLock<Vec<OnceLock<Mmap>>> = OnceLock::new();
 
     static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
 
-    let _guard = LOCK.lock().unwrap();
+    let nodes = unsafe { numa_max_node() + 1 };
+    let cached = CACHED.get_or_init(|| (0..nodes).map(|_| OnceLock::new()).collect());
 
-    if CACHED.get().is_none() {
+    let node = unsafe { numa_node_of_cpu(sched_getcpu()) } as usize;
+    let cached = cached[node].get_or_init(|| {
+        let _guard = LOCK.lock().unwrap();
+
         let mut tmpfile = NamedTempFile::new().unwrap();
 
         tmpfile.write_all(EMBEDDED).unwrap();
         tmpfile.flush().unwrap();
 
         let file = tmpfile.as_file();
-        let mmap = unsafe { Mmap::map(file).unwrap() };
+        unsafe { Mmap::map(file).unwrap() }
+    });
 
-        CACHED.set(mmap).unwrap();
-    }
-
-    return unsafe { &*CACHED.get().unwrap().as_ptr().cast::<Parameters>() };
+    unsafe { &*cached.as_ptr().cast::<Parameters>() }
 }
 
 #[repr(align(64))]

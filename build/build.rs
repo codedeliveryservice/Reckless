@@ -19,6 +19,7 @@ fn main() {
     generate_compiler_info();
     generate_engine_version();
     generate_syzygy_binding();
+    generate_numa_binding();
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
         download_network();
@@ -47,6 +48,18 @@ fn generate_syzygy_binding() {
         .generate()
         .expect("Failed to generate Fathom bindings")
         .write_to_file("src/bindings.rs")
+        .unwrap();
+}
+
+fn generate_numa_binding() {
+    println!("cargo:rustc-link-lib=numa");
+
+    bindgen::Builder::default()
+        .header("./deps/NUMA/wrapper.h")
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .generate()
+        .expect("Failed to generate NUMA bindings")
+        .write_to_file("src/numa_bindings.rs")
         .unwrap();
 }
 
