@@ -426,6 +426,8 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
+    let complexity = if !is_decisive(eval) { (static_eval - eval).abs() } else { 0 };
+
     // Quiet Move Ordering Using Static-Eval
     if !NODE::ROOT
         && !in_check
@@ -443,6 +445,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT
         && !in_check
         && !excluded
+        && complexity < 24
         && td.stack[ply - 1].reduction >= 2606
         && static_eval + td.stack[ply - 1].static_eval < 0
     {
@@ -453,6 +456,7 @@ fn search<NODE: NodeType>(
         && !tt_pv
         && !in_check
         && !excluded
+        && complexity < 24
         && depth >= 2
         && td.stack[ply - 1].reduction >= 945
         && is_valid(td.stack[ply - 1].static_eval)
