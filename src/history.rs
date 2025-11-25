@@ -156,7 +156,7 @@ impl ContinuationCorrectionHistory {
     }
 
     pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
-        (unsafe { &*subtable_ptr }[piece][to] as i32)
+        unsafe { (&*subtable_ptr)[piece][to] as i32 }
     }
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
