@@ -11,14 +11,29 @@ use crate::{
     types::{is_decisive, is_loss, is_win, Color, Score, MAX_MOVES},
 };
 
+struct Settings {
+    frc: bool,
+    multi_pv: i32,
+    move_overhead: u64,
+    report: Report,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            frc: false,
+            multi_pv: 1,
+            move_overhead: 100,
+            report: Report::Full,
+        }
+    }
+}
+
 pub fn message_loop() {
     let shared = Arc::new(SharedContext::default());
 
+    let mut settings = Settings::default();
     let mut threads = ThreadPool::new(shared.clone());
-    let mut frc = false;
-    let mut multi_pv = 1;
-    let mut move_overhead = 100;
-    let mut report = Report::Full;
 
     let rx = spawn_listener(shared.clone());
 
@@ -28,11 +43,9 @@ pub fn message_loop() {
             ["uci"] => uci(),
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut threads, &shared, report, multi_pv, move_overhead, tokens),
-            ["position", tokens @ ..] => position(&mut threads, frc, tokens),
-            ["setoption", tokens @ ..] => {
-                set_option(&mut threads, &mut report, &mut move_overhead, &mut frc, &mut multi_pv, &shared.tt, tokens)
-            }
+            ["go", tokens @ ..] => go(&mut threads, &settings, &shared, tokens),
+            ["position", tokens @ ..] => position(&mut threads, &settings, tokens),
+            ["setoption", tokens @ ..] => set_option(&mut threads, &mut settings, &shared, tokens),
             ["ucinewgame"] => reset(&mut threads, &shared.tt),
 
             ["stop"] => shared.status.set(Status::STOPPED),
@@ -104,15 +117,12 @@ fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
     tt.clear(threads.len());
 }
 
-fn go(
-    threads: &mut ThreadPool, shared: &Arc<SharedContext>, report: Report, multi_pv: i32, move_overhead: u64,
-    tokens: &[&str],
-) {
+fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), move_overhead);
-    threads.main_thread().multi_pv = multi_pv;
+    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    threads.main_thread().multi_pv = settings.multi_pv;
 
     shared.nodes.reset();
     shared.tb_hits.reset();
@@ -127,7 +137,7 @@ fn go(
 
         handlers.push(scope.spawn_into(
             || {
-                search::start(t1, report);
+                search::start(t1, settings.report);
                 shared.status.set(Status::STOPPED);
             },
             w1,
@@ -202,7 +212,7 @@ fn go(
     crate::misc::dbg_print();
 }
 
-fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
+fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) {
     let mut board = Board::default();
 
     while !tokens.is_empty() {
@@ -216,7 +226,7 @@ fn position(threads: &mut ThreadPool, frc: bool, mut tokens: &[&str]) {
                     Ok(b) => board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
-                board.set_frc(frc);
+                board.set_frc(settings.frc);
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
@@ -245,22 +255,19 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
-fn set_option(
-    threads: &mut ThreadPool, report: &mut Report, move_overhead: &mut u64, frc: &mut bool, multi_pv: &mut i32,
-    tt: &TranspositionTable, tokens: &[&str],
-) {
+fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
-            "true" => *report = Report::Minimal,
-            "false" => *report = Report::Full,
+            "true" => settings.report = Report::Minimal,
+            "false" => settings.report = Report::Full,
             _ => eprintln!("Invalid value: '{v}'"),
         },
         ["name", "Clear", "Hash"] => {
-            tt.clear(threads.len());
+            shared.tt.clear(threads.len());
             println!("info string Hash cleared");
         }
         ["name", "Hash", "value", v] => {
-            tt.resize(threads.len(), v.parse().unwrap());
+            shared.tt.resize(threads.len(), v.parse().unwrap());
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
@@ -268,7 +275,7 @@ fn set_option(
             println!("info string set Threads to {v}");
         }
         ["name", "MoveOverhead", "value", v] => {
-            *move_overhead = v.parse().unwrap();
+            settings.move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
         ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
@@ -276,11 +283,11 @@ fn set_option(
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
         ["name", "UCI_Chess960", "value", v] => {
-            *frc = v.parse().unwrap_or_default();
+            settings.frc = v.parse().unwrap_or_default();
             println!("info string set UCI_Chess960 to {v}");
         }
         ["name", "MultiPV", "value", v] => {
-            *multi_pv = v.parse().unwrap_or_default();
+            settings.multi_pv = v.parse().unwrap_or_default();
             println!("info string set MultiPV to {v}");
         }
         #[cfg(feature = "spsa")]
