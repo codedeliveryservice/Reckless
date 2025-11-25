@@ -500,8 +500,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && !potential_singularity
         && eval >= beta
-        && eval >= static_eval
-        && static_eval >= beta - 11 * depth + 140 * tt_pv as i32 - 113 * improvement / 1024 + 252
+        && eval >= beta - 11 * depth + 140 * tt_pv as i32 - 113 * improvement / 1024 + 252
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
