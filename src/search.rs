@@ -691,12 +691,7 @@ fn search<NODE: NodeType>(
             let futility_value =
                 static_eval + 102 * lmr_depth + 56 * history / 1024 + 103 * (static_eval >= alpha) as i32 + 81;
 
-            if !in_check
-                && is_quiet
-                && lmr_depth < 9
-                && futility_value <= alpha
-                && !td.board.might_give_check_if_you_squint(mv)
-            {
+            if !in_check && is_quiet && futility_value <= alpha && !td.board.might_give_check_if_you_squint(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
