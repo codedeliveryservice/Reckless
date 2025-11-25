@@ -475,7 +475,7 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && eval < alpha - 278 - 257 * initial_depth * initial_depth {
+    if !NODE::PV && !in_check && static_eval < alpha - 278 - 257 * initial_depth * initial_depth {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
