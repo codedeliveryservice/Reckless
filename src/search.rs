@@ -1233,7 +1233,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 fn correction_value(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
-    td.pawn_corrhist.get(stm, td.board.pawn_key())
+    (td.pawn_corrhist.get(stm, td.board.pawn_key())
         + td.minor_corrhist.get(stm, td.board.minor_key())
         + td.major_corrhist.get(stm, td.board.major_key())
         + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
@@ -1247,7 +1247,8 @@ fn correction_value(td: &ThreadData, ply: isize) -> i32 {
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
-        )
+        ))
+        / 90
 }
 
 fn corrected_eval(eval: i32, correction_value: i32, hmr: u8) -> i32 {
