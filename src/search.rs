@@ -402,13 +402,7 @@ fn search<NODE: NodeType>(
         static_eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
         eval = static_eval;
 
-        if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score < eval,
-                Bound::Lower => tt_score > eval,
-                _ => true,
-            }
-        {
+        if is_valid(tt_score) && tt_bound == Bound::Lower && tt_score > eval {
             eval = tt_score;
         }
     } else {
