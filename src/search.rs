@@ -493,8 +493,6 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
-        && estimated_score >= beta
-        && estimated_score >= eval
         && eval >= beta - 11 * depth + 140 * tt_pv as i32 - 113 * improvement / 1024 + 252
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
