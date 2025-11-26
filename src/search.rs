@@ -767,7 +767,11 @@ fn search<NODE: NodeType>(
                 reduction += 1078 * tt_move.is_null() as i32;
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
+            if td.board.in_check() {
+                reduction -= 1007;
+            }
+
+            if !td.board.has_non_pawns() {
                 reduction -= 1007;
             }
 
