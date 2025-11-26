@@ -777,8 +777,8 @@ fn search<NODE: NodeType>(
                 reduction += 752;
             }
 
-            if depth == 2 {
-                reduction -= 1214;
+            if depth < 4 {
+                reduction -= [0, 0, 1214, 607][depth as usize];
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
@@ -828,8 +828,8 @@ fn search<NODE: NodeType>(
                 reduction += 1392;
             }
 
-            if depth == 2 {
-                reduction -= 1138;
+            if depth < 4 {
+                reduction -= [0, 0, 1138, 569][depth as usize];
             }
 
             if mv == tt_move {
