@@ -623,7 +623,7 @@ fn search<NODE: NodeType>(
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative-Extensions
-        else if tt_score >= beta {
+        else if !NODE::PV && tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
