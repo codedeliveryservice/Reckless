@@ -319,9 +319,11 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
-                let quiet_bonus = (158 * depth - 57).min(1596);
-                let conthist_bonus = (102 * depth - 62).min(1618);
+            if tt_move.is_quiet() && td.stack[ply - 1].move_count < 4 {
+                let quiet_bonus =
+                    if tt_score >= beta { (158 * depth - 57).min(1596) } else { -(158 * depth - 57).min(1596) };
+                let conthist_bonus =
+                    if tt_score >= beta { (102 * depth - 62).min(1618) } else { -(102 * depth - 62).min(1618) };
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
