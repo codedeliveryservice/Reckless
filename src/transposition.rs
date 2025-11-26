@@ -19,10 +19,10 @@ const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
 pub struct Entry {
     pub mv: Move,
     pub score: i32,
-    pub eval: i32,
+    pub raw_eval: i32,
     pub depth: i32,
     pub bound: Bound,
-    pub pv: bool,
+    pub tt_pv: bool,
 }
 
 #[derive(Copy, Clone)]
@@ -31,10 +31,10 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub const fn new(bound: Bound, pv: bool, age: u8) -> Self {
+    pub const fn new(bound: Bound, tt_pv: bool, age: u8) -> Self {
         debug_assert!(age <= AGE_MASK);
 
-        Self { data: (bound as u8) | ((pv as u8) << 2) | (age << 3) }
+        Self { data: (bound as u8) | ((tt_pv as u8) << 2) | (age << 3) }
     }
 
     pub const fn bound(self) -> Bound {
@@ -47,7 +47,7 @@ impl Flags {
         }
     }
 
-    pub const fn pv(self) -> bool {
+    pub const fn tt_pv(self) -> bool {
         (self.data & (1 << 2)) != 0
     }
 
@@ -69,12 +69,12 @@ pub enum Bound {
 #[derive(Clone)]
 #[repr(C)]
 pub struct InternalEntry {
-    key: u16,     // 2 bytes
-    mv: Move,     // 2 bytes
-    score: i16,   // 2 bytes
-    eval: i16,    // 2 bytes
-    depth: i8,    // 1 byte
-    flags: Flags, // 1 byte
+    key: u16,      // 2 bytes
+    mv: Move,      // 2 bytes
+    score: i16,    // 2 bytes
+    raw_eval: i16, // 2 bytes
+    depth: i8,     // 1 byte
+    flags: Flags,  // 1 byte
 }
 
 pub enum TtDepth {}
@@ -155,9 +155,9 @@ impl TranspositionTable {
                 let hit = Entry {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
-                    eval: entry.eval as i32,
+                    raw_eval: entry.raw_eval as i32,
                     bound: entry.flags.bound(),
-                    pv: entry.flags.pv(),
+                    tt_pv: entry.flags.tt_pv(),
                     mv: entry.mv,
                 };
 
@@ -170,7 +170,7 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, hash: u64, depth: i32, eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
+        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
         force: bool,
     ) {
         // Used for checking if an entry exists
@@ -222,7 +222,7 @@ impl TranspositionTable {
         entry.key = key;
         entry.depth = depth as i8;
         entry.score = score as i16;
-        entry.eval = eval as i16;
+        entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
     }
 
