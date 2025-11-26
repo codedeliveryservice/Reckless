@@ -1,5 +1,5 @@
 use crate::{
-    evaluate::evaluate,
+    evaluate::correct_eval,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
@@ -274,7 +274,7 @@ fn search<NODE: NodeType>(
         }
 
         if ply as usize >= MAX_PLY - 1 {
-            return if in_check { Score::DRAW } else { evaluate(td) };
+            return if in_check { Score::DRAW } else { td.nnue.evaluate(&td.board) };
         }
 
         // Mate Distance Pruning (MDP)
@@ -401,8 +401,8 @@ fn search<NODE: NodeType>(
         eval = td.stack[ply].eval;
         estimated_score = eval;
     } else if let Some(entry) = &entry {
-        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { evaluate(td) };
-        eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
+        eval = correct_eval(td, raw_eval, correction_value);
         estimated_score = eval;
 
         if is_valid(tt_score)
@@ -415,10 +415,10 @@ fn search<NODE: NodeType>(
             estimated_score = tt_score;
         }
     } else {
-        raw_eval = evaluate(td);
+        raw_eval = td.nnue.evaluate(&td.board);
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
 
-        eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        eval = correct_eval(td, raw_eval, correction_value);
         estimated_score = eval;
     }
 
@@ -1060,7 +1060,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     if ply as usize >= MAX_PLY - 1 {
-        return if in_check { Score::DRAW } else { evaluate(td) };
+        return if in_check { Score::DRAW } else { td.nnue.evaluate(&td.board) };
     }
 
     let hash = td.board.hash();
@@ -1095,9 +1095,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     if !in_check {
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
-            _ => evaluate(td),
+            _ => td.nnue.evaluate(&td.board),
         };
-        best_score = corrected_eval(raw_eval, eval_correction(td, ply), td.board.halfmove_clock());
+        best_score = correct_eval(td, raw_eval, eval_correction(td, ply));
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1239,10 +1239,6 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
             td.stack[ply - 1].mv.to(),
         ))
         / 90
-}
-
-fn corrected_eval(raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (raw_eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {

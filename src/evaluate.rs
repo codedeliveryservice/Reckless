@@ -5,15 +5,18 @@ use crate::{
     types::{PieceType, Score},
 };
 
-/// Calculates the raw evaluation of the current position from the perspective of the side to move before corrections.
-pub fn evaluate(td: &mut ThreadData) -> i32 {
-    let mut raw_eval = td.nnue.evaluate(&td.board);
-
+pub fn correct_eval(td: &ThreadData, mut raw_eval: i32, correction_value: i32) -> i32 {
     let material = material(&td.board);
 
     raw_eval = (raw_eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
 
-    raw_eval = (raw_eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+    raw_eval = (raw_eval / 16) * 16;
+
+    raw_eval = raw_eval * (200 - td.board.halfmove_clock() as i32) / 200;
+
+    raw_eval += (td.board.hash() & 0x2) as i32 - 1;
+
+    raw_eval += correction_value;
 
     raw_eval.clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
