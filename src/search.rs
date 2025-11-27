@@ -418,7 +418,6 @@ fn search<NODE: NodeType>(
             _ => true,
         }
     {
-        estimated_score = tt_score;
         eval = tt_score;
     }
 
@@ -475,8 +474,8 @@ fn search<NODE: NodeType>(
 
     // Reverse Futility Pruning (RFP)
     if !tt_pv
+        && !in_check
         && !excluded
-        && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
             >= beta + 1192 * depth * depth / 128 + 29 * depth - (73 * improving as i32)
