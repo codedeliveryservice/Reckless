@@ -54,6 +54,18 @@ impl TryFrom<char> for Piece {
     }
 }
 
+impl TryInto<char> for Piece {
+    type Error = ();
+
+    fn try_into(self) -> Result<char, Self::Error> {
+        if let Piece::None = self {
+            Err(())
+        } else {
+            Ok("PpNnBbRrQqKk".chars().nth(self as usize).unwrap())
+        }
+    }
+}
+
 impl<T> Index<Piece> for [T] {
     type Output = T;
 
