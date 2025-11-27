@@ -98,16 +98,16 @@ or [Nibbler](https://github.com/rooklift/nibbler).
 
 Reckless supports the following UCI options:
 
-| Name         | Default            | Description                                                 |
-| ------------ | ------------------ | ----------------------------------------------------------- |
-| Hash         | 16 [1–262144]      | Size of the transposition table in MB                       |
-| Threads      | 1 [1–512]          | Number of search threads                                    |
-| MultiPV      | 1 [1–218]          | Number of principal variations to display                   |
-| UCI_Chess960 | false [false–true] | Enables Chess960 (Fischer Random) support                   |
-| Minimal      | false [false–true] | Enables minimal UCI output                                  |
-| MoveOverhead | 100 [0–2000]       | Time in milliseconds reserved for overhead during each move |
-| Clear Hash   | —                  | Clears the transposition table                              |
-| SyzygyPath   | —                  | Path to Syzygy endgame tablebases                           |
+| Name         | Default | Description                                                          |
+| ------------ | ------- | -------------------------------------------------------------------- |
+| Hash         | 16      | Size of the transposition table in MB [1–262144]                     |
+| Threads      | 1       | Number of search threads [1–512]                                     |
+| MultiPV      | 1       | Number of principal variations to display [1–218]                    |
+| UCI_Chess960 | false   | Enables Chess960 (Fischer Random) support [false–true]               |
+| Minimal      | false   | Enables minimal UCI output [false–true]                              |
+| MoveOverhead | 100     | Time in milliseconds reserved for overhead during each move [0–2000] |
+| Clear Hash   | —       | Clears the transposition table                                       |
+| SyzygyPath   | —       | Path to Syzygy endgame tablebases                                    |
 
 ### Custom commands
 
