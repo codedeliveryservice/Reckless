@@ -67,6 +67,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
+    let mut prev_nodes_fraction: f32 = 0.0;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -203,7 +204,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
+            let nodes_fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
+
+            let nodes_factor = 2.15 - 1.5 * nodes_fraction;
 
             let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
 
@@ -215,12 +218,22 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
+            let nodes_stability = (1.0 - 0.5 * (nodes_fraction - prev_nodes_fraction)).clamp(0.85, 1.25);
+
+            nodes_factor
+                * pv_stability
+                * eval_stability
+                * score_trend
+                * recapture_factor
+                * best_move_stability
+                * nodes_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
             break;
         }
+
+        prev_nodes_fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
     }
 
     if report == Report::Minimal {
