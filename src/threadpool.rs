@@ -15,6 +15,15 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
+    pub fn available_threads() -> usize {
+        const MINIMUM_THREADS: usize = 512;
+
+        match std::thread::available_parallelism() {
+            Ok(threads) => (4 * threads.get()).max(MINIMUM_THREADS),
+            Err(_) => MINIMUM_THREADS,
+        }
+    }
+
     pub fn new(shared: Arc<SharedContext>) -> Self {
         let workers = make_worker_threads(1);
         let data = make_thread_data(shared, &workers);
