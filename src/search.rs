@@ -496,6 +496,7 @@ fn search<NODE: NodeType>(
         && eval >= beta - 11 * depth + 140 * tt_pv as i32 - 113 * improvement / 1024 + 252
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
+        && tt_bound != Bound::Exact
         && !is_loss(beta)
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
