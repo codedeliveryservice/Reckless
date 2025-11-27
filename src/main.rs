@@ -12,6 +12,7 @@ mod search;
 mod stack;
 mod tb;
 mod thread;
+mod threadpool;
 mod time;
 mod tools;
 mod transposition;
