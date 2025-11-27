@@ -8,6 +8,7 @@ use crate::{
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
     stack::Stack,
+    threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
     types::{normalize_to_cp, Move, Score, MAX_PLY},
@@ -18,13 +19,13 @@ struct AlignedAtomicU64 {
     inner: AtomicU64,
 }
 
-pub struct Counter<const SIZE: usize> {
-    shards: [AlignedAtomicU64; SIZE],
+pub struct Counter {
+    shards: Box<[AlignedAtomicU64]>,
 }
 
-unsafe impl<const SIZE: usize> Sync for Counter<SIZE> {}
+unsafe impl Sync for Counter {}
 
-impl<const SIZE: usize> Counter<SIZE> {
+impl Counter {
     pub fn aggregate(&self) -> u64 {
         self.shards.iter().map(|shard| shard.inner.load(Ordering::Relaxed)).sum()
     }
@@ -44,10 +45,13 @@ impl<const SIZE: usize> Counter<SIZE> {
     }
 }
 
-impl<const SIZE: usize> Default for Counter<SIZE> {
+impl Default for Counter {
     fn default() -> Self {
         Self {
-            shards: std::array::from_fn(|_| AlignedAtomicU64 { inner: AtomicU64::default() }),
+            shards: std::iter::from_fn(|| Some(AlignedAtomicU64 { inner: AtomicU64::new(0) }))
+                .take(ThreadPool::available_threads())
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
         }
     }
 }
@@ -85,15 +89,11 @@ impl Default for Status {
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
-    pub nodes: Counter<{ Self::MAX_THREADS }>,
-    pub tb_hits: Counter<{ Self::MAX_THREADS }>,
+    pub nodes: Counter,
+    pub tb_hits: Counter,
 }
 
 unsafe impl Send for SharedContext {}
-
-impl SharedContext {
-    const MAX_THREADS: usize = 512;
-}
 
 pub struct ThreadData {
     pub id: usize,
