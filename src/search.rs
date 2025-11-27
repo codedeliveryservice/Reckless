@@ -419,7 +419,6 @@ fn search<NODE: NodeType>(
         }
     {
         estimated_score = tt_score;
-        eval = tt_score;
     }
 
     td.stack[ply].eval = eval;
