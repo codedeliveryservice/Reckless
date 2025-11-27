@@ -103,10 +103,10 @@ Reckless supports the following UCI options:
 | Hash         | 16      | Size of the transposition table in MB [1–262144]                     |
 | Threads      | 1       | Number of search threads [1–512]                                     |
 | MultiPV      | 1       | Number of principal variations to display [1–218]                    |
-| UCI_Chess960 | false   | Enables Chess960 (Fischer Random) support [false–true]               |
-| Minimal      | false   | Enables minimal UCI output [false–true]                              |
+| UCI_Chess960 | false   | Enable Chess960 (Fischer Random) support [false–true]                |
+| Minimal      | false   | Enable minimal UCI output [false–true]                               |
 | MoveOverhead | 100     | Time in milliseconds reserved for overhead during each move [0–2000] |
-| Clear Hash   | —       | Clears the transposition table                                       |
+| Clear Hash   | —       | Clear the transposition table                                        |
 | SyzygyPath   | —       | Path to Syzygy endgame tablebases                                    |
 
 ### Custom commands
