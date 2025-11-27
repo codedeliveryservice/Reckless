@@ -9,7 +9,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::{TranspositionTable, DEFAULT_TT_SIZE},
-    types::{is_decisive, is_loss, is_win, Color, Score, MAX_MOVES},
+    types::{is_decisive, is_loss, is_win, Color, Score, Square, MAX_MOVES},
 };
 
 struct Settings {
@@ -310,6 +310,21 @@ fn eval(td: &mut ThreadData) {
 }
 
 fn display(td: &ThreadData) {
+    println!(" +---+---+---+---+---+---+---+---+");
+    for rank in (0..8).rev() {
+        print!(" |");
+        for file in 0..8 {
+            let square = Square::from_rank_file(rank, file);
+            let piece = td.board.piece_on(square);
+            let symbol = piece.try_into().unwrap_or(' ');
+            print!(" {} |", symbol);
+        }
+        println!(" {}", rank + 1);
+        println!(" +---+---+---+---+---+---+---+---+");
+    }
+    println!("   a   b   c   d   e   f   g   h");
+    println!();
+
     println!("FEN: {}", td.board.to_fen());
 }
 
