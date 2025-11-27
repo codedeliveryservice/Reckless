@@ -1,6 +1,12 @@
 name: Games
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches:
+      - main
+      - tournaments
+  pull_request:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
