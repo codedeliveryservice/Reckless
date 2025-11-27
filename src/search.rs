@@ -372,54 +372,54 @@ fn search<NODE: NodeType>(
 
     let correction_value = eval_correction(td, ply);
 
-    // NNUE evaluation before applying correction terms
     let raw_eval;
-    // Final evaluation after applying NNUE output and all corrections
     let mut eval;
-    // Pre-moves-loop estimated score; may equal `eval` when TT bounds does not align with the current search bounds
-    let mut estimated_score;
 
     // Evaluation
     if in_check {
         raw_eval = Score::NONE;
         eval = Score::NONE;
-        estimated_score = Score::NONE;
-
-        if is_valid(tt_score)
-            && !is_decisive(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score <= alpha,
-                Bound::Lower => tt_score >= beta,
-                _ => true,
-            }
-        {
-            estimated_score = tt_score;
-            eval = tt_score;
-        }
     } else if excluded {
         raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
-        estimated_score = eval;
     } else if let Some(entry) = &entry {
         raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { evaluate(td) };
         eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
-        estimated_score = eval;
-
-        if is_valid(tt_score)
-            && match tt_bound {
-                Bound::Upper => tt_score < eval,
-                Bound::Lower => tt_score > eval,
-                _ => true,
-            }
-        {
-            estimated_score = tt_score;
-        }
     } else {
         raw_eval = evaluate(td);
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
-
         eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
-        estimated_score = eval;
+
+        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+    }
+
+    // Prefer the TT entry to tighten the evaluation when its bound aligns with
+    // the current alpha-beta window; otherwise, retain the unbounded evaluation
+    let mut estimated_score = eval;
+
+    if !in_check
+        && !excluded
+        && is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score < eval,
+            Bound::Lower => tt_score > eval,
+            _ => true,
+        }
+    {
+        estimated_score = tt_score;
+    }
+
+    // Use the bounded TT entry score for evaluation when in check
+    if in_check
+        && !is_decisive(tt_score)
+        && is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score <= alpha,
+            Bound::Lower => tt_score >= beta,
+            _ => true,
+        }
+    {
+        estimated_score = tt_score;
+        eval = tt_score;
     }
 
     td.stack[ply].eval = eval;
