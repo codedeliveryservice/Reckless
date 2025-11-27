@@ -395,6 +395,7 @@ fn search<NODE: NodeType>(
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
     // the current alpha-beta window; otherwise, retain the unbounded evaluation
     let mut estimated_score = eval;
+    let initial_eval = eval;
 
     if !in_check
         && !excluded
@@ -405,6 +406,9 @@ fn search<NODE: NodeType>(
             _ => true,
         }
     {
+        if !is_decisive(tt_score) && tt_bound == Bound::Exact {
+            eval = tt_score;
+        }
         estimated_score = tt_score;
     }
 
@@ -1019,10 +1023,10 @@ fn search<NODE: NodeType>(
 
     if !(in_check
         || best_move.is_noisy()
-        || (bound == Bound::Upper && best_score >= eval)
-        || (bound == Bound::Lower && best_score <= eval))
+        || (bound == Bound::Upper && best_score >= initial_eval)
+        || (bound == Bound::Lower && best_score <= initial_eval))
     {
-        update_correction_histories(td, depth, best_score - eval, ply);
+        update_correction_histories(td, depth, best_score - initial_eval, ply);
     }
 
     debug_assert!(alpha < beta);
