@@ -1,11 +1,14 @@
 # Reckless – Chess Engine in Rust
 
-[![Build and Test](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
+[![Reckless CI](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
+[![Reckless PGO](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?logo=github)](https://github.com/codedeliveryservice/Reckless/releases/latest)
+[![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?include_prereleases&label=pre-release&logo=github)](https://github.com/codedeliveryservice/Reckless/releases)
 
-Guided by the insights from the chess programming community, it fearlessly
-combines established concepts with its reckless nature, as the name suggests.
+Reckless is a competitive chess engine, consistently performing among the top engines in major tournaments including [Chess.com Computer Chess Championship (CCC)][ccc] and [Top Chess Engine Championship (TCEC)][tcec].
 
-[uci]: https://en.wikipedia.org/wiki/Universal_Chess_Interface
+[ccc]: https://www.chess.com/computer-chess-championship
+[tcec]: https://tcec-chess.com
 
 ## Rating
 
@@ -44,8 +47,6 @@ You can download precompiled builds from the [GitHub Releases page](https://gith
 
 > [!NOTE]
 > If you're unsure which binary to use, try the AVX-512 build first. If it doesn't run on your system, fall back to the AVX2 build, or the generic one as a last resort.
-
-[microarchitecture]: https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels
 
 ### Building from source
 
@@ -93,6 +94,21 @@ Reckless is not a standalone chess program but a chess engine designed for use w
 such as [Cute Chess](https://github.com/cutechess/cutechess), [En Croissant](https://encroissant.org),
 or [Nibbler](https://github.com/rooklift/nibbler).
 
+### UCI options
+
+Reckless supports the following UCI options:
+
+| Name         | Default | Description                                                          |
+| ------------ | ------- | -------------------------------------------------------------------- |
+| Hash         | 16      | Size of the transposition table in MB [1–262144]                     |
+| Threads      | 1       | Number of search threads [1–512]                                     |
+| MultiPV      | 1       | Number of principal variations to display [1–218]                    |
+| UCI_Chess960 | false   | Enable Chess960 (Fischer Random) support [false–true]                |
+| Minimal      | false   | Enable minimal UCI output [false–true]                               |
+| MoveOverhead | 100     | Time in milliseconds reserved for overhead during each move [0–2000] |
+| Clear Hash   | —       | Clear the transposition table                                        |
+| SyzygyPath   | —       | Path to Syzygy endgame tablebases                                    |
+
 ### Custom commands
 
 Along with the standard UCI commands, Reckless supports additional commands for testing and debugging:
@@ -101,7 +117,8 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 | --------------- | ---------------------------------------------------------------------------------- |
 | `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
 | `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
-| `eval`          | Print the static evaluation of the current position from white's perspective       |
+| `d`             | Print the current board position in a human-readable format together with FEN      |
+| `eval`          | Print the network evaluation of the current position from white's perspective      |
 | `compiler`      | Print the compiler version, target and flags used to compile the engine            |
 
 [perft]: https://www.chessprogramming.org/Perft
