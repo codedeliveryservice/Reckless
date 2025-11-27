@@ -1,4 +1,4 @@
-# Reckless – Chess Engine in Rust
+# Reckless – Chess Engine in Rustyyyyyy
 
 [![Reckless CI](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 [![Reckless PGO](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml)
