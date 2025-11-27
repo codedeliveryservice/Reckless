@@ -60,6 +60,9 @@ pub fn message_loop() {
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
+            // Ignore empty lines
+            [] => (),
+
             _ => eprintln!("Unknown command: '{}'", message.trim_end()),
         };
     }
