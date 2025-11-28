@@ -531,6 +531,7 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                td.shared.tt.write(hash, depth - r, raw_eval, score, Bound::Lower, Move::NULL, ply, tt_pv, false);
                 return score;
             }
         }
