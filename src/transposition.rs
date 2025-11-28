@@ -220,7 +220,7 @@ impl TranspositionTable {
         }
 
         entry.key = key;
-        entry.depth = depth as i8;
+        entry.depth = if entry.key == key { (entry.depth as i32 + depth) / 2 } else { depth } as i8;
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
