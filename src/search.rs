@@ -460,9 +460,9 @@ fn search<NODE: NodeType>(
 
     let mut improvement = 0;
 
-    if is_valid(td.stack[ply - 2].eval) && !in_check {
+    if is_valid(td.stack[ply - 2].eval) && is_valid(eval) {
         improvement = eval - td.stack[ply - 2].eval;
-    } else if is_valid(td.stack[ply - 4].eval) && !in_check {
+    } else if is_valid(td.stack[ply - 4].eval) && is_valid(eval) {
         improvement = eval - td.stack[ply - 4].eval;
     }
 
