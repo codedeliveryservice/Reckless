@@ -2,33 +2,40 @@ use std::arch::x86_64::*;
 
 use crate::{
     nnue::{
-        accumulator::Accumulator, simd, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE,
-        L3_SIZE, PARAMETERS,
+        accumulator::{PstAccumulator, ThreatAccumulator},
+        simd, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
     },
     types::Color,
 };
 
-pub unsafe fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
+pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
     let mut output = Aligned::new([0; L1_SIZE]);
 
     let zero = simd::zeroed();
     let one = simd::splat_i16(FT_QUANT as i16);
 
     for flip in [0, 1] {
-        let input = &accumulator.values[stm as usize ^ flip];
+        let pst_input = &pst.values[stm as usize ^ flip];
+        let threat_input = &threat.values[stm as usize ^ flip];
 
         for i in (0..L1_SIZE / 2).step_by(2 * simd::I16_LANES) {
-            let lhs1 = *input.as_ptr().add(i).cast();
-            let lhs2 = *input.as_ptr().add(i + simd::I16_LANES).cast();
+            let lhs1 = *pst_input.as_ptr().add(i).cast();
+            let lhs2 = *pst_input.as_ptr().add(i + simd::I16_LANES).cast();
 
-            let rhs1 = *input.as_ptr().add(i + L1_SIZE / 2).cast();
-            let rhs2 = *input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
+            let rhs1 = *pst_input.as_ptr().add(i + L1_SIZE / 2).cast();
+            let rhs2 = *pst_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
-            let lhs1_clipped = simd::clamp_i16(lhs1, zero, one);
-            let lhs2_clipped = simd::clamp_i16(lhs2, zero, one);
+            let threat_lhs1 = *threat_input.as_ptr().add(i).cast();
+            let threat_lhs2 = *threat_input.as_ptr().add(i + simd::I16_LANES).cast();
 
-            let rhs1_clipped = simd::min_i16(rhs1, one);
-            let rhs2_clipped = simd::min_i16(rhs2, one);
+            let threat_rhs1 = *threat_input.as_ptr().add(i + L1_SIZE / 2).cast();
+            let threat_rhs2 = *threat_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
+
+            let lhs1_clipped = simd::clamp_i16(simd::add_i16(lhs1, threat_lhs1), zero, one);
+            let lhs2_clipped = simd::clamp_i16(simd::add_i16(lhs2, threat_lhs2), zero, one);
+
+            let rhs1_clipped = simd::min_i16(simd::add_i16(rhs1, threat_rhs1), one);
+            let rhs2_clipped = simd::min_i16(simd::add_i16(rhs2, threat_rhs2), one);
 
             let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
             let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
@@ -103,13 +110,13 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
 
     if let Some(last) = pairs.remainder().first() {
         let index = *last as usize;
-        let input = simd::splat_i32(*packed.get_unchecked(index));
+        let pst_input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j * CHUNKS).cast();
             let vector = &mut pre_activations[j / simd::F32_LANES];
-            *vector = simd::dpbusd(*vector, input, *weights);
+            *vector = simd::dpbusd(*vector, pst_input, *weights);
         }
     }
 
@@ -132,13 +139,13 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
     let mut output = PARAMETERS.l2_biases.clone();
 
     for i in 0..L2_SIZE {
-        let input = simd::splat_f32(l1_out[i]);
+        let pst_input = simd::splat_f32(l1_out[i]);
         let weights = PARAMETERS.l2_weights[i].as_ptr();
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j).cast();
             let vector = output.as_mut_ptr().add(j).cast();
-            *vector = simd::mul_add_f32(*weights, input, *vector);
+            *vector = simd::mul_add_f32(*weights, pst_input, *vector);
         }
     }
 
@@ -156,7 +163,7 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
-    let input = l2_out.as_ptr();
+    let pst_input = l2_out.as_ptr();
     let weights = PARAMETERS.l3_weights.as_ptr();
 
     let mut output = [simd::zero_f32(); LANES];
@@ -164,7 +171,7 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     for (lane, result) in output.iter_mut().enumerate() {
         for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
             let a = weights.add(i + lane * simd::F32_LANES).cast();
-            let b = input.add(i + lane * simd::F32_LANES).cast();
+            let b = pst_input.add(i + lane * simd::F32_LANES).cast();
 
             *result = simd::mul_add_f32(*a, *b, *result);
         }
