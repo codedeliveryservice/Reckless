@@ -458,13 +458,12 @@ fn search<NODE: NodeType>(
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
 
-    let mut improvement = 0;
-
-    if is_valid(td.stack[ply - 2].eval) && !in_check {
-        improvement = eval - td.stack[ply - 2].eval;
-    } else if is_valid(td.stack[ply - 4].eval) && !in_check {
-        improvement = eval - td.stack[ply - 4].eval;
-    }
+    let improvement = [2, 4]
+        .iter()
+        .filter(|&offset| !in_check && is_valid(td.stack[ply - offset].eval))
+        .map(|&offset| eval - td.stack[ply - offset].eval)
+        .min()
+        .unwrap_or(0);
 
     let improving = improvement > 0;
 
