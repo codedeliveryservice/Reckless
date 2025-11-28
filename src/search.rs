@@ -1293,7 +1293,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.shared.nodes.increment(td.id);
 
     td.nnue.push(mv, &td.board);
-    td.board.make_move(mv);
+    td.board.make_move(mv, |board, piece, square, add| td.nnue.push_threats(board, piece, square, add));
 
     td.shared.tt.prefetch(td.board.hash());
 }
