@@ -1099,6 +1099,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         };
         best_score = corrected_eval(raw_eval, eval_correction(td, ply), td.board.halfmove_clock());
 
+        if entry.is_none() {
+            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        }
+
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
