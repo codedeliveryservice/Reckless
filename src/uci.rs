@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     board::Board,
     search::{self, Report},
-    tb::tb_initilize,
+    tb::tb_initialize,
     thread::{SharedContext, Status, ThreadData},
     threadpool::{ScopeExt, ThreadPool},
     time::{Limits, TimeManager},
@@ -14,7 +14,7 @@ use crate::{
 
 struct Settings {
     frc: bool,
-    multi_pv: i32,
+    multi_pv: usize,
     move_overhead: u64,
     report: Report,
 }
@@ -102,7 +102,7 @@ fn uci() {
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
     println!("option name UCI_Chess960 type check default false");
-    println!("option name MultiPV type spin default 1 min 1 max {}", MAX_MOVES);
+    println!("option name MultiPV type spin default 1 min 1 max {MAX_MOVES}");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -234,8 +234,11 @@ fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) 
                 tokens = rest;
             }
             ["moves", rest @ ..] => {
-                for uci_move in rest {
-                    make_uci_move(&mut board, uci_move);
+                for &uci_move in rest {
+                    let moves = board.generate_all_moves();
+                    let mv = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(&board) == uci_move).unwrap();
+                    board.make_move(mv);
+                    board.advance_fullmove_counter();
                 }
                 break;
             }
@@ -248,14 +251,6 @@ fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) 
 
     for thread in threads.iter_mut() {
         thread.board = board.clone();
-    }
-}
-
-fn make_uci_move(board: &mut Board, uci_move: &str) {
-    let moves = board.generate_all_moves();
-    if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == uci_move) {
-        board.make_move(mv);
-        board.advance_fullmove_counter();
     }
 }
 
@@ -282,7 +277,7 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             settings.move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
-        ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
+        ["name", "SyzygyPath", "value", v] => match tb_initialize(v) {
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },

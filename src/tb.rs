@@ -19,7 +19,7 @@ pub enum GameOutcome {
 
 static mut TB_SIZE: usize = 0;
 
-pub fn tb_initilize(path: &str) -> Option<usize> {
+pub fn tb_initialize(path: &str) -> Option<usize> {
     let cpath = ffi::CString::new(path).ok()?;
 
     unsafe {

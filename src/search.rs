@@ -59,7 +59,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
-    td.multi_pv = td.multi_pv.min(td.root_moves.len() as i32);
+    td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
     let mut average = vec![Score::NONE; td.multi_pv as usize];
     let mut last_best_rootmove = RootMove::default();
@@ -156,7 +156,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     }
                 }
 
-                td.root_moves[td.pv_start..td.pv_index + 1].sort_by(|a, b| b.score.cmp(&a.score));
+                td.root_moves[td.pv_start..=td.pv_index].sort_by(|a, b| b.score.cmp(&a.score));
 
                 if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
                     td.print_uci_info(depth);
@@ -170,7 +170,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         if report == Report::Full
             && !(is_loss(td.root_moves[0].display_score) && td.stopped)
-            && (td.stopped || td.pv_index as i32 + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
+            && (td.stopped || td.pv_index + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
         {
             td.print_uci_info(depth);
         }
@@ -301,7 +301,7 @@ fn search<NODE: NodeType>(
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
-    // Search Early TT-Cut
+    // Search early TT cutoff
     if let Some(entry) = &entry {
         tt_depth = entry.depth;
         tt_move = entry.mv;
@@ -429,7 +429,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
-    // Quiet Move Ordering Using eval difference
+    // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let value = 733 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-114, 251);
@@ -437,8 +437,13 @@ fn search<NODE: NodeType>(
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
 
-    // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2606 && eval + td.stack[ply - 1].eval < 0
+    // Hindsight Reductions (HSR)
+    if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && td.stack[ply - 1].reduction >= 2606
+        && is_valid(td.stack[ply - 1].eval)
+        && eval + td.stack[ply - 1].eval < 0
     {
         depth += 1;
     }
@@ -620,7 +625,7 @@ fn search<NODE: NodeType>(
         else if score >= beta && !is_decisive(score) {
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
-        // Negative-Extensions
+        // Negative Extensions
         else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
@@ -1070,7 +1075,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
-    // QS Early TT-Cut
+    // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;
