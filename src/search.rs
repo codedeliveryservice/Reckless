@@ -484,6 +484,7 @@ fn search<NODE: NodeType>(
                 + 31 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
+        && !(tt_bound == Bound::Upper && tt_move.is_null())
     {
         return beta + (estimated_score - beta) / 3;
     }
@@ -499,6 +500,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && !(tt_bound == Bound::Upper && tt_move.is_null())
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
