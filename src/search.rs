@@ -1015,8 +1015,10 @@ fn search<NODE: NodeType>(
         best_score = best_score.min(max_score);
     }
 
-    if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+    let force = NODE::PV || (bound == Bound::Lower && tt_bound == Bound::Upper && best_score < tt_score);
+
+    if !(excluded || (NODE::ROOT && td.pv_index > 0)) {
+        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, force);
     }
 
     if !(in_check
