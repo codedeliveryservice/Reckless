@@ -1,7 +1,7 @@
 #![allow(clippy::if_same_then_else)]
 
 mod board;
-mod evaluate;
+mod evaluation;
 mod history;
 mod lookup;
 mod misc;
