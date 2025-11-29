@@ -1,4 +1,5 @@
 use crate::{
+    board::Board,
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
@@ -7,7 +8,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        Score, Square, MAX_PLY,
+        PieceType, Score, Square, MAX_PLY,
     },
 };
 
@@ -384,10 +385,10 @@ fn search<NODE: NodeType>(
         eval = td.stack[ply].eval;
     } else if let Some(entry) = &entry {
         raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { evaluate(td) };
-        eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        eval = corrected_eval(td, raw_eval, correction_value, td.board.halfmove_clock());
     } else {
         raw_eval = evaluate(td);
-        eval = corrected_eval(raw_eval, correction_value, td.board.halfmove_clock());
+        eval = corrected_eval(td, raw_eval, correction_value, td.board.halfmove_clock());
 
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
     }
@@ -1099,7 +1100,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => evaluate(td),
         };
-        best_score = corrected_eval(raw_eval, eval_correction(td, ply), td.board.halfmove_clock());
+        best_score = corrected_eval(td, raw_eval, eval_correction(td, ply), td.board.halfmove_clock());
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1243,8 +1244,21 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         / 90
 }
 
-fn corrected_eval(raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    (raw_eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
+fn material(board: &Board) -> i32 {
+    [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
+        .iter()
+        .map(|&pt| board.pieces(pt).len() as i32 * PIECE_VALUES[pt])
+        .sum::<i32>()
+}
+
+fn corrected_eval(td: &ThreadData, raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
+    let material = material(&td.board);
+
+    let mut eval = (raw_eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
+
+    eval = (eval / 16) * 16 - 1 + (td.board.hash() & 0x2) as i32;
+
+    (eval * (200 - hmr as i32) / 200 + correction_value).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
