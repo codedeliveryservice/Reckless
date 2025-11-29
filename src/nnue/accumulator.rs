@@ -307,6 +307,9 @@ impl ThreatAccumulator {
     pub fn update(&mut self, prev: &Self, king: Square, pov: Color) {
         self.values[pov] = prev.values[pov];
 
+        let mut adds = ArrayVec::<usize, 256>::new();
+        let mut subs = ArrayVec::<usize, 256>::new();
+
         for &ThreatDelta { piece, attacked, from, to, add } in self.delta.iter() {
             let from = from as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
             let to = to as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
@@ -314,20 +317,69 @@ impl ThreatAccumulator {
             let target = 6 * (attacked.piece_color() != pov) as usize + attacked.piece_type() as usize;
 
             if let Some(index) = threat_index(piece, from, to, target, pov) {
-                let offset = offsets::END * (piece.piece_color() != pov) as usize + index;
+                let feature = offsets::END * (piece.piece_color() != pov) as usize + index;
 
                 if add {
-                    for i in 0..L1_SIZE {
-                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i];
-                    }
+                    adds.push(feature);
                 } else {
-                    for i in 0..L1_SIZE {
-                        self.values[pov][i] -= PARAMETERS.ft_threat_weights[offset][i];
-                    }
+                    subs.push(feature);
                 }
             }
         }
 
+        while !adds.is_empty() && !subs.is_empty() {
+            let add = adds.pop().unwrap();
+            let sub = subs.pop().unwrap();
+
+            unsafe { add1_sub1(&mut self.values[pov], add, sub); }
+        }
+
+        for &add in adds.iter() {
+            unsafe { add1(&mut self.values[pov], add); }
+        }
+
+        for &sub in subs.iter() {
+            unsafe { sub1(&mut self.values[pov], sub); }
+        }
+
         self.accurate[pov] = true;
+    }
+}
+
+unsafe fn add1_sub1(output: &mut [i16], add1: usize, sub1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
+    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::add_i16(v, *vadd1.add(i).cast());
+        v = simd::sub_i16(v, *vsub1.add(i).cast());
+
+        *vacc.add(i).cast() = v;
+    }
+}
+
+unsafe fn add1(output: &mut [i16], add1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::add_i16(v, *vadd1.add(i).cast());
+
+        *vacc.add(i).cast() = v;
+    }
+}
+
+unsafe fn sub1(output: &mut [i16], sub1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::sub_i16(v, *vsub1.add(i).cast());
+
+        *vacc.add(i).cast() = v;
     }
 }
