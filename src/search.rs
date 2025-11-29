@@ -777,6 +777,10 @@ fn search<NODE: NodeType>(
                 reduction += 752;
             }
 
+            if !NODE::PV && depth + 4 + 2 * tt_pv as i32 <= tt_depth {
+                reduction += 1024;
+            }
+
             if depth == 2 {
                 reduction -= 1214;
             }
