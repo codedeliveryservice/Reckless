@@ -208,7 +208,7 @@ impl TranspositionTable {
 
         if !force
             && key == entry.key
-            && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
+            && depth + 3 + 2 * tt_pv as i32 <= entry.depth as i32
             && entry.flags.age() == tt_age
         {
             return;
