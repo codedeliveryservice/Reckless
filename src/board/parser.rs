@@ -1,6 +1,7 @@
 use super::Board;
 use crate::{
     lookup::between,
+    parameters::PIECE_VALUES,
     types::{CastlingKind, Color, Piece, PieceType, Square},
 };
 
@@ -40,6 +41,7 @@ impl Board {
                 let square = Square::from_rank_file(rank as u8, file);
 
                 board.add_piece(piece, square);
+                board.state.material += PIECE_VALUES[piece.piece_type()];
                 file += 1;
             }
         }

@@ -1,5 +1,4 @@
 use crate::{
-    board::Board,
     evaluate::evaluate,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
@@ -8,7 +7,7 @@ use crate::{
     transposition::{Bound, TtDepth},
     types::{
         is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move, Piece,
-        PieceType, Score, Square, MAX_PLY,
+        Score, Square, MAX_PLY,
     },
 };
 
@@ -1244,15 +1243,8 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         / 90
 }
 
-fn material(board: &Board) -> i32 {
-    [PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen]
-        .iter()
-        .map(|&pt| board.pieces(pt).len() as i32 * PIECE_VALUES[pt])
-        .sum::<i32>()
-}
-
 fn corrected_eval(td: &ThreadData, raw_eval: i32, correction_value: i32, hmr: u8) -> i32 {
-    let material = material(&td.board);
+    let material = td.board.material();
 
     let mut eval = (raw_eval * (21366 + material) + td.optimism[td.board.side_to_move()] * (1747 + material)) / 27395;
 
