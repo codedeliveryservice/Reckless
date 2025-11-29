@@ -587,6 +587,10 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
+    if !NODE::PV && depth + 4 + 2 * tt_pv as i32 <= tt_depth {
+        depth += 1;
+    }
+
     // Singular Extensions (SE)
     let mut extension = 0;
 
