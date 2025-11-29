@@ -1015,8 +1015,22 @@ fn search<NODE: NodeType>(
         best_score = best_score.min(max_score);
     }
 
-    if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+    let mut force = NODE::PV;
+
+    if !NODE::PV
+        && bound != tt_bound
+        && matches!(tt_bound, Bound::Lower | Bound::Upper)
+        && matches!(bound, Bound::Lower | Bound::Upper)
+    {
+        force = match bound {
+            Bound::Lower => best_score < tt_score,
+            Bound::Upper => best_score > tt_score,
+            _ => unreachable!(),
+        };
+    }
+
+    if !(excluded || (NODE::ROOT && td.pv_index > 0)) {
+        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, force);
     }
 
     if !(in_check
