@@ -618,6 +618,7 @@ fn search<NODE: NodeType>(
         }
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
+            td.shared.tt.write(hash, tt_depth + 1, raw_eval, tt_score, Bound::Lower, tt_move, ply, tt_pv, true);
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative-Extensions
