@@ -293,9 +293,9 @@ fn search<NODE: NodeType>(
     let initial_depth = depth;
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+    let mut entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
-    let mut tt_depth = 0;
+    let mut tt_depth = TtDepth::NONE;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -581,6 +581,20 @@ fn search<NODE: NodeType>(
                     return score - (probcut_beta - beta);
                 }
             }
+        }
+    }
+
+    if !in_check && depth >= 7 && entry.is_none() {
+        search::<NonPV>(td, alpha, beta, depth - 7, true, ply);
+
+        entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
+
+        if let Some(entry) = &entry {
+            tt_depth = entry.depth;
+            tt_move = entry.mv;
+            tt_score = entry.score;
+            tt_bound = entry.bound;
+            tt_pv |= entry.tt_pv;
         }
     }
 
