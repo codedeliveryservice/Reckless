@@ -36,6 +36,10 @@ pub unsafe fn mul_high_i16(a: __m256i, b: __m256i) -> __m256i {
     _mm256_mulhi_epi16(a, b)
 }
 
+pub unsafe fn convert_i8_i16(a: __m128i) -> __m256i {
+    _mm256_cvtepi8_epi16(a)
+}
+
 pub unsafe fn packus(a: __m256i, b: __m256i) -> __m256i {
     _mm256_packus_epi16(a, b)
 }
