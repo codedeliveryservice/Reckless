@@ -296,7 +296,7 @@ impl ThreatAccumulator {
                     let offset = offsets::END * (piece.piece_color() != pov) as usize + index;
 
                     for i in 0..L1_SIZE {
-                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i];
+                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i] as i16;
                     }
                 }
             }
@@ -319,11 +319,11 @@ impl ThreatAccumulator {
 
                 if add {
                     for i in 0..L1_SIZE {
-                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i];
+                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i] as i16;
                     }
                 } else {
                     for i in 0..L1_SIZE {
-                        self.values[pov][i] -= PARAMETERS.ft_threat_weights[offset][i];
+                        self.values[pov][i] -= PARAMETERS.ft_threat_weights[offset][i] as i16;
                     }
                 }
             }
