@@ -1019,7 +1019,7 @@ fn search<NODE: NodeType>(
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
 
-    if NODE::PV && !(in_check || best_move.is_noisy()) {
+    if NODE::ROOT && !(in_check || best_move.is_noisy()) {
         correction_value = eval_correction(td, ply);
         eval = correct_eval(td, raw_eval, correction_value);
     }
