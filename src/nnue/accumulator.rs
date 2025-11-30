@@ -193,15 +193,16 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
         let output = entry.values.as_mut_ptr().add(offset);
+        let registers_len = (L1_SIZE.saturating_sub(offset) + simd::I16_LANES - 1) / simd::I16_LANES;
 
-        for (i, register) in registers.iter_mut().enumerate() {
+        for (i, register) in registers.iter_mut().take(registers_len).enumerate() {
             *register = *output.add(i * simd::I16_LANES).cast();
         }
 
         for &add in adds.iter() {
             let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
 
-            for (i, register) in registers.iter_mut().enumerate() {
+            for (i, register) in registers.iter_mut().take(registers_len).enumerate() {
                 *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
         }
@@ -209,12 +210,12 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         for &sub in subs.iter() {
             let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
 
-            for (i, register) in registers.iter_mut().enumerate() {
+            for (i, register) in registers.iter_mut().take(registers_len).enumerate() {
                 *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
         }
 
-        for (i, register) in registers.into_iter().enumerate() {
+        for (i, register) in registers.into_iter().take(registers_len).enumerate() {
             *output.add(i * simd::I16_LANES).cast() = register;
         }
     }
