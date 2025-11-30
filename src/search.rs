@@ -370,9 +370,9 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let correction_value = eval_correction(td, ply);
+    let mut correction_value = eval_correction(td, ply);
 
-    let raw_eval;
+    let mut raw_eval;
     let mut eval;
 
     // Evaluation
@@ -386,7 +386,8 @@ fn search<NODE: NodeType>(
         raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
         eval = correct_eval(td, raw_eval, correction_value);
     } else {
-        raw_eval = td.nnue.evaluate(&td.board);
+        raw_eval = if NODE::PV { qsearch::<PV>(td, alpha, beta, ply) } else { td.nnue.evaluate(&td.board) };
+
         eval = correct_eval(td, raw_eval, correction_value);
 
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
@@ -1017,6 +1018,12 @@ fn search<NODE: NodeType>(
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+    }
+
+    if NODE::PV && entry.is_none() {
+        raw_eval = td.nnue.evaluate(&td.board);
+        correction_value = eval_correction(td, ply);
+        eval = correct_eval(td, raw_eval, correction_value);
     }
 
     if !(in_check
