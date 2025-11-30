@@ -386,7 +386,8 @@ fn search<NODE: NodeType>(
         raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
         eval = correct_eval(td, raw_eval, correction_value);
     } else {
-        raw_eval = td.nnue.evaluate(&td.board);
+        raw_eval = if NODE::PV { qsearch::<PV>(td, alpha, beta, ply) } else { td.nnue.evaluate(&td.board) };
+
         eval = correct_eval(td, raw_eval, correction_value);
 
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
