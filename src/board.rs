@@ -1,7 +1,7 @@
 use crate::{
     lookup::{
-        between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
-        queen_attacks, rook_attacks,
+        attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
+        pawn_attacks, queen_attacks, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
@@ -448,15 +448,7 @@ impl Board {
     /// en passant, or checks delivered via castling.
     pub fn might_give_check_if_you_squint(&self, mv: Move) -> bool {
         let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
-        let direct_attacks = match self.moved_piece(mv).piece_type() {
-            PieceType::Pawn => pawn_attacks(mv.to(), self.side_to_move),
-            PieceType::Knight => knight_attacks(mv.to()),
-            PieceType::Bishop => bishop_attacks(mv.to(), occupancies),
-            PieceType::Rook => rook_attacks(mv.to(), occupancies),
-            PieceType::Queen => queen_attacks(mv.to(), occupancies),
-            _ => Bitboard::default(),
-        };
-
+        let direct_attacks = attacks(self.moved_piece(mv), mv.to(), occupancies);
         direct_attacks.contains(self.their(PieceType::King).lsb())
     }
 

@@ -12,6 +12,12 @@ pub enum Color {
 
 impl Color {
     pub const NUM: usize = 2;
+
+    pub const fn new(value: u8) -> Self {
+        debug_assert!(value < Self::NUM as u8);
+
+        unsafe { std::mem::transmute(value) }
+    }
 }
 
 impl Not for Color {

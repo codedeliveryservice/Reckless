@@ -24,6 +24,7 @@ mod bindings;
 
 fn main() {
     lookup::init();
+    nnue::initialize();
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(None),

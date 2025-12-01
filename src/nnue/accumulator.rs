@@ -1,11 +1,8 @@
 use super::{simd, Aligned, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    nnue::{
-        threats::{offsets, threat_index},
-        BUCKETS, INPUT_BUCKETS,
-    },
+    lookup::attacks,
+    nnue::{threats::threat_index, BUCKETS, INPUT_BUCKETS},
     types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
@@ -57,8 +54,7 @@ impl PstAccumulator {
     pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
 
-        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
-            [BUCKETS[if pov == Color::White { king } else { king ^ 56 }]];
+        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize][BUCKETS[king as usize ^ (56 * pov as usize)]];
 
         let mut adds = ArrayVec::<_, 32>::new();
         let mut subs = ArrayVec::<_, 32>::new();
@@ -77,11 +73,11 @@ impl PstAccumulator {
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
                 for square in to_add {
-                    adds.push(index(color, piece_type, square, king, pov));
+                    adds.push(pst_index(color, piece_type, square, king, pov));
                 }
 
                 for square in to_sub {
-                    subs.push(index(color, piece_type, square, king, pov));
+                    subs.push(pst_index(color, piece_type, square, king, pov));
                 }
             }
         }
@@ -100,21 +96,21 @@ impl PstAccumulator {
 
         let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
 
-        let add1 = index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
-        let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
+        let add1 = pst_index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
+        let sub1 = pst_index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
 
         if mv.is_castling() {
             let (rook_from, rook_to) = board.get_castling_rook(mv.to());
 
-            let add2 = index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
-            let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
+            let add2 = pst_index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
+            let sub2 = pst_index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
 
             self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
         } else if mv.is_capture() {
             let sub2 = if mv.is_en_passant() {
-                index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
+                pst_index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
             } else {
-                index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
+                pst_index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
             };
 
             self.add1_sub2(prev, add1, sub1, sub2, pov);
@@ -220,18 +216,10 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
     }
 }
 
-fn index(color: Color, piece: PieceType, mut square: Square, mut king: Square, pov: Color) -> usize {
-    if king.file() >= 4 {
-        square ^= 7;
-        king ^= 7;
-    }
+fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> usize {
+    let flip = (7 * ((king.file() >= 4) as u8)) ^ (56 * (pov as u8));
 
-    if pov == Color::Black {
-        square ^= 56;
-        king ^= 56;
-    }
-
-    BUCKETS[king] * 768 + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
+    BUCKETS[king ^ flip] * 768 + 384 * (color != pov) as usize + 64 * piece as usize + (square ^ flip) as usize
 }
 
 #[derive(Copy, Clone)]
@@ -272,31 +260,14 @@ impl ThreatAccumulator {
 
         for square in board.occupancies() {
             let piece = board.piece_on(square);
-
-            let threats = match piece.piece_type() {
-                PieceType::Pawn => pawn_attacks(square, piece.piece_color()),
-                PieceType::Knight => knight_attacks(square),
-                PieceType::Bishop => bishop_attacks(square, board.occupancies()),
-                PieceType::Rook => rook_attacks(square, board.occupancies()),
-                PieceType::Queen => queen_attacks(square, board.occupancies()),
-                PieceType::King => king_attacks(square),
-                _ => unreachable!(),
-            } & board.occupancies();
+            let threats = attacks(piece, square, board.occupancies()) & board.occupancies();
 
             for target in threats {
                 let attacked = board.piece_on(target);
+                let mirrored = king.file() >= 4;
 
-                let from = square as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
-                let to = target as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
-
-                let target = 6 * (attacked.piece_color() != pov) as usize + attacked.piece_type() as usize;
-
-                if let Some(index) = threat_index(piece, from, to, target, pov) {
-                    let offset = offsets::END * (piece.piece_color() != pov) as usize + index;
-
-                    for i in 0..L1_SIZE {
-                        self.values[pov][i] += PARAMETERS.ft_threat_weights[offset][i] as i16;
-                    }
+                if let Some(index) = threat_index(piece, square, attacked, target, mirrored, pov) {
+                    unsafe { add1(&mut self.values[pov], index) }
                 }
             }
         }
@@ -310,19 +281,14 @@ impl ThreatAccumulator {
         let mut adds = ArrayVec::<usize, 256>::new();
         let mut subs = ArrayVec::<usize, 256>::new();
 
-        for &ThreatDelta { piece, attacked, from, to, add } in self.delta.iter() {
-            let from = from as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
-            let to = to as usize ^ (56 * (pov as usize)) ^ (7 * ((king.file() >= 4) as usize));
+        for &ThreatDelta { piece, from, attacked, to, add } in self.delta.iter() {
+            let mirrored = king.file() >= 4;
 
-            let target = 6 * (attacked.piece_color() != pov) as usize + attacked.piece_type() as usize;
-
-            if let Some(index) = threat_index(piece, from, to, target, pov) {
-                let feature = offsets::END * (piece.piece_color() != pov) as usize + index;
-
+            if let Some(index) = threat_index(piece, from, attacked, to, mirrored, pov) {
                 if add {
-                    adds.push(feature);
+                    adds.push(index);
                 } else {
-                    subs.push(feature);
+                    subs.push(index);
                 }
             }
         }
