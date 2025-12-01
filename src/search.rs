@@ -958,8 +958,23 @@ fn search<NODE: NodeType>(
                 bonus_noisy,
             );
         } else {
-            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
+            td.quiet_history.update(
+                td.board.threats(),
+                td.board.side_to_move(),
+                best_move,
+                bonus_quiet
+                    * (1 + 2 * (extension >= 1 && move_count >= 2) as i32
+                        + 2 * (extension >= 2 && move_count >= 2) as i32),
+            );
+            update_continuation_histories(
+                td,
+                ply,
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                bonus_cont
+                    * (1 + 2 * (extension >= 1 && move_count >= 2) as i32
+                        + 2 * (extension >= 2 && move_count >= 2) as i32),
+            );
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
