@@ -929,6 +929,10 @@ fn search<NODE: NodeType>(
                 noisy_moves.push(mv);
             }
         }
+
+        if !NODE::PV && extension == 3 && move_count == 1 {
+            break;
+        }
     }
 
     if move_count == 0 {
