@@ -1,14 +1,16 @@
+mod accumulator;
+mod threats;
+
+pub use threats::initialize;
+
 use crate::{
     board::Board,
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, ray_pass, rook_attacks},
+    lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
     types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
-
-mod accumulator;
-mod threats;
 
 mod forward {
     #[cfg(target_feature = "avx2")]
@@ -103,15 +105,7 @@ impl Network {
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
         let deltas = &mut self.threat_stack[self.index].delta;
 
-        let attacked = match piece.piece_type() {
-            PieceType::Pawn => pawn_attacks(square, piece.piece_color()),
-            PieceType::Knight => knight_attacks(square),
-            PieceType::Bishop => bishop_attacks(square, board.occupancies()),
-            PieceType::Rook => rook_attacks(square, board.occupancies()),
-            PieceType::Queen => queen_attacks(square, board.occupancies()),
-            PieceType::King => king_attacks(square),
-            _ => unreachable!(),
-        } & board.occupancies();
+        let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
 
         for to in attacked {
             let attacked = board.piece_on(to);

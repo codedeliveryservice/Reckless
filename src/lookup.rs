@@ -108,6 +108,18 @@ pub fn ray_pass(a: Square, b: Square) -> Bitboard {
     unsafe { RAY_PASS[a as usize][b as usize] }
 }
 
+pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard {
+    match piece.piece_type() {
+        PieceType::Pawn => pawn_attacks(square, piece.piece_color()),
+        PieceType::Knight => knight_attacks(square),
+        PieceType::Bishop => bishop_attacks(square, occupancies),
+        PieceType::Rook => rook_attacks(square, occupancies),
+        PieceType::Queen => queen_attacks(square, occupancies),
+        PieceType::King => king_attacks(square),
+        _ => Bitboard(0),
+    }
+}
+
 pub fn pawn_attacks(square: Square, color: Color) -> Bitboard {
     unsafe {
         match color {
