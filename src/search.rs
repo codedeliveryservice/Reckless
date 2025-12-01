@@ -964,7 +964,7 @@ fn search<NODE: NodeType>(
                 best_move,
                 bonus_quiet
                     * (1 + 2 * (extension >= 1 && move_count >= 2) as i32
-                        + 2 * (extension >= 2 && move_count >= 2) as i32),
+                        + 2 * (extension >= 2 && move_count > depth) as i32),
             );
             update_continuation_histories(
                 td,
@@ -973,7 +973,7 @@ fn search<NODE: NodeType>(
                 best_move.to(),
                 bonus_cont
                     * (1 + 2 * (extension >= 1 && move_count >= 2) as i32
-                        + 2 * (extension >= 2 && move_count >= 2) as i32),
+                        + 2 * (extension >= 2 && move_count > depth) as i32),
             );
 
             for &mv in quiet_moves.iter() {
