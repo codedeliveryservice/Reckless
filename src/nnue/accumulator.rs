@@ -293,34 +293,52 @@ impl ThreatAccumulator {
             }
         }
 
-        while !adds.is_empty() && !subs.is_empty() {
-            let add = adds.pop().unwrap();
-            let sub = subs.pop().unwrap();
+        let mut adds = adds.as_slice().chunks_exact(2);
+        let mut subs = subs.as_slice().chunks_exact(2);
 
-            unsafe { add1_sub1(&mut self.values[pov], add, sub) }
+        while let Some(&[a1, a2]) = adds.next() {
+            unsafe { add2(&mut self.values[pov], a1, a2) };
         }
 
-        for &add in adds.iter() {
-            unsafe { add1(&mut self.values[pov], add) }
+        while let Some(&[s1, s2]) = subs.next() {
+            unsafe { sub2(&mut self.values[pov], s1, s2) };
         }
 
-        for &sub in subs.iter() {
-            unsafe { sub1(&mut self.values[pov], sub) }
+        if let Some(&a1) = adds.remainder().first() {
+            unsafe { add1(&mut self.values[pov], a1) };
+        }
+
+        if let Some(&s1) = subs.remainder().first() {
+            unsafe { sub1(&mut self.values[pov], s1) };
         }
 
         self.accurate[pov] = true;
     }
 }
 
-unsafe fn add1_sub1(output: &mut [i16], add1: usize, sub1: usize) {
+unsafe fn add2(output: &mut [i16], add1: usize, add2: usize) {
     let vacc = output.as_mut_ptr();
     let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
-    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+    let vadd2 = PARAMETERS.ft_threat_weights[add2].as_ptr();
 
     for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
         let mut v = *vacc.add(i).cast();
         v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
+        v = simd::add_i16(v, simd::convert_i8_i16(*vadd2.add(i).cast()));
+
+        *vacc.add(i).cast() = v;
+    }
+}
+
+unsafe fn sub2(output: &mut [i16], sub1: usize, sub2: usize) {
+    let vacc = output.as_mut_ptr();
+    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+    let vsub2 = PARAMETERS.ft_threat_weights[sub2].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
         v = simd::sub_i16(v, simd::convert_i8_i16(*vsub1.add(i).cast()));
+        v = simd::sub_i16(v, simd::convert_i8_i16(*vsub2.add(i).cast()));
 
         *vacc.add(i).cast() = v;
     }

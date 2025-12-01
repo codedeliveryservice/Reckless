@@ -57,6 +57,10 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         }
     }
 
+    pub fn as_slice(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }
+    }
+
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }.iter()
     }
