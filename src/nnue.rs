@@ -1,11 +1,16 @@
+mod accumulator;
+mod threats;
+
+pub use threats::initialize;
+
 use crate::{
     board::Board,
-    types::{Color, Move, PieceType, MAX_PLY},
+    lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
+    nnue::accumulator::{ThreatAccumulator, ThreatDelta},
+    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
-use accumulator::{Accumulator, AccumulatorCache};
-
-mod accumulator;
+use accumulator::{AccumulatorCache, PstAccumulator};
 
 mod forward {
     #[cfg(target_feature = "avx2")]
@@ -40,8 +45,7 @@ const NETWORK_SCALE: i32 = 400;
 
 const INPUT_BUCKETS: usize = 10;
 
-const FT_SIZE: usize = 768;
-const L1_SIZE: usize = 1024;
+const L1_SIZE: usize = 384;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
@@ -77,7 +81,8 @@ struct SparseEntry {
 #[derive(Clone)]
 pub struct Network {
     index: usize,
-    stack: Box<[Accumulator]>,
+    pst_stack: Box<[PstAccumulator]>,
+    threat_stack: Box<[ThreatAccumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
 }
@@ -87,10 +92,53 @@ impl Network {
         debug_assert!(mv.is_some());
 
         self.index += 1;
-        self.stack[self.index].accurate = [false; 2];
-        self.stack[self.index].delta.mv = mv;
-        self.stack[self.index].delta.piece = board.piece_on(mv.from());
-        self.stack[self.index].delta.captured = board.piece_on(mv.to());
+
+        self.pst_stack[self.index].accurate = [false; 2];
+        self.pst_stack[self.index].delta.mv = mv;
+        self.pst_stack[self.index].delta.piece = board.piece_on(mv.from());
+        self.pst_stack[self.index].delta.captured = board.piece_on(mv.to());
+
+        self.threat_stack[self.index].accurate = [false; 2];
+        self.threat_stack[self.index].delta.clear();
+    }
+
+    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        let deltas = &mut self.threat_stack[self.index].delta;
+
+        let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
+
+        for to in attacked {
+            let attacked = board.piece_on(to);
+            deltas.push(ThreatDelta::new(piece, square, attacked, to, add));
+        }
+
+        let rook_attacks = rook_attacks(square, board.occupancies());
+        let bishop_attacks = bishop_attacks(square, board.occupancies());
+        let queen_attacks = rook_attacks | bishop_attacks;
+
+        let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
+        let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
+
+        for from in diagonal | orthogonal {
+            let sliding_piece = board.piece_on(from);
+            let threatened = ray_pass(from, square) & board.occupancies() & queen_attacks;
+
+            if let Some(to) = threatened.into_iter().next() {
+                deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
+            }
+
+            deltas.push(ThreatDelta::new(sliding_piece, from, piece, square, add));
+        }
+
+        let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
+        let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
+
+        let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
+        let kings = board.pieces(PieceType::King) & king_attacks(square);
+
+        for from in black_pawns | white_pawns | knights | kings {
+            deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
+        }
     }
 
     pub fn pop(&mut self) {
@@ -98,70 +146,104 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.refresh(board, Color::White);
-        self.refresh(board, Color::Black);
+        self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache);
+        self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache);
+
+        self.threat_stack[self.index].refresh(board, Color::White);
+        self.threat_stack[self.index].refresh(board, Color::Black);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
-        debug_assert!(self.stack[0].accurate == [true; 2]);
+        debug_assert!(self.pst_stack[0].accurate == [true; 2]);
+        debug_assert!(self.threat_stack[0].accurate == [true; 2]);
 
         for pov in [Color::White, Color::Black] {
-            if self.stack[self.index].accurate[pov] {
+            if self.pst_stack[self.index].accurate[pov] && self.threat_stack[self.index].accurate[pov] {
                 continue;
             }
 
-            if self.can_update(pov) {
-                self.update_accumulator(board, pov);
-            } else {
-                self.refresh(board, pov);
+            match self.can_update_pst(pov) {
+                Some(index) => self.update_pst_accumulator(index, board, pov),
+                None => self.pst_stack[self.index].refresh(board, pov, &mut self.cache),
+            }
+
+            match self.can_update_threats(pov) {
+                Some(index) => self.update_threat_accumulator(index, board, pov),
+                None => self.threat_stack[self.index].refresh(board, pov),
             }
         }
 
         self.output_transformer(board)
     }
 
-    fn refresh(&mut self, board: &Board, pov: Color) {
-        self.stack[self.index].refresh(board, pov, &mut self.cache);
-    }
-
-    fn update_accumulator(&mut self, board: &Board, pov: Color) {
+    fn update_pst_accumulator(&mut self, accurate: usize, board: &Board, pov: Color) {
         let king = board.king_square(pov);
-        let index = (0..self.index).rfind(|&i| self.stack[i].accurate[pov]).unwrap();
 
-        for i in index..self.index {
-            if let (prev, [current, ..]) = self.stack.split_at_mut(i + 1) {
+        for i in accurate..self.index {
+            if let (prev, [current, ..]) = self.pst_stack.split_at_mut(i + 1) {
                 current.update(&prev[i], board, king, pov);
             }
         }
     }
 
-    fn can_update(&self, pov: Color) -> bool {
-        for i in (0..=self.index).rev() {
-            let delta = &self.stack[i].delta;
+    fn update_threat_accumulator(&mut self, accurate: usize, board: &Board, pov: Color) {
+        let king = board.king_square(pov);
 
-            let (from, to) = match delta.piece.piece_color() {
-                Color::White => (delta.mv.from(), delta.mv.to()),
-                Color::Black => (delta.mv.from() ^ 56, delta.mv.to() ^ 56),
-            };
+        for i in accurate..self.index {
+            if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
+                current.update(&prev[i], king, pov);
+            }
+        }
+    }
+
+    fn can_update_pst(&self, pov: Color) -> Option<usize> {
+        for i in (0..=self.index).rev() {
+            if self.pst_stack[i].accurate[pov] {
+                return Some(i);
+            }
+
+            let delta = &self.pst_stack[i].delta;
+
+            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
+            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
                 && ((from.file() >= 4) != (to.file() >= 4) || BUCKETS[from] != BUCKETS[to])
             {
-                return false;
-            }
-
-            if self.stack[i].accurate[pov] {
-                return true;
+                return None;
             }
         }
 
-        false
+        None
+    }
+
+    fn can_update_threats(&self, pov: Color) -> Option<usize> {
+        for i in (0..=self.index).rev() {
+            if self.threat_stack[i].accurate[pov] {
+                return Some(i);
+            }
+
+            let delta = &self.pst_stack[i].delta;
+
+            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
+            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
+
+            if delta.piece.piece_type() == PieceType::King
+                && delta.piece.piece_color() == pov
+                && (from.file() >= 4) != (to.file() >= 4)
+            {
+                return None;
+            }
+        }
+
+        None
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
         unsafe {
-            let ft_out = forward::activate_ft(&self.stack[self.index], board.side_to_move());
+            let ft_out =
+                forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
@@ -192,7 +274,8 @@ impl Default for Network {
 
         Self {
             index: 0,
-            stack: vec![Accumulator::new(); MAX_PLY].into_boxed_slice(),
+            pst_stack: vec![PstAccumulator::new(); MAX_PLY].into_boxed_slice(),
+            threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
         }
@@ -201,7 +284,8 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * FT_SIZE]>,
+    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 79856]>,
+    ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
     l1_biases: Aligned<[f32; L2_SIZE]>,

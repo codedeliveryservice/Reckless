@@ -1,6 +1,8 @@
-use super::{simd, Aligned, BUCKETS, FT_SIZE, INPUT_BUCKETS, L1_SIZE, PARAMETERS};
+use super::{simd, Aligned, L1_SIZE, PARAMETERS};
 use crate::{
     board::Board,
+    lookup::attacks,
+    nnue::{threats::threat_index, BUCKETS, INPUT_BUCKETS},
     types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
@@ -11,7 +13,7 @@ pub struct AccumulatorCache {
 
 #[derive(Clone)]
 pub struct CacheEntry {
-    accumulator: Aligned<[i16; L1_SIZE]>,
+    values: Aligned<[i16; L1_SIZE]>,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
 }
@@ -19,7 +21,7 @@ pub struct CacheEntry {
 impl Default for CacheEntry {
     fn default() -> Self {
         Self {
-            accumulator: PARAMETERS.ft_biases.clone(),
+            values: PARAMETERS.ft_biases.clone(),
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
         }
@@ -27,24 +29,24 @@ impl Default for CacheEntry {
 }
 
 #[derive(Clone)]
-pub struct Delta {
+pub struct PstDelta {
     pub mv: Move,
     pub piece: Piece,
     pub captured: Piece,
 }
 
 #[derive(Clone)]
-pub struct Accumulator {
+pub struct PstAccumulator {
     pub values: Aligned<[[i16; L1_SIZE]; 2]>,
-    pub delta: Delta,
+    pub delta: PstDelta,
     pub accurate: [bool; 2],
 }
 
-impl Accumulator {
+impl PstAccumulator {
     pub fn new() -> Self {
         Self {
             values: Aligned::new([PARAMETERS.ft_biases.data; 2]),
-            delta: Delta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
+            delta: PstDelta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
             accurate: [false; 2],
         }
     }
@@ -52,8 +54,7 @@ impl Accumulator {
     pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
 
-        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
-            [BUCKETS[if pov == Color::White { king } else { king ^ 56 }]];
+        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize][BUCKETS[king as usize ^ (56 * pov as usize)]];
 
         let mut adds = ArrayVec::<_, 32>::new();
         let mut subs = ArrayVec::<_, 32>::new();
@@ -72,11 +73,11 @@ impl Accumulator {
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
                 for square in to_add {
-                    adds.push(index(color, piece_type, square, king, pov));
+                    adds.push(pst_index(color, piece_type, square, king, pov));
                 }
 
                 for square in to_sub {
-                    subs.push(index(color, piece_type, square, king, pov));
+                    subs.push(pst_index(color, piece_type, square, king, pov));
                 }
             }
         }
@@ -86,30 +87,30 @@ impl Accumulator {
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
 
-        self.values[pov] = *entry.accumulator;
+        self.values[pov] = *entry.values;
         self.accurate[pov] = true;
     }
 
     pub fn update(&mut self, prev: &Self, board: &Board, king: Square, pov: Color) {
-        let Delta { mv, piece, captured } = self.delta;
+        let PstDelta { mv, piece, captured } = self.delta;
 
         let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
 
-        let add1 = index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
-        let sub1 = index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
+        let add1 = pst_index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
+        let sub1 = pst_index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
 
         if mv.is_castling() {
             let (rook_from, rook_to) = board.get_castling_rook(mv.to());
 
-            let add2 = index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
-            let sub2 = index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
+            let add2 = pst_index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
+            let sub2 = pst_index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
 
             self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
         } else if mv.is_capture() {
             let sub2 = if mv.is_en_passant() {
-                index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
+                pst_index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
             } else {
-                index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
+                pst_index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
             };
 
             self.add1_sub2(prev, add1, sub1, sub2, pov);
@@ -124,8 +125,8 @@ impl Accumulator {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -142,9 +143,9 @@ impl Accumulator {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_piece_weights[sub2].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -162,10 +163,10 @@ impl Accumulator {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_weights[add1].as_ptr();
-        let vadd2 = PARAMETERS.ft_weights[add2].as_ptr();
-        let vsub1 = PARAMETERS.ft_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_weights[sub2].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
+        let vadd2 = PARAMETERS.ft_piece_weights[add2].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
+        let vsub2 = PARAMETERS.ft_piece_weights[sub2].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -182,19 +183,19 @@ impl Accumulator {
 }
 
 unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
-    const REGISTERS: usize = 16;
+    const REGISTERS: usize = 6;
 
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
-        let output = entry.accumulator.as_mut_ptr().add(offset);
+        let output = entry.values.as_mut_ptr().add(offset);
 
         for (i, register) in registers.iter_mut().enumerate() {
             *register = *output.add(i * simd::I16_LANES).cast();
         }
 
         for &add in adds.iter() {
-            let weights = PARAMETERS.ft_weights[add].as_ptr().add(offset);
+            let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
@@ -202,7 +203,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_weights[sub].as_ptr().add(offset);
+            let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
@@ -215,16 +216,136 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
     }
 }
 
-fn index(color: Color, piece: PieceType, mut square: Square, mut king: Square, pov: Color) -> usize {
-    if king.file() >= 4 {
-        square ^= 7;
-        king ^= 7;
+fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> usize {
+    let flip = (7 * ((king.file() >= 4) as u8)) ^ (56 * (pov as u8));
+
+    BUCKETS[king ^ flip] * 768 + 384 * (color != pov) as usize + 64 * piece as usize + (square ^ flip) as usize
+}
+
+#[derive(Copy, Clone)]
+pub struct ThreatDelta {
+    piece: Piece,
+    from: Square,
+    attacked: Piece,
+    to: Square,
+    add: bool,
+}
+
+impl ThreatDelta {
+    pub fn new(piece: Piece, from: Square, attacked: Piece, to: Square, add: bool) -> Self {
+        Self { piece, from, attacked, to, add }
+    }
+}
+
+#[derive(Clone)]
+pub struct ThreatAccumulator {
+    pub values: Aligned<[[i16; L1_SIZE]; 2]>,
+    pub delta: ArrayVec<ThreatDelta, 80>,
+    pub accurate: [bool; 2],
+}
+
+impl ThreatAccumulator {
+    pub fn new() -> Self {
+        Self {
+            values: Aligned::new([[0; L1_SIZE]; 2]),
+            delta: ArrayVec::new(),
+            accurate: [false; 2],
+        }
     }
 
-    if pov == Color::Black {
-        square ^= 56;
-        king ^= 56;
+    pub fn refresh(&mut self, board: &Board, pov: Color) {
+        let king = board.king_square(pov);
+
+        self.values[pov] = [0; L1_SIZE];
+
+        for square in board.occupancies() {
+            let piece = board.piece_on(square);
+            let threats = attacks(piece, square, board.occupancies()) & board.occupancies();
+
+            for target in threats {
+                let attacked = board.piece_on(target);
+                let mirrored = king.file() >= 4;
+
+                if let Some(index) = threat_index(piece, square, attacked, target, mirrored, pov) {
+                    unsafe { add1(&mut self.values[pov], index) }
+                }
+            }
+        }
+
+        self.accurate[pov] = true;
     }
 
-    BUCKETS[king] * FT_SIZE + 384 * (color != pov) as usize + 64 * piece as usize + square as usize
+    pub fn update(&mut self, prev: &Self, king: Square, pov: Color) {
+        self.values[pov] = prev.values[pov];
+
+        let mut adds = ArrayVec::<usize, 256>::new();
+        let mut subs = ArrayVec::<usize, 256>::new();
+
+        for &ThreatDelta { piece, from, attacked, to, add } in self.delta.iter() {
+            let mirrored = king.file() >= 4;
+
+            if let Some(index) = threat_index(piece, from, attacked, to, mirrored, pov) {
+                if add {
+                    adds.push(index);
+                } else {
+                    subs.push(index);
+                }
+            }
+        }
+
+        while !adds.is_empty() && !subs.is_empty() {
+            let add = adds.pop().unwrap();
+            let sub = subs.pop().unwrap();
+
+            unsafe { add1_sub1(&mut self.values[pov], add, sub) }
+        }
+
+        for &add in adds.iter() {
+            unsafe { add1(&mut self.values[pov], add) }
+        }
+
+        for &sub in subs.iter() {
+            unsafe { sub1(&mut self.values[pov], sub) }
+        }
+
+        self.accurate[pov] = true;
+    }
+}
+
+unsafe fn add1_sub1(output: &mut [i16], add1: usize, sub1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
+    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
+        v = simd::sub_i16(v, simd::convert_i8_i16(*vsub1.add(i).cast()));
+
+        *vacc.add(i).cast() = v;
+    }
+}
+
+unsafe fn add1(output: &mut [i16], add1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
+
+        *vacc.add(i).cast() = v;
+    }
+}
+
+unsafe fn sub1(output: &mut [i16], sub1: usize) {
+    let vacc = output.as_mut_ptr();
+    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+
+    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+        let mut v = *vacc.add(i).cast();
+        v = simd::sub_i16(v, simd::convert_i8_i16(*vsub1.add(i).cast()));
+
+        *vacc.add(i).cast() = v;
+    }
 }

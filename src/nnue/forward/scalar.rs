@@ -1,20 +1,21 @@
 use crate::{
     nnue::{
-        accumulator::Accumulator, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE,
-        L3_SIZE, PARAMETERS,
+        accumulator::{PstAccumulator, ThreatAccumulator},
+        Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
     },
     types::Color,
 };
 
-pub fn activate_ft(accumulator: &Accumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
+pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
     let mut output = Aligned::new([0; L1_SIZE]);
 
     for flip in [0, 1] {
-        let input = &accumulator.values[stm as usize ^ flip];
+        let pst_input = &pst.values[stm as usize ^ flip];
+        let threat_input = &threat.values[stm as usize ^ flip];
 
         for i in 0..L1_SIZE / 2 {
-            let left = input[i].clamp(0, FT_QUANT as i16);
-            let right = input[i + L1_SIZE / 2].clamp(0, FT_QUANT as i16);
+            let left = (pst_input[i] + threat_input[i]).clamp(0, FT_QUANT as i16);
+            let right = (pst_input[i + L1_SIZE / 2] + threat_input[i + L1_SIZE / 2]).clamp(0, FT_QUANT as i16);
 
             output[i + flip * L1_SIZE / 2] = ((left as i32 * right as i32) >> FT_SHIFT) as u8;
         }

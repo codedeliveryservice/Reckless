@@ -36,6 +36,10 @@ pub unsafe fn mul_high_i16(a: __m512i, b: __m512i) -> __m512i {
     _mm512_mulhi_epi16(a, b)
 }
 
+pub unsafe fn convert_i8_i16(a: __m256i) -> __m512i {
+    _mm512_cvtepi8_epi16(a)
+}
+
 pub unsafe fn packus(a: __m512i, b: __m512i) -> __m512i {
     _mm512_packus_epi16(a, b)
 }
