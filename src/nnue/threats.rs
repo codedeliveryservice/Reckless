@@ -56,10 +56,10 @@ pub fn initialize() {
 
             let mut count = 0;
 
-            for square in 0..Square::NUM {
-                unsafe { PIECE_OFFSET_LOOKUP[piece][square] = count };
+            for (square, entry) in unsafe { PIECE_OFFSET_LOOKUP[piece].iter_mut().enumerate() } {
+                *entry = count;
 
-                if piece_type != PieceType::Pawn || (square >= 8 && square < 56) {
+                if piece_type != PieceType::Pawn || (8..56).contains(&square) {
                     count += attacks(piece, Square::new(square as u8), Bitboard(0)).len() as i32;
                 }
             }
@@ -92,10 +92,11 @@ pub fn initialize() {
     }
 
     for piece in Piece::ALL {
-        for from in 0..Square::NUM {
-            for to in 0..Square::NUM {
-                let attacks = attacks(piece, Square::new(from as u8), Bitboard(0));
-                unsafe { ATTACK_INDEX_LOOKUP[piece][from][to] = (Bitboard((1 << to) - 1) & attacks).len() as u8 };
+        for (from, row) in unsafe { ATTACK_INDEX_LOOKUP[piece].iter_mut().enumerate() } {
+            let attacks = attacks(piece, Square::new(from as u8), Bitboard(0));
+
+            for (to, entry) in row.iter_mut().enumerate() {
+                *entry = (Bitboard((1u64 << to) - 1) & attacks).len() as u8;
             }
         }
     }
