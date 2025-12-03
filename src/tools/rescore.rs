@@ -55,7 +55,6 @@ pub fn rescore(input: String, output: String) {
 
         if games % (1024 * 128) == 0 {
             println!("Processed {games} games");
-            break;
         }
     }
 
