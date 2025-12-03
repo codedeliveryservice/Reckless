@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -203,17 +203,17 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
+            let nodes_factor = (nodes1() - nodes2() * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).clamp(nodes3(), nodes4());
 
-            let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
+            let pv_stability = (pv1() - pv2() * pv_stability as f32).max(pv3());
 
-            let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
+            let eval_stability = (eval1() - eval2() * eval_stability as f32).max(eval3());
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend = (trend1() + trend2() * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(trend3(), trend4());
 
-            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
+            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { recap() } else { 1.0 };
 
-            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+            let best_move_stability = (bmc1() + best_move_changes as f32 / bmc2()).min(bmc3());
 
             nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
         };
