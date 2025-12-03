@@ -29,10 +29,6 @@ fn main() {
 
     match std::env::args().nth(1).as_deref() {
         Some("bench") => tools::bench::<false>(None),
-        Some("collect") => {
-            let files: Vec<_> = std::env::args().skip(2).collect();
-            tools::collect_buckets(&files);
-        }
         Some("duplicates") => {
             let files: Vec<_> = std::env::args().skip(2).collect();
             tools::duplicates(&files);
