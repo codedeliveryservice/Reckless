@@ -137,6 +137,7 @@ jobs:
         uses: softprops/action-gh-release@v2.4.1
         with:
           name: Reckless 0.9.0-dev-${{ env.COMMIT_SHA }}
+          tag_name: v0.9.0-dev-${{ env.COMMIT_SHA }}
           draft: true
           prerelease: true
           files: artifacts/**/*
