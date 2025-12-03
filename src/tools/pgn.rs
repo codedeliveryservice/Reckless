@@ -173,7 +173,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                 .unwrap();
 
             internal_entries.push((internal_move, score.try_into().unwrap()));
-            internal_board.make_move(internal_move);
+            internal_board.make_move(internal_move, |_, _, _, _| ());
             position.play_unchecked(&mv);
         }
     }
