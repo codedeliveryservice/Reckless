@@ -44,6 +44,12 @@ fn main() {
 
             tools::convert_pgns(&input, &output, threads, adversarial);
         }
+        Some("rescore") => {
+            let input = std::env::args().nth(2).unwrap();
+            let output = std::env::args().nth(3).unwrap();
+
+            tools::rescore(input, output);
+        }
         _ => uci::message_loop(),
     }
 }
