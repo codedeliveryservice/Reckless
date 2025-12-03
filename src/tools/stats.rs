@@ -50,7 +50,7 @@ pub fn stats(inputs: &[String]) {
                 let ply = board.fullmove_number() * 2 + index;
 
                 if !filter(&board, mv, score) {
-                    board.make_move(mv);
+                    board.make_move(mv, |_, _, _, _| ());
                     continue;
                 }
 
@@ -68,7 +68,7 @@ pub fn stats(inputs: &[String]) {
                 };
                 *statistics.king_positions.entry(king_square as u8).or_insert(0) += 1;
 
-                board.make_move(mv);
+                board.make_move(mv, |_, _, _, _| ());
             }
 
             *statistics.lengths.entry(entries.len() as u16).or_insert(0) += 1;

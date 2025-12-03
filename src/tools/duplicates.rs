@@ -23,7 +23,7 @@ pub fn duplicates(inputs: &[String]) {
                     break;
                 }
 
-                board.make_move(mv);
+                board.make_move(mv, |_, _, _, _| ());
             }
 
             board.update_hash_keys();
