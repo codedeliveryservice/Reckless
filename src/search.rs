@@ -596,6 +596,16 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
+                if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+                    let malus = (90 * (probcut_depth + 1) - 57).min(814);
+                    update_continuation_histories(
+                        td,
+                        ply - 1,
+                        td.stack[ply - 1].piece,
+                        td.stack[ply - 1].mv.to(),
+                        -malus,
+                    );
+                }
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
