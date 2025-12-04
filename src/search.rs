@@ -203,17 +203,19 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
+            let nodes_factor =
+                (2.1800 - 1.5065 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).clamp(0.7313, 1.7538);
 
-            let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
+            let pv_stability = (1.2527 - 0.0509 * pv_stability as f32).max(0.8386);
 
-            let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
+            let eval_stability = (1.1985 - 0.0404 * eval_stability as f32).max(0.8835);
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend =
+                (0.8024 + 0.0496 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.7920, 1.4547);
 
-            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
+            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.8909 } else { 1.0 };
 
-            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+            let best_move_stability = (0.9895 + best_move_changes as f32 / 3.9776).min(3.0227);
 
             nodes_factor * pv_stability * eval_stability * score_trend * recapture_factor * best_move_stability
         };
