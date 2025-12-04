@@ -1,3 +1,4 @@
+#![allow(clippy::manual_is_multiple_of)]
 #![allow(clippy::if_same_then_else)]
 
 mod board;
