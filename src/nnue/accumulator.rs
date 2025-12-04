@@ -183,7 +183,7 @@ impl PstAccumulator {
 }
 
 unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
-    const REGISTERS: usize = 6;
+    const REGISTERS: usize = 8;
 
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
