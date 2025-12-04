@@ -373,12 +373,12 @@ fn search<NODE: NodeType>(
     let correction_value = eval_correction(td, ply);
 
     let raw_eval;
-    let mut eval;
+    let eval;
 
     // Evaluation
     if in_check {
         raw_eval = Score::NONE;
-        eval = Score::NONE;
+        eval = td.stack[ply - 2].eval;
     } else if excluded {
         raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
@@ -406,20 +406,6 @@ fn search<NODE: NodeType>(
         }
     {
         estimated_score = tt_score;
-    }
-
-    // Use the bounded TT entry score for evaluation when in check
-    if in_check
-        && !is_decisive(tt_score)
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        }
-    {
-        estimated_score = tt_score;
-        eval = tt_score;
     }
 
     td.stack[ply].eval = eval;
