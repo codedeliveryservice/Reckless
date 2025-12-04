@@ -541,6 +541,11 @@ fn search<NODE: NodeType>(
         }
 
         if score >= beta && !is_win(score) {
+            if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+                let malus = (90 * initial_depth - 57).min(814);
+                update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+            }
+
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
