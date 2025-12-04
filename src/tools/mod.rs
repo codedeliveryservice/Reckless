@@ -1,5 +1,6 @@
 mod bench;
 mod perft;
+mod scale;
 
 pub use bench::bench;
 pub use perft::perft;
@@ -14,4 +15,5 @@ pub use binpack::*;
 pub use duplicates::*;
 pub use pgn::*;
 pub use rescore::*;
+pub use scale::*;
 pub use stats::*;
