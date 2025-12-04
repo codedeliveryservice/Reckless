@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -694,11 +694,11 @@ fn search<NODE: NodeType>(
             // Futility Pruning (FP)
             let futility_value = eval
                 + 99 * lmr_depth
-                + 59 * quiet_history / 1024
-                + 59 * conthist1 / 1024
-                + 59 * conthist2 / 1024
+                + fp1() * quiet_history / 1024
+                + fp2() * conthist1 / 1024
+                + fp3() * conthist2 / 1024
                 + 102 * (eval >= alpha) as i32
-                + 75;
+                + fp0();
 
             if !in_check
                 && is_quiet
@@ -730,10 +730,10 @@ fn search<NODE: NodeType>(
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
                 -2003 * lmr_depth * lmr_depth / 128
-                    - 32 * quiet_history / 1024
-                    - 32 * conthist1 / 1024
-                    - 32 * conthist2 / 1024
-                    + 24
+                    - see1() * quiet_history / 1024
+                    - see2() * conthist1 / 1024
+                    - see3() * conthist2 / 1024
+                    + see0()
             } else {
                 -89 * depth - 36 * history / 1024 + 42
             };
@@ -821,10 +821,10 @@ fn search<NODE: NodeType>(
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
             if is_quiet {
-                reduction += 348;
-                reduction -= 141 * conthist1 / 1024;
-                reduction -= 141 * conthist2 / 1024;
-                reduction -= 141 * quiet_history / 1024;
+                reduction += lmr0();
+                reduction -= lmr1() * conthist1 / 1024;
+                reduction -= lmr2() * conthist2 / 1024;
+                reduction -= lmr3() * quiet_history / 1024;
             } else {
                 reduction += 307;
                 reduction -= 66 * history / 1024;

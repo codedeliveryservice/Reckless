@@ -34,3 +34,18 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 fp0: 75;
+    i32 fp1: 59;
+    i32 fp2: 59;
+    i32 fp3: 59;
+    i32 see0: 24;
+    i32 see1: 32;
+    i32 see2: 32;
+    i32 see3: 32;
+    i32 lmr0: 348;
+    i32 lmr1: 141;
+    i32 lmr2: 141;
+    i32 lmr3: 141;
+);
