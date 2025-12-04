@@ -607,7 +607,7 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin = 2 + 259 * NODE::PV as i32;
+            let double_margin = 0 + 1 * NODE::PV as i32;
             let triple_margin = 54 + 341 * NODE::PV as i32 - 16 * correction_value.abs() / 128;
 
             extension = 1;
