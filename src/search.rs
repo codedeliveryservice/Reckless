@@ -660,12 +660,14 @@ fn search<NODE: NodeType>(
 
         let mut conthist1 = 0;
         let mut conthist2 = 0;
+        let mut quiet_history = 0;
 
         let history = if is_quiet {
             conthist1 = td.conthist(ply, 1, mv);
             conthist2 = td.conthist(ply, 2, mv);
+            quiet_history = td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv);
 
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + conthist1 + conthist2
+            quiet_history + conthist1 + conthist2
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -690,8 +692,13 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value =
-                eval + 99 * lmr_depth + 80 * (conthist1 + conthist2) / 1024 + 102 * (eval >= alpha) as i32 + 35;
+            let futility_value = eval
+                + 99 * lmr_depth
+                + 59 * quiet_history / 1024
+                + 59 * conthist1 / 1024
+                + 59 * conthist2 / 1024
+                + 102 * (eval >= alpha) as i32
+                + 75;
 
             if !in_check
                 && is_quiet
@@ -722,7 +729,11 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -2003 * lmr_depth * lmr_depth / 128 - 32 * history / 1024 + 24
+                -2003 * lmr_depth * lmr_depth / 128
+                    - 32 * quiet_history / 1024
+                    - 32 * conthist1 / 1024
+                    - 32 * conthist2 / 1024
+                    + 24
             } else {
                 -89 * depth - 36 * history / 1024 + 42
             };
@@ -811,7 +822,9 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count > 1 {
             if is_quiet {
                 reduction += 348;
-                reduction -= 141 * history / 1024;
+                reduction -= 141 * conthist1 / 1024;
+                reduction -= 141 * conthist2 / 1024;
+                reduction -= 141 * quiet_history / 1024;
             } else {
                 reduction += 307;
                 reduction -= 66 * history / 1024;
