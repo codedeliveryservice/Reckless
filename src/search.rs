@@ -669,6 +669,10 @@ fn search<NODE: NodeType>(
 
         let mut reduction = (1300 + 286 * depth.ilog2() * move_count.ilog2()) as i32;
 
+        if NODE::PV {
+            reduction -= 439 + 404 * (beta - alpha) / td.root_delta;
+        }
+
         if !improving {
             reduction += (446 - 304 * improvement / 128).min(1288);
         }
@@ -752,10 +756,6 @@ fn search<NODE: NodeType>(
                 reduction -= 365;
                 reduction -= 672 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 803 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if NODE::PV {
-                reduction -= 439 + 404 * (beta - alpha) / td.root_delta;
             }
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
