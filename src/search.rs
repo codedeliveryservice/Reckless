@@ -514,6 +514,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
+        && !(td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2)
         && estimated_score >= beta
         && estimated_score >= eval
         && eval >= beta - 9 * depth + 134 * tt_pv as i32 - 128 * improvement / 1024 + 269
