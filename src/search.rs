@@ -658,10 +658,14 @@ fn search<NODE: NodeType>(
 
         let is_quiet = mv.is_quiet();
 
+        let mut conthist1 = 0;
+        let mut conthist2 = 0;
+
         let history = if is_quiet {
-            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
+            conthist1 = td.conthist(ply, 1, mv);
+            conthist2 = td.conthist(ply, 2, mv);
+
+            td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv) + conthist1 + conthist2
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -686,7 +690,8 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 99 * lmr_depth + 59 * history / 1024 + 102 * (eval >= alpha) as i32 + 75;
+            let futility_value =
+                eval + 99 * lmr_depth + 80 * (conthist1 + conthist2) / 1024 + 102 * (eval >= alpha) as i32 + 35;
 
             if !in_check
                 && is_quiet
