@@ -327,6 +327,27 @@ fn search<NODE: NodeType>(
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
+            if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
+                let pcm_move = td.stack[ply - 1].mv;
+                if pcm_move.is_quiet() {
+                    let mut factor = 90;
+                    factor += 158 * (initial_depth > 5) as i32;
+                    factor += 125 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
+                    factor +=
+                        327 * (is_valid(td.stack[ply - 1].eval) && tt_score <= -td.stack[ply - 1].eval - 97) as i32;
+
+                    let scaled_bonus = factor * (164 * initial_depth - 40).min(2143) / 128;
+
+                    td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+
+                    let entry = &td.stack[ply - 2];
+                    if entry.mv.is_some() {
+                        let bonus = (152 * initial_depth - 39).min(1486);
+                        td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
+                    }
+                }
+            }
+
             if td.board.halfmove_clock() < 90 {
                 return tt_score;
             }
