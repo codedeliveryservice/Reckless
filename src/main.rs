@@ -57,6 +57,10 @@ fn main() {
 
             tools::rescore(input, output);
         }
+        Some("scale") => {
+            let input = std::env::args().nth(2).unwrap();
+            tools::scale(std::path::Path::new(&input));
+        }
         _ => uci::message_loop(buffer),
     }
 }
