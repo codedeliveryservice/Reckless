@@ -667,13 +667,9 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = (1300 + 286 * depth.ilog2() * move_count.ilog2()) as i32;
-
-        if !improving {
-            reduction += (446 - 304 * improvement / 128).min(1288);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
+            let reduction = (1700 + 286 * depth.ilog2() * move_count.ilog2()) as i32;
+
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
@@ -736,6 +732,8 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
+            let mut reduction = (1300 + 286 * depth.ilog2() * move_count.ilog2()) as i32;
+
             if is_quiet {
                 reduction += 543;
                 reduction -= 156 * history / 1024;
@@ -756,6 +754,10 @@ fn search<NODE: NodeType>(
 
             if NODE::PV {
                 reduction -= 439 + 404 * (beta - alpha) / td.root_delta;
+            }
+
+            if !improving {
+                reduction += (446 - 304 * improvement / 128).min(1288);
             }
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
@@ -804,6 +806,8 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            let mut reduction = (1300 + 286 * depth.ilog2() * move_count.ilog2()) as i32;
+
             if is_quiet {
                 reduction += 348;
                 reduction -= 141 * history / 1024;
@@ -824,6 +828,10 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1463;
                 reduction += 1208 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (446 - 304 * improvement / 128).min(1288);
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
