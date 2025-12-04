@@ -2,6 +2,7 @@
 
 mod board;
 mod evaluation;
+mod ffi;
 mod history;
 mod lookup;
 mod misc;

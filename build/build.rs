@@ -33,19 +33,19 @@ fn main() {
 fn generate_syzygy_binding() {
     cc::Build::new()
         .compiler("clang")
-        .include("./deps/Fathom")
-        .file("./deps/Fathom/tbprobe.c")
+        .include("./deps/pyrrhic")
+        .file("./deps/pyrrhic/tbprobe.c")
         .flag("-Wno-deprecated-declarations")
         .flag("-Wno-sign-compare")
         .flag("-Wno-macro-redefined")
         .flag("-O3")
-        .compile("fathom");
+        .compile("pyrrhic");
 
     bindgen::Builder::default()
-        .header("./deps/Fathom/tbprobe.h")
+        .header("./deps/pyrrhic/tbprobe.h")
         .layout_tests(false)
         .generate()
-        .expect("Failed to generate Fathom bindings")
+        .expect("Failed to generate pyrrhic bindings")
         .write_to_file("src/bindings.rs")
         .unwrap();
 }

@@ -190,16 +190,10 @@ impl ThreadData {
             }
 
             let depth = if updated { depth } else { (depth - 1).max(1) };
-            let mut score = if updated { root_move.display_score } else { root_move.previous_score };
+            let score = if updated { root_move.display_score } else { root_move.previous_score };
 
-            let mut upperbound = root_move.upperbound;
-            let mut lowerbound = root_move.lowerbound;
-
-            if self.root_in_tb && score.abs() <= Score::TB_WIN {
-                score = root_move.tb_score;
-                upperbound = false;
-                lowerbound = false;
-            }
+            let upperbound = root_move.upperbound;
+            let lowerbound = root_move.lowerbound;
 
             let mut score_str = if score.abs() < Score::TB_WIN_IN_MAX {
                 format!("cp {}", normalize_to_cp(score, &self.board))
@@ -252,7 +246,6 @@ pub struct RootMove {
     pub nodes: u64,
     pub pv: PrincipalVariationTable,
     pub tb_rank: i32,
-    pub tb_score: i32,
 }
 
 impl Default for RootMove {
@@ -268,7 +261,6 @@ impl Default for RootMove {
             nodes: 0,
             pv: PrincipalVariationTable::default(),
             tb_rank: 0,
-            tb_score: 0,
         }
     }
 }

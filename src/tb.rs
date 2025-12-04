@@ -2,12 +2,12 @@ use std::{ffi, mem, ptr};
 
 use crate::{
     bindings::{
-        tb_init, tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl, TbMove, TbRootMove, TbRootMoves, TB_DRAW,
+        tb_init, tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl, PyrrhicMove, TbRootMove, TbRootMoves, TB_DRAW,
         TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN,
     },
     board::Board,
     thread::{RootMove, ThreadData},
-    types::{Color, Move, PieceType, Score, MAX_PLY},
+    types::{Color, Move, PieceType, Score},
 };
 
 #[derive(Eq, PartialEq)]
@@ -48,8 +48,6 @@ pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
             board.pieces(PieceType::Bishop).0,
             board.pieces(PieceType::Knight).0,
             board.pieces(PieceType::Pawn).0,
-            0,
-            0,
             board.en_passant() as u32 & 0x3F,
             board.side_to_move() == Color::White,
         )
@@ -63,8 +61,8 @@ pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
     }
 }
 
-fn reckless_move_to_tb_move(mv: Move) -> TbMove {
-    fn promo_bits_from_piece(pt: PieceType) -> TbMove {
+fn reckless_move_to_tb_move(mv: Move) -> PyrrhicMove {
+    fn promo_bits_from_piece(pt: PieceType) -> PyrrhicMove {
         match pt {
             PieceType::Queen => 1,
             PieceType::Rook => 2,
@@ -77,7 +75,7 @@ fn reckless_move_to_tb_move(mv: Move) -> TbMove {
     let from = (mv.from() as u16) & 0x3F;
     let to = (mv.to() as u16) & 0x3F;
 
-    let mut tb_move: TbMove = (from << 6) | to;
+    let mut tb_move: PyrrhicMove = (from << 6) | to;
 
     if let Some(pt) = mv.promotion_piece() {
         let promotion_bits = promo_bits_from_piece(pt) & 0x7;
@@ -101,16 +99,7 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
             }
 
             let c_move_ptr = (*tb_ptr).moves.as_mut_ptr().add(i);
-            ptr::write(
-                c_move_ptr,
-                TbRootMove {
-                    move_: reckless_move_to_tb_move(root_move.mv),
-                    pv: [0; MAX_PLY],
-                    pvSize: 0,
-                    tbScore: 0,
-                    tbRank: 0,
-                },
-            );
+            ptr::write(c_move_ptr, TbRootMove { move_: reckless_move_to_tb_move(root_move.mv), tbRank: 0 });
         }
 
         // Helper to copy back from C struct and sort
@@ -118,7 +107,6 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
             for i in 0..c_rootmoves.size as usize {
                 let tb_move = c_rootmoves.moves[i].move_;
                 if let Some(rm) = root_moves.iter_mut().find(|rm| reckless_move_to_tb_move(rm.mv) == tb_move) {
-                    rm.tb_score = c_rootmoves.moves[i].tbScore;
                     rm.tb_rank = c_rootmoves.moves[i].tbRank;
                 }
             }
@@ -135,11 +123,9 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
             td.board.pieces(PieceType::Knight).0,
             td.board.pieces(PieceType::Pawn).0,
             td.board.halfmove_clock() as u32,
-            0,
             td.board.en_passant() as u32 & 0x3F,
             td.board.side_to_move() == Color::White,
             false,
-            true,
             tb_ptr,
         );
 
@@ -162,7 +148,6 @@ pub fn tb_rank_rootmoves(td: &mut ThreadData) {
             td.board.pieces(PieceType::Knight).0,
             td.board.pieces(PieceType::Pawn).0,
             td.board.halfmove_clock() as u32,
-            0,
             td.board.en_passant() as u32 & 0x3F,
             td.board.side_to_move() == Color::White,
             true,
