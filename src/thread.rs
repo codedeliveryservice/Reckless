@@ -244,6 +244,7 @@ impl ThreadData {
 pub struct RootMove {
     pub mv: Move,
     pub score: i32,
+    pub average_score: i32,
     pub previous_score: i32,
     pub display_score: i32,
     pub upperbound: bool,
@@ -260,6 +261,7 @@ impl Default for RootMove {
         Self {
             mv: Move::NULL,
             score: -Score::INFINITE,
+            average_score: -Score::INFINITE,
             previous_score: -Score::INFINITE,
             display_score: -Score::INFINITE,
             upperbound: false,

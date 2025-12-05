@@ -909,6 +909,15 @@ fn search<NODE: NodeType>(
                 root_move.score = score;
                 root_move.sel_depth = td.sel_depth;
                 root_move.pv.commit_full_root_pv(&td.pv_table, 1);
+                root_move.average_score = if root_move.average_score != -Score::INFINITE {
+                    (root_move.average_score + score) / 2
+                } else {
+                    score
+                };
+
+                td.optimism[td.board.side_to_move()] =
+                    145 * root_move.average_score / (root_move.average_score.abs() + 229);
+                td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
                 if move_count > 1 && td.pv_index == 0 {
                     td.best_move_changes += 1;
