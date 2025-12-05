@@ -1173,7 +1173,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
-            if move_picker.stage() == Stage::BadNoisy {
+            if move_picker.stage() == Stage::BadNoisy && !td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
