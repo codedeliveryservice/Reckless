@@ -762,10 +762,10 @@ fn search<NODE: NodeType>(
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
             if is_quiet {
-                reduction += 543;
+                reduction += 784;
                 reduction -= 156 * history / 1024;
             } else {
-                reduction += 343;
+                reduction += 584;
                 reduction -= 97 * history / 1024;
                 reduction -= 52 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -794,10 +794,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1570;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 626;
             }
 
             if depth == 2 {
