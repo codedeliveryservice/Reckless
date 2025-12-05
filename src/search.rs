@@ -573,7 +573,7 @@ fn search<NODE: NodeType>(
         let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
+            if move_picker.stage() == Stage::BadNoisy && !td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
