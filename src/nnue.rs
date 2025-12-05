@@ -78,9 +78,22 @@ struct SparseEntry {
     count: usize,
 }
 
+#[derive(Copy, Clone, Default)]
+struct Metadata {
+    bucket: usize,
+    mirrored: bool,
+}
+
+impl Metadata {
+    pub fn new(king: Square) -> Self {
+        Self { bucket: BUCKETS[king], mirrored: king.file() >= 4 }
+    }
+}
+
 #[derive(Clone)]
 pub struct Network {
     index: usize,
+    metadata: Vec<[Metadata; 2]>,
     pst_stack: Box<[PstAccumulator]>,
     threat_stack: Box<[ThreatAccumulator]>,
     cache: AccumulatorCache,
@@ -100,6 +113,17 @@ impl Network {
 
         self.threat_stack[self.index].accurate = [false; 2];
         self.threat_stack[self.index].delta.clear();
+
+        self.metadata[self.index] = self.metadata[self.index - 1];
+
+        for pov in [Color::White, Color::Black] {
+            let piece = board.piece_on(mv.from());
+
+            if piece == Piece::new(pov, PieceType::King) {
+                let king = mv.to() ^ (56 * (pov as u8));
+                self.metadata[self.index][pov] = Metadata::new(king);
+            }
+        }
     }
 
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
@@ -151,6 +175,11 @@ impl Network {
 
         self.threat_stack[self.index].refresh(board, Color::White);
         self.threat_stack[self.index].refresh(board, Color::Black);
+
+        for pov in [Color::White, Color::Black] {
+            let king = board.king_square(pov) ^ (56 * (pov as u8));
+            self.metadata[self.index][pov] = Metadata::new(king);
+        }
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
@@ -202,15 +231,10 @@ impl Network {
                 return Some(i);
             }
 
-            let delta = &self.pst_stack[i].delta;
+            let curr = &self.metadata[i][pov];
+            let prev = &self.metadata[i - 1][pov];
 
-            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
-            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
-
-            if delta.piece.piece_type() == PieceType::King
-                && delta.piece.piece_color() == pov
-                && ((from.file() >= 4) != (to.file() >= 4) || BUCKETS[from] != BUCKETS[to])
-            {
+            if curr.bucket != prev.bucket || curr.mirrored != prev.mirrored {
                 return None;
             }
         }
@@ -224,15 +248,10 @@ impl Network {
                 return Some(i);
             }
 
-            let delta = &self.pst_stack[i].delta;
+            let curr = &self.metadata[i][pov];
+            let prev = &self.metadata[i - 1][pov];
 
-            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
-            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
-
-            if delta.piece.piece_type() == PieceType::King
-                && delta.piece.piece_color() == pov
-                && (from.file() >= 4) != (to.file() >= 4)
-            {
+            if curr.mirrored != prev.mirrored {
                 return None;
             }
         }
@@ -274,6 +293,7 @@ impl Default for Network {
 
         Self {
             index: 0,
+            metadata: vec![[Metadata::default(); 2]; MAX_PLY + 1],
             pst_stack: vec![PstAccumulator::new(); MAX_PLY].into_boxed_slice(),
             threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
