@@ -211,7 +211,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let recapture_factor = if td.root_moves[0].mv.to() == td.board.recapture_square() { 0.9 } else { 1.0 };
+            let recapture_factor = if td.root_moves[0].mv.to() == td.board.last_move_square() { 0.9 } else { 1.0 };
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
@@ -476,8 +476,12 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity =
-        depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
+    let potential_singularity = depth >= 5
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && ply < 2 * td.root_depth as isize;
 
     let mut improvement = 0;
 
@@ -573,7 +577,7 @@ fn search<NODE: NodeType>(
         let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
+            if move_picker.stage() == Stage::BadNoisy && !td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
@@ -613,7 +617,7 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
 
-    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+    if !NODE::ROOT && !excluded && potential_singularity {
         debug_assert!(is_valid(tt_score));
 
         let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
@@ -649,7 +653,7 @@ fn search<NODE: NodeType>(
         } else if cut_node {
             extension = -2;
         }
-    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
+    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.last_move_square() {
         extension = 1;
     }
 
@@ -779,7 +783,7 @@ fn search<NODE: NodeType>(
                 reduction -= 803 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if mv.is_noisy() && mv.to() == td.board.recapture_square() {
+            if mv.is_noisy() && mv.to() == td.board.last_move_square() {
                 reduction -= 937;
             }
 
@@ -1172,7 +1176,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
+        if !is_loss(best_score) && mv.to() != td.board.last_move_square() {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }

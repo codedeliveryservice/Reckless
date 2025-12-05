@@ -14,7 +14,7 @@ impl Board {
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
-        self.state.recapture_square = Square::None;
+        self.state.last_move_square = Square::None;
         self.state.checkers = Bitboard::default();
 
         self.update_threats();
@@ -52,7 +52,7 @@ impl Board {
         }
 
         self.state.captured = None;
-        self.state.recapture_square = Square::None;
+        self.state.last_move_square = Square::None;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
@@ -70,7 +70,7 @@ impl Board {
 
             self.state.material -= PIECE_VALUES[captured.piece_type()];
             self.state.captured = Some(captured);
-            self.state.recapture_square = to;
+            self.state.last_move_square = to;
         }
 
         if !mv.is_castling() {
