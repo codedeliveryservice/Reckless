@@ -465,6 +465,16 @@ fn search<NODE: NodeType>(
     }
 
     if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && depth >= 3
+        && td.stack[ply - 1].reduction >= 1024
+        && eval > td.stack[ply - 1].eval + 128
+    {
+        depth += 1;
+    }
+
+    if !NODE::ROOT
         && !tt_pv
         && !in_check
         && !excluded
