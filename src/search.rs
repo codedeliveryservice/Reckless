@@ -458,10 +458,12 @@ fn search<NODE: NodeType>(
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
 
+    let mut hs_reduction = 0;
+
     // Hindsight reductions
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2505 && eval + td.stack[ply - 1].eval < 0
     {
-        depth += 1;
+        hs_reduction += 1152;
     }
 
     if !NODE::ROOT
@@ -473,8 +475,10 @@ fn search<NODE: NodeType>(
         && is_valid(td.stack[ply - 1].eval)
         && eval + td.stack[ply - 1].eval > 61
     {
-        depth -= 1;
+        hs_reduction -= 896;
     }
+
+    depth += (hs_reduction - (td.stack[ply - 1].reduction & 1023)) / 1024;
 
     let potential_singularity =
         depth >= 5 && tt_depth >= depth - 3 && tt_bound != Bound::Upper && is_valid(tt_score) && !is_decisive(tt_score);
