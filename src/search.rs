@@ -967,6 +967,9 @@ fn search<NODE: NodeType>(
         let bonus_quiet = (157 * depth - 67).min(1389) - 67 * cut_node as i32;
         let malus_quiet = (127 * initial_depth - 47).min(1067) - 41 * quiet_moves.len() as i32;
 
+        let bonus_pawn = (89 * depth - 43).min(876) - 33 * cut_node as i32;
+        let malus_pawn = (101 * initial_depth - 39).min(945) - 27 * quiet_moves.len() as i32;
+
         let bonus_cont = (99 * depth - 66).min(1020) - 67 * cut_node as i32;
         let malus_cont = (355 * initial_depth - 47).min(1007) - 21 * quiet_moves.len() as i32;
 
@@ -980,10 +983,12 @@ fn search<NODE: NodeType>(
             );
         } else {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
+            td.pawn_history.update(td.board.pawn_key(), td.board.moved_piece(best_move), best_move.to(), bonus_pawn);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
+                td.pawn_history.update(td.board.pawn_key(), td.board.moved_piece(mv), mv.to(), -malus_pawn);
                 update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -malus_cont);
             }
         }

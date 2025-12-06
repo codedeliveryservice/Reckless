@@ -201,6 +201,33 @@ impl Default for ContinuationHistory {
     }
 }
 
+pub struct PawnHistory {
+    // [side_to_move][key][piece][to]
+    entries: Box<[PieceToHistory<i16>; Self::SIZE]>,
+}
+
+impl PawnHistory {
+    const MAX_HISTORY: i32 = 16384;
+
+    const SIZE: usize = 1024;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, key: u64, piece: Piece, to: Square) -> i32 {
+        self.entries[key as usize & Self::MASK][piece][to] as i32
+    }
+
+    pub fn update(&mut self, key: u64, piece: Piece, to: Square, bonus: i32) {
+        let entry = &mut self.entries[key as usize & Self::MASK][piece][to];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for PawnHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 fn zeroed_box<T>() -> Box<T> {
     unsafe {
         let layout = std::alloc::Layout::new::<T>();
