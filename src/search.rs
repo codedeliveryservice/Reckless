@@ -512,7 +512,6 @@ fn search<NODE: NodeType>(
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
-        && !excluded
         && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
