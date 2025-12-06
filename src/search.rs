@@ -606,7 +606,7 @@ fn search<NODE: NodeType>(
     }
 
     // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+    if (NODE::PV || cut_node) && !is_valid(tt_score) && depth >= 3 + 3 * cut_node as i32 {
         depth -= 1;
     }
 
