@@ -694,7 +694,7 @@ fn search<NODE: NodeType>(
             reduction -= 439 + 404 * (beta - alpha) / td.root_delta;
         }
 
-        if !improving {
+        if improvement < 0 {
             reduction += (446 - 304 * improvement / 128).min(1288);
         }
 
