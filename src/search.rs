@@ -967,8 +967,8 @@ fn search<NODE: NodeType>(
         let bonus_quiet = (157 * depth - 67).min(1389) - 67 * cut_node as i32;
         let malus_quiet = (127 * initial_depth - 47).min(1067) - 41 * quiet_moves.len() as i32;
 
-        let bonus_pawn = (89 * depth - 43).min(876) - 33 * cut_node as i32;
-        let malus_pawn = (101 * initial_depth - 39).min(945) - 27 * quiet_moves.len() as i32;
+        let bonus_pawn = (108 * depth - 51).min(998) - 79 * cut_node as i32;
+        let malus_pawn = (166 * initial_depth - 61).min(1421) - 24 * noisy_moves.len() as i32;
 
         let bonus_cont = (99 * depth - 66).min(1020) - 67 * cut_node as i32;
         let malus_cont = (355 * initial_depth - 47).min(1007) - 21 * quiet_moves.len() as i32;
