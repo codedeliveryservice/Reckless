@@ -560,7 +560,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta + 254 - 73 * improving as i32;
+    let probcut_beta = beta + 70 * depth.ilog2() as i32 - 73 * improving as i32 + 20;
 
     if cut_node
         && depth >= 3
