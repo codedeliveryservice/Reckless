@@ -698,6 +698,10 @@ fn search<NODE: NodeType>(
             reduction += (446 - 304 * improvement / 128).min(1288);
         }
 
+        if td.board.in_check() || !td.board.has_non_pawns() {
+            reduction -= 938;
+        }
+
         if !NODE::ROOT && !is_loss(best_score) {
             let lmr_depth = (depth - reduction / 1024).max(0);
 
@@ -786,10 +790,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1883;
                 reduction += 1139 * tt_move.is_null() as i32;
-            }
-
-            if td.board.in_check() || !td.board.has_non_pawns() {
-                reduction -= 938;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
