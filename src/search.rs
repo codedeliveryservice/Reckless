@@ -699,7 +699,7 @@ fn search<NODE: NodeType>(
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
+            let lmr_depth = (depth - (reduction + (128 * depth * tt_pv as i32).min(1536)) / 1024).max(0);
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
