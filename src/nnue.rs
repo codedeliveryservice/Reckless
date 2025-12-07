@@ -5,7 +5,7 @@ pub use threats::initialize;
 
 use crate::{
     board::Board,
-    lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
+    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
     types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
@@ -105,23 +105,37 @@ impl Network {
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
         let deltas = &mut self.threat_stack[self.index].delta;
 
-        let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
+        let occupancies = board.occupancies();
+
+        let knight_attacks = knight_attacks(square);
+        let bishop_attacks = bishop_attacks(square, occupancies);
+        let rook_attacks = rook_attacks(square, occupancies);
+        let king_attacks = king_attacks(square);
+
+        let queen_attacks = rook_attacks | bishop_attacks;
+
+        let attacked = occupancies
+            & match piece.piece_type() {
+                PieceType::Pawn => pawn_attacks(square, piece.piece_color()),
+                PieceType::Knight => knight_attacks,
+                PieceType::Bishop => bishop_attacks,
+                PieceType::Rook => rook_attacks,
+                PieceType::Queen => queen_attacks,
+                PieceType::King => king_attacks,
+                PieceType::None => todo!(),
+            };
 
         for to in attacked {
             let attacked = board.piece_on(to);
             deltas.push(ThreatDelta::new(piece, square, attacked, to, add));
         }
 
-        let rook_attacks = rook_attacks(square, board.occupancies());
-        let bishop_attacks = bishop_attacks(square, board.occupancies());
-        let queen_attacks = rook_attacks | bishop_attacks;
-
         let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
         let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
 
         for from in diagonal | orthogonal {
             let sliding_piece = board.piece_on(from);
-            let threatened = ray_pass(from, square) & board.occupancies() & queen_attacks;
+            let threatened = ray_pass(from, square) & occupancies & queen_attacks;
 
             if let Some(to) = threatened.into_iter().next() {
                 deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
@@ -133,8 +147,8 @@ impl Network {
         let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
         let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
 
-        let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
-        let kings = board.pieces(PieceType::King) & king_attacks(square);
+        let knights = board.pieces(PieceType::Knight) & knight_attacks;
+        let kings = board.pieces(PieceType::King) & king_attacks;
 
         for from in black_pawns | white_pawns | knights | kings {
             deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
