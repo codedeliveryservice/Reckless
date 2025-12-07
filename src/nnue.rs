@@ -122,7 +122,7 @@ impl Network {
                 PieceType::Rook => rook_attacks,
                 PieceType::Queen => queen_attacks,
                 PieceType::King => king_attacks,
-                PieceType::None => todo!(),
+                PieceType::None => unreachable!(),
             };
 
         for to in attacked {
