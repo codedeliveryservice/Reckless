@@ -711,7 +711,9 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 99 * lmr_depth + 59 * history / 1024 + 102 * (eval >= alpha) as i32 + 75;
+            let futility_value = eval + 99 * lmr_depth + 59 * history / 1024 + 102 * (eval >= alpha) as i32
+                - 80 * tt_move.is_noisy() as i32
+                + 75;
 
             if !in_check
                 && is_quiet
