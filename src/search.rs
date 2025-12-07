@@ -1314,7 +1314,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.shared.nodes.increment(td.id);
 
     td.nnue.push(mv, &td.board);
-    td.board.make_move(mv, Some(&mut td.nnue));
+    td.board.make_move::<true>(mv, Some(&mut td.nnue));
 
     td.shared.tt.prefetch(td.board.hash());
 }

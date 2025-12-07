@@ -35,12 +35,14 @@ impl Board {
     ///
     /// This method assumes the move has been validated as pseudo-legal and legal
     /// per `Board::is_pseudo_legal` and `Board::is_legal`.
-    pub fn make_move(&mut self, mv: Move, mut nnue: Option<&mut Network>) {
-        let mut push_threats = |board: &mut Board, piece: Piece, square: Square, is_add: bool| {
-            if let Some(nnue) = nnue.as_mut() {
-                nnue.push_threats(board, piece, square, is_add);
-            }
-        };
+    pub fn make_move<const NNUE: bool>(&mut self, mv: Move, mut nnue: Option<&mut Network>) {
+        macro_rules! push_threats {
+            ($board:expr, $piece:expr, $square:expr, $adding:expr) => {
+                if NNUE {
+                    unsafe { nnue.as_mut().unwrap_unchecked().push_threats($board, $piece, $square, $adding) };
+                }
+            };
+        }
 
         let from = mv.from();
         let to = mv.to();
@@ -71,7 +73,7 @@ impl Board {
         let captured = self.piece_on(to);
         if captured != Piece::None && !mv.is_castling() {
             self.remove_piece(captured, to);
-            push_threats(self, captured, to, false);
+            push_threats!(self, captured, to, false);
 
             self.update_hash(captured, to);
 
@@ -82,10 +84,10 @@ impl Board {
 
         if !mv.is_castling() {
             self.remove_piece(piece, from);
-            push_threats(self, piece, from, false);
+            push_threats!(self, piece, from, false);
 
             self.add_piece(piece, to);
-            push_threats(self, piece, to, true);
+            push_threats!(self, piece, to, true);
         }
 
         self.update_hash(piece, from);
@@ -100,7 +102,7 @@ impl Board {
                 let captured = Piece::new(!stm, PieceType::Pawn);
 
                 self.remove_piece(captured, to ^ 8);
-                push_threats(self, captured, to ^ 8, false);
+                push_threats!(self, captured, to ^ 8, false);
 
                 self.update_hash(captured, to ^ 8);
 
@@ -111,16 +113,16 @@ impl Board {
                 let rook = Piece::new(stm, PieceType::Rook);
 
                 self.remove_piece(rook, rook_from);
-                push_threats(self, rook, rook_from, false);
+                push_threats!(self, rook, rook_from, false);
 
                 self.remove_piece(piece, from);
-                push_threats(self, piece, from, false);
+                push_threats!(self, piece, from, false);
 
                 self.add_piece(rook, rook_to);
-                push_threats(self, rook, rook_to, true);
+                push_threats!(self, rook, rook_to, true);
 
                 self.add_piece(piece, to);
-                push_threats(self, piece, to, true);
+                push_threats!(self, piece, to, true);
 
                 self.update_hash(rook, rook_from);
                 self.update_hash(rook, rook_to);
@@ -129,10 +131,10 @@ impl Board {
                 let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
 
                 self.remove_piece(piece, to);
-                push_threats(self, piece, to, false);
+                push_threats!(self, piece, to, false);
 
                 self.add_piece(promotion, to);
-                push_threats(self, promotion, to, true);
+                push_threats!(self, promotion, to, true);
 
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
