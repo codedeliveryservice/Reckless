@@ -102,7 +102,7 @@ impl Network {
         self.threat_stack[self.index].delta.clear();
     }
 
-    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool, compute_ray: bool) {
         let deltas = &mut self.threat_stack[self.index].delta;
 
         let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
@@ -121,10 +121,12 @@ impl Network {
 
         for from in diagonal | orthogonal {
             let sliding_piece = board.piece_on(from);
-            let threatened = ray_pass(from, square) & board.occupancies() & queen_attacks;
 
-            if let Some(to) = threatened.into_iter().next() {
-                deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
+            if compute_ray {
+                let threatened = ray_pass(from, square) & board.occupancies() & queen_attacks;
+                if let Some(to) = threatened.into_iter().next() {
+                    deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
+                }
             }
 
             deltas.push(ThreatDelta::new(sliding_piece, from, piece, square, add));

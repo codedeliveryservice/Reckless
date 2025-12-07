@@ -34,7 +34,7 @@ impl Board {
     ///
     /// This method assumes the move has been validated as pseudo-legal and legal
     /// per `Board::is_pseudo_legal` and `Board::is_legal`.
-    pub fn make_move<F: FnMut(&Board, Piece, Square, bool)>(&mut self, mv: Move, mut on_piece_change: F) {
+    pub fn make_move<F: FnMut(&Board, Piece, Square, bool, bool)>(&mut self, mv: Move, mut on_piece_change: F) {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
@@ -61,24 +61,27 @@ impl Board {
         }
         self.state.plies_from_null += 1;
 
-        let captured = self.piece_on(to);
-        if captured != Piece::None && !mv.is_castling() {
-            self.remove_piece(captured, to);
-            on_piece_change(self, captured, to, false);
-
-            self.update_hash(captured, to);
-
-            self.state.material -= PIECE_VALUES[captured.piece_type()];
-            self.state.captured = Some(captured);
-            self.state.recapture_square = to;
-        }
-
         if !mv.is_castling() {
             self.remove_piece(piece, from);
-            on_piece_change(self, piece, from, false);
+            on_piece_change(self, piece, from, false, true);
 
-            self.add_piece(piece, to);
-            on_piece_change(self, piece, to, true);
+            let captured = self.piece_on(to);
+            if captured != Piece::None {
+                self.remove_piece(captured, to);
+                self.add_piece(piece, to);
+
+                on_piece_change(self, captured, to, false, false);
+                on_piece_change(self, piece, to, true, false);
+
+                self.update_hash(captured, to);
+
+                self.state.material -= PIECE_VALUES[captured.piece_type()];
+                self.state.captured = Some(captured);
+                self.state.recapture_square = to;
+            } else {
+                self.add_piece(piece, to);
+                on_piece_change(self, piece, to, true, true);
+            }
         }
 
         self.update_hash(piece, from);
@@ -93,7 +96,7 @@ impl Board {
                 let captured = Piece::new(!stm, PieceType::Pawn);
 
                 self.remove_piece(captured, to ^ 8);
-                on_piece_change(self, captured, to ^ 8, false);
+                on_piece_change(self, captured, to ^ 8, false, true);
 
                 self.update_hash(captured, to ^ 8);
 
@@ -104,16 +107,16 @@ impl Board {
                 let rook = Piece::new(stm, PieceType::Rook);
 
                 self.remove_piece(rook, rook_from);
-                on_piece_change(self, rook, rook_from, false);
+                on_piece_change(self, rook, rook_from, false, true);
 
                 self.remove_piece(piece, from);
-                on_piece_change(self, piece, from, false);
+                on_piece_change(self, piece, from, false, true);
 
                 self.add_piece(rook, rook_to);
-                on_piece_change(self, rook, rook_to, true);
+                on_piece_change(self, rook, rook_to, true, true);
 
                 self.add_piece(piece, to);
-                on_piece_change(self, piece, to, true);
+                on_piece_change(self, piece, to, true, true);
 
                 self.update_hash(rook, rook_from);
                 self.update_hash(rook, rook_to);
@@ -122,10 +125,10 @@ impl Board {
                 let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
 
                 self.remove_piece(piece, to);
-                on_piece_change(self, piece, to, false);
-
                 self.add_piece(promotion, to);
-                on_piece_change(self, promotion, to, true);
+
+                on_piece_change(self, piece, to, false, false);
+                on_piece_change(self, promotion, to, true, false);
 
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
