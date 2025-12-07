@@ -500,7 +500,7 @@ fn search<NODE: NodeType>(
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1220 * depth * depth / 128 + 27 * depth - (70 * improving as i32)
+            >= beta + 1220 * depth * depth / 128 + 27 * depth - (70 * (improvement > 16) as i32)
                 + 499 * correction_value.abs() / 1024
                 + 31 * (depth == 1) as i32
         && !is_loss(beta)
