@@ -573,10 +573,6 @@ fn search<NODE: NodeType>(
         let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
             if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
