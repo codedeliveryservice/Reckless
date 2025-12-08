@@ -468,25 +468,14 @@ impl Board {
         // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let occupancies = self.occupancies() ^ self.our(PieceType::King);
 
-        let mut threats = Bitboard::default();
+        self.state.threats = Bitboard::default();
 
-        for square in self.their(PieceType::Pawn) {
-            threats |= pawn_attacks(square, !self.side_to_move);
+        for square in self.them() {
+            let piece = self.piece_on(square);
+
+            let attacks = attacks(piece, square, occupancies);
+            self.state.threats |= attacks;
         }
-
-        for square in self.their(PieceType::Knight) {
-            threats |= knight_attacks(square);
-        }
-
-        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
-            threats |= bishop_attacks(square, occupancies);
-        }
-
-        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
-            threats |= rook_attacks(square, occupancies);
-        }
-
-        self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
