@@ -20,39 +20,43 @@ pub struct MovePicker {
     tt_move: Move,
     threshold: Option<i32>,
     stage: Stage,
+    state: fn(&mut MovePicker, &ThreadData, bool, isize) -> Option<Move>,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
 }
 
 impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+    pub const fn new<NODE: NodeType>(tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
+            state: if tt_move.is_some() { hash_move::<NODE> } else { generate_noisy::<NODE> },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
     }
 
-    pub const fn new_probcut(threshold: i32) -> Self {
+    pub const fn new_probcut<NODE: NodeType>(threshold: i32) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
+            state: generate_noisy::<NODE>,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
     }
 
-    pub const fn new_qsearch() -> Self {
+    pub const fn new_qsearch<NODE: NodeType>() -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
+            state: generate_noisy::<NODE>,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
@@ -62,88 +66,8 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
-        if self.stage == Stage::HashMove {
-            self.stage = Stage::GenerateNoisy;
-
-            if td.board.is_pseudo_legal(self.tt_move) {
-                return Some(self.tt_move);
-            }
-        }
-
-        if self.stage == Stage::GenerateNoisy {
-            self.stage = Stage::GoodNoisy;
-            td.board.append_noisy_moves(&mut self.list);
-            self.score_noisy(td);
-        }
-
-        if self.stage == Stage::GoodNoisy {
-            while !self.list.is_empty() {
-                let index = self.find_best_score_index();
-                let entry = &self.list.remove(index);
-                if entry.mv == self.tt_move {
-                    continue;
-                }
-
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 36 + 119);
-                if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
-                    continue;
-                }
-
-                if NODE::ROOT {
-                    self.score_noisy(td);
-                }
-
-                return Some(entry.mv);
-            }
-
-            self.stage = Stage::GenerateQuiet;
-        }
-
-        if self.stage == Stage::GenerateQuiet {
-            if !skip_quiets {
-                self.stage = Stage::Quiet;
-                td.board.append_quiet_moves(&mut self.list);
-                self.score_quiet(td, ply);
-            } else {
-                self.stage = Stage::BadNoisy;
-            }
-        }
-
-        if self.stage == Stage::Quiet {
-            if !skip_quiets {
-                while !self.list.is_empty() {
-                    let index = self.find_best_score_index();
-                    let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move {
-                        continue;
-                    }
-
-                    if NODE::ROOT {
-                        self.score_quiet(td, ply);
-                    }
-
-                    return Some(entry.mv);
-                }
-            }
-
-            self.stage = Stage::BadNoisy;
-        }
-
-        // Stage::BadNoisy
-        while self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
-            self.bad_noisy_idx += 1;
-
-            if mv == self.tt_move {
-                continue;
-            }
-
-            return Some(mv);
-        }
-
-        None
+    pub fn next(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+        (self.state)(self, td, skip_quiets, ply)
     }
 
     fn find_best_score_index(&self) -> usize {
@@ -198,4 +122,109 @@ impl MovePicker {
                 + td.conthist(ply, 6, mv);
         }
     }
+}
+
+fn hash_move<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    mp.stage = Stage::GenerateNoisy;
+    mp.state = generate_noisy::<NODE>;
+
+    if td.board.is_pseudo_legal(mp.tt_move) {
+        return Some(mp.tt_move);
+    }
+
+    (mp.state)(mp, td, skip_quiets, ply)
+}
+
+fn generate_noisy<NODE: NodeType>(
+    mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize,
+) -> Option<Move> {
+    mp.stage = Stage::GoodNoisy;
+    mp.state = good_noisy::<NODE>;
+
+    td.board.append_noisy_moves(&mut mp.list);
+    mp.score_noisy(td);
+
+    (mp.state)(mp, td, skip_quiets, ply)
+}
+
+fn good_noisy<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    while !mp.list.is_empty() {
+        let index = mp.find_best_score_index();
+        let entry = &mp.list.remove(index);
+        if entry.mv == mp.tt_move {
+            continue;
+        }
+
+        let threshold = mp.threshold.unwrap_or_else(|| -entry.score / 36 + 119);
+        if !td.board.see(entry.mv, threshold) {
+            mp.bad_noisy.push(entry.mv);
+            continue;
+        }
+
+        if NODE::ROOT {
+            mp.score_noisy(td);
+        }
+
+        return Some(entry.mv);
+    }
+
+    mp.stage = Stage::GenerateQuiet;
+    mp.state = generate_quiet::<NODE>;
+
+    (mp.state)(mp, td, skip_quiets, ply)
+}
+
+fn generate_quiet<NODE: NodeType>(
+    mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize,
+) -> Option<Move> {
+    if skip_quiets {
+        mp.stage = Stage::BadNoisy;
+        mp.state = bad_noisy::<NODE>;
+    } else {
+        mp.stage = Stage::Quiet;
+        mp.state = quiet::<NODE>;
+
+        td.board.append_quiet_moves(&mut mp.list);
+        mp.score_quiet(td, ply);
+    }
+
+    (mp.state)(mp, td, skip_quiets, ply)
+}
+
+fn quiet<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    if !skip_quiets {
+        while !mp.list.is_empty() {
+            let index = mp.find_best_score_index();
+            let entry = &mp.list.remove(index);
+            if entry.mv == mp.tt_move {
+                continue;
+            }
+
+            if NODE::ROOT {
+                mp.score_quiet(td, ply);
+            }
+
+            return Some(entry.mv);
+        }
+    }
+
+    mp.stage = Stage::BadNoisy;
+    mp.state = bad_noisy::<NODE>;
+
+    (mp.state)(mp, td, skip_quiets, ply)
+}
+
+fn bad_noisy<NODE: NodeType>(mp: &mut MovePicker, _: &ThreadData, _: bool, _: isize) -> Option<Move> {
+    while mp.bad_noisy_idx < mp.bad_noisy.len() {
+        let mv = mp.bad_noisy[mp.bad_noisy_idx];
+        mp.bad_noisy_idx += 1;
+
+        if mv == mp.tt_move {
+            continue;
+        }
+
+        return Some(mv);
+    }
+
+    None
 }

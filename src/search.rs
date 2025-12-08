@@ -568,11 +568,11 @@ fn search<NODE: NodeType>(
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
     {
-        let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
+        let mut move_picker = MovePicker::new_probcut::<NODE>(probcut_beta - eval);
 
         let probcut_depth = (depth - 4).max(0);
 
-        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
+        while let Some(mv) = move_picker.next(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -660,11 +660,11 @@ fn search<NODE: NodeType>(
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new::<NODE>(tt_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
 
-    while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
+    while let Some(mv) = move_picker.next(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
@@ -1163,9 +1163,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
-    let mut move_picker = MovePicker::new_qsearch();
+    let mut move_picker = MovePicker::new_qsearch::<NODE>();
 
-    while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
+    while let Some(mv) = move_picker.next(td, !in_check, ply) {
         if !td.board.is_legal(mv) {
             continue;
         }
