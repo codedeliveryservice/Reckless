@@ -56,9 +56,6 @@ impl PstAccumulator {
 
         let entry = &mut cache.entries[pov][(king.file() >= 4) as usize][BUCKETS[king as usize ^ (56 * pov as usize)]];
 
-        let mut adds = ArrayVec::<_, 32>::new();
-        let mut subs = ArrayVec::<_, 32>::new();
-
         for color in [Color::White, Color::Black] {
             for piece_type in [
                 PieceType::Pawn,
@@ -73,16 +70,22 @@ impl PstAccumulator {
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
                 for square in to_add {
-                    adds.push(pst_index(color, piece_type, square, king, pov));
+                    let index = pst_index(color, piece_type, square, king, pov);
+
+                    for i in 0..L1_SIZE {
+                        entry.values[i] += PARAMETERS.ft_piece_weights[index][i];
+                    }
                 }
 
                 for square in to_sub {
-                    subs.push(pst_index(color, piece_type, square, king, pov));
+                    let index = pst_index(color, piece_type, square, king, pov);
+
+                    for i in 0..L1_SIZE {
+                        entry.values[i] -= PARAMETERS.ft_piece_weights[index][i];
+                    }
                 }
             }
         }
-
-        unsafe { apply_changes(entry, adds, subs) };
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
@@ -178,41 +181,6 @@ impl PstAccumulator {
 
                 *vacc.add(i).cast() = v;
             }
-        }
-    }
-}
-
-const REGISTERS: usize = 6;
-const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
-
-unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
-    let mut registers: [_; REGISTERS] = std::mem::zeroed();
-
-    for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
-        let output = entry.values.as_mut_ptr().add(offset);
-
-        for (i, register) in registers.iter_mut().enumerate() {
-            *register = *output.add(i * simd::I16_LANES).cast();
-        }
-
-        for &add in adds.iter() {
-            let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
-
-            for (i, register) in registers.iter_mut().enumerate() {
-                *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
-            }
-        }
-
-        for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
-
-            for (i, register) in registers.iter_mut().enumerate() {
-                *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
-            }
-        }
-
-        for (i, register) in registers.into_iter().enumerate() {
-            *output.add(i * simd::I16_LANES).cast() = register;
         }
     }
 }
