@@ -327,7 +327,7 @@ fn search<NODE: NodeType>(
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
             }
 
-            if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
+            if tt_score <= alpha && td.stack[ply - 1].move_count > 5 {
                 let pcm_move = td.stack[ply - 1].mv;
                 if pcm_move.is_quiet() {
                     let mut factor = 90;
