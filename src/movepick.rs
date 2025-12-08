@@ -19,7 +19,6 @@ pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
     threshold: Option<i32>,
-    stage: Stage,
     state: fn(&mut MovePicker, &ThreadData, bool, isize) -> Option<Move>,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
@@ -31,7 +30,6 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move,
             threshold: None,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             state: if tt_move.is_some() { hash_move::<NODE> } else { generate_noisy::<NODE> },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -43,7 +41,6 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
             state: generate_noisy::<NODE>,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -55,15 +52,22 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move: Move::NULL,
             threshold: None,
-            stage: Stage::GenerateNoisy,
             state: generate_noisy::<NODE>,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
     }
 
-    pub const fn stage(&self) -> Stage {
-        self.stage
+    pub fn stage<NODE: NodeType>(&self) -> Stage {
+        match self.state as usize {
+            x if x == hash_move::<NODE> as usize => Stage::HashMove,
+            x if x == generate_noisy::<NODE> as usize => Stage::GenerateNoisy,
+            x if x == good_noisy::<NODE> as usize => Stage::GoodNoisy,
+            x if x == generate_quiet::<NODE> as usize => Stage::GenerateQuiet,
+            x if x == quiet::<NODE> as usize => Stage::Quiet,
+            x if x == bad_noisy::<NODE> as usize => Stage::BadNoisy,
+            _ => unreachable!(),
+        }
     }
 
     pub fn next(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
@@ -125,7 +129,6 @@ impl MovePicker {
 }
 
 fn hash_move<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
-    mp.stage = Stage::GenerateNoisy;
     mp.state = generate_noisy::<NODE>;
 
     if td.board.is_pseudo_legal(mp.tt_move) {
@@ -135,10 +138,7 @@ fn hash_move<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: 
     (mp.state)(mp, td, skip_quiets, ply)
 }
 
-fn generate_noisy<NODE: NodeType>(
-    mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize,
-) -> Option<Move> {
-    mp.stage = Stage::GoodNoisy;
+fn generate_noisy<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
     mp.state = good_noisy::<NODE>;
 
     td.board.append_noisy_moves(&mut mp.list);
@@ -168,20 +168,15 @@ fn good_noisy<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets:
         return Some(entry.mv);
     }
 
-    mp.stage = Stage::GenerateQuiet;
     mp.state = generate_quiet::<NODE>;
 
     (mp.state)(mp, td, skip_quiets, ply)
 }
 
-fn generate_quiet<NODE: NodeType>(
-    mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize,
-) -> Option<Move> {
+fn generate_quiet<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
     if skip_quiets {
-        mp.stage = Stage::BadNoisy;
         mp.state = bad_noisy::<NODE>;
     } else {
-        mp.stage = Stage::Quiet;
         mp.state = quiet::<NODE>;
 
         td.board.append_quiet_moves(&mut mp.list);
@@ -208,7 +203,6 @@ fn quiet<NODE: NodeType>(mp: &mut MovePicker, td: &ThreadData, skip_quiets: bool
         }
     }
 
-    mp.stage = Stage::BadNoisy;
     mp.state = bad_noisy::<NODE>;
 
     (mp.state)(mp, td, skip_quiets, ply)

@@ -573,7 +573,7 @@ fn search<NODE: NodeType>(
         let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
+            if move_picker.stage::<NODE>() == Stage::BadNoisy {
                 break;
             }
 
@@ -733,7 +733,11 @@ fn search<NODE: NodeType>(
                 + 87 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
                 + 74;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < 6
+                && move_picker.stage::<NODE>() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
@@ -1173,7 +1177,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         move_count += 1;
 
         if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
-            if move_picker.stage() == Stage::BadNoisy {
+            if move_picker.stage::<NODE>() == Stage::BadNoisy {
                 break;
             }
 
