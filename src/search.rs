@@ -85,10 +85,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
         td.root_in_tb = false;
         td.stop_probing_tb = false;
 
-        if td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
-            tb_rank_rootmoves(td);
-        }
-
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
         }
@@ -355,13 +351,7 @@ fn search<NODE: NodeType>(
     }
 
     // Tablebases Probe
-    if !NODE::ROOT
-        && !excluded
-        && !td.stop_probing_tb
-        && td.board.halfmove_clock() == 0
-        && td.board.castling().raw() == 0
-        && td.board.occupancies().len() <= tb_size()
-    {
+    if false {
         if let Some(outcome) = tb_probe(&td.board) {
             td.shared.tb_hits.increment(td.id);
 
