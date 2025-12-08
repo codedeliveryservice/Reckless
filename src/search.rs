@@ -635,7 +635,7 @@ fn search<NODE: NodeType>(
             extension += (score < singular_beta - double_margin) as i32;
             extension += (score < singular_beta - triple_margin) as i32;
 
-            if extension > 1 && depth < 14 {
+            if !NODE::PV && depth < 14 {
                 depth += 1;
             }
         }
