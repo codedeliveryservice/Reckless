@@ -82,6 +82,12 @@ impl PstAccumulator {
             }
         }
 
+        if adds.is_empty() && subs.is_empty() {
+            self.values[pov] = *entry.values;
+            self.accurate[pov] = true;
+            return;
+        }
+
         unsafe { apply_changes(entry, adds, subs) };
 
         entry.pieces = board.pieces_bbs();
