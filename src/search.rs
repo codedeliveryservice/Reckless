@@ -425,6 +425,7 @@ fn search<NODE: NodeType>(
             Bound::Lower => tt_score > eval,
             _ => true,
         }
+        && correction_value.abs() < 350
     {
         estimated_score = tt_score;
     }
