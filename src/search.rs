@@ -61,7 +61,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len() as i32);
 
-    let mut average = vec![Score::NONE; td.multi_pv as usize];
+    let mut average = vec![Score::NONE; td.multi_pv.max(2).min(td.root_moves.len() as i32) as usize];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -91,6 +91,12 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
+        }
+
+        if depth % 4 == 0 && td.root_moves.len() > 1 {
+            td.multi_pv = 2;
+        } else {
+            td.multi_pv = 1;
         }
 
         td.pv_start = 0;
