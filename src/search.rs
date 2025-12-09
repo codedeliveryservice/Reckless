@@ -247,11 +247,6 @@ fn search<NODE: NodeType>(
         return Score::ZERO;
     }
 
-    // Qsearch Dive
-    if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta, ply);
-    }
-
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
@@ -389,6 +384,11 @@ fn search<NODE: NodeType>(
                 }
             }
         }
+    }
+
+    // Qsearch Dive
+    if depth <= 0 {
+        return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
     let correction_value = eval_correction(td, ply);
