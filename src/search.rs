@@ -247,11 +247,6 @@ fn search<NODE: NodeType>(
         return Score::ZERO;
     }
 
-    // Qsearch Dive
-    if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta, ply);
-    }
-
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
         alpha = Score::ZERO;
         if alpha >= beta {
@@ -389,6 +384,11 @@ fn search<NODE: NodeType>(
                 }
             }
         }
+    }
+
+    // Qsearch Dive
+    if depth <= 0 {
+        return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
     let correction_value = eval_correction(td, ply);
@@ -1102,7 +1102,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
-                Bound::Upper => tt_score <= alpha,
+                Bound::Upper => tt_score <= alpha || entry.mv.is_quiet(),
                 Bound::Lower => tt_score >= beta,
                 _ => true,
             }
