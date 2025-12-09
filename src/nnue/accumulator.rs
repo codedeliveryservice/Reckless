@@ -195,7 +195,20 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
             *register = *output.add(i * simd::I16_LANES).cast();
         }
 
-        for &add in adds.iter() {
+        let paired = adds.len().min(subs.len());
+
+        for idx in 0..paired {
+            let add_weights = PARAMETERS.ft_piece_weights[adds[idx]].as_ptr().add(offset);
+            let sub_weights = PARAMETERS.ft_piece_weights[subs[idx]].as_ptr().add(offset);
+
+            for (i, register) in registers.iter_mut().enumerate() {
+                let base = i * simd::I16_LANES;
+                *register = simd::add_i16(*register, *add_weights.add(base).cast());
+                *register = simd::sub_i16(*register, *sub_weights.add(base).cast());
+            }
+        }
+
+        for &add in adds.iter().skip(paired) {
             let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
@@ -203,7 +216,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
             }
         }
 
-        for &sub in subs.iter() {
+        for &sub in subs.iter().skip(paired) {
             let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
