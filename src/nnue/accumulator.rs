@@ -82,12 +82,10 @@ impl PstAccumulator {
             }
         }
 
-        unsafe { apply_changes(entry, adds, subs) };
+        unsafe { apply_changes(entry, &mut self.values[pov], adds, subs) };
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
-
-        self.values[pov] = *entry.values;
         self.accurate[pov] = true;
     }
 
@@ -185,14 +183,20 @@ impl PstAccumulator {
 const REGISTERS: usize = 6;
 const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
 
-unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+unsafe fn apply_changes(
+    entry: &mut CacheEntry,
+    output: &mut [i16],
+    adds: ArrayVec<usize, 32>,
+    subs: ArrayVec<usize, 32>,
+) {
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
-        let output = entry.values.as_mut_ptr().add(offset);
+        let entry_ptr = entry.values.as_mut_ptr().add(offset);
+        let out_ptr = output.as_mut_ptr().add(offset);
 
         for (i, register) in registers.iter_mut().enumerate() {
-            *register = *output.add(i * simd::I16_LANES).cast();
+            *register = *entry_ptr.add(i * simd::I16_LANES).cast();
         }
 
         let paired = adds.len().min(subs.len());
@@ -225,7 +229,8 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for (i, register) in registers.into_iter().enumerate() {
-            *output.add(i * simd::I16_LANES).cast() = register;
+            *entry_ptr.add(i * simd::I16_LANES).cast() = register;
+            *out_ptr.add(i * simd::I16_LANES).cast() = register;
         }
     }
 }
