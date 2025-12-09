@@ -226,8 +226,8 @@ impl Network {
 
             let delta = &self.pst_stack[i].delta;
 
-            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
-            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
+            let from = delta.mv.from();
+            let to = delta.mv.to();
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
