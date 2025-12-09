@@ -59,6 +59,13 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
+    td.root_in_tb = false;
+    td.stop_probing_tb = false;
+
+    if td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
+        tb_rank_rootmoves(td);
+    }
+
     td.multi_pv = td.multi_pv.min(td.root_moves.len() as i32);
 
     let mut average = vec![Score::NONE; td.multi_pv as usize];
@@ -81,13 +88,6 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         let mut delta = 12;
         let mut reduction = 0;
-
-        td.root_in_tb = false;
-        td.stop_probing_tb = false;
-
-        if td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
-            tb_rank_rootmoves(td);
-        }
 
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
