@@ -41,7 +41,7 @@ mod simd {
     pub use scalar::*;
 }
 
-const NETWORK_SCALE: i32 = 388;
+const NETWORK_SCALE: i32 = 405;
 
 const INPUT_BUCKETS: usize = 10;
 
