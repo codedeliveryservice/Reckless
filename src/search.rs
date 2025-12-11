@@ -704,7 +704,7 @@ fn search<NODE: NodeType>(
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
-                    >= if improving || eval >= beta + 19 {
+                    >= if (improving || eval >= beta + 19) && !potential_singularity {
                         (3219 + 1093 * initial_depth * initial_depth) / 1024
                     } else {
                         (1252 + 320 * initial_depth * initial_depth) / 1024
