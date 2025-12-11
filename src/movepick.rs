@@ -1,5 +1,5 @@
 use crate::{
-    parameters::PIECE_VALUES,
+    parameters::{mp1, mp2, PIECE_VALUES},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
@@ -85,7 +85,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 43 + 108);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / mp1() + mp2());
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;

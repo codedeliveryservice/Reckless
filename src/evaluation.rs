@@ -1,9 +1,13 @@
-use crate::{thread::ThreadData, types::Score};
+use crate::{
+    parameters::{eval1, eval2, eval3},
+    thread::ThreadData,
+    types::Score,
+};
 
 pub fn correct_eval(td: &ThreadData, raw_eval: i32, correction_value: i32) -> i32 {
-    let mut eval = (raw_eval * (21372 + td.board.material())
-        + td.optimism[td.board.side_to_move()] * (1536 + td.board.material()))
-        / 27380;
+    let mut eval = (raw_eval * (eval1() + td.board.material())
+        + td.optimism[td.board.side_to_move()] * (eval2() + td.board.material()))
+        / eval3();
 
     eval = (eval / 16) * 16;
 
