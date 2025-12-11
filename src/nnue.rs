@@ -45,7 +45,7 @@ const NETWORK_SCALE: i32 = 388;
 
 const INPUT_BUCKETS: usize = 10;
 
-const L1_SIZE: usize = 384;
+const L1_SIZE: usize = 512;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
