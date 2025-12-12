@@ -936,7 +936,7 @@ fn search<NODE: NodeType>(
                 }
 
                 if depth > 2 && depth < 17 && !is_decisive(score) {
-                    depth -= 1;
+                    depth -= 2;
                 }
 
                 alpha = score;
