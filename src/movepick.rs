@@ -85,7 +85,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 43 + 108);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 42 + 111);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
