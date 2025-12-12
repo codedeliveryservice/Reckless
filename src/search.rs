@@ -1037,7 +1037,14 @@ fn search<NODE: NodeType>(
     }
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+        let refused_to_write =
+            td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+
+        if refused_to_write.is_some_and(is_valid) {
+            if let Some(persistent_score) = refused_to_write {
+                best_score = persistent_score;
+            }
+        }
     }
 
     if !(in_check

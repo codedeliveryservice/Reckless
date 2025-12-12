@@ -172,7 +172,7 @@ impl TranspositionTable {
     pub fn write(
         &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
         force: bool,
-    ) {
+    ) -> Option<i32> {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
 
@@ -211,7 +211,7 @@ impl TranspositionTable {
             && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
             && entry.flags.age() == tt_age
         {
-            return;
+            return Some(entry.score as i32);
         }
 
         // Adjust mate distance from "plies from the root" to "plies from the current position"
@@ -224,6 +224,8 @@ impl TranspositionTable {
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
+
+        None
     }
 
     pub fn prefetch(&self, hash: u64) {
