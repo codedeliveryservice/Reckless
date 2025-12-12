@@ -960,6 +960,11 @@ fn search<NODE: NodeType>(
         return if in_check { mated_in(ply) } else { Score::DRAW };
     }
 
+    if NODE::PV && best_score >= beta && best_move == tt_move {
+        depth += extension.max(0);
+        depth = depth.min(MAX_PLY as i32 - 1);
+    }
+
     if best_move.is_some() {
         let bonus_noisy = (111 * depth - 54).min(861) - 77 * cut_node as i32;
         let malus_noisy = (173 * initial_depth - 53).min(1257) - 23 * noisy_moves.len() as i32;
