@@ -1036,6 +1036,19 @@ fn search<NODE: NodeType>(
         best_score = best_score.min(max_score);
     }
 
+    if !NODE::PV
+        && !excluded
+        && is_valid(tt_score)
+        && tt_depth > depth
+        && match bound {
+            Bound::Lower => tt_score > best_score,
+            Bound::Upper => tt_score < best_score,
+            _ => false,
+        }
+    {
+        best_score = tt_score;
+    }
+
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
