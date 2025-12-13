@@ -873,7 +873,19 @@ fn search<NODE: NodeType>(
                 new_depth = new_depth.max(1);
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            score = -search::<PV>(
+                td,
+                -beta,
+                -alpha,
+                new_depth
+                    - (!NODE::ROOT
+                        && mv == tt_move
+                        && is_valid(tt_score)
+                        && tt_score.max(eval) < alpha
+                        && tt_bound == Bound::Upper) as i32,
+                false,
+                ply + 1,
+            );
             current_search_count += 1;
         }
 
