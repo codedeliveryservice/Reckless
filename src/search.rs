@@ -862,7 +862,19 @@ fn search<NODE: NodeType>(
             let reduced_depth = new_depth - (reduction >= 3072) as i32 - (reduction >= 5653 && new_depth >= 3) as i32;
 
             td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
+            score = -search::<NonPV>(
+                td,
+                -alpha - 1,
+                -alpha,
+                reduced_depth
+                    - (!NODE::ROOT
+                        && mv == tt_move
+                        && is_valid(tt_score)
+                        && tt_score.max(eval) < alpha
+                        && tt_bound == Bound::Upper) as i32,
+                !cut_node,
+                ply + 1,
+            );
             td.stack[ply].reduction = 0;
             current_search_count += 1;
         }
@@ -873,7 +885,19 @@ fn search<NODE: NodeType>(
                 new_depth = new_depth.max(1);
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            score = -search::<PV>(
+                td,
+                -beta,
+                -alpha,
+                new_depth
+                    - (!NODE::ROOT
+                        && mv == tt_move
+                        && is_valid(tt_score)
+                        && tt_score.max(eval) < alpha
+                        && tt_bound == Bound::Upper) as i32,
+                false,
+                ply + 1,
+            );
             current_search_count += 1;
         }
 
