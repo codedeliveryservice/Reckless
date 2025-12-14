@@ -699,7 +699,7 @@ fn search<NODE: NodeType>(
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
+            let lmr_depth = depth - reduction / 1024;
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
@@ -739,6 +739,8 @@ fn search<NODE: NodeType>(
                 }
                 break;
             }
+
+            let lmr_depth = lmr_depth.max(0);
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
