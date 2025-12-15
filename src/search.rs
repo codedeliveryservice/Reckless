@@ -125,7 +125,14 @@ pub fn start(td: &mut ThreadData, report: Report) {
                 td.root_delta = beta - alpha;
 
                 // Root Search
-                let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
+                let score = search::<Root>(
+                    td,
+                    alpha,
+                    beta,
+                    (if td.pv_index > 0 { depth / 2 } else { depth } - reduction).max(1),
+                    false,
+                    0,
+                );
 
                 td.root_moves[td.pv_index..td.pv_end].sort_by(|a, b| b.score.cmp(&a.score));
 
