@@ -1046,6 +1046,30 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Lower && best_score <= eval))
     {
         update_correction_histories(td, depth, best_score - eval, ply);
+
+        let new_correction = eval_correction(td, ply);
+        if !NODE::ROOT
+            && !in_check
+            && !excluded
+            && td.stack[ply - 1].mv.is_quiet()
+            && is_valid(td.stack[ply - 1].eval)
+            && is_valid(raw_eval)
+            && new_correction != correction_value
+        {
+            let new_eval = correct_eval(td, raw_eval, new_correction);
+
+            let eval_diff = new_eval - eval;
+            let compensation_value = 865 * eval_diff / 128;
+
+            let compensation = (compensation_value / 2).clamp(-119, 325);
+
+            td.quiet_history.update(
+                td.board.prior_threats(),
+                !td.board.side_to_move(),
+                td.stack[ply - 1].mv,
+                compensation,
+            );
+        }
     }
 
     debug_assert!(alpha < beta);
