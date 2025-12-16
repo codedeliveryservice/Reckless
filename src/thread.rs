@@ -91,8 +91,13 @@ pub struct SharedContext {
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
+    pub pawn_corrhist: CorrectionHistory,
+    pub minor_corrhist: CorrectionHistory,
+    pub major_corrhist: CorrectionHistory,
+    pub non_pawn_corrhist: [CorrectionHistory; 2],
 }
 
+unsafe impl Sync for SharedContext {}
 unsafe impl Send for SharedContext {}
 
 pub struct ThreadData {
@@ -108,10 +113,6 @@ pub struct ThreadData {
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
-    pub pawn_corrhist: CorrectionHistory,
-    pub minor_corrhist: CorrectionHistory,
-    pub major_corrhist: CorrectionHistory,
-    pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub best_move_changes: usize,
     pub optimism: [i32; 2],
@@ -144,10 +145,6 @@ impl ThreadData {
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
-            pawn_corrhist: CorrectionHistory::default(),
-            minor_corrhist: CorrectionHistory::default(),
-            major_corrhist: CorrectionHistory::default(),
-            non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             best_move_changes: 0,
             optimism: [0; 2],
