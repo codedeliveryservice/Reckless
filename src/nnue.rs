@@ -43,9 +43,10 @@ mod simd {
 
 const NETWORK_SCALE: i32 = 380;
 
-const INPUT_BUCKETS: usize = 10;
+const INPUT_BUCKETS: usize = 12;
+const OUTPUT_BUCKETS: usize = 8;
 
-const L1_SIZE: usize = 512;
+const L1_SIZE: usize = 640;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
@@ -61,14 +62,14 @@ const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * 
 
 #[rustfmt::skip]
 const BUCKETS: [usize; 64] = [
-    0, 1, 2, 3, 3, 2, 1, 0,
-    4, 5, 6, 7, 7, 6, 5, 4,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    9, 9, 9, 9, 9, 9, 9, 9,
-    9, 9, 9, 9, 9, 9, 9, 9,
-    9, 9, 9, 9, 9, 9, 9, 9,
-    9, 9, 9, 9, 9, 9, 9, 9,
-    9, 9, 9, 9, 9, 9, 9, 9,
+     0,  1,  2,  3,  3,  2,  1,  0,
+     4,  5,  6,  7,  7,  6,  5,  4,
+     8,  8,  9,  9,  9,  9,  8,  8,
+    10, 10, 10, 10, 10, 10, 10, 10,
+    11, 11, 11, 11, 11, 11, 11, 11,
+    11, 11, 11, 11, 11, 11, 11, 11,
+    11, 11, 11, 11, 11, 11, 11, 11,
+    11, 11, 11, 11, 11, 11, 11, 11,
 ];
 
 #[repr(align(16))]
@@ -241,14 +242,17 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
+        let divisor = (32 + OUTPUT_BUCKETS - 1) / OUTPUT_BUCKETS;
+        let bucket = (board.occupancies().len() - 2) / divisor;
+
         unsafe {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
+            let l2_out = forward::propagate_l2(l1_out.clone(), bucket);
+            let l3_out = forward::propagate_l3(l2_out, l1_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -284,15 +288,15 @@ impl Default for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 79856]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
+    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 79856]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
-    l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
-    l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
-    l2_biases: Aligned<[f32; L3_SIZE]>,
-    l3_weights: Aligned<[f32; L3_SIZE]>,
-    l3_biases: f32,
+    l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
+    l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[f32; L3_SIZE]; 2 * L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; L3_SIZE + 2 * L2_SIZE]; OUTPUT_BUCKETS]>,
+    l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };

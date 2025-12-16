@@ -80,7 +80,7 @@ pub unsafe fn find_nnz(
     (indexes, count)
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; 2 * L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
@@ -96,8 +96,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         let input1 = simd::splat_i32(*packed.get_unchecked(index1));
         let input2 = simd::splat_i32(*packed.get_unchecked(index2));
 
-        let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
-        let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
+        let weights1 = PARAMETERS.l1_weights[bucket].as_ptr().add(index1 * L2_SIZE * CHUNKS);
+        let weights2 = PARAMETERS.l1_weights[bucket].as_ptr().add(index2 * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights1 = weights1.add(j * CHUNKS).cast();
@@ -111,7 +111,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     if let Some(last) = pairs.remainder().first() {
         let index = *last as usize;
         let pst_input = simd::splat_i32(*packed.get_unchecked(index));
-        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
+        let weights = PARAMETERS.l1_weights[bucket].as_ptr().add(index * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j * CHUNKS).cast();
@@ -120,27 +120,29 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0.0; 2 * L2_SIZE]);
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
-        let biases = *PARAMETERS.l1_biases.as_ptr().add(i).cast();
+        let biases = *PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
+
         *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
+        *output.as_mut_ptr().add(i + L2_SIZE).cast() = simd::min_f32(simd::mul_f32(vector, vector), one);
     }
 
     output
 }
 
-pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = PARAMETERS.l2_biases.clone();
+pub unsafe fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
+    let mut output = Aligned::new(PARAMETERS.l2_biases[bucket]);
 
-    for i in 0..L2_SIZE {
+    for i in 0..2 * L2_SIZE {
         let pst_input = simd::splat_f32(l1_out[i]);
-        let weights = PARAMETERS.l2_weights[i].as_ptr();
+        let weights = PARAMETERS.l2_weights[bucket][i].as_ptr();
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = weights.add(j).cast();
@@ -154,17 +156,18 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+        let clamped = simd::clamp_f32(*vector, zero, one);
+        *vector = simd::mul_f32(clamped, clamped);
     }
 
     output
 }
 
-pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
     let pst_input = l2_out.as_ptr();
-    let weights = PARAMETERS.l3_weights.as_ptr();
+    let weights = PARAMETERS.l3_weights[bucket].as_ptr();
 
     let mut output = [simd::zero_f32(); LANES];
 
@@ -177,5 +180,14 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
         }
     }
 
-    simd::horizontal_sum(output) + PARAMETERS.l3_biases
+    for (lane, result) in output.iter_mut().enumerate() {
+        for i in (0..2 * L2_SIZE).step_by(LANES * simd::F32_LANES) {
+            let a = weights.add(L3_SIZE + i + lane * simd::F32_LANES).cast();
+            let b = l1_out.as_ptr().add(i + lane * simd::F32_LANES).cast();
+
+            *result = simd::mul_add_f32(*a, *b, *result);
+        }
+    }
+
+    simd::horizontal_sum(output) + PARAMETERS.l3_biases[bucket]
 }
