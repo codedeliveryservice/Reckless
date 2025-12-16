@@ -453,7 +453,7 @@ fn search<NODE: NodeType>(
     // Quiet Move Ordering Using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let value = 865 * (-(eval + td.stack[ply - 1].eval)) / 128;
-        let bonus = value.clamp(-119, 325);
+        let bonus = value.clamp(-119, 625);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
     }
