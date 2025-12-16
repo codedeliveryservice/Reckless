@@ -97,7 +97,6 @@ pub struct SharedContext {
     pub non_pawn_corrhist: [CorrectionHistory; 2],
 }
 
-unsafe impl Sync for SharedContext {}
 unsafe impl Send for SharedContext {}
 
 pub struct ThreadData {
