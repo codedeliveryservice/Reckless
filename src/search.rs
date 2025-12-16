@@ -1024,6 +1024,21 @@ fn search<NODE: NodeType>(
                 td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
         }
+    } else if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && td.stack[ply - 1].mv.is_quiet()
+        && is_valid(td.stack[ply - 1].eval)
+    {
+        let prev_eval = td.stack[ply - 1].eval;
+
+        let original_value = 865 * (-(eval + prev_eval)) / 128;
+        let original_bonus = original_value.clamp(-119, 325);
+
+        if original_bonus > 0 && -best_score > prev_eval {
+            let penalty = -original_bonus;
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, penalty);
+        }
     }
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
