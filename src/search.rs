@@ -651,6 +651,8 @@ fn search<NODE: NodeType>(
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
+    } else if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+        extension = -1;
     }
 
     let mut best_move = Move::NULL;
