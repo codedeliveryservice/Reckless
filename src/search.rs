@@ -1246,11 +1246,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
 
-    (td.pawn_corrhist.get(stm, td.board.pawn_key())
-        + td.minor_corrhist.get(stm, td.board.minor_key())
-        + td.major_corrhist.get(stm, td.board.major_key())
-        + td.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + td.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+    (td.shared.pawn_corrhist.get(stm, td.board.pawn_key())
+        + td.shared.minor_corrhist.get(stm, td.board.minor_key())
+        + td.shared.major_corrhist.get(stm, td.board.major_key())
+        + td.shared.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + td.shared.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + td.continuation_corrhist.get(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1268,12 +1268,12 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     let stm = td.board.side_to_move();
     let bonus = (140 * depth * diff / 128).clamp(-5042, 2895);
 
-    td.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
-    td.minor_corrhist.update(stm, td.board.minor_key(), bonus);
-    td.major_corrhist.update(stm, td.board.major_key(), bonus);
+    td.shared.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    td.shared.minor_corrhist.update(stm, td.board.minor_key(), bonus);
+    td.shared.major_corrhist.update(stm, td.board.major_key(), bonus);
 
-    td.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    td.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    td.shared.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    td.shared.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
