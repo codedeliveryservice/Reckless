@@ -47,7 +47,7 @@ const INPUT_BUCKETS: usize = 10;
 
 const L1_SIZE: usize = 512;
 const L2_SIZE: usize = 16;
-const L3_SIZE: usize = 32;
+const L3_SIZE: usize = 128;
 
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
