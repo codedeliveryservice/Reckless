@@ -13,14 +13,14 @@ use crate::{
 use accumulator::{AccumulatorCache, PstAccumulator};
 
 mod forward {
-    #[cfg(target_feature = "avx2")]
+    #[cfg(any(target_feature = "avx2", target_feature = "neon"))]
     mod vectorized;
-    #[cfg(target_feature = "avx2")]
+    #[cfg(any(target_feature = "avx2", target_feature = "neon"))]
     pub use vectorized::*;
 
-    #[cfg(not(target_feature = "avx2"))]
+    #[cfg(not(any(target_feature = "avx2", target_feature = "neon")))]
     mod scalar;
-    #[cfg(not(target_feature = "avx2"))]
+    #[cfg(not(any(target_feature = "avx2", target_feature = "neon")))]
     pub use scalar::*;
 }
 
@@ -35,9 +35,14 @@ mod simd {
     #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
     pub use avx2::*;
 
-    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
+    #[cfg(all(target_feature = "neon", not(any(target_feature = "avx2", target_feature = "avx512f"))))]
+    mod neon;
+    #[cfg(all(target_feature = "neon", not(any(target_feature = "avx2", target_feature = "avx512f"))))]
+    pub use neon::*;
+
+    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2", target_feature = "neon")))]
     mod scalar;
-    #[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
+    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2", target_feature = "neon")))]
     pub use scalar::*;
 }
 
