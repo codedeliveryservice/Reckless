@@ -699,7 +699,7 @@ fn search<NODE: NodeType>(
         }
 
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
+            let mut lmr_depth = depth - reduction / 1024;
 
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
@@ -725,6 +725,8 @@ fn search<NODE: NodeType>(
                 skip_quiets = true;
                 continue;
             }
+
+            lmr_depth = lmr_depth.max(0);
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
