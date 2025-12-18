@@ -718,6 +718,7 @@ fn search<NODE: NodeType>(
                 && lmr_depth < 9
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
+                && best_move.is_null()
             {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
@@ -733,7 +734,12 @@ fn search<NODE: NodeType>(
                 + 84 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
                 + 79;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check
+                && lmr_depth < 6
+                && move_picker.stage() == Stage::BadNoisy
+                && noisy_futility_value <= alpha
+                && best_move.is_null()
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
