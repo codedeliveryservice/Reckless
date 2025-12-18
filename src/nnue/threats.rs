@@ -103,10 +103,8 @@ pub fn initialize() {
 }
 
 pub fn threat_index(
-    piece: Piece, mut from: Square, attacked: Piece, mut to: Square, mirrored: bool, pov: Color,
+    piece: Piece, mut from: Square, attacked: Piece, mut to: Square, flip: u8, pov: Color,
 ) -> Option<usize> {
-    let flip = (7 * (mirrored as u8)) ^ (56 * (pov as u8));
-
     from ^= flip;
     to ^= flip;
 
