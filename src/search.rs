@@ -961,7 +961,8 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (111 * depth - 54).min(861) - 77 * cut_node as i32;
+        let bonus_noisy = ((111 * depth - 54).min(861) - 77 * cut_node as i32)
+            * (1 + 2 * (best_move != tt_move && best_score > 0 && !td.board.see(best_move, 0)) as i32);
         let malus_noisy = (173 * initial_depth - 53).min(1257) - 23 * noisy_moves.len() as i32;
 
         let bonus_quiet = (179 * depth - 75).min(1335) - 56 * cut_node as i32;
