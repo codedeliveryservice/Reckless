@@ -1,5 +1,3 @@
-use std::arch::x86_64::*;
-
 use crate::{
     nnue::{
         accumulator::{PstAccumulator, ThreatAccumulator},
@@ -153,10 +151,12 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     simd::horizontal_sum(output) + PARAMETERS.l3_biases
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg(not(target_feature = "neon"))]
 pub unsafe fn find_nnz(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
 ) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    use std::arch::x86_64::*;
+
     let mut indexes = Aligned::new([0; L1_SIZE / 4]);
     let mut count = 0;
 
@@ -181,10 +181,12 @@ pub unsafe fn find_nnz(
     (indexes, count)
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(target_feature = "neon")]
 pub unsafe fn find_nnz(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
 ) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    use std::arch::aarch64::*;
+
     let mut indexes = Aligned::new([0; L1_SIZE / 4]);
     let mut count = 0;
 
