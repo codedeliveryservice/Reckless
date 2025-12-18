@@ -1,7 +1,6 @@
 use std::{arch::aarch64::*, mem::size_of};
 
 pub const F32_LANES: usize = size_of::<float32x4_t>() / size_of::<f32>();
-pub const I32_LANES: usize = size_of::<int32x4_t>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<int16x8_t>() / size_of::<i16>();
 
 pub fn add_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
