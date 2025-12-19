@@ -261,6 +261,8 @@ impl Network {
     }
 }
 
+static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+
 impl Default for Network {
     fn default() -> Self {
         let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
@@ -278,47 +280,15 @@ impl Default for Network {
             entry.count = count;
         }
 
-        let parameters = load_parameters();
-
         Self {
             index: 0,
-            pst_stack: vec![PstAccumulator::new(parameters); MAX_PLY].into_boxed_slice(),
+            pst_stack: vec![PstAccumulator::new(&PARAMETERS); MAX_PLY].into_boxed_slice(),
             threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
-            cache: AccumulatorCache::new(parameters),
+            cache: AccumulatorCache::new(&PARAMETERS),
             nnz_table: nnz_table.into_boxed_slice(),
-            parameters,
+            parameters: &PARAMETERS,
         }
     }
-}
-
-fn load_parameters() -> &'static Parameters {
-    use std::{
-        io::Write,
-        sync::{Mutex, OnceLock},
-    };
-
-    use memmap2::Mmap;
-    use tempfile::NamedTempFile;
-
-    static LOCK: Mutex<()> = Mutex::new(());
-    static CACHED: OnceLock<OnceLock<Mmap>> = OnceLock::new();
-
-    static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
-
-    let cached = CACHED.get_or_init(|| OnceLock::new());
-
-    let cached = cached.get_or_init(|| {
-        let _guard = LOCK.lock().unwrap();
-
-        let mut tmpfile = NamedTempFile::new().unwrap();
-        tmpfile.write_all(EMBEDDED).unwrap();
-        tmpfile.flush().unwrap();
-
-        let file = tmpfile.as_file();
-        unsafe { Mmap::map(file).unwrap() }
-    });
-
-    unsafe { &*cached.as_ptr().cast::<Parameters>() }
 }
 
 #[repr(C)]
