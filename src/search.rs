@@ -231,7 +231,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 }
 
 fn search<NODE: NodeType>(
-    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: isize,
+    td: &mut ThreadData, mut alpha: i32, mut beta: i32, mut depth: i32, cut_node: bool, ply: isize,
 ) -> i32 {
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
@@ -249,7 +249,11 @@ fn search<NODE: NodeType>(
 
     // Qsearch Dive
     if depth <= 0 {
-        return qsearch::<NODE>(td, alpha, beta, ply);
+        if td.board.in_check() {
+            depth = 1;
+        } else {
+            return qsearch::<NODE>(td, alpha, beta, ply);
+        }
     }
 
     if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
@@ -289,7 +293,7 @@ fn search<NODE: NodeType>(
     let mut best_score = -Score::INFINITE;
     let mut max_score = Score::INFINITE;
 
-    let mut depth = depth.min(MAX_PLY as i32 - 1);
+    depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
 
     let hash = td.board.hash();
