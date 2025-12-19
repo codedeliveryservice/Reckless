@@ -45,7 +45,7 @@ pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (A
 }
 
 pub unsafe fn propagate_l1(
-    parameters: &Parameters, ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16],
+    parameters: &'static Parameters, ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16],
 ) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
@@ -81,7 +81,7 @@ pub unsafe fn propagate_l1(
     output
 }
 
-pub fn propagate_l2(parameters: &Parameters, l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+pub fn propagate_l2(parameters: &'static Parameters, l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
     let mut output = Aligned::new([0.0; L3_SIZE]);
 
     for i in 0..L2_SIZE {
@@ -97,7 +97,7 @@ pub fn propagate_l2(parameters: &Parameters, l1_out: Aligned<[f32; L2_SIZE]>) ->
     output
 }
 
-pub fn propagate_l3(parameters: &Parameters, l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+pub fn propagate_l3(parameters: &'static Parameters, l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     let mut output = 0.0;
     for i in 0..L3_SIZE {
         output = parameters.l3_weights[i].mul_add(l2_out[i], output);

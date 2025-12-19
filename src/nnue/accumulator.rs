@@ -12,7 +12,7 @@ pub struct AccumulatorCache {
 }
 
 impl AccumulatorCache {
-    pub fn new(parameters: &Parameters) -> Self {
+    pub fn new(parameters: &'static Parameters) -> Self {
         let entry = CacheEntry::new(parameters);
         Self { entries: Box::new([[[entry; INPUT_BUCKETS]; 2]; 2]) }
     }
@@ -26,7 +26,7 @@ pub struct CacheEntry {
 }
 
 impl CacheEntry {
-    pub fn new(parameters: &Parameters) -> Self {
+    pub fn new(parameters: &'static Parameters) -> Self {
         Self {
             values: parameters.ft_biases.clone(),
             pieces: [Bitboard::default(); PieceType::NUM],
@@ -50,7 +50,7 @@ pub struct PstAccumulator {
 }
 
 impl PstAccumulator {
-    pub fn new(parameters: &Parameters) -> Self {
+    pub fn new(parameters: &'static Parameters) -> Self {
         Self {
             values: Aligned::new([parameters.ft_biases.data; 2]),
             delta: PstDelta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },
@@ -58,7 +58,9 @@ impl PstAccumulator {
         }
     }
 
-    pub fn refresh(&mut self, parameters: &Parameters, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
+    pub fn refresh(
+        &mut self, parameters: &'static Parameters, board: &Board, pov: Color, cache: &mut AccumulatorCache,
+    ) {
         let king = board.king_square(pov);
 
         let entry = &mut cache.entries[pov][(king.file() >= 4) as usize][BUCKETS[king as usize ^ (56 * pov as usize)]];
@@ -98,7 +100,7 @@ impl PstAccumulator {
         self.accurate[pov] = true;
     }
 
-    pub fn update(&mut self, parameters: &Parameters, prev: &Self, board: &Board, king: Square, pov: Color) {
+    pub fn update(&mut self, parameters: &'static Parameters, prev: &Self, board: &Board, king: Square, pov: Color) {
         let PstDelta { mv, piece, captured } = self.delta;
 
         let resulting_piece = mv.promotion_piece().unwrap_or_else(|| piece.piece_type());
@@ -128,7 +130,7 @@ impl PstAccumulator {
         self.accurate[pov] = true;
     }
 
-    fn add1_sub1(&mut self, parameters: &Parameters, prev: &Self, add1: usize, sub1: usize, pov: Color) {
+    fn add1_sub1(&mut self, parameters: &'static Parameters, prev: &Self, add1: usize, sub1: usize, pov: Color) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
@@ -146,7 +148,9 @@ impl PstAccumulator {
         }
     }
 
-    fn add1_sub2(&mut self, parameters: &Parameters, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color) {
+    fn add1_sub2(
+        &mut self, parameters: &'static Parameters, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color,
+    ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
@@ -167,7 +171,8 @@ impl PstAccumulator {
     }
 
     fn add2_sub2(
-        &mut self, parameters: &Parameters, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize, pov: Color,
+        &mut self, parameters: &'static Parameters, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize,
+        pov: Color,
     ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
@@ -195,7 +200,7 @@ const REGISTERS: usize = 8;
 const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
 
 unsafe fn apply_changes(
-    parameters: &Parameters, entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>,
+    parameters: &'static Parameters, entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>,
 ) {
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
@@ -265,7 +270,7 @@ impl ThreatAccumulator {
         }
     }
 
-    pub fn refresh(&mut self, parameters: &Parameters, board: &Board, pov: Color) {
+    pub fn refresh(&mut self, parameters: &'static Parameters, board: &Board, pov: Color) {
         let king = board.king_square(pov);
 
         self.values[pov] = [0; L1_SIZE];
@@ -287,7 +292,7 @@ impl ThreatAccumulator {
         self.accurate[pov] = true;
     }
 
-    pub fn update(&mut self, parameters: &Parameters, prev: &Self, king: Square, pov: Color) {
+    pub fn update(&mut self, parameters: &'static Parameters, prev: &Self, king: Square, pov: Color) {
         self.values[pov] = prev.values[pov];
 
         let mut adds = ArrayVec::<usize, 256>::new();
@@ -324,7 +329,7 @@ impl ThreatAccumulator {
     }
 }
 
-unsafe fn add1_sub1(parameters: &Parameters, output: &mut [i16], add1: usize, sub1: usize) {
+unsafe fn add1_sub1(parameters: &'static Parameters, output: &mut [i16], add1: usize, sub1: usize) {
     let vacc = output.as_mut_ptr();
     let vadd1 = parameters.ft_threat_weights[add1].as_ptr();
     let vsub1 = parameters.ft_threat_weights[sub1].as_ptr();
@@ -338,7 +343,7 @@ unsafe fn add1_sub1(parameters: &Parameters, output: &mut [i16], add1: usize, su
     }
 }
 
-unsafe fn add1(parameters: &Parameters, output: &mut [i16], add1: usize) {
+unsafe fn add1(parameters: &'static Parameters, output: &mut [i16], add1: usize) {
     let vacc = output.as_mut_ptr();
     let vadd1 = parameters.ft_threat_weights[add1].as_ptr();
 
@@ -350,7 +355,7 @@ unsafe fn add1(parameters: &Parameters, output: &mut [i16], add1: usize) {
     }
 }
 
-unsafe fn sub1(parameters: &Parameters, output: &mut [i16], sub1: usize) {
+unsafe fn sub1(parameters: &'static Parameters, output: &mut [i16], sub1: usize) {
     let vacc = output.as_mut_ptr();
     let vsub1 = parameters.ft_threat_weights[sub1].as_ptr();
 

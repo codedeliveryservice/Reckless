@@ -52,7 +52,7 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
 }
 
 pub unsafe fn propagate_l1(
-    parameters: &Parameters, ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16],
+    parameters: &'static Parameters, ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16],
 ) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
@@ -108,7 +108,9 @@ pub unsafe fn propagate_l1(
     output
 }
 
-pub unsafe fn propagate_l2(parameters: &Parameters, l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+pub unsafe fn propagate_l2(
+    parameters: &'static Parameters, l1_out: Aligned<[f32; L2_SIZE]>,
+) -> Aligned<[f32; L3_SIZE]> {
     let mut output = parameters.l2_biases.clone();
 
     for i in 0..L2_SIZE {
@@ -133,7 +135,7 @@ pub unsafe fn propagate_l2(parameters: &Parameters, l1_out: Aligned<[f32; L2_SIZ
     output
 }
 
-pub unsafe fn propagate_l3(parameters: &Parameters, l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+pub unsafe fn propagate_l3(parameters: &'static Parameters, l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
     let input = l2_out.as_ptr();
