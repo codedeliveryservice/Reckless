@@ -7,7 +7,10 @@ use std::{
     thread::Scope,
 };
 
-use crate::thread::{SharedContext, ThreadData};
+use crate::{
+    numa,
+    thread::{SharedContext, ThreadData},
+};
 
 pub struct ThreadPool {
     pub workers: Vec<WorkerThread>,
@@ -167,10 +170,12 @@ impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     }
 }
 
-fn make_worker_thread() -> WorkerThread {
+fn make_worker_thread(node: i32) -> WorkerThread {
     let (sender, receiver) = make_work_channel();
 
     let handle = std::thread::spawn(move || {
+        unsafe { numa::numa_run_on_node(node) };
+
         while let Ok(work) = receiver.receiver.recv() {
             work();
             let (lock, cvar) = &*receiver.completion_signal;
@@ -185,7 +190,8 @@ fn make_worker_thread() -> WorkerThread {
 }
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
-    (0..num_threads).map(|_| make_worker_thread()).collect()
+    let nodes = unsafe { numa::numa_num_configured_nodes() };
+    (0..num_threads).map(|i| make_worker_thread((i as i32) % nodes)).collect()
 }
 
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<Box<ThreadData>> {

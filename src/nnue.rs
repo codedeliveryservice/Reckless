@@ -1,12 +1,16 @@
 mod accumulator;
 mod threats;
 
+use std::sync::OnceLock;
+
+use memmap2::MmapOptions;
 pub use threats::initialize;
 
 use crate::{
     board::Board,
     lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
+    numa,
     types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
@@ -291,34 +295,55 @@ impl Default for Network {
     }
 }
 
-fn load_parameters() -> &'static Parameters {
-    use std::{
-        io::Write,
-        sync::{Mutex, OnceLock},
-    };
+struct NodeCopies {
+    mmaps: Vec<memmap2::MmapMut>,
+}
 
-    use memmap2::Mmap;
-    use tempfile::NamedTempFile;
+static NODE_COPIES: OnceLock<NodeCopies> = OnceLock::new();
 
-    static LOCK: Mutex<()> = Mutex::new(());
-    static CACHED: OnceLock<OnceLock<Mmap>> = OnceLock::new();
+pub fn init_parameters() {
+    use std::io::Write;
 
     static EMBEDDED: &[u8] = include_bytes!(concat!(env!("MODEL")));
 
-    let cached = CACHED.get_or_init(|| OnceLock::new());
+    let nodes = unsafe { numa::numa_num_configured_nodes() as usize };
+    let mut mmaps = Vec::with_capacity(nodes);
 
-    let cached = cached.get_or_init(|| {
-        let _guard = LOCK.lock().unwrap();
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize };
 
-        let mut tmpfile = NamedTempFile::new().unwrap();
+    for node in 0..nodes {
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
         tmpfile.write_all(EMBEDDED).unwrap();
         tmpfile.flush().unwrap();
 
         let file = tmpfile.as_file();
-        unsafe { Mmap::map(file).unwrap() }
-    });
 
-    unsafe { &*cached.as_ptr().cast::<Parameters>() }
+        unsafe {
+            numa::set_mempolicy(numa::MPOL_BIND, numa::node_mask(node).as_ptr(), (nodes + 64) as u64);
+
+            let mut mmap = MmapOptions::new().len(EMBEDDED.len()).map_mut(file).unwrap();
+            for offset in (0..mmap.len()).step_by(page_size) {
+                mmap[offset] = EMBEDDED[offset % EMBEDDED.len()];
+            }
+
+            numa::set_mempolicy(0, std::ptr::null(), 0);
+            mmaps.push(mmap);
+        }
+    }
+
+    NODE_COPIES.set(NodeCopies { mmaps }).ok();
+}
+
+fn load_parameters() -> &'static Parameters {
+    let copies = NODE_COPIES.get().unwrap();
+
+    let node = unsafe {
+        let cpu = libc::sched_getcpu();
+        numa::numa_node_of_cpu(cpu) as usize
+    };
+
+    let mmap = &copies.mmaps[node];
+    unsafe { &*(mmap.as_ptr() as *const Parameters) }
 }
 
 #[repr(C)]
