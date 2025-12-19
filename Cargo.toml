@@ -24,3 +24,5 @@ bindgen = "0.71.1"
 
 [dependencies]
 libc = "0.2.175"
+memmap2 = "0.9.9"
+tempfile = "3.23.0"
