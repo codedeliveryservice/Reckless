@@ -516,7 +516,7 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
-        && eval >= beta - 10 * depth + 128 * tt_pv as i32 - 133 * improvement / 1024 + 274
+        && eval >= beta - 10 * depth - 133 * improvement / 1024 + 274
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
