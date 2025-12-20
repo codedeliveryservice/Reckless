@@ -6,7 +6,6 @@ build = "build/build.rs"
 publish = false
 
 [features]
-default = ["spsa"]
 spsa = []
 
 [profile.dev]
