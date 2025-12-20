@@ -690,10 +690,6 @@ fn search<NODE: NodeType>(
 
         let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
 
-        if NODE::PV {
-            reduction -= 425 + 453 * (beta - alpha) / td.root_delta;
-        }
-
         if !improving {
             reduction += (443 - 268 * improvement / 128).min(1321);
         }
@@ -772,6 +768,10 @@ fn search<NODE: NodeType>(
 
             reduction -= 3326 * correction_value.abs() / 1024;
             reduction -= 68 * move_count;
+
+            if NODE::PV {
+                reduction -= 425 + 453 * (beta - alpha) / td.root_delta;
+            }
 
             if tt_pv {
                 reduction -= 349;
