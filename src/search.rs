@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -738,11 +738,11 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -13 * depth * depth
-                    + 6 * depth * depth.ilog2() as i32 * move_count.ilog2() as i32
-                    + 35 * depth
-                    - 33 * history / 1024
-                    - 48
+                -v1() * depth * depth
+                    + v2() * depth * depth.ilog2() as i32 * move_count.ilog2() as i32 / 8
+                    + v3() * depth
+                    - v4() * history / 1024
+                    - v5()
             } else {
                 -86 * depth - 32 * history / 1024 + 42
             };
