@@ -567,6 +567,7 @@ fn search<NODE: NodeType>(
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
+        && !in_check
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
