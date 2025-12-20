@@ -506,7 +506,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        return beta + (estimated_score - beta) / 3;
+        return estimated_score;
     }
 
     // Null Move Pruning (NMP)
@@ -641,7 +641,7 @@ fn search<NODE: NodeType>(
         }
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
-            return (score * singular_depth + beta) / (singular_depth + 1);
+            return score;
         }
         // Negative-Extensions
         else if tt_score >= beta {
@@ -1028,10 +1028,6 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
-        best_score = (best_score * depth + beta) / (depth + 1);
-    }
-
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
@@ -1134,10 +1130,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         if best_score >= beta {
-            if !is_decisive(best_score) && !is_decisive(beta) {
-                best_score = (best_score + beta) / 2;
-            }
-
             if entry.is_none() {
                 td.shared.tt.write(
                     hash,
@@ -1227,10 +1219,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     if in_check && move_count == 0 {
         return mated_in(ply);
-    }
-
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
-        best_score = (best_score + beta) / 2;
     }
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
