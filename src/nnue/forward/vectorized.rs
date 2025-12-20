@@ -1,7 +1,7 @@
 use crate::{
     nnue::{
         accumulator::{PstAccumulator, ThreatAccumulator},
-        simd, Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
+        simd, Aligned, Parameters, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE,
     },
     types::Color,
 };
@@ -51,7 +51,9 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(
+    params: &Parameters, ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16],
+) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
@@ -67,8 +69,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
         let input1 = simd::splat_i32(*packed.get_unchecked(index1));
         let input2 = simd::splat_i32(*packed.get_unchecked(index2));
 
-        let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
-        let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
+        let weights1 = params.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
+        let weights2 = params.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights1 = *weights1.add(j * CHUNKS).cast();
@@ -82,7 +84,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     if let Some(last) = pairs.remainder().first() {
         let index = *last as usize;
         let input = simd::splat_i32(*packed.get_unchecked(index));
-        let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
+        let weights = params.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = *weights.add(j * CHUNKS).cast();
@@ -98,7 +100,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
-        let biases = *PARAMETERS.l1_biases.as_ptr().add(i).cast();
+        let biases = *params.l1_biases.as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
         *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
     }
@@ -106,12 +108,12 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     output
 }
 
-pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = PARAMETERS.l2_biases.clone();
+pub unsafe fn propagate_l2(params: &Parameters, l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> {
+    let mut output = params.l2_biases.clone();
 
     for i in 0..L2_SIZE {
         let input = simd::splat_f32(l1_out[i]);
-        let weights = PARAMETERS.l2_weights[i].as_ptr();
+        let weights = params.l2_weights[i].as_ptr();
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = *weights.add(j).cast();
@@ -131,11 +133,11 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
     output
 }
 
-pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+pub unsafe fn propagate_l3(params: &Parameters, l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
     let input = l2_out.as_ptr();
-    let weights = PARAMETERS.l3_weights.as_ptr();
+    let weights = params.l3_weights.as_ptr();
 
     let mut output = [simd::zero_f32(); LANES];
 
@@ -148,7 +150,7 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
         }
     }
 
-    simd::horizontal_sum(output) + PARAMETERS.l3_biases
+    simd::horizontal_sum(output) + params.l3_biases
 }
 
 #[cfg(not(target_feature = "neon"))]
