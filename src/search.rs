@@ -714,6 +714,7 @@ fn search<NODE: NodeType>(
                 && lmr_depth < 9
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
+                && !excluded
             {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
