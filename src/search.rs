@@ -690,7 +690,7 @@ fn search<NODE: NodeType>(
 
         let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
 
-        if !improving {
+        if !in_check && !improving {
             reduction += (443 - 268 * improvement / 128).min(1321);
         }
 
