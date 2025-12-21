@@ -688,13 +688,13 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
-
-        if !improving {
-            reduction += (443 - 268 * improvement / 128).min(1321);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
+            let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
+
+            if !improving {
+                reduction += (443 - 268 * improvement / 128).min(1321);
+            }
+
             let lmr_depth = (depth - reduction / 1024).max(0);
 
             // Late Move Pruning (LMP)
@@ -754,6 +754,12 @@ fn search<NODE: NodeType>(
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
+
+        let mut reduction = (512 + 384 * depth.ilog2() * move_count.ilog2()) as i32;
+
+        if !improving {
+            reduction += (443 - 268 * improvement / 128).min(1321);
+        }
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
