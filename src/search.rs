@@ -738,9 +738,9 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -1746 * lmr_depth * lmr_depth / 128 - 33 * history / 1024 + 24
+                -16 * depth * depth + 52 * depth - 23 * history / 1024 + 24
             } else {
-                -86 * depth - 32 * history / 1024 + 42
+                -8 * depth * depth - 34 * depth - 32 * history / 1024 + 10
             };
 
             if !td.board.see(mv, threshold) {
