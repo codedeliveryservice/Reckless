@@ -41,9 +41,8 @@ fn main() {
             let input = std::env::args().nth(2).unwrap();
             let output = std::env::args().nth(3).unwrap();
             let threads = std::env::args().nth(4).unwrap().parse().unwrap();
-            let adversarial = std::env::args().nth(5).unwrap().parse().unwrap();
 
-            tools::convert_pgns(&input, &output, threads, adversarial);
+            tools::convert_pgns(&input, &output, threads);
         }
         Some("rescore") => {
             let input = std::env::args().nth(2).unwrap();
