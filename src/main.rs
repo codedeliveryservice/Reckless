@@ -8,6 +8,7 @@ mod lookup;
 mod misc;
 mod movepick;
 mod nnue;
+mod numa;
 mod parameters;
 mod search;
 mod stack;
