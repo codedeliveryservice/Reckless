@@ -448,6 +448,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply].singular_extension = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using eval difference
@@ -474,6 +475,10 @@ fn search<NODE: NodeType>(
         && eval + td.stack[ply - 1].eval > 62
     {
         depth -= 1;
+    }
+
+    if !NODE::ROOT && !in_check && !excluded && depth >= 4 && td.stack[ply - 2].singular_extension >= 3 {
+        depth += 1;
     }
 
     let potential_singularity =
@@ -638,6 +643,8 @@ fn search<NODE: NodeType>(
             if extension > 1 && depth < 14 {
                 depth += 1;
             }
+
+            td.stack[ply].singular_extension = extension;
         }
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
