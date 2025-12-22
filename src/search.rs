@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -699,7 +699,7 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 93 * depth + 62 * history / 1024 + 90 * (eval >= alpha) as i32 - 116;
+            let futility_value = eval + v1() * depth + v2() * history / 1024 + v3() * (eval >= alpha) as i32 - v4();
 
             if !in_check
                 && is_quiet
@@ -716,10 +716,10 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
-                + 65 * depth
-                + 70 * history / 1024
-                + 84 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 25;
+                + v5() * depth
+                + v6() * history / 1024
+                + v7() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + v8();
 
             if !in_check && depth < 12 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
