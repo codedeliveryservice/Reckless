@@ -688,15 +688,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
-
-        if !improving {
-            reduction += (443 - 268 * improvement / 128).min(1321);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
-
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
@@ -757,11 +749,13 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
+            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+
             if is_quiet {
-                reduction += 599;
+                reduction += 1808;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 355;
+                reduction += 1564;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -786,6 +780,10 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1713;
                 reduction += 1086 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
@@ -827,11 +825,13 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
+            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+
             if is_quiet {
-                reduction += 406;
+                reduction += 1615;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 235;
+                reduction += 1444;
                 reduction -= 65 * history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -847,6 +847,10 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1379;
                 reduction += 1211 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
