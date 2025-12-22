@@ -51,11 +51,11 @@ pub const fn is_valid(score: i32) -> bool {
 }
 
 pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
-    let material = board.pieces(PieceType::Pawn).len()
-        + 3 * board.pieces(PieceType::Knight).len()
-        + 3 * board.pieces(PieceType::Bishop).len()
-        + 5 * board.pieces(PieceType::Rook).len()
-        + 9 * board.pieces(PieceType::Queen).len();
+    let material = board.pieces(PieceType::Pawn).popcount()
+        + 3 * board.pieces(PieceType::Knight).popcount()
+        + 3 * board.pieces(PieceType::Bishop).popcount()
+        + 5 * board.pieces(PieceType::Rook).popcount()
+        + 9 * board.pieces(PieceType::Queen).popcount();
 
     let v = material.clamp(16, 64) as f64 / 56.0;
 

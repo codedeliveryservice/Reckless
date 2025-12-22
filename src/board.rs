@@ -349,7 +349,7 @@ impl Board {
             return self.checkers().is_empty() && along_pin;
         }
 
-        if self.checkers().multiple() {
+        if self.checkers().is_multiple() {
             return false;
         }
 
@@ -511,7 +511,7 @@ impl Board {
 
             for square in diagonal | orthogonal {
                 let blockers = between(king, square) & self.colors(color);
-                match blockers.len() {
+                match blockers.popcount() {
                     0 if color == self.side_to_move => self.state.checkers.set(square),
                     1 => self.state.pinned[color] |= blockers,
                     _ => (),

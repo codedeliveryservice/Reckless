@@ -9,7 +9,7 @@ static mut CUCKOO: [u64; 0x2000] = [0; 0x2000];
 static mut A: [Square; 0x2000] = [Square::None; 0x2000];
 static mut B: [Square; 0x2000] = [Square::None; 0x2000];
 
-pub fn init() {
+pub fn initialize() {
     unsafe {
         init_luts();
         init_cuckoo();
@@ -116,7 +116,7 @@ pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard 
         PieceType::Rook => rook_attacks(square, occupancies),
         PieceType::Queen => queen_attacks(square, occupancies),
         PieceType::King => king_attacks(square),
-        _ => Bitboard(0),
+        PieceType::None => Bitboard(0),
     }
 }
 

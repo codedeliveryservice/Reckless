@@ -62,13 +62,13 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.root_in_tb = false;
     td.stop_probing_tb = false;
 
-    if td.board.castling().raw() == 0 && td.board.occupancies().len() <= tb_size() {
+    if td.board.castling().raw() == 0 && td.board.occupancies().popcount() <= tb_size() {
         tb_rank_rootmoves(td);
     }
 
-    td.multi_pv = td.multi_pv.min(td.root_moves.len() as i32);
+    td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
-    let mut average = vec![Score::NONE; td.multi_pv as usize];
+    let mut average = vec![Score::NONE; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -97,7 +97,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         td.pv_end = 0;
 
         for index in 0..td.multi_pv {
-            td.pv_index = index as usize;
+            td.pv_index = index;
 
             if td.pv_index == td.pv_end {
                 td.pv_start = td.pv_end;
@@ -156,7 +156,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
                     }
                 }
 
-                td.root_moves[td.pv_start..td.pv_index + 1].sort_by(|a, b| b.score.cmp(&a.score));
+                td.root_moves[td.pv_start..=td.pv_index].sort_by(|a, b| b.score.cmp(&a.score));
 
                 if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
                     td.print_uci_info(depth);
@@ -170,7 +170,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
 
         if report == Report::Full
             && !(is_loss(td.root_moves[0].display_score) && td.stopped)
-            && (td.stopped || td.pv_index as i32 + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
+            && (td.stopped || td.pv_index + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
         {
             td.print_uci_info(depth);
         }
@@ -301,7 +301,7 @@ fn search<NODE: NodeType>(
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
-    // Search Early TT-Cut
+    // Search early TT cutoff
     if let Some(entry) = &entry {
         tt_depth = entry.depth;
         tt_move = entry.mv;
@@ -321,10 +321,10 @@ fn search<NODE: NodeType>(
         {
             if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
                 let quiet_bonus = (190 * depth - 80).min(1830);
-                let conthist_bonus = (109 * depth - 56).min(1337);
+                let cont_bonus = (109 * depth - 56).min(1337);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), conthist_bonus);
+                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
             }
 
             if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
@@ -360,7 +360,7 @@ fn search<NODE: NodeType>(
         && !td.stop_probing_tb
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
-        && td.board.occupancies().len() <= tb_size()
+        && td.board.occupancies().popcount() <= tb_size()
     {
         if let Some(outcome) = tb_probe(&td.board) {
             td.shared.tb_hits.increment(td.id);
@@ -450,7 +450,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
-    // Quiet Move Ordering Using eval difference
+    // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let value = 865 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-119, 325);
@@ -643,7 +643,7 @@ fn search<NODE: NodeType>(
         else if score >= beta && !is_decisive(score) {
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
-        // Negative-Extensions
+        // Negative Extensions
         else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
@@ -963,14 +963,14 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let bonus_noisy = (111 * depth - 54).min(861) - 77 * cut_node as i32;
-        let malus_noisy = (173 * initial_depth - 53).min(1257) - 23 * noisy_moves.len() as i32;
+        let noisy_bonus = (111 * depth - 54).min(861) - 77 * cut_node as i32;
+        let noisy_malus = (173 * initial_depth - 53).min(1257) - 23 * noisy_moves.len() as i32;
 
-        let bonus_quiet = (179 * depth - 75).min(1335) - 56 * cut_node as i32;
-        let malus_quiet = (156 * initial_depth - 44).min(1056) - 41 * quiet_moves.len() as i32;
+        let quiet_bonus = (179 * depth - 75).min(1335) - 56 * cut_node as i32;
+        let quiet_malus = (156 * initial_depth - 44).min(1056) - 41 * quiet_moves.len() as i32;
 
-        let bonus_cont = (115 * depth - 67).min(972) - 50 * cut_node as i32;
-        let malus_cont = (343 * initial_depth - 47).min(856) - 21 * quiet_moves.len() as i32;
+        let cont_bonus = (115 * depth - 67).min(972) - 50 * cut_node as i32;
+        let cont_malus = (343 * initial_depth - 47).min(856) - 21 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -978,21 +978,21 @@ fn search<NODE: NodeType>(
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
-                bonus_noisy,
+                noisy_bonus,
             );
         } else {
-            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, bonus_quiet);
-            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus_cont);
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, quiet_bonus);
+            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -malus_quiet);
-                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -malus_cont);
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
+                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
             }
         }
 
         for &mv in noisy_moves.iter() {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -malus_noisy);
+            td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
@@ -1095,7 +1095,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
 
-    // QS Early TT-Cut
+    // QS early TT cutoff
     if let Some(entry) = &entry {
         tt_score = entry.score;
         tt_bound = entry.bound;

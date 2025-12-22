@@ -6,7 +6,7 @@ use crate::lookup;
 static LUT_INITIALIZED: Once = Once::new();
 
 fn prepare_lut() {
-    LUT_INITIALIZED.call_once(|| lookup::init());
+    LUT_INITIALIZED.call_once(|| lookup::initialize());
 }
 
 macro_rules! assert_perft {

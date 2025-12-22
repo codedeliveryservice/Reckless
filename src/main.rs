@@ -24,7 +24,7 @@ mod uci;
 mod bindings;
 
 fn main() {
-    lookup::init();
+    lookup::initialize();
     nnue::initialize();
 
     match std::env::args().nth(1).as_deref() {
