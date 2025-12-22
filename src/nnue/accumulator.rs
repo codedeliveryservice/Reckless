@@ -182,7 +182,7 @@ impl PstAccumulator {
     }
 }
 
-const REGISTERS: usize = 8;
+const REGISTERS: usize = 16;
 const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
 
 unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
