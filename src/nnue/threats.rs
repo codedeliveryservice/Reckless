@@ -18,11 +18,11 @@ impl PiecePair {
         }
     }
 
-    fn base(&self) -> usize {
+    fn base(self) -> usize {
         (self.inner >> 8) as usize
     }
 
-    fn excluded(&self, attacking: Square, attacked: Square) -> bool {
+    fn excluded(self, attacking: Square, attacked: Square) -> bool {
         let below = ((attacking as u8) < (attacked as u8)) as u8;
         ((self.inner as u8 + below) & 2) != 0
     }
@@ -60,7 +60,7 @@ pub fn initialize() {
                 *entry = count;
 
                 if piece_type != PieceType::Pawn || (8..56).contains(&square) {
-                    count += attacks(piece, Square::new(square as u8), Bitboard(0)).len() as i32;
+                    count += attacks(piece, Square::new(square as u8), Bitboard(0)).popcount() as i32;
                 }
             }
 
@@ -96,7 +96,7 @@ pub fn initialize() {
             let attacks = attacks(piece, Square::new(from as u8), Bitboard(0));
 
             for (to, entry) in row.iter_mut().enumerate() {
-                *entry = (Bitboard((1u64 << to) - 1) & attacks).len() as u8;
+                *entry = (Bitboard((1u64 << to) - 1) & attacks).popcount() as u8;
             }
         }
     }

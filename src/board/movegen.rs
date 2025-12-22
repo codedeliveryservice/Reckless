@@ -52,7 +52,7 @@ impl super::Board {
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         self.collect_for::<T, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
 
-        if self.checkers().multiple() {
+        if self.checkers().is_multiple() {
             return;
         }
 

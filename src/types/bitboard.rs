@@ -21,30 +21,26 @@ impl Bitboard {
         Self(0x0101010101010101u64 << (file as usize))
     }
 
-    /// Checks if the bitboard has zero bits set.
     pub const fn is_empty(self) -> bool {
         self.0 == 0
+    }
+
+    pub const fn is_multiple(self) -> bool {
+        self.0 != 0 && self.0 & (self.0 - 1) != 0
     }
 
     pub const fn contains(self, square: Square) -> bool {
         self.0 & (1 << square as u64) != 0
     }
 
-    pub const fn multiple(self) -> bool {
-        self.0 != 0 && self.0 & (self.0 - 1) != 0
-    }
-
-    /// Counts the number of set bits in the bitboard.
-    pub const fn len(self) -> usize {
+    pub const fn popcount(self) -> usize {
         self.0.count_ones() as usize
     }
 
-    /// Returns the least significant set bit in the bitboard.
     pub const fn lsb(self) -> Square {
         Square::new(self.0.trailing_zeros() as u8)
     }
 
-    /// Shifts the bits of the bitboard by the specified offset.
     pub const fn shift(self, offset: i8) -> Self {
         if offset > 0 {
             Self(self.0 << offset)
@@ -53,12 +49,10 @@ impl Bitboard {
         }
     }
 
-    /// Sets the bit corresponding to the specified square.
     pub fn set(&mut self, square: Square) {
         self.0 |= 1 << square as u64;
     }
 
-    /// Clears the bit corresponding to the specified square.
     pub fn clear(&mut self, square: Square) {
         self.0 &= !(1 << square as u64);
     }

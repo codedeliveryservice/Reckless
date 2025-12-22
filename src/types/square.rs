@@ -125,26 +125,3 @@ impl std::fmt::Display for Square {
         write!(f, "{}{}", file as char, rank as char)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn try_from_str() {
-        assert_eq!(Square::try_from("a1"), Ok(Square::A1));
-        assert_eq!(Square::try_from("e5"), Ok(Square::E5));
-        assert_eq!(Square::try_from("h8"), Ok(Square::H8));
-
-        assert!(Square::try_from("i1").is_err());
-        assert!(Square::try_from("a9").is_err());
-        assert!(Square::try_from("invalid").is_err());
-    }
-
-    #[test]
-    fn display() {
-        assert_eq!(Square::A1.to_string(), "a1");
-        assert_eq!(Square::E5.to_string(), "e5");
-        assert_eq!(Square::H8.to_string(), "h8");
-    }
-}

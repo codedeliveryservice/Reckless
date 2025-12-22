@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     board::Board,
     search::{self, Report},
-    tb::tb_initilize,
+    tb::tb_initialize,
     thread::{SharedContext, Status, ThreadData},
     threadpool::{ScopeExt, ThreadPool},
     time::{Limits, TimeManager},
@@ -14,7 +14,7 @@ use crate::{
 
 struct Settings {
     frc: bool,
-    multi_pv: i32,
+    multi_pv: usize,
     move_overhead: u64,
     report: Report,
 }
@@ -64,7 +64,7 @@ pub fn message_loop() {
             [] => (),
 
             _ => eprintln!("Unknown command: '{}'", message.trim_end()),
-        };
+        }
     }
 }
 
@@ -102,7 +102,7 @@ fn uci() {
     println!("option name Clear Hash type button");
     println!("option name SyzygyPath type string default");
     println!("option name UCI_Chess960 type check default false");
-    println!("option name MultiPV type spin default 1 min 1 max {}", MAX_MOVES);
+    println!("option name MultiPV type spin default 1 min 1 max {MAX_MOVES}");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -282,7 +282,7 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             settings.move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
-        ["name", "SyzygyPath", "value", v] => match tb_initilize(v) {
+        ["name", "SyzygyPath", "value", v] => match tb_initialize(v) {
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
@@ -320,7 +320,7 @@ fn display(td: &ThreadData) {
             let square = Square::from_rank_file(rank, file);
             let piece = td.board.piece_on(square);
             let symbol = piece.try_into().unwrap_or(' ');
-            print!(" {} |", symbol);
+            print!(" {symbol} |");
         }
         println!(" {}", rank + 1);
         println!(" +---+---+---+---+---+---+---+---+");
