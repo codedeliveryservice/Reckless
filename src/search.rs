@@ -669,7 +669,7 @@ fn search<NODE: NodeType>(
             continue;
         }
 
-        if NODE::ROOT && !td.root_moves[td.pv_index..td.pv_end].iter().any(|rm: &RootMove| rm.mv == mv) {
+        if NODE::ROOT && !td.root_moves[td.pv_index..td.pv_end].iter().any(|rm| rm.mv == mv) {
             continue;
         }
 
