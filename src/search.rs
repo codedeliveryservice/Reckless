@@ -688,15 +688,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
-
-        if !improving {
-            reduction += (443 - 268 * improvement / 128).min(1321);
-        }
-
         if !NODE::ROOT && !is_loss(best_score) {
-            let lmr_depth = (depth - reduction / 1024).max(0);
-
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count
@@ -707,11 +699,11 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 93 * lmr_depth + 62 * history / 1024 + 90 * (eval >= alpha) as i32 + 89;
+            let futility_value = eval + 93 * depth + 62 * history / 1024 + 90 * (eval >= alpha) as i32 - 116;
 
             if !in_check
                 && is_quiet
-                && lmr_depth < 9
+                && depth < 12
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
@@ -724,12 +716,12 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
-                + 122 * lmr_depth
+                + 111 * depth
                 + 70 * history / 1024
                 + 84 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 79;
+                - 149;
 
-            if !in_check && lmr_depth < 6 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check && depth < 12 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
@@ -754,6 +746,12 @@ fn search<NODE: NodeType>(
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
+
+        let mut reduction = (1209 + 285 * depth.ilog2() * move_count.ilog2()) as i32;
+
+        if !improving {
+            reduction += (443 - 268 * improvement / 128).min(1321);
+        }
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
