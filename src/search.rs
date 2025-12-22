@@ -596,7 +596,8 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
+                let resolved_depth = if probcut_depth > 0 { probcut_depth } else { TtDepth::SOME };
+                td.shared.tt.write(hash, resolved_depth, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
                     return score - (probcut_beta - beta);
