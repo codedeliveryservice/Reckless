@@ -1167,7 +1167,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
-    while let Some(mv) = move_picker.next::<NODE>(td, !in_check, ply) {
+    while let Some(mv) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
         if !td.board.is_legal(mv) {
             continue;
         }
@@ -1180,10 +1180,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             if move_count >= 3 && !td.board.might_give_check_if_you_squint(mv) {
-                break;
-            }
-
-            if in_check && mv.is_quiet() {
                 break;
             }
 
