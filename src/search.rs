@@ -448,6 +448,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply].nmp_failed = false;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet Move Ordering Using eval difference
@@ -557,6 +558,8 @@ fn search<NODE: NodeType>(
                 return score;
             }
         }
+
+        td.stack[ply].nmp_failed = score < beta || is_win(score);
     }
 
     // ProbCut
@@ -790,6 +793,10 @@ fn search<NODE: NodeType>(
 
             if td.board.in_check() || !td.board.has_non_pawns() {
                 reduction -= 884;
+            }
+
+            if td.stack[ply - 1].nmp_failed {
+                reduction -= 768;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
