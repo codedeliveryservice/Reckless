@@ -83,7 +83,7 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
                 // in the current state should be ignored silently.
                 // (https://backscattering.de/chess/uci/#unexpected)
                 if shared.status.get() != Status::RUNNING {
-                    tx.send(message).unwrap();
+                    let _ = tx.send(message);
                 }
             }
         }
