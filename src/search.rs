@@ -711,7 +711,7 @@ fn search<NODE: NodeType>(
 
             if !in_check
                 && is_quiet
-                && lmr_depth < 9
+                && depth < 14
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
