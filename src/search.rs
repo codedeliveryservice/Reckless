@@ -506,7 +506,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        return beta + (estimated_score - beta) / 3;
+        return (3 * beta + estimated_score) / 4;
     }
 
     // Null Move Pruning (NMP)
