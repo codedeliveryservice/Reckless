@@ -599,7 +599,7 @@ fn search<NODE: NodeType>(
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
+                    return score - 128;
                 }
             }
         }
