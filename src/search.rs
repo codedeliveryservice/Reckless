@@ -698,12 +698,15 @@ fn search<NODE: NodeType>(
                         (1252 + 320 * initial_depth * initial_depth) / 1024
                     };
 
+            let penalty = ((move_count * 10) / (move_count + 32)) / 2;
+            let pruning_mul = depth - penalty;
+
             // Futility Pruning (FP)
-            let futility_value = eval + 94 * depth + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
+            let futility_value = eval + 94 * pruning_mul + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
 
             if !in_check
                 && is_quiet
-                && depth < 14
+                && pruning_mul < 14
                 && futility_value <= alpha
                 && !td.board.might_give_check_if_you_squint(mv)
             {
@@ -716,12 +719,13 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
-                + 68 * depth
+                + 68 * pruning_mul
                 + 68 * history / 1024
                 + 83 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
                 + 24;
 
-            if !in_check && depth < 12 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
+            if !in_check && pruning_mul < 12 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha
+            {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
@@ -730,9 +734,9 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -16 * depth * depth + 50 * depth - 21 * history / 1024 + 25
+                -16 * pruning_mul * pruning_mul + 50 * pruning_mul - 21 * history / 1024 + 25
             } else {
-                -8 * depth * depth - 36 * depth - 33 * history / 1024 + 10
+                -8 * pruning_mul * pruning_mul - 36 * pruning_mul - 33 * history / 1024 + 10
             };
 
             if !td.board.see(mv, threshold) {
