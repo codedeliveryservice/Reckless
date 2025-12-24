@@ -782,7 +782,7 @@ fn search<NODE: NodeType>(
                 reduction += 1086 * tt_move.is_null() as i32;
             }
 
-            if !improving {
+            if !NODE::ROOT && !improving {
                 reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
@@ -849,7 +849,7 @@ fn search<NODE: NodeType>(
                 reduction += 1211 * tt_move.is_null() as i32;
             }
 
-            if !improving {
+            if !NODE::ROOT && !improving {
                 reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
