@@ -503,6 +503,8 @@ fn search<NODE: NodeType>(
             >= beta + 1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
                 + 500 * correction_value.abs() / 1024
                 + 35 * (depth == 1) as i32
+                + 16
+                - td.stack[ply - 1].move_count as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
