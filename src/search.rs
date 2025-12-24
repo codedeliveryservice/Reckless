@@ -1195,7 +1195,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            if move_count >= 3 + improving as i32 && !td.board.might_give_check_if_you_squint(mv) {
+            if !improving && move_count >= 3 && td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
