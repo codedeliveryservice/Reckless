@@ -696,7 +696,8 @@ fn search<NODE: NodeType>(
                         (3219 + 1093 * initial_depth * initial_depth) / 1024
                     } else {
                         (1252 + 320 * initial_depth * initial_depth) / 1024
-                    };
+                    }
+                && !td.board.might_give_check_if_you_squint(mv);
 
             // Futility Pruning (FP)
             let futility_value = eval + 94 * depth + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
