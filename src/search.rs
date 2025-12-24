@@ -794,6 +794,10 @@ fn search<NODE: NodeType>(
                 reduction += 1498;
             }
 
+            if td.stack[ply - 1].move_count > 13 {
+                reduction -= 1024;
+            }
+
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
                 reduction += 622;
             }
