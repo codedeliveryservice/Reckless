@@ -6,7 +6,6 @@ build = "build/build.rs"
 publish = false
 
 [features]
-default = ["numa"]
 spsa = []
 numa = []
 
