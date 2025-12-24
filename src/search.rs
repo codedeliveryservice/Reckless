@@ -1120,6 +1120,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut best_score = -Score::INFINITE;
     let mut raw_eval = Score::NONE;
 
+    td.stack[ply].eval = Score::NONE;
     // Evaluation
     if !in_check {
         raw_eval = match &entry {
@@ -1139,6 +1140,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             best_score = tt_score;
         }
 
+        td.stack[ply].eval = best_score;
         if best_score >= beta {
             if !is_decisive(best_score) && !is_decisive(beta) {
                 best_score = (best_score + beta) / 2;
@@ -1171,6 +1173,16 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
+    let mut improvement = 0;
+
+    if is_valid(td.stack[ply - 2].eval) && !in_check {
+        improvement = td.stack[ply].eval - td.stack[ply - 2].eval;
+    } else if is_valid(td.stack[ply - 4].eval) && !in_check {
+        improvement = td.stack[ply].eval - td.stack[ply - 4].eval;
+    }
+
+    let improving = improvement > 0;
+
     while let Some(mv) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
         if !td.board.is_legal(mv) {
             continue;
@@ -1183,7 +1195,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            if move_count >= 3 && !td.board.might_give_check_if_you_squint(mv) {
+            if move_count >= 3 + improving as i32 && !td.board.might_give_check_if_you_squint(mv) {
                 break;
             }
 
