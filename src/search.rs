@@ -565,6 +565,7 @@ fn search<NODE: NodeType>(
     if cut_node
         && depth >= 3
         && !is_decisive(beta)
+        && estimated_score.max(eval).max(raw_eval) >= beta
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
     {
