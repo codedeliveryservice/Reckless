@@ -719,6 +719,7 @@ fn search<NODE: NodeType>(
                 + 68 * depth
                 + 68 * history / 1024
                 + 83 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + 3 * move_count.min(32)
                 + 24;
 
             if !in_check && depth < 12 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
