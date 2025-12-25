@@ -613,7 +613,7 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
 
-    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+    if !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
         debug_assert!(is_valid(tt_score));
 
         let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
@@ -640,11 +640,11 @@ fn search<NODE: NodeType>(
             }
         }
         // Multi-Cut
-        else if score >= beta && !is_decisive(score) {
+        else if !NODE::ROOT && score >= beta && !is_decisive(score) {
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative Extensions
-        else if tt_score >= beta {
+        else if !NODE::ROOT && tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
