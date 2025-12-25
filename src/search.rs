@@ -640,7 +640,7 @@ fn search<NODE: NodeType>(
             }
         }
         // Multi-Cut
-        else if score >= beta && !is_decisive(score) {
+        else if (NODE::PV || cut_node) && score >= beta && !is_decisive(score) {
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative Extensions
