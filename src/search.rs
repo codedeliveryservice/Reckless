@@ -989,8 +989,10 @@ fn search<NODE: NodeType>(
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
-                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
+                let factor =
+                    1 + (mv == tt_move && best_move != tt_move && (potential_singularity && extension > 0)) as i32;
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, factor * -quiet_malus);
+                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), factor * -cont_malus);
             }
         }
 
