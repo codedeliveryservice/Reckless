@@ -819,7 +819,7 @@ fn search<NODE: NodeType>(
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
                     current_search_count += 1;
                 }
-            } else if score > alpha && score < best_score + 14 {
+            } else if !NODE::ROOT && score > alpha && score < best_score + 14 {
                 new_depth -= 1;
             }
         }
