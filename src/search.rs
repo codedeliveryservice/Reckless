@@ -976,17 +976,34 @@ fn search<NODE: NodeType>(
         let cont_bonus = (115 * depth - 67).min(972) - 50 * cut_node as i32;
         let cont_malus = (343 * initial_depth - 47).min(856) - 21 * quiet_moves.len() as i32;
 
+        let mut best_move_factor = 1;
+
+        if !NODE::PV && best_move != tt_move && potential_singularity && extension > 1 {
+            best_move_factor = extension;
+        }
+
         if best_move.is_noisy() {
             td.noisy_history.update(
                 td.board.threats(),
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.piece_on(best_move.to()).piece_type(),
-                noisy_bonus,
+                noisy_bonus * best_move_factor,
             );
         } else {
-            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, quiet_bonus);
-            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
+            td.quiet_history.update(
+                td.board.threats(),
+                td.board.side_to_move(),
+                best_move,
+                quiet_bonus * best_move_factor,
+            );
+            update_continuation_histories(
+                td,
+                ply,
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                cont_bonus * best_move_factor,
+            );
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
