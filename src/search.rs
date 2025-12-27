@@ -1178,12 +1178,12 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
+        if !is_loss(best_score) && mv.to() != td.board.recapture_square() && !td.board.is_direct_check(mv) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
-            if move_count >= 3 && !td.board.is_direct_check(mv) {
+            if move_count >= 3 {
                 break;
             }
 
