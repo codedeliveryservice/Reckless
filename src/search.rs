@@ -560,7 +560,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta + 257 - 75 * improving as i32;
+    let probcut_beta = beta + 257 - 75 * improving as i32 + 128 * tt_pv as i32;
 
     if cut_node
         && depth >= 3
