@@ -729,7 +729,7 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -16 * depth * depth + 50 * depth - 21 * history / 1024 + 25
+                -12 * depth * depth + 15 * depth - 21 * history / 1024 + 80
             } else {
                 -8 * depth * depth - 36 * depth - 33 * history / 1024 + 10
             };
