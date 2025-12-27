@@ -760,7 +760,10 @@ fn search<NODE: NodeType>(
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
-            reduction -= 3326 * correction_value.abs() / 1024;
+            if !NODE::ROOT {
+                reduction -= 3326 * correction_value.abs() / 1024;
+            }
+
             reduction -= 68 * move_count;
 
             if NODE::PV {
