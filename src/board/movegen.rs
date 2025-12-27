@@ -80,15 +80,11 @@ impl super::Board {
     ) {
         for from in self.our(piece) {
             if T::KIND == Kind::Noisy {
-                for to in attacks(from) & target & self.them() {
-                    list.push(from, to, MoveKind::Capture);
-                }
+                list.push_setwise(from, attacks(from) & target & self.them(), MoveKind::Capture);
             }
 
             if T::KIND == Kind::Quiet {
-                for to in attacks(from) & target & !self.occupancies() {
-                    list.push(from, to, MoveKind::Normal);
-                }
+                list.push_setwise(from, attacks(from) & target & !self.occupancies(), MoveKind::Normal);
             }
         }
     }
@@ -144,39 +140,22 @@ impl super::Board {
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
-            for to in single_pushes {
-                list.push(to.shift(-up), to, MoveKind::Normal);
-            }
-
-            for to in double_pushes {
-                list.push(to.shift(-up * 2), to, MoveKind::DoublePush);
-            }
+            list.push_pawns_setwise(up, single_pushes, MoveKind::Normal);
+            list.push_pawns_setwise(up * 2, double_pushes, MoveKind::DoublePush);
         }
 
         let promotions = (pawns & seventh_rank).shift(up) & empty;
-        for to in promotions {
-            let from = to.shift(-up);
-
-            if T::KIND == Kind::Noisy {
-                list.push(from, to, MoveKind::PromotionQ);
-            }
-
-            if T::KIND == Kind::Quiet {
-                list.push(from, to, MoveKind::PromotionR);
-                list.push(from, to, MoveKind::PromotionB);
-                list.push(from, to, MoveKind::PromotionN);
-            }
+        if T::KIND == Kind::Noisy {
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionQ);
+        }
+        if T::KIND == Kind::Quiet {
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionR);
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionB);
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionN);
         }
     }
 
     fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
-        fn add_promotions(list: &mut MoveList, from: Square, to: Square) {
-            list.push(from, to, MoveKind::PromotionCaptureQ);
-            list.push(from, to, MoveKind::PromotionCaptureR);
-            list.push(from, to, MoveKind::PromotionCaptureB);
-            list.push(from, to, MoveKind::PromotionCaptureN);
-        }
-
         let (up_right, up_left) = match self.side_to_move {
             Color::White => (9, 7),
             Color::Black => (-7, -9),
@@ -186,23 +165,15 @@ impl super::Board {
         let right = (promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
         let left = (promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
 
-        for to in right {
-            add_promotions(list, to.shift(-up_right), to);
-        }
-        for to in left {
-            add_promotions(list, to.shift(-up_left), to);
-        }
+        list.push_promotion_capture_setwise(up_right, right);
+        list.push_promotion_capture_setwise(up_left, left);
 
         let non_promotions = pawns & !seventh_rank;
         let right_captures = (non_promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
         let left_captures = (non_promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
 
-        for to in right_captures {
-            list.push(to.shift(-up_right), to, MoveKind::Capture);
-        }
-        for to in left_captures {
-            list.push(to.shift(-up_left), to, MoveKind::Capture);
-        }
+        list.push_pawns_setwise(up_right, right_captures, MoveKind::Capture);
+        list.push_pawns_setwise(up_left, left_captures, MoveKind::Capture);
     }
 
     fn collect_en_passant_moves(&self, list: &mut MoveList, pawns: Bitboard) {

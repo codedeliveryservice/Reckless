@@ -25,7 +25,8 @@ pub const MAX_PLY: usize = 128;
 
 /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
 /// the maximum number of chess moves in a certain position *appears* to be 218.
-pub const MAX_MOVES: usize = 218;
+/// Padding added because an optimization writes 32 moves at a time to the move list (218 + 32 < 256).
+pub const MAX_MOVES: usize = 256;
 
 #[rustfmt::skip]
 pub enum Rank { R1, R2, R3, R4, R5, R6, R7, R8 }

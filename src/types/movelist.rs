@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use super::{ArrayVec, Move, MoveKind, Square, MAX_MOVES};
+use super::{ArrayVec, Bitboard, Move, MoveKind, Square, MAX_MOVES};
 
 #[derive(Copy, Clone)]
 pub struct MoveEntry {
@@ -27,6 +27,28 @@ impl MoveList {
 
     pub fn push(&mut self, from: Square, to: Square, kind: MoveKind) {
         self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
+    }
+
+    pub fn push_setwise(&mut self, from: Square, to_bb: Bitboard, kind: MoveKind) {
+        for to in to_bb {
+            self.push(from, to, kind);
+        }
+    }
+
+    pub fn push_pawns_setwise(&mut self, offset: i8, to_bb: Bitboard, kind: MoveKind) {
+        for to in to_bb {
+            self.push(to.shift(-offset), to, kind);
+        }
+    }
+
+    pub fn push_promotion_capture_setwise(&mut self, offset: i8, to_bb: Bitboard) {
+        for to in to_bb {
+            let from = to.shift(-offset);
+            self.push(from, to, MoveKind::PromotionCaptureQ);
+            self.push(from, to, MoveKind::PromotionCaptureR);
+            self.push(from, to, MoveKind::PromotionCaptureB);
+            self.push(from, to, MoveKind::PromotionCaptureN);
+        }
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, MoveEntry> {
