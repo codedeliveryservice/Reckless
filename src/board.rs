@@ -451,7 +451,7 @@ impl Board {
     ///
     /// Roughly 90–95% accurate. Does not account for discovered checks, promotions,
     /// en passant, or checks delivered via castling.
-    pub fn might_give_check_if_you_squint(&self, mv: Move) -> bool {
+    pub fn is_direct_check(&self, mv: Move) -> bool {
         let occupancies = self.occupancies() ^ mv.from().to_bb() ^ mv.to().to_bb();
         let direct_attacks = attacks(self.moved_piece(mv), mv.to(), occupancies);
         direct_attacks.contains(self.their(PieceType::King).lsb())
