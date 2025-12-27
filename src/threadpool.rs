@@ -191,8 +191,12 @@ fn make_worker_thread(cpu: usize) -> WorkerThread {
 }
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
+    pub use std::time::{SystemTime, UNIX_EPOCH};
+
     let cpu_ids = available_cpu_ids();
-    (0..num_threads).map(|index| make_worker_thread(cpu_ids[index % cpu_ids.len()])).collect()
+    let offset = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos() as usize).unwrap_or(0);
+
+    (0..num_threads).map(|index| make_worker_thread(cpu_ids[(index + offset) % cpu_ids.len()])).collect()
 }
 
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<Box<ThreadData>> {
