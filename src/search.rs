@@ -421,8 +421,8 @@ fn search<NODE: NodeType>(
         && !excluded
         && is_valid(tt_score)
         && match tt_bound {
-            Bound::Upper => tt_score < eval,
-            Bound::Lower => tt_score > eval,
+            Bound::Upper => tt_score < eval.max(raw_eval),
+            Bound::Lower => tt_score > eval.min(raw_eval),
             _ => true,
         }
     {
@@ -1130,8 +1130,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
             && match tt_bound {
-                Bound::Upper => tt_score < best_score,
-                Bound::Lower => tt_score > best_score,
+                Bound::Upper => tt_score < best_score.max(raw_eval),
+                Bound::Lower => tt_score > best_score.min(raw_eval),
                 _ => true,
             }
         {
