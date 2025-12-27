@@ -1,7 +1,3 @@
-use std::cell::Cell;
-use std::mem;
-use std::ptr;
-
 use super::Parameters;
 
 #[cfg(feature = "numa")]
@@ -17,18 +13,6 @@ mod sys {
     }
 }
 
-#[derive(Copy, Clone)]
-struct LocalCache {
-    owner: usize,
-    ptr: *const (),
-}
-
-const EMPTY_CACHE: LocalCache = LocalCache { owner: 0, ptr: ptr::null() };
-
-thread_local! {
-    static LOCAL_CACHE: Cell<LocalCache> = const { Cell::new(EMPTY_CACHE) };
-}
-
 pub unsafe trait NumaValue: Sync {}
 
 unsafe impl NumaValue for Parameters {}
@@ -36,8 +20,7 @@ unsafe impl NumaValue for Parameters {}
 #[allow(dead_code)]
 pub struct NumaReplicator<T: NumaValue> {
     nodes: Vec<*mut T>,
-    allocation_size: usize,
-    owns_allocations: bool,
+    allocation_size: Option<usize>,
 }
 
 unsafe impl<T: NumaValue> Send for NumaReplicator<T> {}
@@ -45,7 +28,7 @@ unsafe impl<T: NumaValue> Sync for NumaReplicator<T> {}
 
 impl<T: NumaValue> NumaReplicator<T> {
     pub fn new(source: &'static T) -> Self {
-        let allocation_size = mem::size_of::<T>();
+        let allocation_size = std::mem::size_of::<T>();
         if allocation_size == 0 {
             return Self::fallback(source, 1);
         }
@@ -65,11 +48,11 @@ impl<T: NumaValue> NumaReplicator<T> {
                 }
 
                 // SAFETY: T: NumaValue guarantees a byte-copy is valid for read-only sharing.
-                unsafe { ptr::copy_nonoverlapping(source, ptr, 1) };
+                unsafe { std::ptr::copy_nonoverlapping(source, ptr, 1) };
                 nodes.push(ptr);
             }
 
-            Self { nodes, allocation_size, owns_allocations: true }
+            Self { nodes, allocation_size: Some(allocation_size) }
         }
 
         #[cfg(not(feature = "numa"))]
@@ -81,20 +64,9 @@ impl<T: NumaValue> NumaReplicator<T> {
     }
 
     pub fn get_local_weights(&self) -> &T {
-        let self_id = self as *const Self as usize;
-        let ptr = LOCAL_CACHE.with(|cache| {
-            let cached = cache.get();
-            if cached.owner == self_id && !cached.ptr.is_null() {
-                return cached.ptr;
-            }
-
-            let node = self.current_node();
-            let ptr = self.nodes.get(node).copied().unwrap_or_else(|| self.nodes[0]) as *const T;
-            cache.set(LocalCache { owner: self_id, ptr: ptr.cast() });
-            ptr.cast()
-        });
-
-        unsafe { &*(ptr as *const T) }
+        let node = self.current_node();
+        let ptr = self.nodes.get(node).copied().unwrap_or_else(|| self.nodes[0]).cast::<T>();
+        unsafe { &*(ptr) }
     }
 
     fn current_node(&self) -> usize {
@@ -116,16 +88,14 @@ impl<T: NumaValue> NumaReplicator<T> {
 
             let node = node as usize;
             if node >= self.nodes.len() {
-                0
-            } else {
-                node
+                return 0;
             }
+
+            node
         }
 
         #[cfg(not(feature = "numa"))]
-        {
-            0
-        }
+        0
     }
 
     fn fallback(source: &'static T, node_count: usize) -> Self {
@@ -134,24 +104,20 @@ impl<T: NumaValue> NumaReplicator<T> {
         let mut nodes = Vec::with_capacity(count);
         nodes.resize(count, ptr);
 
-        Self { nodes, allocation_size: 0, owns_allocations: false }
+        Self { nodes, allocation_size: None }
     }
 }
 
 #[cfg(feature = "numa")]
 impl<T: NumaValue> Drop for NumaReplicator<T> {
     fn drop(&mut self) {
-        if !self.owns_allocations {
-            return;
-        }
-
-        for &ptr in &self.nodes {
-            unsafe { sys::numa_free(ptr.cast::<libc::c_void>(), self.allocation_size) };
+        if let Some(size) = self.allocation_size {
+            for &ptr in &self.nodes {
+                unsafe { sys::numa_free(ptr.cast::<libc::c_void>(), size) };
+            }
         }
     }
 }
-
-pub type NumaNodes = NumaReplicator<Parameters>;
 
 #[cfg(feature = "numa")]
 fn node_count() -> usize {

@@ -307,7 +307,7 @@ struct Parameters {
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
 
-static NUMA_PARAMETERS: OnceLock<numa::NumaNodes> = OnceLock::new();
+static NUMA_PARAMETERS: OnceLock<numa::NumaReplicator<Parameters>> = OnceLock::new();
 
 fn parameters() -> &'static Parameters {
     NUMA_PARAMETERS.get().map(|nodes| nodes.get_local_weights()).unwrap_or(&PARAMETERS)
@@ -315,7 +315,7 @@ fn parameters() -> &'static Parameters {
 
 pub fn initialize() {
     threats::initialize();
-    NUMA_PARAMETERS.get_or_init(|| numa::NumaNodes::new(&PARAMETERS));
+    NUMA_PARAMETERS.get_or_init(|| numa::NumaReplicator::new(&PARAMETERS));
 }
 
 #[repr(align(64))]
