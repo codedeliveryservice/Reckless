@@ -196,7 +196,7 @@ impl Network {
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
-                current.update(&prev[i], king, pov);
+                unsafe { current.update(&prev[i], king, pov) };
             }
         }
     }
