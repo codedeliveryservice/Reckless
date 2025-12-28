@@ -708,6 +708,10 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
+            if !is_quiet && depth < 3 && history < -768 * depth - 512 && !td.board.is_direct_check(mv) {
+                continue;
+            }
+
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
                 + 68 * depth
