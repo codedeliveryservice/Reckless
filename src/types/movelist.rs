@@ -3,6 +3,7 @@ use std::ops::Index;
 use super::{ArrayVec, Bitboard, Move, MoveKind, Square, MAX_MOVES};
 
 #[derive(Copy, Clone)]
+#[repr(C)]
 pub struct MoveEntry {
     pub mv: Move,
     pub score: i32,
@@ -29,25 +30,89 @@ impl MoveList {
         self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
     }
 
+    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512vbmi")))]
     pub fn push_setwise(&mut self, from: Square, to_bb: Bitboard, kind: MoveKind) {
         for to in to_bb {
             self.push(from, to, kind);
         }
     }
 
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+    pub fn push_setwise(&mut self, from: Square, to_bb: Bitboard, kind: MoveKind) {
+        if !to_bb.is_empty() {
+            use std::arch::x86_64::{__m512i, _mm512_or_si512, _mm512_set1_epi16};
+
+            unsafe {
+                let template0: __m512i = std::mem::transmute({
+                    let mut template0: [Move; 32] = [Move::NULL; 32];
+                    for i in 0..32 {
+                        template0[i] =
+                            Move::new(std::mem::transmute(0u8), Square::new(i as u8), std::mem::transmute(0u8));
+                    }
+                    template0
+                });
+                let template1: __m512i = std::mem::transmute({
+                    let mut template1: [Move; 32] = [Move::NULL; 32];
+                    for i in 0..32 {
+                        template1[i] =
+                            Move::new(std::mem::transmute(0u8), Square::new(32 + i as u8), std::mem::transmute(0u8));
+                    }
+                    template1
+                });
+
+                let extra = _mm512_set1_epi16(std::mem::transmute(Move::new(from, std::mem::transmute(0u8), kind)));
+
+                self.inner.splat16((to_bb.0 >> 0) as u32, _mm512_or_si512(template0, extra));
+                self.inner.splat16((to_bb.0 >> 32) as u32, _mm512_or_si512(template1, extra));
+            }
+        }
+    }
+
+    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512vbmi")))]
     pub fn push_pawns_setwise(&mut self, offset: i8, to_bb: Bitboard, kind: MoveKind) {
         for to in to_bb {
             self.push(to.shift(-offset), to, kind);
         }
     }
 
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+    pub fn push_pawns_setwise(&mut self, offset: i8, to_bb: Bitboard, kind: MoveKind) {
+        if !to_bb.is_empty() {
+            use std::arch::x86_64::{__m512i, _mm512_add_epi16, _mm512_set1_epi16};
+
+            unsafe {
+                let template0: __m512i = std::mem::transmute({
+                    let mut template0: [Move; 32] = [Move::NULL; 32];
+                    for i in 0..32 {
+                        let sq = Square::new(i as u8);
+                        template0[i] = Move::new(sq, sq, std::mem::transmute(0u8));
+                    }
+                    template0
+                });
+                let template1: __m512i = std::mem::transmute({
+                    let mut template1: [Move; 32] = [Move::NULL; 32];
+                    for i in 0..32 {
+                        let sq = Square::new(32u8 + i as u8);
+                        template1[i] = Move::new(sq, sq, std::mem::transmute(0u8));
+                    }
+                    template1
+                });
+
+                let offset = offset as i16;
+                let extra = _mm512_set1_epi16(((kind as i16) << 12) - offset);
+
+                self.inner.splat8((to_bb.0 >> 0) as u32, _mm512_add_epi16(template0, extra));
+                self.inner.splat8((to_bb.0 >> 32) as u32, _mm512_add_epi16(template1, extra));
+            }
+        }
+    }
+
     pub fn push_promotion_capture_setwise(&mut self, offset: i8, to_bb: Bitboard) {
-        for to in to_bb {
-            let from = to.shift(-offset);
-            self.push(from, to, MoveKind::PromotionCaptureQ);
-            self.push(from, to, MoveKind::PromotionCaptureR);
-            self.push(from, to, MoveKind::PromotionCaptureB);
-            self.push(from, to, MoveKind::PromotionCaptureN);
+        if !to_bb.is_empty() {
+            self.push_pawns_setwise(offset, to_bb, MoveKind::PromotionCaptureQ);
+            self.push_pawns_setwise(offset, to_bb, MoveKind::PromotionCaptureR);
+            self.push_pawns_setwise(offset, to_bb, MoveKind::PromotionCaptureB);
+            self.push_pawns_setwise(offset, to_bb, MoveKind::PromotionCaptureN);
         }
     }
 

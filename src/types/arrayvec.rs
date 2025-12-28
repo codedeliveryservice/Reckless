@@ -64,6 +64,35 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
+
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+    pub unsafe fn splat8(&mut self, mask: u32, vector: std::arch::x86_64::__m512i) {
+        use std::arch::x86_64::{
+            _mm512_castsi512_si128, _mm512_cvtepi16_epi64, _mm512_maskz_compress_epi16, _mm512_storeu_si512,
+        };
+
+        let count = mask.count_ones() as usize;
+        let to_write = _mm512_maskz_compress_epi16(mask, vector);
+        let to_write0 = _mm512_cvtepi16_epi64(_mm512_castsi512_si128(to_write));
+        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len).as_ptr()), to_write0);
+        self.len += count;
+    }
+
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+    pub unsafe fn splat16(&mut self, mask: u32, vector: std::arch::x86_64::__m512i) {
+        use std::arch::x86_64::{
+            _mm512_castsi512_si128, _mm512_cvtepi16_epi64, _mm512_extracti32x4_epi32, _mm512_maskz_compress_epi16,
+            _mm512_storeu_si512,
+        };
+
+        let count = mask.count_ones() as usize;
+        let to_write = _mm512_maskz_compress_epi16(mask, vector);
+        let to_write0 = _mm512_cvtepi16_epi64(_mm512_castsi512_si128(to_write));
+        let to_write1 = _mm512_cvtepi16_epi64(_mm512_extracti32x4_epi32::<1>(to_write));
+        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len + 0).as_ptr()), to_write0);
+        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len + 8).as_ptr()), to_write1);
+        self.len += count;
+    }
 }
 
 impl<const N: usize, T: Copy> Index<usize> for ArrayVec<T, N> {
