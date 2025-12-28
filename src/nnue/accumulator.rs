@@ -292,99 +292,60 @@ impl ThreatAccumulator {
             }
         }
 
-        #[cfg(target_feature = "avx512f")]
-        {
-            const REGISTERS: usize = L1_SIZE / simd::I16_LANES;
+        const REGISTERS: usize = L1_SIZE / simd::I16_LANES;
 
-            let mut registers: [_; REGISTERS] = unsafe { std::mem::zeroed() };
+        let mut registers: [_; REGISTERS] = unsafe { std::mem::zeroed() };
+
+        for (i, register) in registers.iter_mut().enumerate() {
+            unsafe { *register = *prev.values[pov].as_ptr().add(i * simd::I16_LANES).cast() };
+        }
+
+        while !adds.is_empty() && !subs.is_empty() {
+            let add = adds.pop().unwrap();
+            let sub = subs.pop().unwrap();
+
+            let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
+            let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
+
+            for i in 0..REGISTERS {
+                unsafe {
+                    let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
+                    let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
+                    registers[i] = simd::sub_i16(simd::add_i16(registers[i], add_weights), sub_weights);
+                }
+            }
+        }
+
+        for &add in adds.iter() {
+            let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
 
             for (i, register) in registers.iter_mut().enumerate() {
-                unsafe { *register = *prev.values[pov].as_ptr().add(i * simd::I16_LANES).cast() };
-            }
-
-            while !adds.is_empty() && !subs.is_empty() {
-                let add = adds.pop().unwrap();
-                let sub = subs.pop().unwrap();
-
-                let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
-                let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
-
-                for i in 0..REGISTERS {
-                    unsafe {
-                        let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
-                        let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                        registers[i] = simd::sub_i16(simd::add_i16(registers[i], add_weights), sub_weights);
-                    }
-                }
-            }
-
-            for &add in adds.iter() {
-                let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
-
-                for (i, register) in registers.iter_mut().enumerate() {
-                    unsafe {
-                        let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
-                        *register = simd::add_i16(*register, add_weights);
-                    }
-                }
-            }
-
-            for &sub in subs.iter() {
-                let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
-
-                for (i, register) in registers.iter_mut().enumerate() {
-                    unsafe {
-                        let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                        *register = simd::sub_i16(*register, sub_weights);
-                    }
-                }
-            }
-
-            let vout = self.values[pov].as_mut_ptr();
-            for (i, register) in registers.iter().enumerate() {
                 unsafe {
-                    *vout.add(i * simd::I16_LANES).cast() = *register;
+                    let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
+                    *register = simd::add_i16(*register, add_weights);
                 }
             }
-
-            self.accurate[pov] = true;
         }
 
-        #[cfg(not(target_feature = "avx512f"))]
-        {
-            self.values[pov] = prev.values[pov];
+        for &sub in subs.iter() {
+            let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
 
-            while !adds.is_empty() && !subs.is_empty() {
-                let add = adds.pop().unwrap();
-                let sub = subs.pop().unwrap();
-
-                unsafe { add1_sub1(&mut self.values[pov], add, sub) }
+            for (i, register) in registers.iter_mut().enumerate() {
+                unsafe {
+                    let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
+                    *register = simd::sub_i16(*register, sub_weights);
+                }
             }
-
-            for &add in adds.iter() {
-                unsafe { add1(&mut self.values[pov], add) }
-            }
-
-            for &sub in subs.iter() {
-                unsafe { sub1(&mut self.values[pov], sub) }
-            }
-
-            self.accurate[pov] = true;
         }
-    }
-}
 
-unsafe fn add1_sub1(output: &mut [i16], add1: usize, sub1: usize) {
-    let vacc = output.as_mut_ptr();
-    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
-    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
+        let vout = self.values[pov].as_mut_ptr();
+        for (i, register) in registers.iter().enumerate() {
+            unsafe {
+                *vout.add(i * simd::I16_LANES).cast() = *register;
+            }
+        }
 
-    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
-        let mut v = *vacc.add(i).cast();
-        v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
-        v = simd::sub_i16(v, simd::convert_i8_i16(*vsub1.add(i).cast()));
-
-        *vacc.add(i).cast() = v;
+        self.accurate[pov] = true;
     }
 }
 
@@ -395,18 +356,6 @@ unsafe fn add1(output: &mut [i16], add1: usize) {
     for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
         let mut v = *vacc.add(i).cast();
         v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
-
-        *vacc.add(i).cast() = v;
-    }
-}
-
-unsafe fn sub1(output: &mut [i16], sub1: usize) {
-    let vacc = output.as_mut_ptr();
-    let vsub1 = PARAMETERS.ft_threat_weights[sub1].as_ptr();
-
-    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
-        let mut v = *vacc.add(i).cast();
-        v = simd::sub_i16(v, simd::convert_i8_i16(*vsub1.add(i).cast()));
 
         *vacc.add(i).cast() = v;
     }
