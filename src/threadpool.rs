@@ -179,6 +179,7 @@ fn make_worker_thread(num_threads: usize, cpu: usize) -> WorkerThread {
     let handle = std::thread::spawn(move || {
         #[cfg(feature = "numa")]
         if std::thread::available_parallelism().is_ok_and(|x| num_threads >= x.get() / 2) {
+            println!("Pinning worker thread to CPU {}", cpu);
             pin_thread_to_cpu(cpu);
         }
 
@@ -197,6 +198,12 @@ fn make_worker_thread(num_threads: usize, cpu: usize) -> WorkerThread {
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     let cpu_ids = available_cpu_ids();
+    println!("Using {} threads on CPUs: {:?}", num_threads, cpu_ids);
+    println!(
+        "System reports {} available hardware threads",
+        std::thread::available_parallelism().map_or(0, |n| n.get())
+    );
+
     (0..num_threads).map(|index| make_worker_thread(num_threads, cpu_ids[index % cpu_ids.len()])).collect()
 }
 

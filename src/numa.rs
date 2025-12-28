@@ -46,6 +46,8 @@ impl<T: NumaValue> NumaReplicator<T> {
                 })
                 .collect::<Vec<_>>();
 
+            println!("Allocated NUMA replicator with {} nodes", nodes.len());
+
             Self { nodes, size: Some(size) }
         }
 
