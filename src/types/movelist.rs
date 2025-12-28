@@ -99,7 +99,7 @@ impl MoveList {
                 });
 
                 let offset = offset as i16;
-                let extra = _mm512_set1_epi16(((kind as i16) << 12) - offset);
+                let extra = _mm512_set1_epi16(((kind as i16) << 12).wrapping_sub(offset));
 
                 self.inner.splat8((to_bb.0 >> 0) as u32, _mm512_add_epi16(template0, extra));
                 self.inner.splat8((to_bb.0 >> 32) as u32, _mm512_add_epi16(template1, extra));
