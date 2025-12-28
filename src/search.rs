@@ -663,6 +663,8 @@ fn search<NODE: NodeType>(
     let mut skip_quiets = false;
     let mut current_search_count = 0;
 
+    let mut alpha_raise = false;
+    let pre_loop_depth = depth;
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
             continue;
@@ -940,7 +942,8 @@ fn search<NODE: NodeType>(
                     break;
                 }
 
-                if depth > 2 && depth < 17 && !is_decisive(score) {
+                if NODE::PV && depth > 2 && depth < 17 && !is_decisive(score) {
+                    alpha_raise = true;
                     depth -= 1;
                 }
 
@@ -963,6 +966,10 @@ fn search<NODE: NodeType>(
         }
 
         return if in_check { mated_in(ply) } else { Score::DRAW };
+    }
+
+    if NODE::PV && alpha_raise {
+        depth = depth.max(pre_loop_depth);
     }
 
     if best_move.is_some() {
