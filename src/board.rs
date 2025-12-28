@@ -1,7 +1,7 @@
 use crate::{
     lookup::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
-        pawn_attacks, queen_attacks, rook_attacks,
+        pawn_attacks, pawn_attacks_setwise, queen_attacks, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
@@ -470,9 +470,7 @@ impl Board {
 
         let mut threats = Bitboard::default();
 
-        for square in self.their(PieceType::Pawn) {
-            threats |= pawn_attacks(square, !self.side_to_move);
-        }
+        threats |= pawn_attacks_setwise(self.their(PieceType::Pawn), !self.side_to_move);
 
         for square in self.their(PieceType::Knight) {
             threats |= knight_attacks(square);
