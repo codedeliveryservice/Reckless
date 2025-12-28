@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicI16, Ordering};
+use std::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicI16, Ordering},
+};
 
 use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 
@@ -118,27 +121,51 @@ impl Default for NoisyHistory {
 
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[AtomicI16; Self::SIZE]; 2]>,
+    entries: UnsafeCell<Box<[Box<[AtomicI16]>; 2]>>,
+    size: UnsafeCell<usize>,
 }
+
+unsafe impl Sync for CorrectionHistory {}
 
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14734;
+    const BASE_SIZE: usize = 16384;
 
-    const SIZE: usize = 16384;
-    const MASK: usize = Self::SIZE - 1;
+    pub fn reshape(&self, threads: usize) {
+        let new_size = threads.next_power_of_two() * Self::BASE_SIZE;
+
+        let mut new_entries = Vec::with_capacity(2);
+        for _ in 0..2 {
+            let arr: Vec<AtomicI16> = (0..new_size).map(|_| AtomicI16::new(0)).collect();
+            new_entries.push(arr.into_boxed_slice().try_into().unwrap());
+        }
+
+        unsafe {
+            *self.entries.get() = new_entries.into_boxed_slice().try_into().unwrap();
+            *self.size.get() = new_size;
+        }
+    }
+
+    fn mask(&self) -> usize {
+        unsafe { *self.size.get() - 1 }
+    }
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32
+        let mask = self.mask();
+        unsafe { (&*self.entries.get())[stm][key as usize & mask].load(Ordering::Relaxed) as i32 }
     }
 
     pub fn update(&self, stm: Color, key: u64, bonus: i32) {
-        let current = self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32;
-        let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
-        self.entries[stm][key as usize & Self::MASK].store(new as i16, Ordering::Relaxed);
+        unsafe {
+            let mask = self.mask();
+            let current = (&*self.entries.get())[stm][key as usize & mask].load(Ordering::Relaxed) as i32;
+            let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
+            (&*self.entries.get())[stm][key as usize & mask].store(new as i16, Ordering::Relaxed);
+        }
     }
 
     pub fn clear(&self) {
-        for entries in self.entries.iter() {
+        for entries in unsafe { &*self.entries.get() }.iter() {
             for entry in entries.iter() {
                 entry.store(0, Ordering::Relaxed);
             }
@@ -148,7 +175,13 @@ impl CorrectionHistory {
 
 impl Default for CorrectionHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self {
+            entries: UnsafeCell::new(Box::new([
+                Box::new([(); Self::BASE_SIZE].map(|_| AtomicI16::new(0))),
+                Box::new([(); Self::BASE_SIZE].map(|_| AtomicI16::new(0))),
+            ])),
+            size: UnsafeCell::new(Self::BASE_SIZE),
+        }
     }
 }
 

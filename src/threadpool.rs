@@ -34,6 +34,12 @@ impl ThreadPool {
     pub fn set_count(&mut self, threads: usize) {
         let shared = self.vector[0].shared.clone();
 
+        shared.pawn_corrhist.reshape(threads);
+        shared.minor_corrhist.reshape(threads);
+        shared.major_corrhist.reshape(threads);
+        shared.non_pawn_corrhist[0].reshape(threads);
+        shared.non_pawn_corrhist[1].reshape(threads);
+
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);
 
