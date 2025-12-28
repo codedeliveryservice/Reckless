@@ -195,20 +195,44 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
             *register = *output.add(i * simd::I16_LANES).cast();
         }
 
-        for &add in adds.iter() {
-            let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
+        let mut add_idx = 0;
+        let mut sub_idx = 0;
+
+        while add_idx < adds.len() && sub_idx < subs.len() {
+            let add = adds[add_idx];
+            let sub = subs[sub_idx];
+
+            let add_weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
+            let sub_weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
+
+            for i in 0..REGISTERS {
+                *registers.get_unchecked_mut(i) = simd::sub_i16(
+                    simd::add_i16(*registers.get_unchecked(i), *add_weights.add(i * simd::I16_LANES).cast()),
+                    *sub_weights.add(i * simd::I16_LANES).cast(),
+                );
+            }
+
+            add_idx += 1;
+            sub_idx += 1;
+        }
+
+        while add_idx < adds.len() {
+            let weights = PARAMETERS.ft_piece_weights[adds[add_idx]].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
+
+            add_idx += 1;
         }
 
-        for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
-
+        while sub_idx < subs.len() {
+            let weights = PARAMETERS.ft_piece_weights[subs[sub_idx]].as_ptr().add(offset);
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
             }
+
+            sub_idx += 1;
         }
 
         for (i, register) in registers.into_iter().enumerate() {
