@@ -151,7 +151,7 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
     simd::horizontal_sum(output) + PARAMETERS.l3_biases
 }
 
-#[cfg(not(target_feature = "neon"))]
+#[cfg(all(not(target_feature = "neon"), not(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))))]
 pub unsafe fn find_nnz(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
 ) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
@@ -176,6 +176,34 @@ pub unsafe fn find_nnz(
             count += entry.count;
             base = _mm_add_epi16(base, increment);
         }
+    }
+
+    (indexes, count)
+}
+
+#[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    use std::arch::x86_64::*;
+
+    let mut indexes = Aligned::new([0; L1_SIZE / 4]);
+    let mut count = 0;
+
+    let increment = _mm512_set1_epi16(32);
+    let mut base = _mm512_set_epi16(
+        31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2,
+        1, 0,
+    );
+
+    for i in (0..L1_SIZE).step_by(4 * simd::I16_LANES) {
+        let mask0 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 0 * simd::I16_LANES).cast());
+        let mask1 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 2 * simd::I16_LANES).cast());
+        let mask = _mm512_kunpackw(mask1 as u32, mask0 as u32);
+
+        let store = indexes.as_mut_ptr().add(count).cast();
+        _mm512_storeu_si512(store, _mm512_maskz_compress_epi16(mask, base));
+
+        count += mask.count_ones() as usize;
+        base = _mm512_add_epi16(base, increment);
     }
 
     (indexes, count)
