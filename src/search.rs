@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -700,12 +700,12 @@ fn search<NODE: NodeType>(
 
             // Futility Pruning (FP)
             let futility_value = eval
-                + 94 * depth
-                + 61 * main_history / 1024
-                + 61 * conthist1 / 1024
-                + 61 * conthist2 / 1024
-                + 87 * (eval >= alpha) as i32
-                - 116;
+                + fp1() * depth
+                + fp2() * main_history / 1024
+                + fp3() * conthist1 / 1024
+                + fp4() * conthist2 / 1024
+                + fp5() * (eval >= alpha) as i32
+                - fp6();
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
@@ -717,10 +717,10 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval
-                + 68 * depth
-                + 68 * main_history / 1024
-                + 83 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
-                + 24;
+                + bnfp1() * depth
+                + bnfp2() * main_history / 1024
+                + bnfp4() * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + bnfp5();
 
             if !in_check
                 && depth < 12
@@ -736,13 +736,13 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                -16 * depth * depth + 50 * depth
-                    - 21 * main_history / 1024
-                    - 21 * conthist1 / 1024
-                    - 21 * conthist2 / 1024
-                    + 25
+                -see1() * depth * depth + see2() * depth
+                    - see3() * main_history / 1024
+                    - see4() * conthist1 / 1024
+                    - see5() * conthist2 / 1024
+                    + see6()
             } else {
-                -8 * depth * depth - 36 * depth - 33 * main_history / 1024 + 10
+                -see7() * depth * depth - see8() * depth - see9() * main_history / 1024 + see10()
             };
 
             if !td.board.see(mv, threshold) {
@@ -762,13 +762,13 @@ fn search<NODE: NodeType>(
             let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
 
             if is_quiet {
-                reduction += 1808;
-                reduction -= 152 * main_history / 1024;
-                reduction -= 152 * conthist1 / 1024;
-                reduction -= 152 * conthist2 / 1024;
+                reduction += lmr1();
+                reduction -= lmr2() * main_history / 1024;
+                reduction -= lmr3() * conthist1 / 1024;
+                reduction -= lmr4() * conthist2 / 1024;
             } else {
-                reduction += 1564;
-                reduction -= 102 * main_history / 1024;
+                reduction += lmr5();
+                reduction -= lmr6() * main_history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
@@ -840,13 +840,13 @@ fn search<NODE: NodeType>(
             let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
 
             if is_quiet {
-                reduction += 1615;
-                reduction -= 154 * main_history / 1024;
-                reduction -= 154 * conthist1 / 1024;
-                reduction -= 154 * conthist2 / 1024;
+                reduction += fds1();
+                reduction -= fds2() * main_history / 1024;
+                reduction -= fds3() * conthist1 / 1024;
+                reduction -= fds4() * conthist2 / 1024;
             } else {
-                reduction += 1444;
-                reduction -= 65 * main_history / 1024;
+                reduction += fds5();
+                reduction -= fds6() * main_history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
