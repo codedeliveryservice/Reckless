@@ -1004,7 +1004,7 @@ fn search<NODE: NodeType>(
         }
 
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
-            let bonus = (210 * depth - 87).min(1663);
+            let bonus = (210 * depth - 87).min(1663) - 77 * cut_node as i32;
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
     }
