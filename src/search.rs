@@ -719,6 +719,7 @@ fn search<NODE: NodeType>(
                 && depth < 12
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
+                && mv.to() != td.board.recapture_square()
                 && !td.board.is_direct_check(mv)
             {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
