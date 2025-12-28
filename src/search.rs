@@ -349,7 +349,11 @@ fn search<NODE: NodeType>(
             }
 
             if td.board.halfmove_clock() < 90 {
-                return tt_score;
+                if is_decisive(tt_score) {
+                    return tt_score;
+                }
+
+                return if tt_score >= beta { tt_score - (tt_score - beta) / 4 } else { tt_score };
             }
         }
     }
