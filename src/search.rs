@@ -1033,10 +1033,6 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
-        best_score = (best_score * depth + beta) / (depth + 1);
-    }
-
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
@@ -1051,6 +1047,10 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Lower && best_score <= eval))
     {
         update_correction_histories(td, depth, best_score - eval, ply);
+    }
+
+    if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
+        best_score = (best_score * depth + beta) / (depth + 1);
     }
 
     debug_assert!(alpha < beta);
@@ -1230,13 +1230,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return mated_in(ply);
     }
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
-        best_score = (best_score + beta) / 2;
-    }
-
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
     td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
+
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+        best_score = (best_score + beta) / 2;
+    }
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
