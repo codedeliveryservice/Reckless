@@ -481,10 +481,16 @@ fn search<NODE: NodeType>(
 
     let mut improvement = 0;
 
-    if is_valid(td.stack[ply - 2].eval) && !in_check {
-        improvement = eval - td.stack[ply - 2].eval;
-    } else if is_valid(td.stack[ply - 4].eval) && !in_check {
-        improvement = eval - td.stack[ply - 4].eval;
+    if !in_check {
+        let eval2 = td.stack[ply - 2].eval;
+        let eval4 = td.stack[ply - 4].eval;
+
+        improvement = match (is_valid(eval2), is_valid(eval4)) {
+            (true, true) => eval - (eval2 + eval4) / 2,
+            (true, false) => eval - eval2,
+            (false, true) => eval - eval4,
+            _ => 0,
+        }
     }
 
     let improving = improvement > 0;
