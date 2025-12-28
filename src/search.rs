@@ -698,7 +698,12 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 94 * depth + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
+            let futility_value = eval
+                + 94 * depth
+                + 91 * td.conthist(ply, 1, mv) / 1024
+                + 91 * td.conthist(ply, 2, mv) / 1024
+                + 87 * (eval >= alpha) as i32
+                - 116;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
