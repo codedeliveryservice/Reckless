@@ -136,6 +136,14 @@ impl CorrectionHistory {
         let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
         self.entries[stm][key as usize & Self::MASK].store(new as i16, Ordering::Relaxed);
     }
+
+    pub fn clear(&self) {
+        for entries in self.entries.iter() {
+            for entry in entries.iter() {
+                entry.store(0, Ordering::Relaxed);
+            }
+        }
+    }
 }
 
 impl Default for CorrectionHistory {

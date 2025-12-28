@@ -8,7 +8,7 @@ use crate::{
     threadpool::{ScopeExt, ThreadPool},
     time::{Limits, TimeManager},
     tools,
-    transposition::{TranspositionTable, DEFAULT_TT_SIZE},
+    transposition::DEFAULT_TT_SIZE,
     types::{is_decisive, is_loss, is_win, Color, Score, Square, MAX_MOVES},
 };
 
@@ -47,7 +47,7 @@ pub fn message_loop() {
             ["go", tokens @ ..] => go(&mut threads, &settings, &shared, tokens),
             ["position", tokens @ ..] => position(&mut threads, &settings, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut settings, &shared, tokens),
-            ["ucinewgame"] => reset(&mut threads, &shared.tt),
+            ["ucinewgame"] => reset(&mut threads, &shared),
 
             ["stop"] => shared.status.set(Status::STOPPED),
             ["quit"] => break,
@@ -116,9 +116,14 @@ fn compiler() {
     println!("Compiler Features: {}", env!("COMPILER_FEATURES"));
 }
 
-fn reset(threads: &mut ThreadPool, tt: &TranspositionTable) {
+fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     threads.clear();
-    tt.clear(threads.len());
+    shared.tt.clear(threads.len());
+    shared.pawn_corrhist.clear();
+    shared.minor_corrhist.clear();
+    shared.major_corrhist.clear();
+    shared.non_pawn_corrhist[Color::White].clear();
+    shared.non_pawn_corrhist[Color::Black].clear();
 }
 
 fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
