@@ -276,7 +276,7 @@ impl ThreatAccumulator {
         self.accurate[pov] = true;
     }
 
-    pub fn update(&mut self, prev: &Self, king: Square, pov: Color) {
+    pub unsafe fn update(&mut self, prev: &Self, king: Square, pov: Color) {
         let mut adds = ArrayVec::<usize, 256>::new();
         let mut subs = ArrayVec::<usize, 256>::new();
 
@@ -297,54 +297,60 @@ impl ThreatAccumulator {
         #[cfg(not(target_feature = "avx512f"))]
         const REGISTERS: usize = 8;
 
-        let mut registers: [_; REGISTERS] = unsafe { std::mem::zeroed() };
+        let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
-        for (i, register) in registers.iter_mut().enumerate() {
-            unsafe { *register = *prev.values[pov].as_ptr().add(i * simd::I16_LANES).cast() };
-        }
+        for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
+            let input = prev.values[pov].as_ptr().add(offset);
+            let output = self.values[pov].as_mut_ptr().add(offset);
 
-        while !adds.is_empty() && !subs.is_empty() {
-            let add = adds.pop().unwrap();
-            let sub = subs.pop().unwrap();
+            for (i, register) in registers.iter_mut().enumerate() {
+                *register = *input.add(i * simd::I16_LANES).cast();
+            }
 
-            let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
-            let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
+            let mut add_idx = 0;
+            let mut sub_idx = 0;
 
-            for i in 0..REGISTERS {
-                unsafe {
+            while add_idx < adds.len() && sub_idx < subs.len() {
+                let add = adds[add_idx];
+                let sub = subs[sub_idx];
+
+                let vadd = PARAMETERS.ft_threat_weights[add].as_ptr().add(offset);
+                let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr().add(offset);
+
+                for i in 0..REGISTERS {
                     let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
                     let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
                     registers[i] = simd::sub_i16(simd::add_i16(registers[i], add_weights), sub_weights);
                 }
+
+                add_idx += 1;
+                sub_idx += 1;
             }
-        }
 
-        for &add in adds.iter() {
-            let vadd = PARAMETERS.ft_threat_weights[add].as_ptr();
+            while add_idx < adds.len() {
+                let vadd = PARAMETERS.ft_threat_weights[adds[add_idx]].as_ptr().add(offset);
 
-            for (i, register) in registers.iter_mut().enumerate() {
-                unsafe {
+                for i in 0..REGISTERS {
                     let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
-                    *register = simd::add_i16(*register, add_weights);
+                    registers[i] = simd::add_i16(registers[i], add_weights);
                 }
+
+                add_idx += 1;
             }
-        }
 
-        for &sub in subs.iter() {
-            let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr();
+            while sub_idx < subs.len() {
+                let vsub = PARAMETERS.ft_threat_weights[subs[sub_idx]].as_ptr().add(offset);
 
-            for (i, register) in registers.iter_mut().enumerate() {
-                unsafe {
+                for i in 0..REGISTERS {
                     let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                    *register = simd::sub_i16(*register, sub_weights);
+                    registers[i] = simd::sub_i16(registers[i], sub_weights);
                 }
-            }
-        }
 
-        let vout = self.values[pov].as_mut_ptr();
-        for (i, register) in registers.iter().enumerate() {
-            unsafe {
-                *vout.add(i * simd::I16_LANES).cast() = *register;
+                sub_idx += 1;
+            }
+
+            for (i, register) in registers.iter().enumerate() {
+                *output.add(i * simd::I16_LANES).cast() = *register;
             }
         }
 
