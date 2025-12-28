@@ -81,7 +81,8 @@ pub enum TtDepth {}
 
 impl TtDepth {
     pub const NONE: i32 = 0;
-    pub const SOME: i32 = -1;
+    pub const QSEARCH: i32 = -1;
+    pub const UNSEARCHED: i32 = -2;
 }
 
 impl InternalEntry {

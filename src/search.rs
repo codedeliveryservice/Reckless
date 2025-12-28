@@ -410,7 +410,17 @@ fn search<NODE: NodeType>(
         raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
 
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        td.shared.tt.write(
+            hash,
+            TtDepth::UNSEARCHED,
+            raw_eval,
+            Score::NONE,
+            Bound::None,
+            Move::NULL,
+            ply,
+            tt_pv,
+            false,
+        );
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -1146,7 +1156,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if entry.is_none() {
                 td.shared.tt.write(
                     hash,
-                    TtDepth::SOME,
+                    TtDepth::UNSEARCHED,
                     raw_eval,
                     best_score,
                     Bound::Lower,
@@ -1236,7 +1246,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
+    td.shared.tt.write(hash, TtDepth::QSEARCH, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
