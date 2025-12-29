@@ -6,7 +6,8 @@ type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
-    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+    let capacity = MAX - entry.abs() as i32 * bonus.signum() * entry.signum() as i32;
+    *entry = (*entry as i32 + bonus * capacity / MAX).clamp(-MAX, MAX) as i16;
 }
 
 struct QuietHistoryEntry {
@@ -131,7 +132,7 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
 
