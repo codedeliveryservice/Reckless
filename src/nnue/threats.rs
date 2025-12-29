@@ -6,7 +6,7 @@ use crate::{
 #[derive(Copy, Clone)]
 struct PiecePair {
     // Bit layout:
-    // - bits 0..29: base index contribution for this piece-pair
+    // - bits 0..23: base index contribution for this piece-pair
     // - bits 30..31 : exclusion flags (semi/excluded)
     inner: u32,
 }
@@ -20,9 +20,9 @@ impl PiecePair {
         }
     }
 
-    fn base(self, attacking: Square, attacked: Square) -> u32 {
+    fn base(self, attacking: Square, attacked: Square) -> isize {
         let below = ((attacking as u8) < (attacked as u8)) as u32;
-        (self.inner.wrapping_add(below << 30)) & 0xBFFFFFFF
+        ((self.inner.wrapping_add(below << 30)) & 0x80FFFFFF) as i32 as isize
     }
 }
 
@@ -114,10 +114,8 @@ pub fn threat_index(
     unsafe {
         let pair = PIECE_PAIR_LOOKUP[attacking][attacked];
 
-        let index = pair.base(from, to) as isize
+        pair.base(from, to)
             + PIECE_OFFSET_LOOKUP[attacking][from] as isize
-            + ATTACK_INDEX_LOOKUP[attacking][from][to] as isize;
-
-        index as i32 as isize
+            + ATTACK_INDEX_LOOKUP[attacking][from][to] as isize
     }
 }
