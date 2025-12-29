@@ -604,11 +604,6 @@ fn search<NODE: NodeType>(
         }
     }
 
-    // Internal Iterative Reductions (IIR)
-    if depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
-        depth -= 1;
-    }
-
     // Singular Extensions (SE)
     let mut extension = 0;
 
@@ -745,6 +740,11 @@ fn search<NODE: NodeType>(
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
+
+        // Internal Iterative Reductions (IIR)
+        if new_depth >= 3 + 3 * cut_node as i32 && tt_move.is_null() && (NODE::PV || cut_node) {
+            new_depth -= 1;
+        }
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
