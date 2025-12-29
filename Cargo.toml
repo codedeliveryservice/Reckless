@@ -6,7 +6,9 @@ build = "build/build.rs"
 publish = false
 
 [features]
+default = ["numa"]
 spsa = []
+numa = []
 
 [profile.dev]
 opt-level = 3

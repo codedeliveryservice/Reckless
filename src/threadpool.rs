@@ -173,10 +173,21 @@ impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     }
 }
 
-fn make_worker_thread() -> WorkerThread {
+fn make_worker_thread(num_threads: usize, cpu: usize) -> WorkerThread {
     let (sender, receiver) = make_work_channel();
 
+    #[cfg(not(feature = "numa"))]
+    {
+        let _ = cpu;
+        let _ = num_threads;
+    }
+
     let handle = std::thread::spawn(move || {
+        #[cfg(feature = "numa")]
+        if std::thread::available_parallelism().is_ok_and(|x| num_threads >= x.get() / 2) {
+            pin_thread_to_cpu(cpu);
+        }
+
         while let Ok(work) = receiver.receiver.recv() {
             work();
             let (lock, cvar) = &*receiver.completion_signal;
@@ -191,7 +202,8 @@ fn make_worker_thread() -> WorkerThread {
 }
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
-    (0..num_threads).map(|_| make_worker_thread()).collect()
+    let cpu_ids = available_cpu_ids();
+    (0..num_threads).map(|index| make_worker_thread(num_threads, cpu_ids[index % cpu_ids.len()])).collect()
 }
 
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<Box<ThreadData>> {
@@ -220,4 +232,36 @@ fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread])
 
         thread_data
     })
+}
+
+fn available_cpu_ids() -> Vec<usize> {
+    #[cfg(feature = "numa")]
+    unsafe {
+        let mut set: libc::cpu_set_t = std::mem::zeroed();
+        let size = std::mem::size_of::<libc::cpu_set_t>();
+
+        let code = libc::sched_getaffinity(0, size, &mut set);
+        if code != 0 {
+            panic!("sched_getaffinity failed with code {code}");
+        }
+
+        (0..(libc::CPU_SETSIZE as usize)).filter(|&cpu| libc::CPU_ISSET(cpu, &set)).collect()
+    }
+
+    #[cfg(not(feature = "numa"))]
+    vec![0]
+}
+
+#[cfg(feature = "numa")]
+fn pin_thread_to_cpu(cpu: usize) {
+    if cpu >= libc::CPU_SETSIZE as usize {
+        return;
+    }
+
+    unsafe {
+        let mut set: libc::cpu_set_t = std::mem::zeroed();
+        libc::CPU_ZERO(&mut set);
+        libc::CPU_SET(cpu, &mut set);
+        let _ = libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &set);
+    }
 }
