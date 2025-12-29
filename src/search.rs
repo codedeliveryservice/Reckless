@@ -697,6 +697,8 @@ fn search<NODE: NodeType>(
                         (1252 + 320 * initial_depth * initial_depth) / 1024
                     };
 
+            skip_quiets |= is_quiet && history < -250 * depth * depth;
+
             // Futility Pruning (FP)
             let futility_value = eval + 94 * depth + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
 
