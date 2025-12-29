@@ -340,11 +340,8 @@ fn search<NODE: NodeType>(
 
                     td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-                    let entry = &td.stack[ply - 2];
-                    if entry.mv.is_some() {
-                        let bonus = (122 * initial_depth - 34).min(1723);
-                        td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-                    }
+                    let bonus = (122 * initial_depth - 34).min(1723);
+                    update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, pcm_move.to(), bonus);
                 }
             }
 
@@ -1023,11 +1020,8 @@ fn search<NODE: NodeType>(
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_some() {
-                let bonus = (166 * initial_depth - 37).min(1268);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-            }
+            let bonus = (166 * initial_depth - 37).min(1268);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, pcm_move.to(), bonus);
         }
     }
 
