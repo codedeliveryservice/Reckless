@@ -59,6 +59,31 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .map(|v| RootMove { mv: v.mv, ..Default::default() })
         .collect();
 
+    // Root pre-search
+    {
+        let moves = td.root_moves.iter().map(|rm| rm.mv).collect::<Vec<_>>();
+        let mut scores = Vec::with_capacity(moves.len());
+
+        for &mv in &moves {
+            make_move(td, 0, mv);
+            scores.push(-qsearch::<PV>(td, -Score::INFINITE, Score::INFINITE, 1));
+            undo_move(td, mv);
+        }
+
+        let max_score = *scores.iter().max().unwrap();
+
+        for (&mv, &score) in moves.iter().zip(&scores) {
+            let bonus = (196 * (max_score - score)).min(2430);
+
+            if mv.is_quiet() {
+                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, bonus);
+            } else {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, bonus);
+            }
+        }
+    }
+
     td.root_in_tb = false;
     td.stop_probing_tb = false;
 
