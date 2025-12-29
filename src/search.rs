@@ -569,7 +569,7 @@ fn search<NODE: NodeType>(
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
-        let probcut_depth = (depth - 4).max(0);
+        let probcut_depth = (depth - 4 + entry.is_none() as i32).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
