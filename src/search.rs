@@ -730,8 +730,10 @@ fn search<NODE: NodeType>(
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
                 -16 * depth * depth + 50 * depth - 21 * history / 1024 + 25
+                    - 32 * (td.stack[ply + 1].cutoff_count > 2) as i32
             } else {
                 -8 * depth * depth - 36 * depth - 33 * history / 1024 + 10
+                    - 32 * (td.stack[ply + 1].cutoff_count > 2) as i32
             };
 
             if !td.board.see(mv, threshold) {
