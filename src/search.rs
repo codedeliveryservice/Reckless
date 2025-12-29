@@ -627,7 +627,13 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin = 2 + 272 * NODE::PV as i32;
+            let history = if tt_move.is_quiet() {
+                td.quiet_history.get(td.board.threats(), td.board.side_to_move(), tt_move) / 768
+            } else {
+                0
+            };
+
+            let double_margin = 2 + 272 * NODE::PV as i32 - history;
             let triple_margin = 57 + 313 * NODE::PV as i32 - 14 * correction_value.abs() / 128;
 
             extension = 1;
