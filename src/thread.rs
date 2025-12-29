@@ -1,17 +1,21 @@
-use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
-    Arc,
+use std::{
+    cell::UnsafeCell,
+    sync::{
+        atomic::{AtomicU64, AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
 use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    numa::{NumaReplicator, NumaValue},
     stack::Stack,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_PLY},
+    types::{normalize_to_cp, Color, Move, Score, MAX_PLY},
 };
 
 #[repr(align(64))]
@@ -85,16 +89,91 @@ impl Default for Status {
     }
 }
 
-#[derive(Default)]
+pub struct SharedCorrectionHistories {
+    pub pawn_corrhist: CorrectionHistory,
+    pub minor_corrhist: CorrectionHistory,
+    pub major_corrhist: CorrectionHistory,
+    pub non_pawn_corrhist: [CorrectionHistory; 2],
+}
+
+unsafe impl NumaValue for SharedCorrectionHistories {}
+
+impl SharedCorrectionHistories {
+    pub fn new(threads: usize) -> Self {
+        Self {
+            pawn_corrhist: CorrectionHistory::new(threads),
+            minor_corrhist: CorrectionHistory::new(threads),
+            major_corrhist: CorrectionHistory::new(threads),
+            non_pawn_corrhist: [CorrectionHistory::new(threads), CorrectionHistory::new(threads)],
+        }
+    }
+}
+
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
-    pub pawn_corrhist: CorrectionHistory,
-    pub minor_corrhist: CorrectionHistory,
-    pub major_corrhist: CorrectionHistory,
-    pub non_pawn_corrhist: [CorrectionHistory; 2],
+    pub corrhist: UnsafeCell<NumaReplicator<SharedCorrectionHistories>>,
+    pub pawn_corrhist: *const CorrectionHistory,
+    pub minor_corrhist: *const CorrectionHistory,
+    pub major_corrhist: *const CorrectionHistory,
+    pub non_pawn_corrhist: [*const CorrectionHistory; 2],
+}
+
+unsafe impl Sync for SharedContext {}
+
+impl SharedContext {
+    pub fn new(threads: usize) -> Self {
+        let corrhist = NumaReplicator::new_from_owned(SharedCorrectionHistories::new(threads));
+
+        Self {
+            tt: TranspositionTable::default(),
+            status: Status::default(),
+            nodes: Counter::default(),
+            tb_hits: Counter::default(),
+            pawn_corrhist: &(corrhist.get_local_copy()).pawn_corrhist,
+            minor_corrhist: &(corrhist.get_local_copy()).minor_corrhist,
+            major_corrhist: &(corrhist.get_local_copy()).major_corrhist,
+            non_pawn_corrhist: [
+                &(corrhist.get_local_copy()).non_pawn_corrhist[0],
+                &(corrhist.get_local_copy()).non_pawn_corrhist[1],
+            ],
+            corrhist: UnsafeCell::new(corrhist),
+        }
+    }
+
+    pub const fn get_pawn_corrhist(&self) -> &CorrectionHistory {
+        unsafe { &*self.pawn_corrhist }
+    }
+
+    pub const fn get_minor_corrhist(&self) -> &CorrectionHistory {
+        unsafe { &*self.minor_corrhist }
+    }
+
+    pub const fn get_major_corrhist(&self) -> &CorrectionHistory {
+        unsafe { &*self.major_corrhist }
+    }
+
+    pub const fn get_non_pawn_corrhist(&self, color: Color) -> &CorrectionHistory {
+        unsafe { &*self.non_pawn_corrhist[color as usize] }
+    }
+
+    pub fn clear_correction_histories(&self) {
+        unsafe {
+            (*self.corrhist.get()).get_local_copy().pawn_corrhist.clear();
+            (*self.corrhist.get()).get_local_copy().minor_corrhist.clear();
+            (*self.corrhist.get()).get_local_copy().major_corrhist.clear();
+            (*self.corrhist.get()).get_local_copy().non_pawn_corrhist[0].clear();
+            (*self.corrhist.get()).get_local_copy().non_pawn_corrhist[1].clear();
+        }
+    }
+}
+
+impl Default for SharedContext {
+    fn default() -> Self {
+        Self::new(1)
+    }
 }
 
 unsafe impl Send for SharedContext {}

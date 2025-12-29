@@ -7,7 +7,10 @@ use std::{
     thread::Scope,
 };
 
-use crate::thread::{SharedContext, ThreadData};
+use crate::{
+    numa::NumaReplicator,
+    thread::{SharedContext, SharedCorrectionHistories, ThreadData},
+};
 
 pub struct ThreadPool {
     pub workers: Vec<WorkerThread>,
@@ -34,11 +37,9 @@ impl ThreadPool {
     pub fn set_count(&mut self, threads: usize) {
         let shared = self.vector[0].shared.clone();
 
-        shared.pawn_corrhist.reshape(threads);
-        shared.minor_corrhist.reshape(threads);
-        shared.major_corrhist.reshape(threads);
-        shared.non_pawn_corrhist[0].reshape(threads);
-        shared.non_pawn_corrhist[1].reshape(threads);
+        unsafe {
+            *shared.corrhist.get() = NumaReplicator::new_from_owned(SharedCorrectionHistories::new(threads));
+        }
 
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);

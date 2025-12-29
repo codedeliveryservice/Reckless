@@ -118,12 +118,8 @@ fn compiler() {
 
 fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     threads.clear();
+    shared.clear_correction_histories();
     shared.tt.clear(threads.len());
-    shared.pawn_corrhist.clear();
-    shared.minor_corrhist.clear();
-    shared.major_corrhist.clear();
-    shared.non_pawn_corrhist[Color::White].clear();
-    shared.non_pawn_corrhist[Color::Black].clear();
 }
 
 fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
