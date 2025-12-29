@@ -9,6 +9,18 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+fn compress_factorizer_bonus(bonus: i32) -> i32 {
+    const MAX: i32 = 1024;
+
+    if bonus.abs() <= MAX {
+        return bonus;
+    }
+
+    let excess = (MAX - bonus.abs()) as u32;
+    let quota = 32 * (31 - excess.leading_zeros());
+    (MAX + quota as i32) * bonus.signum()
+}
+
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
@@ -27,7 +39,7 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, compress_factorizer_bonus(bonus));
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
@@ -79,7 +91,7 @@ impl NoisyHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, compress_factorizer_bonus(bonus));
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
@@ -131,7 +143,7 @@ impl CorrectionHistory {
 
     pub fn update(&mut self, stm: Color, key: u64, bonus: i32) {
         let entry = &mut self.entries[stm][key as usize & Self::MASK];
-        *entry += (bonus - bonus.abs() * (*entry) as i32 / Self::MAX_HISTORY) as i16;
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
 
