@@ -55,6 +55,21 @@ impl QuietHistory {
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, mv, bonus);
     }
+
+    pub fn age(&mut self) {
+        for stm in self.entries.iter_mut() {
+            for from in stm.iter_mut() {
+                for entry in from.iter_mut() {
+                    entry.factorizer -= entry.factorizer / 4;
+                    for buckets in entry.buckets.iter_mut() {
+                        for bucket in buckets.iter_mut() {
+                            *bucket = *bucket * 3 / 4;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Default for QuietHistory {
