@@ -744,7 +744,7 @@ fn search<NODE: NodeType>(
         let mut score = Score::ZERO;
 
         // Internal Iterative Reductions (IIR)
-        if (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
+        if move_count > 1 && (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
             new_depth -= 1;
         }
 
