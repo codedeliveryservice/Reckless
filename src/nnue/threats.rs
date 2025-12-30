@@ -6,25 +6,23 @@ use crate::{
 #[derive(Copy, Clone)]
 struct PiecePair {
     // Bit layout:
-    // - bits 8..31: base index contribution for this piece-pair
-    // - bits 0..1 : exclusion flags (semi/excluded)
+    // - bits 0..23: base index contribution for this piece-pair
+    // - bits 30..31 : exclusion flags (semi/excluded)
     inner: u32,
 }
 
 impl PiecePair {
     fn new(excluded: bool, semi_excluded: bool, base: i32) -> Self {
         Self {
-            inner: ((semi_excluded && !excluded) as u32) | ((excluded as u32) << 1) | ((base as u32) << 8),
+            inner: (((semi_excluded && !excluded) as u32) << 30)
+                | ((excluded as u32) << 31)
+                | ((base & 0x3FFFFFFF) as u32),
         }
     }
 
-    fn base(self) -> usize {
-        (self.inner >> 8) as usize
-    }
-
-    fn excluded(self, attacking: Square, attacked: Square) -> bool {
-        let below = ((attacking as u8) < (attacked as u8)) as u8;
-        ((self.inner as u8 + below) & 2) != 0
+    fn base(self, attacking: Square, attacked: Square) -> isize {
+        let below = ((attacking as u8) < (attacked as u8)) as u32;
+        ((self.inner.wrapping_add(below << 30)) & 0x80FFFFFF) as i32 as isize
     }
 }
 
@@ -104,7 +102,7 @@ pub fn initialize() {
 
 pub fn threat_index(
     piece: Piece, mut from: Square, attacked: Piece, mut to: Square, mirrored: bool, pov: Color,
-) -> Option<usize> {
+) -> isize {
     let flip = (7 * (mirrored as u8)) ^ (56 * (pov as u8));
 
     from ^= flip;
@@ -115,14 +113,9 @@ pub fn threat_index(
 
     unsafe {
         let pair = PIECE_PAIR_LOOKUP[attacking][attacked];
-        if pair.excluded(from, to) {
-            return None;
-        }
 
-        let index = pair.base()
-            + PIECE_OFFSET_LOOKUP[attacking][from] as usize
-            + ATTACK_INDEX_LOOKUP[attacking][from][to] as usize;
-
-        Some(index)
+        pair.base(from, to)
+            + PIECE_OFFSET_LOOKUP[attacking][from] as isize
+            + ATTACK_INDEX_LOOKUP[attacking][from][to] as isize
     }
 }

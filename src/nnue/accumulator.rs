@@ -267,8 +267,9 @@ impl ThreatAccumulator {
                 let attacked = board.piece_on(target);
                 let mirrored = king.file() >= 4;
 
-                if let Some(index) = threat_index(piece, square, attacked, target, mirrored, pov) {
-                    unsafe { add1(&mut self.values[pov], index) }
+                let index = threat_index(piece, square, attacked, target, mirrored, pov);
+                if index >= 0 {
+                    unsafe { add1(&mut self.values[pov], index as usize) }
                 }
             }
         }
@@ -283,12 +284,11 @@ impl ThreatAccumulator {
         for &ThreatDelta { piece, from, attacked, to, add } in self.delta.iter() {
             let mirrored = king.file() >= 4;
 
-            if let Some(index) = threat_index(piece, from, attacked, to, mirrored, pov) {
-                if add {
-                    adds.push(index);
-                } else {
-                    subs.push(index);
-                }
+            let index = threat_index(piece, from, attacked, to, mirrored, pov);
+            if add {
+                adds.maybe_push(index >= 0, index as usize);
+            } else {
+                subs.maybe_push(index >= 0, index as usize);
             }
         }
 
