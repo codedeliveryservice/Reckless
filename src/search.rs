@@ -743,8 +743,7 @@ fn search<NODE: NodeType>(
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
 
-        // Internal Iterative Reductions (IIR)
-        if (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
+        if cut_node && new_depth >= 5 && tt_move.is_null() {
             new_depth -= 1;
         }
 
@@ -878,6 +877,10 @@ fn search<NODE: NodeType>(
         if NODE::PV && (move_count == 1 || score > alpha) {
             if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
                 new_depth = new_depth.max(1);
+            }
+
+            if new_depth >= 5 && tt_move.is_null() {
+                new_depth -= 1;
             }
 
             score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
