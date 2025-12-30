@@ -81,7 +81,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         let count = mask.count_ones() as usize;
         let to_write = _mm512_maskz_compress_epi16(mask, vector);
         let to_write0 = _mm512_cvtepi16_epi64(_mm512_castsi512_si128(to_write));
-        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len).as_ptr()), to_write0);
+        _mm512_storeu_si512(self.data.get_unchecked_mut(self.len).as_mut_ptr().cast(), to_write0);
         self.len += count;
     }
 
@@ -96,8 +96,8 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         let to_write = _mm512_maskz_compress_epi16(mask, vector);
         let to_write0 = _mm512_cvtepi16_epi64(_mm512_castsi512_si128(to_write));
         let to_write1 = _mm512_cvtepi16_epi64(_mm512_extracti32x4_epi32::<1>(to_write));
-        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len + 0).as_ptr()), to_write0);
-        _mm512_storeu_si512(std::mem::transmute(self.data.get_unchecked(self.len + 8).as_ptr()), to_write1);
+        _mm512_storeu_si512(self.data.get_unchecked_mut(self.len).as_mut_ptr().cast(), to_write0);
+        _mm512_storeu_si512(self.data.get_unchecked_mut(self.len + 8).as_mut_ptr().cast(), to_write1);
         self.len += count;
     }
 }
