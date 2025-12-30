@@ -781,6 +781,8 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1713;
                 reduction += 1086 * tt_move.is_null() as i32;
+            } else if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
+                reduction += 622;
             }
 
             if !improving {
@@ -793,10 +795,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1498;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 622;
             }
 
             if depth == 2 {
