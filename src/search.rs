@@ -649,6 +649,12 @@ fn search<NODE: NodeType>(
         extension = 1;
     }
 
+    let lmp_threshold = if improving || eval >= beta + 19 {
+        (3219 + 1093 * depth * depth) / 1024
+    } else {
+        (1252 + 320 * depth * depth) / 1024
+    };
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -686,13 +692,9 @@ fn search<NODE: NodeType>(
 
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count
-                    >= if improving || eval >= beta + 19 {
-                        (3219 + 1093 * initial_depth * initial_depth) / 1024
-                    } else {
-                        (1252 + 320 * initial_depth * initial_depth) / 1024
-                    };
+            if !in_check && move_count >= lmp_threshold {
+                skip_quiets = true;
+            }
 
             // Futility Pruning (FP)
             let futility_value = eval + 94 * depth + 61 * history / 1024 + 87 * (eval >= alpha) as i32 - 116;
