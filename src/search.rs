@@ -1186,9 +1186,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            let futility_score = best_score + 42 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128 + 109;
-
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            if !td.board.see(mv, alpha - (best_score + 300)) {
+                best_score = (best_score + 300).min(alpha);
                 continue;
             }
         }
