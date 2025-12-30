@@ -23,6 +23,12 @@ pub enum Piece {
     None,
 }
 
+impl Default for Piece {
+    fn default() -> Self {
+        Piece::None
+    }
+}
+
 impl Piece {
     pub const NUM: usize = 12;
 
