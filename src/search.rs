@@ -509,6 +509,51 @@ fn search<NODE: NodeType>(
         return beta + (estimated_score - beta) / 3;
     }
 
+    // ProbCut
+    let probcut_beta = beta + 257 - 75 * improving as i32;
+
+    if cut_node
+        && !is_decisive(beta)
+        && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
+        && !tt_move.is_quiet()
+    {
+        let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
+
+        let probcut_depth = (depth - 4).max(0);
+
+        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
+            if move_picker.stage() == Stage::BadNoisy {
+                break;
+            }
+
+            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
+                continue;
+            }
+
+            make_move(td, ply, mv);
+
+            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
+
+            if score >= probcut_beta && probcut_depth > 0 {
+                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
+            }
+
+            undo_move(td, mv);
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if score >= probcut_beta {
+                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
+
+                if !is_decisive(score) {
+                    return score - (probcut_beta - beta);
+                }
+            }
+        }
+    }
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -555,51 +600,6 @@ fn search<NODE: NodeType>(
 
             if verified_score >= beta {
                 return score;
-            }
-        }
-    }
-
-    // ProbCut
-    let probcut_beta = beta + 257 - 75 * improving as i32;
-
-    if cut_node
-        && !is_decisive(beta)
-        && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
-        && !tt_move.is_quiet()
-    {
-        let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
-
-        let probcut_depth = (depth - 4).max(0);
-
-        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
-            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
-                continue;
-            }
-
-            make_move(td, ply, mv);
-
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
-
-            if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-            }
-
-            undo_move(td, mv);
-
-            if td.stopped {
-                return Score::ZERO;
-            }
-
-            if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
-
-                if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
-                }
             }
         }
     }
