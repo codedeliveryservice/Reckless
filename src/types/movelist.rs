@@ -40,29 +40,27 @@ impl MoveList {
     #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
     pub fn push_setwise(&mut self, from: Square, to_bb: Bitboard, kind: MoveKind) {
         if !to_bb.is_empty() {
-            use std::arch::x86_64::{__m512i, _mm512_or_si512, _mm512_set1_epi16};
+            use std::{arch::x86_64::*, mem::transmute};
 
             unsafe {
-                let template0: __m512i = std::mem::transmute({
+                let template0: __m512i = transmute({
                     let mut template0: [Move; 32] = [Move::NULL; 32];
-                    for i in 0..32 {
-                        template0[i] =
-                            Move::new(std::mem::transmute(0u8), Square::new(i as u8), std::mem::transmute(0u8));
+                    for (i, e) in template0.iter_mut().enumerate() {
+                        *e = Move::new(Square::new(0u8), Square::new(i as u8), transmute::<u8, MoveKind>(0u8));
                     }
                     template0
                 });
-                let template1: __m512i = std::mem::transmute({
+                let template1: __m512i = transmute({
                     let mut template1: [Move; 32] = [Move::NULL; 32];
-                    for i in 0..32 {
-                        template1[i] =
-                            Move::new(std::mem::transmute(0u8), Square::new(32 + i as u8), std::mem::transmute(0u8));
+                    for (i, e) in template1.iter_mut().enumerate() {
+                        *e = Move::new(Square::new(0u8), Square::new(32 + i as u8), transmute::<u8, MoveKind>(0u8));
                     }
                     template1
                 });
 
-                let extra = _mm512_set1_epi16(std::mem::transmute(Move::new(from, std::mem::transmute(0u8), kind)));
+                let extra = _mm512_set1_epi16(transmute::<Move, i16>(Move::new(from, Square::new(0u8), kind)));
 
-                self.inner.splat16((to_bb.0 >> 0) as u32, _mm512_or_si512(template0, extra));
+                self.inner.splat16(to_bb.0 as u32, _mm512_or_si512(template0, extra));
                 self.inner.splat16((to_bb.0 >> 32) as u32, _mm512_or_si512(template1, extra));
             }
         }
@@ -78,22 +76,22 @@ impl MoveList {
     #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
     pub fn push_pawns_setwise(&mut self, offset: i8, to_bb: Bitboard, kind: MoveKind) {
         if !to_bb.is_empty() {
-            use std::arch::x86_64::{__m512i, _mm512_add_epi16, _mm512_set1_epi16};
+            use std::{arch::x86_64::*, mem::transmute};
 
             unsafe {
-                let template0: __m512i = std::mem::transmute({
+                let template0: __m512i = transmute({
                     let mut template0: [Move; 32] = [Move::NULL; 32];
-                    for i in 0..32 {
+                    for (i, e) in template0.iter_mut().enumerate() {
                         let sq = Square::new(i as u8);
-                        template0[i] = Move::new(sq, sq, std::mem::transmute(0u8));
+                        *e = Move::new(sq, sq, transmute::<u8, MoveKind>(0u8));
                     }
                     template0
                 });
-                let template1: __m512i = std::mem::transmute({
+                let template1: __m512i = transmute({
                     let mut template1: [Move; 32] = [Move::NULL; 32];
-                    for i in 0..32 {
+                    for (i, e) in template1.iter_mut().enumerate() {
                         let sq = Square::new(32u8 + i as u8);
-                        template1[i] = Move::new(sq, sq, std::mem::transmute(0u8));
+                        *e = Move::new(sq, sq, transmute::<u8, MoveKind>(0u8));
                     }
                     template1
                 });
@@ -101,7 +99,7 @@ impl MoveList {
                 let offset = offset as i16;
                 let extra = _mm512_set1_epi16(((kind as i16) << 12).wrapping_sub(offset));
 
-                self.inner.splat8((to_bb.0 >> 0) as u32, _mm512_add_epi16(template0, extra));
+                self.inner.splat8(to_bb.0 as u32, _mm512_add_epi16(template0, extra));
                 self.inner.splat8((to_bb.0 >> 32) as u32, _mm512_add_epi16(template1, extra));
             }
         }

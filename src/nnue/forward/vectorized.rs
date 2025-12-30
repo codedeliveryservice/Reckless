@@ -195,7 +195,7 @@ pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (A
     );
 
     for i in (0..L1_SIZE).step_by(4 * simd::I16_LANES) {
-        let mask0 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 0 * simd::I16_LANES).cast());
+        let mask0 = simd::nnz_bitmask(*ft_out.as_ptr().add(i).cast());
         let mask1 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 2 * simd::I16_LANES).cast());
         let mask = _mm512_kunpackw(mask1 as u32, mask0 as u32);
 
