@@ -744,7 +744,7 @@ fn search<NODE: NodeType>(
         let mut score = Score::ZERO;
 
         // Internal Iterative Reductions (IIR)
-        if (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
+        if is_valid(tt_score) && (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
             new_depth -= 1;
         }
 
@@ -780,7 +780,7 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1713;
-                reduction += 1086 * tt_move.is_null() as i32;
+                reduction += 1086 * (is_valid(tt_score) && tt_move.is_null()) as i32;
             }
 
             if !improving {
@@ -847,7 +847,7 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1379;
-                reduction += 1211 * tt_move.is_null() as i32;
+                reduction += 1211 * (is_valid(tt_score) && tt_move.is_null()) as i32;
             }
 
             if !improving {
