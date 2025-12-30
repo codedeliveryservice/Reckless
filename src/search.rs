@@ -1030,6 +1030,17 @@ fn search<NODE: NodeType>(
                 let bonus = (166 * initial_depth - 37).min(1268);
                 td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
+        } else if pcm_move.is_noisy() {
+            let captured = td.board.captured_piece().unwrap_or_default().piece_type();
+            let bonus = 114;
+
+            td.noisy_history.update(
+                td.board.prior_threats(),
+                td.board.piece_on(pcm_move.to()),
+                pcm_move.to(),
+                captured,
+                bonus,
+            );
         }
     }
 

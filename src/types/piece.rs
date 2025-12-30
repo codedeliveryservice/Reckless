@@ -5,7 +5,7 @@ use std::{
 
 use super::Color;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Piece {
     WhitePawn,
@@ -20,6 +20,7 @@ pub enum Piece {
     BlackQueen,
     WhiteKing,
     BlackKing,
+    #[default]
     None,
 }
 

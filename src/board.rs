@@ -110,6 +110,10 @@ impl Board {
         self.state_stack[self.state_stack.len() - 1].threats
     }
 
+    pub const fn captured_piece(&self) -> Option<Piece> {
+        self.state.captured
+    }
+
     pub const fn recapture_square(&self) -> Square {
         self.state.recapture_square
     }
