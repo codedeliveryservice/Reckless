@@ -1,6 +1,7 @@
 use std::{mem::MaybeUninit, ops::Index};
 
 #[derive(Clone)]
+#[repr(C, align(64))]
 pub struct ArrayVec<T: Copy, const N: usize> {
     data: [MaybeUninit<T>; N],
     len: usize,
