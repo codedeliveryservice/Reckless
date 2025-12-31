@@ -35,11 +35,13 @@ fn get_nodes_with_cpus() -> Vec<libc::c_int> {
     let num_cpus = unsafe { api::numa_num_configured_cpus() };
 
     if num_cpus <= 0 {
+        println!("NUMA: No configured CPUs found.");
         return nodes_with_cpus;
     }
 
     let bitmask = unsafe { api::numa_bitmask_alloc(num_cpus as libc::c_uint) };
     if bitmask.is_null() {
+        println!("NUMA: Failed to allocate bitmask.");
         return nodes_with_cpus;
     }
 
@@ -47,12 +49,14 @@ fn get_nodes_with_cpus() -> Vec<libc::c_int> {
         let result = unsafe { api::numa_node_to_cpus(node as libc::c_int, bitmask) };
         if result == 0 {
             if unsafe { has_any_cpus_set(bitmask, num_cpus) } {
+                println!("NUMA: Node {} has CPUs assigned.", node);
                 nodes_with_cpus.push(node as libc::c_int);
             }
         }
     }
 
     unsafe { api::numa_bitmask_free(bitmask) };
+    println!("NUMA: Nodes with CPUs: {:?}", nodes_with_cpus);
     nodes_with_cpus
 }
 
@@ -105,6 +109,8 @@ impl<T: NumaValue> NumaReplicator<T> {
                 .iter()
                 .map(|&node| {
                     let ptr = unsafe { api::numa_alloc_onnode(size, node) } as *mut T;
+                    println!("NUMA: Allocated memory on node {} at {:p}", node, ptr);
+
                     if ptr.is_null() {
                         panic!("Failed to allocate NUMA memory on node {node}");
                     }
@@ -114,6 +120,8 @@ impl<T: NumaValue> NumaReplicator<T> {
                     ptr
                 })
                 .collect::<Vec<_>>();
+
+            println!("NUMA: Created NumaReplicator with {} nodes.", nodes.len());
 
             Self { nodes, node_mapping: cpu_nodes, size: Some(size) }
         }

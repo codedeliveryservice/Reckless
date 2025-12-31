@@ -197,6 +197,8 @@ fn make_worker_thread(num_threads: usize, cpu: usize) -> WorkerThread {
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     let cpu_ids = available_cpu_ids();
+    println!("ThreadPool: Available CPU IDs: {:?}", cpu_ids);
+
     (0..num_threads).map(|index| make_worker_thread(num_threads, cpu_ids[index % cpu_ids.len()])).collect()
 }
 
