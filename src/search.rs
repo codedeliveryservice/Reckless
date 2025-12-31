@@ -750,9 +750,9 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 245 * (move_count.ilog2() * depth.ilog2()) as i32
-                + 25 * move_count.ilog2() as i32
-                + 25 * depth.ilog2() as i32;
+            let mut reduction = 260 * (move_count.ilog2() * depth.ilog2()) as i32
+                + 35 * move_count.ilog2() as i32
+                + 35 * depth.ilog2() as i32;
 
             if is_quiet {
                 reduction += 1808;
