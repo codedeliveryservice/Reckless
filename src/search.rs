@@ -560,7 +560,7 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let probcut_beta = beta + 257 - 75 * improving as i32;
+    let mut probcut_beta = beta + 257 - 75 * improving as i32;
 
     if cut_node
         && !is_decisive(beta)
@@ -568,8 +568,6 @@ fn search<NODE: NodeType>(
         && !tt_move.is_quiet()
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
-
-        let probcut_depth = (depth - 4).max(0);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
@@ -584,8 +582,20 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
+            let probcut_depth_offset = ((score - probcut_beta) / 200).max(0).min(3);
+            let mut probcut_depth = (depth - 4 - probcut_depth_offset).max(0);
+            let raised_probcut_beta = probcut_beta + probcut_depth_offset * 200;
+
             if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
+                score = -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
+
+                if score < raised_probcut_beta {
+                    probcut_depth = (depth - 4).max(0);
+                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
+                }
+                else {
+                    probcut_beta = raised_probcut_beta;
+                }
             }
 
             undo_move(td, mv);
