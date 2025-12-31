@@ -1,12 +1,13 @@
 mod accumulator;
 mod threats;
 
-pub use threats::initialize;
+use std::sync::OnceLock;
 
 use crate::{
     board::Board,
     lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
+    numa::{NumaReplicator, NumaValue},
     types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
@@ -77,7 +78,7 @@ const BUCKETS: [usize; 64] = [
 ];
 
 #[repr(align(16))]
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 struct SparseEntry {
     indexes: [u16; 8],
     count: usize,
@@ -90,6 +91,7 @@ pub struct Network {
     threat_stack: Box<[ThreatAccumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
+    params: &'static Parameters,
 }
 
 impl Network {
@@ -151,11 +153,11 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache);
-        self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache);
+        self.pst_stack[self.index].refresh(self.params, board, Color::White, &mut self.cache);
+        self.pst_stack[self.index].refresh(self.params, board, Color::Black, &mut self.cache);
 
-        self.threat_stack[self.index].refresh(board, Color::White);
-        self.threat_stack[self.index].refresh(board, Color::Black);
+        self.threat_stack[self.index].refresh(self.params, board, Color::White);
+        self.threat_stack[self.index].refresh(self.params, board, Color::Black);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
@@ -169,12 +171,12 @@ impl Network {
 
             match self.can_update_pst(pov) {
                 Some(index) => self.update_pst_accumulator(index, board, pov),
-                None => self.pst_stack[self.index].refresh(board, pov, &mut self.cache),
+                None => self.pst_stack[self.index].refresh(self.params, board, pov, &mut self.cache),
             }
 
             match self.can_update_threats(pov) {
                 Some(index) => self.update_threat_accumulator(index, board, pov),
-                None => self.threat_stack[self.index].refresh(board, pov),
+                None => self.threat_stack[self.index].refresh(self.params, board, pov),
             }
         }
 
@@ -186,7 +188,7 @@ impl Network {
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.pst_stack.split_at_mut(i + 1) {
-                current.update(&prev[i], board, king, pov);
+                current.update(self.params, &prev[i], board, king, pov);
             }
         }
     }
@@ -196,7 +198,7 @@ impl Network {
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
-                unsafe { current.update(&prev[i], king, pov) };
+                unsafe { current.update(self.params, &prev[i], king, pov) };
             }
         }
     }
@@ -251,9 +253,9 @@ impl Network {
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
+            let l1_out = forward::propagate_l1(self.params, ft_out, &nnz_indexes[..nnz_count]);
+            let l2_out = forward::propagate_l2(self.params, l1_out);
+            let l3_out = forward::propagate_l3(self.params, l2_out);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -277,12 +279,15 @@ impl Default for Network {
             entry.count = count;
         }
 
+        let params = parameters();
+
         Self {
             index: 0,
-            pst_stack: vec![PstAccumulator::new(); MAX_PLY].into_boxed_slice(),
+            pst_stack: vec![PstAccumulator::new(params); MAX_PLY].into_boxed_slice(),
             threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
-            cache: AccumulatorCache::default(),
+            cache: AccumulatorCache::new(params),
             nnz_table: nnz_table.into_boxed_slice(),
+            params,
         }
     }
 }
@@ -300,10 +305,23 @@ struct Parameters {
     l3_biases: f32,
 }
 
+unsafe impl NumaValue for Parameters {}
+
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
 
+static NUMA_PARAMETERS: OnceLock<NumaReplicator<Parameters>> = OnceLock::new();
+
+fn parameters() -> &'static Parameters {
+    NUMA_PARAMETERS.get().map(|nodes| nodes.get_local_copy()).unwrap_or(&PARAMETERS)
+}
+
+pub fn initialize() {
+    threats::initialize();
+    NUMA_PARAMETERS.get_or_init(|| NumaReplicator::new(&PARAMETERS));
+}
+
 #[repr(align(64))]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 struct Aligned<T> {
     data: T,
 }
