@@ -753,10 +753,10 @@ fn search<NODE: NodeType>(
             let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
 
             if is_quiet {
-                reduction += 1808;
+                reduction += 2075;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 1564;
+                reduction += 1831;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -793,10 +793,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1498;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
-                reduction += 622;
             }
 
             if depth == 2 {
