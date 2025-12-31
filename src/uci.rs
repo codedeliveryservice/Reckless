@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     board::{Board, NullBoardObserver},
     search::{self, Report},
-    tb::tb_initialize,
     thread::{SharedContext, Status, ThreadData},
     threadpool::{ScopeExt, ThreadPool},
     time::{Limits, TimeManager},
@@ -11,6 +10,9 @@ use crate::{
     transposition::DEFAULT_TT_SIZE,
     types::{is_decisive, is_loss, is_win, Color, Score, Square, MAX_MOVES},
 };
+
+#[cfg(feature = "syzygy")]
+use crate::tb::tb_initialize;
 
 struct Settings {
     frc: bool,
@@ -290,6 +292,7 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             settings.move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
+        #[cfg(feature = "syzygy")]
         ["name", "SyzygyPath", "value", v] => match tb_initialize(v) {
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),

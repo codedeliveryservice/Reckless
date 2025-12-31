@@ -2,13 +2,18 @@ use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
-    tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
-        draw, is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move,
-        Piece, Score, Square, MAX_PLY,
+        draw, is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, ArrayVec, Color, Move, Piece, Score, Square,
+        MAX_PLY,
     },
+};
+
+#[cfg(feature = "syzygy")]
+use crate::{
+    tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
+    types::{tb_loss_in, tb_win_in},
 };
 
 #[allow(unused_imports)]
@@ -62,6 +67,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.root_in_tb = false;
     td.stop_probing_tb = false;
 
+    #[cfg(feature = "syzygy")]
     if td.board.castling().raw() == 0 && td.board.occupancies().popcount() <= tb_size() {
         tb_rank_rootmoves(td);
     }
@@ -287,6 +293,8 @@ fn search<NODE: NodeType>(
     }
 
     let mut best_score = -Score::INFINITE;
+
+    #[cfg(feature = "syzygy")]
     let mut max_score = Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
@@ -355,6 +363,7 @@ fn search<NODE: NodeType>(
     }
 
     // Tablebases Probe
+    #[cfg(feature = "syzygy")]
     if !NODE::ROOT
         && !excluded
         && !td.stop_probing_tb
@@ -1067,6 +1076,7 @@ fn search<NODE: NodeType>(
         best_score = (best_score * depth + beta) / (depth + 1);
     }
 
+    #[cfg(feature = "syzygy")]
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
