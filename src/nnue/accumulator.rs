@@ -82,7 +82,7 @@ impl PstAccumulator {
             }
         }
 
-        unsafe { apply_changes(entry, adds, subs) };
+        unsafe { apply_changes(entry, &adds, &subs) };
 
         entry.pieces = board.pieces_bbs();
         entry.colors = board.colors_bbs();
@@ -185,7 +185,7 @@ impl PstAccumulator {
 const REGISTERS: usize = 8;
 const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
 
-unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+unsafe fn apply_changes(entry: &mut CacheEntry, adds: &ArrayVec<usize, 32>, subs: &ArrayVec<usize, 32>) {
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
@@ -243,6 +243,8 @@ pub struct ThreatAccumulator {
     pub values: Aligned<[[i16; L1_SIZE]; 2]>,
     pub delta: ArrayVec<ThreatDelta, 80>,
     pub accurate: [bool; 2],
+    adds: ArrayVec<usize, 256>,
+    subs: ArrayVec<usize, 256>,
 }
 
 impl ThreatAccumulator {
@@ -251,6 +253,8 @@ impl ThreatAccumulator {
             values: Aligned::new([[0; L1_SIZE]; 2]),
             delta: ArrayVec::new(),
             accurate: [false; 2],
+            adds: ArrayVec::new(),
+            subs: ArrayVec::new(),
         }
     }
 
@@ -278,8 +282,11 @@ impl ThreatAccumulator {
     }
 
     pub unsafe fn update(&mut self, prev: &Self, king: Square, pov: Color) {
-        let mut adds = ArrayVec::<usize, 256>::new();
-        let mut subs = ArrayVec::<usize, 256>::new();
+        let adds = &mut self.adds;
+        let subs = &mut self.subs;
+
+        adds.clear();
+        subs.clear();
 
         for &ThreatDelta { piece, from, attacked, to, add } in self.delta.iter() {
             let mirrored = king.file() >= 4;
