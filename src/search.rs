@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
+    parameters::*,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -750,13 +750,15 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+            let mut reduction = v1() * (move_count.ilog2() * depth.ilog2()) as i32
+                + v2() * move_count.ilog2() as i32
+                + v3() * depth.ilog2() as i32;
 
             if is_quiet {
-                reduction += 1808;
+                reduction += v4();
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 1564;
+                reduction += v5();
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -826,13 +828,15 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+            let mut reduction = v6() * (move_count.ilog2() * depth.ilog2()) as i32
+                + v7() * move_count.ilog2() as i32
+                + v8() * depth.ilog2() as i32;
 
             if is_quiet {
-                reduction += 1615;
+                reduction += v9();
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1444;
+                reduction += v10();
                 reduction -= 65 * history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
