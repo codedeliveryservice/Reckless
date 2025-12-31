@@ -862,7 +862,7 @@ fn search<NODE: NodeType>(
                 reduction -= 1166;
             }
 
-            if mv == tt_move {
+            if mv == tt_move && extension >= 0 {
                 reduction -= 3187;
             }
 
