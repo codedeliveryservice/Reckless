@@ -584,16 +584,18 @@ fn search<NODE: NodeType>(
 
             let mut probcut_depth = (depth - 4 - ((score - probcut_beta - 50) / 300).max(0).min(3)).max(0);
             let og_probcut_depth = (depth - 4).max(0);
-            let raised_probcut_beta = probcut_beta + (og_probcut_depth - probcut_depth) * 300;
+            let raised_probcut_beta = (probcut_beta + (og_probcut_depth - probcut_depth) * 300)
+                .min(Score::INFINITE)
+                .max(-Score::INFINITE + 1);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                score = -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
+                score =
+                    -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
 
                 if score < raised_probcut_beta && probcut_beta < raised_probcut_beta {
                     probcut_depth = og_probcut_depth;
                     score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                }
-                else {
+                } else {
                     probcut_beta = raised_probcut_beta;
                 }
             }
