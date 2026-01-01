@@ -22,6 +22,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    hopeless_quiets: bool,
 }
 
 impl MovePicker {
@@ -33,6 +34,7 @@ impl MovePicker {
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            hopeless_quiets: false,
         }
     }
 
@@ -44,6 +46,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            hopeless_quiets: false,
         }
     }
 
@@ -55,6 +58,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            hopeless_quiets: false,
         }
     }
 
@@ -62,7 +66,7 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize, depth: i32) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
@@ -114,8 +118,16 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let index = self.find_best_score_index();
-                    let entry = &self.list.remove(index);
+                    let entry = if !NODE::ROOT && self.hopeless_quiets {
+                        self.list.remove(0)
+                    } else {
+                        let index = self.find_best_score_index();
+                        if !NODE::ROOT && self.list[index].score < -3000 * depth {
+                            self.hopeless_quiets = true;
+                        }
+                        self.list.remove(index)
+                    };
+
                     if entry.mv == self.tt_move {
                         continue;
                     }
