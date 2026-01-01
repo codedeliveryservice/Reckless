@@ -3,7 +3,7 @@ use crate::{
     board::Board,
     lookup::attacks,
     nnue::{threats::threat_index, BUCKETS, INPUT_BUCKETS},
-    types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square},
+    types::{ArrayVec, Bitboard, Color, Move, MoveKind, Piece, PieceType, Square},
 };
 
 #[derive(Clone, Default)]
@@ -99,23 +99,28 @@ impl PstAccumulator {
         let add1 = pst_index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
         let sub1 = pst_index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
 
-        if mv.is_castling() {
-            let (rook_from, rook_to) = board.get_castling_rook(mv.to());
+        match mv.kind() {
+            MoveKind::Castling => {
+                let (rook_from, rook_to) = board.get_castling_rook(mv.to());
 
-            let add2 = pst_index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
-            let sub2 = pst_index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
+                let add2 = pst_index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
+                let sub2 = pst_index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
 
-            self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
-        } else if mv.is_capture() {
-            let sub2 = if mv.is_en_passant() {
-                pst_index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov)
-            } else {
-                pst_index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov)
-            };
-
-            self.add1_sub2(prev, add1, sub1, sub2, pov);
-        } else {
-            self.add1_sub1(prev, add1, sub1, pov);
+                self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
+            }
+            MoveKind::EnPassant => {
+                let sub2 = pst_index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov);
+                self.add1_sub2(prev, add1, sub1, sub2, pov);
+            }
+            MoveKind::Capture
+            | MoveKind::PromotionCaptureN
+            | MoveKind::PromotionCaptureB
+            | MoveKind::PromotionCaptureR
+            | MoveKind::PromotionCaptureQ => {
+                let sub2 = pst_index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov);
+                self.add1_sub2(prev, add1, sub1, sub2, pov);
+            }
+            _ => self.add1_sub1(prev, add1, sub1, pov),
         }
 
         self.accurate[pov] = true;
