@@ -761,13 +761,15 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32
+                + 28 * move_count.ilog2() as i32
+                + 28 * depth.ilog2() as i32;
 
             if is_quiet {
-                reduction += 1808;
+                reduction += 2031;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 1564;
+                reduction += 1563;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -837,13 +839,15 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            let mut reduction = 285 * (depth.ilog2() * move_count.ilog2()) as i32;
+            let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32
+                + 25 * move_count.ilog2() as i32
+                + 25 * depth.ilog2() as i32;
 
             if is_quiet {
-                reduction += 1615;
+                reduction += 1634;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1444;
+                reduction += 1423;
                 reduction -= 65 * history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
