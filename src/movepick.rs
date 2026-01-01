@@ -122,7 +122,7 @@ impl MovePicker {
                         self.list.remove(0)
                     } else {
                         let index = self.find_best_score_index();
-                        if !NODE::ROOT && self.list[index].score < -3000 * depth {
+                        if !NODE::ROOT && self.list[index].score < -4000 * depth {
                             self.hopeless_quiets = true;
                         }
                         self.list.remove(index)
