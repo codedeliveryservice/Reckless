@@ -562,6 +562,8 @@ fn search<NODE: NodeType>(
     // ProbCut
     let mut probcut_beta = beta + 257 - 75 * improving as i32;
 
+    let mut temp_failed_pc = false;
+
     if cut_node
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
@@ -612,6 +614,8 @@ fn search<NODE: NodeType>(
                     return score - (probcut_beta - beta);
                 }
             }
+
+            temp_failed_pc = true;
         }
     }
 
@@ -785,7 +789,7 @@ fn search<NODE: NodeType>(
                 reduction -= 897 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if mv.is_noisy() && mv.to() == td.board.recapture_square() {
+            if !temp_failed_pc && mv.is_noisy() && mv.to() == td.board.recapture_square() {
                 reduction -= 907;
             }
 
