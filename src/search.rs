@@ -562,6 +562,8 @@ fn search<NODE: NodeType>(
     // ProbCut
     let mut probcut_beta = beta + 257 - 75 * improving as i32;
 
+    let mut temp_failed_pc = false;
+
     if cut_node
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
@@ -612,6 +614,8 @@ fn search<NODE: NodeType>(
                     return score - (probcut_beta - beta);
                 }
             }
+
+            temp_failed_pc = true;
         }
     }
 
@@ -792,6 +796,7 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1713;
                 reduction += 1086 * tt_move.is_null() as i32;
+                reduction += 2048 * (temp_failed_pc && mv.is_noisy()) as i32;
             }
 
             if !improving {
