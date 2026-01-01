@@ -4,7 +4,7 @@ use crate::types::{Move, Piece, Score, MAX_PLY};
 
 pub struct Stack {
     data: [StackEntry; MAX_PLY + 16],
-    sentinel: Box<[[i16; 64]; 13]>,
+    sentinel: [[i16; 64]; 13],
 }
 
 impl Stack {
@@ -17,10 +17,10 @@ impl Default for Stack {
     fn default() -> Self {
         let mut stack = Self {
             data: [StackEntry::default(); MAX_PLY + 16],
-            sentinel: Box::new([[0i16; 64]; 13]),
+            sentinel: [[0; 64]; 13],
         };
 
-        let ptr = &mut *stack.sentinel as *mut _;
+        let ptr = &mut stack.sentinel as *mut _;
         for entry in stack.data.iter_mut() {
             entry.conthist = ptr;
             entry.contcorrhist = ptr;
