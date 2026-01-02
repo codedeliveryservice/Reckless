@@ -1,12 +1,6 @@
 #[cfg(feature = "numa")]
 use std::{collections::HashMap, sync::OnceLock};
 
-#[allow(dead_code)]
-enum Allocation {
-    Numa,
-    Fallback,
-}
-
 #[cfg(feature = "numa")]
 static MAPPING: OnceLock<HashMap<usize, Vec<usize>>> = OnceLock::new();
 
@@ -59,7 +53,6 @@ pub unsafe trait NumaValue: Sync {}
 
 pub struct NumaReplicator<T: NumaValue> {
     allocated: Vec<*mut T>,
-    allocation: Allocation,
 }
 
 unsafe impl<T: NumaValue> Send for NumaReplicator<T> {}
@@ -92,7 +85,7 @@ impl<T: NumaValue> NumaReplicator<T> {
             nodes.push(node);
         }
 
-        Self { allocated, allocation: Allocation::Numa }
+        Self { allocated }
     }
 
     #[cfg(not(feature = "numa"))]
@@ -104,7 +97,7 @@ impl<T: NumaValue> NumaReplicator<T> {
 
         std::ptr::write(ptr, source());
 
-        Self { allocated: vec![ptr], allocation: Allocation::Fallback }
+        Self { allocated: vec![ptr] }
     }
 
     #[cfg(feature = "numa")]
@@ -129,16 +122,18 @@ impl<T: NumaValue> NumaReplicator<T> {
 impl<T: NumaValue> Drop for NumaReplicator<T> {
     fn drop(&mut self) {
         for &ptr in &self.allocated {
-            unsafe { std::ptr::drop_in_place(ptr) };
+            unsafe {
+                std::ptr::drop_in_place(ptr);
 
-            if let Allocation::Numa = self.allocation {
-                unsafe { api::numa_free(ptr as *mut libc::c_void, std::mem::size_of::<T>()) };
+                #[cfg(feature = "numa")]
+                api::numa_free(ptr as *mut libc::c_void, std::mem::size_of::<T>());
             }
         }
     }
 }
 
 #[allow(dead_code)]
+#[cfg(feature = "numa")]
 mod api {
     use libc::{c_int, c_void, size_t};
 
