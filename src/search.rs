@@ -67,6 +67,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     }
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
+    td.tt_hit_average.set(512, 1024);
 
     let mut average = vec![Score::NONE; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
@@ -309,6 +310,8 @@ fn search<NODE: NodeType>(
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
 
+        td.tt_hit_average.update(is_valid(tt_score) as i64);
+
         if !NODE::PV
             && !excluded
             && tt_depth > depth - (tt_score < beta) as i32
@@ -352,6 +355,8 @@ fn search<NODE: NodeType>(
                 return tt_score;
             }
         }
+    } else {
+        td.tt_hit_average.update(0);
     }
 
     // Tablebases Probe
@@ -799,6 +804,10 @@ fn search<NODE: NodeType>(
 
             if !improving {
                 reduction += (443 - 268 * improvement / 128).min(1321);
+            }
+
+            if td.tt_hit_average.is_greater(512, 1024) {
+                reduction -= 1024;
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {

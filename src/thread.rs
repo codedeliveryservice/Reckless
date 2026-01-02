@@ -112,6 +112,7 @@ pub struct ThreadData {
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
+    pub tt_hit_average: RunningAverage,
     pub best_move_changes: usize,
     pub optimism: [i32; 2],
     pub stopped: bool,
@@ -148,6 +149,7 @@ impl ThreadData {
             major_corrhist: CorrectionHistory::default(),
             non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
+            tt_hit_average: RunningAverage::default(),
             best_move_changes: 0,
             optimism: [0; 2],
             stopped: false,
@@ -309,5 +311,27 @@ impl Default for PrincipalVariationTable {
             table: vec![[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1].into_boxed_slice(),
             len: [0; MAX_PLY + 1],
         }
+    }
+}
+
+#[derive(Default)]
+pub struct RunningAverage {
+    average: i64,
+}
+
+impl RunningAverage {
+    const WINDOW: i64 = 4096;
+    const RESOLUTION: i64 = 1024;
+
+    pub fn set(&mut self, p: i64, q: i64) {
+        self.average = p * Self::WINDOW * Self::RESOLUTION / q;
+    }
+
+    pub fn update(&mut self, v: i64) {
+        self.average = Self::RESOLUTION * v + (Self::WINDOW - 1) * self.average / Self::WINDOW;
+    }
+
+    pub fn is_greater(&self, a: i64, b: i64) -> bool {
+        a * Self::WINDOW * Self::RESOLUTION < b * self.average
     }
 }
