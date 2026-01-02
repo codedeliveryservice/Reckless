@@ -7,6 +7,7 @@ use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
     nnue::Network,
+    numa::{NumaReplicator, NumaValue},
     stack::Stack,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
@@ -86,14 +87,41 @@ impl Default for Status {
 }
 
 #[derive(Default)]
+pub struct SharedCorrectionHistory {
+    pub pawn: CorrectionHistory,
+    pub minor: CorrectionHistory,
+    pub major: CorrectionHistory,
+    pub non_pawn: [CorrectionHistory; 2],
+}
+
+unsafe impl NumaValue for SharedCorrectionHistory {}
+
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
+    pub history: *const SharedCorrectionHistory,
+    pub replicator: NumaReplicator<SharedCorrectionHistory>,
+}
+
+impl Default for SharedContext {
+    fn default() -> Self {
+        let replicator = unsafe { NumaReplicator::new(SharedCorrectionHistory::default) };
+
+        Self {
+            tt: TranspositionTable::default(),
+            status: Status::default(),
+            nodes: Counter::default(),
+            tb_hits: Counter::default(),
+            history: unsafe { replicator.get() },
+            replicator,
+        }
+    }
 }
 
 unsafe impl Send for SharedContext {}
+unsafe impl Sync for SharedContext {}
 
 pub struct ThreadData {
     pub id: usize,
@@ -107,10 +135,6 @@ pub struct ThreadData {
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
-    pub pawn_corrhist: CorrectionHistory,
-    pub minor_corrhist: CorrectionHistory,
-    pub major_corrhist: CorrectionHistory,
-    pub non_pawn_corrhist: [CorrectionHistory; 2],
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub best_move_changes: usize,
     pub optimism: [i32; 2],
@@ -143,10 +167,6 @@ impl ThreadData {
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
-            pawn_corrhist: CorrectionHistory::default(),
-            minor_corrhist: CorrectionHistory::default(),
-            major_corrhist: CorrectionHistory::default(),
-            non_pawn_corrhist: [CorrectionHistory::default(), CorrectionHistory::default()],
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             best_move_changes: 0,
             optimism: [0; 2],
@@ -168,6 +188,10 @@ impl ThreadData {
 
     pub fn nodes(&self) -> u64 {
         self.shared.nodes.get(self.id)
+    }
+
+    pub fn corrhist(&self) -> &SharedCorrectionHistory {
+        unsafe { &*self.shared.history }
     }
 
     pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {
