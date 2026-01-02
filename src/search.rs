@@ -761,13 +761,10 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 130 * move_count.ilog2() as i32 * depth.ilog2() as i32;
 
-            reduction += 28 * move_count.ilog2() as i32;
-            reduction += 28 * depth.ilog2() as i32;
-
-            reduction -= 68 * move_count;
-            reduction -= 3326 * correction_value.abs() / 1024;
+            reduction -= 30 * move_count;
+            reduction += 35 * depth;
 
             if is_quiet {
                 reduction += 2031;
@@ -840,12 +837,11 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 130 * move_count.ilog2() as i32 * depth.ilog2() as i32;
 
-            reduction += 25 * move_count.ilog2() as i32;
-            reduction += 25 * depth.ilog2() as i32;
+            reduction -= 30 * move_count;
+            reduction += 35 * depth;
 
-            reduction -= 55 * move_count;
             reduction -= 2484 * correction_value.abs() / 1024;
 
             if is_quiet {
