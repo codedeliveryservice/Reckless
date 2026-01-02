@@ -21,9 +21,6 @@ else
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
-
-pgo:
 	cargo pgo instrument
 	cargo pgo run -- bench
 	cargo pgo optimize
