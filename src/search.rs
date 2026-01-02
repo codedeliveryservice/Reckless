@@ -761,9 +761,13 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32
-                + 28 * move_count.ilog2() as i32
-                + 28 * depth.ilog2() as i32;
+            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32;
+
+            reduction += 28 * move_count.ilog2() as i32;
+            reduction += 28 * depth.ilog2() as i32;
+
+            reduction -= 68 * move_count;
+            reduction -= 3326 * correction_value.abs() / 1024;
 
             if is_quiet {
                 reduction += 2031;
@@ -773,9 +777,6 @@ fn search<NODE: NodeType>(
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
-
-            reduction -= 3326 * correction_value.abs() / 1024;
-            reduction -= 68 * move_count;
 
             if NODE::PV {
                 reduction -= 425 + 453 * (beta - alpha) / td.root_delta;
@@ -839,9 +840,13 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32
-                + 25 * move_count.ilog2() as i32
-                + 25 * depth.ilog2() as i32;
+            let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32;
+
+            reduction += 25 * move_count.ilog2() as i32;
+            reduction += 25 * depth.ilog2() as i32;
+
+            reduction -= 55 * move_count;
+            reduction -= 2484 * correction_value.abs() / 1024;
 
             if is_quiet {
                 reduction += 1634;
@@ -851,9 +856,6 @@ fn search<NODE: NodeType>(
                 reduction -= 65 * history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
-
-            reduction -= 2484 * correction_value.abs() / 1024;
-            reduction -= 55 * move_count;
 
             if tt_pv {
                 reduction -= 747;
