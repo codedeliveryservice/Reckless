@@ -763,10 +763,7 @@ fn search<NODE: NodeType>(
         if depth >= 2 && move_count > 1 {
             let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction += 28 * move_count.ilog2() as i32;
-            reduction += 28 * depth.ilog2() as i32;
-
-            reduction -= 68 * move_count;
+            reduction -= 64 * move_count;
             reduction -= 3326 * correction_value.abs() / 1024;
 
             if is_quiet {
@@ -842,10 +839,7 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count > 1 {
             let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction += 25 * move_count.ilog2() as i32;
-            reduction += 25 * depth.ilog2() as i32;
-
-            reduction -= 55 * move_count;
+            reduction -= 50 * move_count;
             reduction -= 2484 * correction_value.abs() / 1024;
 
             if is_quiet {
