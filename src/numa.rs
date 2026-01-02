@@ -28,6 +28,8 @@ fn mapping() -> HashMap<usize, Vec<usize>> {
             }
         }
 
+        println!("NUMA mapping initialized: {:?}", map);
+
         map
     }
 
@@ -85,6 +87,9 @@ impl<T: NumaValue> NumaReplicator<T> {
             nodes.push(node);
         }
 
+        println!("NumaReplicator allocated on nodes: {:?}", nodes);
+        println!("NumaReplicator total replicas: {}", allocated.len());
+
         Self { allocated }
     }
 
@@ -128,6 +133,8 @@ impl<T: NumaValue> Drop for NumaReplicator<T> {
                 #[cfg(feature = "numa")]
                 api::numa_free(ptr as *mut libc::c_void, std::mem::size_of::<T>());
             }
+
+            println!("NumaReplicator deallocated");
         }
     }
 }
