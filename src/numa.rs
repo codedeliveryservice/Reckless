@@ -108,7 +108,7 @@ impl<T: NumaValue> NumaReplicator<T> {
     }
 
     #[cfg(feature = "numa")]
-    pub unsafe fn get(&self) -> &T {
+    pub unsafe fn get(&self) -> *const T {
         let cpu = libc::sched_getcpu();
         let node = api::numa_node_of_cpu(cpu);
 
@@ -119,6 +119,10 @@ impl<T: NumaValue> NumaReplicator<T> {
     #[cfg(not(feature = "numa"))]
     pub unsafe fn get(&self) -> &T {
         &*self.allocated[0]
+    }
+
+    pub unsafe fn get_all(&self) -> Vec<&T> {
+        self.allocated.iter().map(|&ptr| &*ptr).collect()
     }
 }
 
