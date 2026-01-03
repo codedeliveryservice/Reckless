@@ -1,10 +1,13 @@
 mod accumulator;
 mod threats;
 
-#[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
+#[cfg(all(
+    target_feature = "avx512vl",
+    target_feature = "avx512bw",
+    target_feature = "gfni",
+    target_feature = "avx512vbmi"
+))]
 mod rays;
-
-use std::collections::BTreeSet;
 
 pub use threats::initialize;
 
@@ -13,9 +16,6 @@ use crate::{
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
     types::{ArrayVec, Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
-
-#[allow(unused_imports)]
-use crate::types::Bitboard;
 
 use accumulator::{AccumulatorCache, PstAccumulator};
 
@@ -114,15 +114,23 @@ impl Network {
         self.threat_stack[self.index].delta.clear();
     }
 
-    pub fn push_threats_generic(
-        deltas: &mut ArrayVec<ThreatDelta, 80>, board: &Board, piece: Piece, square: Square, add: bool,
-    ) {
+    #[cfg(not(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    )))]
+    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
         use crate::lookup::{
             attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
         };
 
+        let deltas = &mut self.threat_stack[self.index].delta;
+
         let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
-        Self::splat_threats_generic(deltas, true, board, attacked, piece, square, add);
+        for to in attacked {
+            deltas.push(ThreatDelta::new(piece, square, board.piece_on(to), to, add));
+        }
 
         let rook_attacks = rook_attacks(square, board.occupancies());
         let bishop_attacks = bishop_attacks(square, board.occupancies());
@@ -148,60 +156,22 @@ impl Network {
         let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
         let kings = board.pieces(PieceType::King) & king_attacks(square);
 
-        let attackers = black_pawns | white_pawns | knights | kings;
-        Self::splat_threats_generic(deltas, false, board, attackers, piece, square, add);
-    }
-
-    fn splat_threats_generic(
-        deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, board: &Board, bb: Bitboard, p2: Piece, sq2: Square,
-        add: bool,
-    ) {
-        if is_to {
-            for sq1 in bb {
-                let p1 = board.piece_on(sq1);
-                deltas.push(ThreatDelta::new(p2, sq2, p1, sq1, add));
-            }
-        } else {
-            for sq1 in bb {
-                let p1 = board.piece_on(sq1);
-                deltas.push(ThreatDelta::new(p1, sq1, p2, sq2, add));
-            }
+        for from in black_pawns | white_pawns | knights | kings {
+            deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
         }
     }
 
+    #[cfg(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    ))]
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
-        let deltas_avx512 = &mut self.threat_stack[self.index].delta;
-        let mut deltas_generic = deltas_avx512.clone();
-        Self::push_threats_generic(&mut deltas_generic, board, piece, square, add);
-        Self::push_threats_avx512(deltas_avx512, board, piece, square, add);
-
-        let set_avx512 = BTreeSet::from_iter(deltas_avx512.iter().cloned());
-        let set_generic = BTreeSet::from_iter(deltas_generic.iter().cloned());
-
-        if set_avx512 != set_generic {
-            eprintln!("{}", board.to_fen());
-            eprintln!("{}", piece);
-            eprintln!("{}", square);
-            eprintln!("{}", add);
-
-            for td in set_avx512.iter() {
-                let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
-                eprintln!("avx512: ({}, {}, {}, {}, {})", piece, from, attacked, to, add);
-            }
-            for td in set_generic.iter() {
-                let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
-                eprintln!("generic: ({}, {}, {}, {}, {})", piece, from, attacked, to, add);
-            }
-            assert!(false);
-        }
-    }
-
-    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
-    pub fn push_threats_avx512(
-        deltas: &mut ArrayVec<ThreatDelta, 80>, board: &Board, piece: Piece, square: Square, add: bool,
-    ) {
         use rays::*;
         use std::arch::x86_64::*;
+
+        let deltas = &mut self.threat_stack[self.index].delta;
 
         let (perm, valid) = ray_permuation(square);
         let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
@@ -214,9 +184,6 @@ impl Network {
 
         Self::splat_threats(deltas, true, pboard, perm, attacked, piece, square, add);
         Self::splat_threats(deltas, false, pboard, perm, attackers, piece, square, add);
-
-        // eprintln!("attacked:  {:016x}", attacked);
-        // eprintln!("attackers: {:016x}", attackers);
 
         // Deal with x-rays
         unsafe {
@@ -245,7 +212,13 @@ impl Network {
     }
 
     #[inline]
-    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
+    #[cfg(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    ))]
+    #[allow(clippy::too_many_arguments)]
     fn splat_threats(
         deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, pboard: std::arch::x86_64::__m512i,
         perm: std::arch::x86_64::__m512i, bitray: u64, p2: Piece, sq2: Square, add: bool,

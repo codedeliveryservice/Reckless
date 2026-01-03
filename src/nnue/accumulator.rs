@@ -228,7 +228,7 @@ fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: 
     BUCKETS[king ^ flip] * 768 + 384 * (color != pov) as usize + 64 * piece as usize + (square ^ flip) as usize
 }
 
-#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct ThreatDelta(u32);
 
