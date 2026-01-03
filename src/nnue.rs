@@ -4,6 +4,8 @@ mod threats;
 #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
 mod rays;
 
+use std::collections::BTreeSet;
+
 pub use threats::initialize;
 
 use crate::{
@@ -112,16 +114,15 @@ impl Network {
         self.threat_stack[self.index].delta.clear();
     }
 
-    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni")))]
-    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+    pub fn push_threats_generic(
+        deltas: &mut ArrayVec<ThreatDelta, 80>, board: &Board, piece: Piece, square: Square, add: bool,
+    ) {
         use crate::lookup::{
             attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
         };
 
-        let deltas = &mut self.threat_stack[self.index].delta;
-
         let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
-        Self::splat_threats(deltas, true, board, attacked, piece, square, add);
+        Self::splat_threats_generic(deltas, true, board, attacked, piece, square, add);
 
         let rook_attacks = rook_attacks(square, board.occupancies());
         let bishop_attacks = bishop_attacks(square, board.occupancies());
@@ -148,12 +149,10 @@ impl Network {
         let kings = board.pieces(PieceType::King) & king_attacks(square);
 
         let attackers = black_pawns | white_pawns | knights | kings;
-        Self::splat_threats(deltas, false, board, attackers, piece, square, add);
+        Self::splat_threats_generic(deltas, false, board, attackers, piece, square, add);
     }
 
-    #[inline]
-    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni")))]
-    fn splat_threats(
+    fn splat_threats_generic(
         deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, board: &Board, bb: Bitboard, p2: Piece, sq2: Square,
         add: bool,
     ) {
@@ -170,12 +169,39 @@ impl Network {
         }
     }
 
-    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        let deltas_avx512 = &mut self.threat_stack[self.index].delta;
+        let mut deltas_generic = deltas_avx512.clone();
+        Self::push_threats_generic(&mut deltas_generic, board, piece, square, add);
+        Self::push_threats_avx512(deltas_avx512, board, piece, square, add);
+
+        let set_avx512 = BTreeSet::from_iter(deltas_avx512.iter().cloned());
+        let set_generic = BTreeSet::from_iter(deltas_generic.iter().cloned());
+
+        if set_avx512 != set_generic {
+            eprintln!("{}", board.to_fen());
+            eprintln!("{}", piece);
+            eprintln!("{}", square);
+            eprintln!("{}", add);
+
+            for td in set_avx512.iter() {
+                let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
+                eprintln!("avx512: ({}, {}, {}, {}, {})", piece, from, attacked, to, add);
+            }
+            for td in set_generic.iter() {
+                let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
+                eprintln!("generic: ({}, {}, {}, {}, {})", piece, from, attacked, to, add);
+            }
+            assert!(false);
+        }
+    }
+
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
+    pub fn push_threats_avx512(
+        deltas: &mut ArrayVec<ThreatDelta, 80>, board: &Board, piece: Piece, square: Square, add: bool,
+    ) {
         use rays::*;
         use std::arch::x86_64::*;
-
-        let deltas = &mut self.threat_stack[self.index].delta;
 
         let (perm, valid) = ray_permuation(square);
         let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
@@ -183,11 +209,14 @@ impl Network {
 
         let closest = closest_on_rays(occupied);
         let attacked = attacking_along_rays(piece, closest);
-        let attackers = attackers_along_rays(rays);
-        let sliders = closest_on_rays(sliders_along_rays(rays));
+        let attackers = attackers_along_rays(rays) & closest;
+        let sliders = sliders_along_rays(rays) & closest;
 
         Self::splat_threats(deltas, true, pboard, perm, attacked, piece, square, add);
         Self::splat_threats(deltas, false, pboard, perm, attackers, piece, square, add);
+
+        // eprintln!("attacked:  {:016x}", attacked);
+        // eprintln!("attackers: {:016x}", attackers);
 
         // Deal with x-rays
         unsafe {
@@ -196,24 +225,6 @@ impl Network {
 
             let victim_mask = (closest & 0xFEFEFEFEFEFEFEFE).rotate_right(32);
             let xray_valid = ray_fill(victim_mask) & ray_fill(sliders);
-
-            // eprintln!("{}", square);
-            // eprintln!("{}", board.to_fen());
-            {
-                let pboard: [Piece; 64] = std::mem::transmute(pboard);
-                for i in 0..8 {
-                    for j in 0..8 {
-                        let index = i * 8 + j;
-                        let p = pboard[index];
-                        // eprint!("{} ", p.try_into().unwrap_or('-'));
-                    }
-                    // eprintln!();
-                }
-            }
-            // eprintln!("{:016x}", victim_mask);
-            // eprintln!("{:016x}", sliders);
-
-            assert_eq!((sliders & xray_valid).count_ones(), (victim_mask & xray_valid).count_ones());
 
             let p1 = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(sliders & xray_valid, pboard));
             let sq1 = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(sliders & xray_valid, perm));
@@ -230,11 +241,6 @@ impl Network {
                 _mm_storeu_si128(data.add(4).cast(), _mm_or_si128(_mm_unpackhi_epi16(pair1, pair2), nadd));
                 (sliders & xray_valid).count_ones() as usize
             });
-
-            for td in deltas.iter() {
-                // eprint!("{:08x} ", std::mem::transmute::<ThreatDelta, u32>(*td));
-            }
-            // eprintln!();
         }
     }
 
@@ -265,7 +271,7 @@ impl Network {
             );
 
             let widen = _mm512_permutex2var_epi8(mailbox, idx, iota);
-            let mask = if is_to { 0xCCCCCCCC } else { 0x33333333 };
+            let mask = if is_to { 0xCCCCCCCCCCCCCCCC } else { 0x3333333333333333 };
 
             let vector = _mm512_or_si512(_mm512_mask_mov_epi8(template, mask, widen), add);
 
