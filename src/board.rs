@@ -557,6 +557,11 @@ impl Board {
             _ => unreachable!(),
         }
     }
+
+    #[cfg(target_feature = "avx512f")]
+    pub unsafe fn mailbox_vector(&self) -> std::arch::x86_64::__m512i {
+        std::arch::x86_64::_mm512_loadu_si512(self.mailbox.as_ptr().cast())
+    }
 }
 
 impl Default for Board {
