@@ -60,12 +60,18 @@ impl Wrapper {
 
         let mut sorted = vals.to_vec();
         sorted.sort_unstable();
-        let mut sum = 0;
-        for (i, &val) in sorted.iter().enumerate() {
-            sum += val * (2 * (i as i64) + 1 - len as i64);
+        let mut sum = 0.0;
+        let mut total = 0.0;
+
+        for (count, &value) in sorted.iter().enumerate() {
+            let value = value as f64;
+            let count = count as f64;
+
+            total += count * value - sum;
+            sum += value;
         }
 
-        2.0 * sum as f64 / (len as i64 as f64 * (len as i64 as f64 - 1.0))
+        2.0 * total / (len as f64 * (len as f64 - 1.0))
     }
 
     fn min(&self) -> i64 {
