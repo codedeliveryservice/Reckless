@@ -1,14 +1,19 @@
 mod accumulator;
 mod threats;
 
+#[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
+mod rays;
+
 pub use threats::initialize;
 
 use crate::{
     board::Board,
-    lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{ArrayVec, Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
+
+#[allow(unused_imports)]
+use crate::types::Bitboard;
 
 use accumulator::{AccumulatorCache, PstAccumulator};
 
@@ -107,7 +112,12 @@ impl Network {
         self.threat_stack[self.index].delta.clear();
     }
 
+    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni")))]
     pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        use crate::lookup::{
+            attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
+        };
+
         let deltas = &mut self.threat_stack[self.index].delta;
 
         let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
@@ -142,7 +152,7 @@ impl Network {
     }
 
     #[inline]
-    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "avx512vbmi")))]
+    #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni")))]
     fn splat_threats(
         deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, board: &Board, bb: Bitboard, p2: Piece, sq2: Square,
         add: bool,
@@ -160,11 +170,79 @@ impl Network {
         }
     }
 
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
+    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        use rays::*;
+        use std::arch::x86_64::*;
+
+        let deltas = &mut self.threat_stack[self.index].delta;
+
+        let (perm, valid) = ray_permuation(square);
+        let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
+        let occupied = unsafe { _mm512_test_epi8_mask(rays, rays) };
+
+        let closest = closest_on_rays(occupied);
+        let attacked = attacking_along_rays(piece, closest);
+        let attackers = attackers_along_rays(rays);
+        let sliders = closest_on_rays(sliders_along_rays(rays));
+
+        Self::splat_threats(deltas, true, pboard, perm, attacked, piece, square, add);
+        Self::splat_threats(deltas, false, pboard, perm, attackers, piece, square, add);
+
+        // Deal with x-rays
+        unsafe {
+            let nadd = (!add as u32) << 31;
+            let nadd = _mm_set1_epi32(nadd as i32);
+
+            let victim_mask = (closest & 0xFEFEFEFEFEFEFEFE).rotate_right(32);
+            let xray_valid = ray_fill(victim_mask) & ray_fill(sliders);
+
+            // eprintln!("{}", square);
+            // eprintln!("{}", board.to_fen());
+            {
+                let pboard: [Piece; 64] = std::mem::transmute(pboard);
+                for i in 0..8 {
+                    for j in 0..8 {
+                        let index = i * 8 + j;
+                        let p = pboard[index];
+                        // eprint!("{} ", p.try_into().unwrap_or('-'));
+                    }
+                    // eprintln!();
+                }
+            }
+            // eprintln!("{:016x}", victim_mask);
+            // eprintln!("{:016x}", sliders);
+
+            assert_eq!((sliders & xray_valid).count_ones(), (victim_mask & xray_valid).count_ones());
+
+            let p1 = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(sliders & xray_valid, pboard));
+            let sq1 = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(sliders & xray_valid, perm));
+            let p2 =
+                _mm512_castsi512_si128(_mm512_maskz_compress_epi8(victim_mask & xray_valid, rays::flip_rays(pboard)));
+            let sq2 =
+                _mm512_castsi512_si128(_mm512_maskz_compress_epi8(victim_mask & xray_valid, rays::flip_rays(perm)));
+
+            let pair1 = _mm_unpacklo_epi8(p1, sq1);
+            let pair2 = _mm_unpacklo_epi8(p2, sq2);
+
+            deltas.unchecked_write(|data| {
+                _mm_storeu_si128(data.cast(), _mm_or_si128(_mm_unpacklo_epi16(pair1, pair2), nadd));
+                _mm_storeu_si128(data.add(4).cast(), _mm_or_si128(_mm_unpackhi_epi16(pair1, pair2), nadd));
+                (sliders & xray_valid).count_ones() as usize
+            });
+
+            for td in deltas.iter() {
+                // eprint!("{:08x} ", std::mem::transmute::<ThreatDelta, u32>(*td));
+            }
+            // eprintln!();
+        }
+    }
+
     #[inline]
-    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "avx512vbmi"))]
+    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512bw", target_feature = "gfni"))]
     fn splat_threats(
-        deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, board: &Board, bb: Bitboard, p2: Piece, sq2: Square,
-        add: bool,
+        deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, pboard: std::arch::x86_64::__m512i,
+        perm: std::arch::x86_64::__m512i, bitray: u64, p2: Piece, sq2: Square, add: bool,
     ) {
         use std::arch::x86_64::*;
 
@@ -177,15 +255,8 @@ impl Network {
                 _mm512_set1_epi16(pair as i16)
             };
 
-            let iota = _mm512_set_epi8(
-                63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
-                37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
-                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
-            );
-            let mailbox = board.mailbox_vector();
-
-            let iota = _mm512_maskz_compress_epi8(bb.0, iota);
-            let mailbox = _mm512_maskz_compress_epi8(bb.0, mailbox);
+            let iota = _mm512_maskz_compress_epi8(bitray, perm);
+            let mailbox = _mm512_maskz_compress_epi8(bitray, pboard);
 
             let idx = _mm512_set_epi8(
                 79, 15, 79, 15, 78, 14, 78, 14, 77, 13, 77, 13, 76, 12, 76, 12, 75, 11, 75, 11, 74, 10, 74, 10, 73, 9,
@@ -198,7 +269,10 @@ impl Network {
 
             let vector = _mm512_or_si512(_mm512_mask_mov_epi8(template, mask, widen), add);
 
-            deltas.push_vector_unchecked(bb.popcount(), vector);
+            deltas.unchecked_write(|data| {
+                _mm512_storeu_si512(data.cast(), vector);
+                bitray.count_ones() as usize
+            });
         }
     }
 

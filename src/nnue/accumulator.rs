@@ -233,6 +233,7 @@ fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: 
 pub struct ThreatDelta(u32);
 
 impl ThreatDelta {
+    #[allow(dead_code)]
     pub fn new(piece: Piece, from: Square, attacked: Piece, to: Square, add: bool) -> Self {
         Self(
             piece as u32
