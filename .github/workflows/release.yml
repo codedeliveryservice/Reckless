@@ -14,35 +14,35 @@ jobs:
         include:
           - os: ubuntu-latest
             name: reckless-linux-generic
-            rust_cpu: x86-64
+            rustflags: "-C target-cpu=x86-64"
 
           - os: ubuntu-latest
             name: reckless-linux-avx2
-            rust_cpu: x86-64-v3
+            rustflags: "-C target-cpu=x86-64-v3"
             sde_flag: -bdw
 
           - os: ubuntu-latest
             name: reckless-linux-avx512
-            rust_cpu: x86-64-v4
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+avx512vl,+avx512vbmi"
             sde_flag: -skx
 
           - os: windows-latest
             name: reckless-windows-generic
-            rust_cpu: x86-64
+            rustflags: "-C target-cpu=x86-64"
 
           - os: windows-latest
             name: reckless-windows-avx2
-            rust_cpu: x86-64-v3
+            rustflags: "-C target-cpu=x86-64-v3"
             sde_flag: -bdw
 
           - os: windows-latest
             name: reckless-windows-avx512
-            rust_cpu: x86-64-v4
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+avx512vl,+avx512vbmi"
             sde_flag: -skx
 
           - os: macos-latest
             name: reckless-macos
-            rust_cpu: native
+            rustflags: "-C target-cpu=native"
 
     steps:
       - name: Checkout repository
@@ -67,14 +67,14 @@ jobs:
         run: |
           cargo pgo instrument
         env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          RUSTFLAGS: "${{ matrix.rustflags }}"
 
       - name: Run PGO profiling benchmarks
         if: matrix.name == 'reckless-linux-avx2' || matrix.name == 'reckless-linux-avx512'
         run: |
           "$SDE_PATH/sde64" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          RUSTFLAGS: "${{ matrix.rustflags }}"
 
       - name: Run PGO profiling benchmarks
         if: matrix.name == 'reckless-windows-avx2' || matrix.name == 'reckless-windows-avx512'
@@ -82,20 +82,20 @@ jobs:
         run: |
           "%SDE_PATH%\sde.exe" ${{ matrix.sde_flag }} -- cargo pgo run -- bench
         env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          RUSTFLAGS: "${{ matrix.rustflags }}"
 
       - name: Run PGO profiling benchmarks
         if: matrix.name == 'reckless-macos' || matrix.name == 'reckless-linux-generic' || matrix.name == 'reckless-windows-generic'
         run: |
           cargo pgo run -- bench
         env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          RUSTFLAGS: "${{ matrix.rustflags }}"
 
       - name: Optimize build with PGO
         run: |
           cargo pgo optimize
         env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rust_cpu }}"
+          RUSTFLAGS: "${{ matrix.rustflags }}"
 
       - name: Rename binary with platform suffix
         shell: bash
