@@ -1078,7 +1078,8 @@ fn search<NODE: NodeType>(
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= eval)
-        || (bound == Bound::Lower && best_score <= eval))
+        || (bound == Bound::Lower && best_score <= eval)
+        || !td.board.has_non_pawns())
     {
         update_correction_histories(td, depth, best_score - eval, ply);
     }
