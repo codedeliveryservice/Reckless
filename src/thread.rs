@@ -1,6 +1,9 @@
-use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
-    Arc,
+use std::{
+    cell::UnsafeCell,
+    sync::{
+        atomic::{AtomicU64, AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
 use crate::{
@@ -94,6 +97,17 @@ pub struct SharedCorrectionHistory {
     pub non_pawn: [CorrectionHistory; 2],
 }
 
+impl SharedCorrectionHistory {
+    pub fn new(threads: usize) -> Self {
+        Self {
+            pawn: CorrectionHistory::new(threads),
+            minor: CorrectionHistory::new(threads),
+            major: CorrectionHistory::new(threads),
+            non_pawn: [CorrectionHistory::new(threads), CorrectionHistory::new(threads)],
+        }
+    }
+}
+
 unsafe impl NumaValue for SharedCorrectionHistory {}
 
 pub struct SharedContext {
@@ -101,8 +115,8 @@ pub struct SharedContext {
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
-    pub history: *const SharedCorrectionHistory,
-    pub replicator: NumaReplicator<SharedCorrectionHistory>,
+    pub history: UnsafeCell<*const SharedCorrectionHistory>,
+    pub replicator: UnsafeCell<NumaReplicator<SharedCorrectionHistory>>,
 }
 
 impl Default for SharedContext {
@@ -114,8 +128,8 @@ impl Default for SharedContext {
             status: Status::default(),
             nodes: Counter::default(),
             tb_hits: Counter::default(),
-            history: unsafe { replicator.get() },
-            replicator,
+            history: UnsafeCell::new(unsafe { replicator.get() }),
+            replicator: UnsafeCell::new(replicator),
         }
     }
 }
@@ -191,7 +205,7 @@ impl ThreadData {
     }
 
     pub fn corrhist(&self) -> &SharedCorrectionHistory {
-        unsafe { &*self.shared.history }
+        unsafe { &**self.shared.history.get() }
     }
 
     pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {

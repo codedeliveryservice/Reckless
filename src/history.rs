@@ -121,25 +121,35 @@ impl Default for NoisyHistory {
 
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[AtomicI16; Self::SIZE]; 2]>,
+    entries: Box<[Box<[AtomicI16]>; 2]>,
+    size: usize,
 }
 
 unsafe impl NumaValue for CorrectionHistory {}
 
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14734;
+    const BASE_SIZE: usize = 16384;
 
-    const SIZE: usize = 16384;
-    const MASK: usize = Self::SIZE - 1;
+    pub fn new(threads: usize) -> Self {
+        let size = threads.next_power_of_two() * Self::BASE_SIZE;
+
+        let entries = Box::new([
+            std::iter::repeat_with(|| AtomicI16::new(0)).take(size).collect::<Vec<_>>().into_boxed_slice(),
+            std::iter::repeat_with(|| AtomicI16::new(0)).take(size).collect::<Vec<_>>().into_boxed_slice(),
+        ]);
+
+        Self { entries, size }
+    }
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32
+        self.entries[stm][key as usize & self.mask()].load(Ordering::Relaxed) as i32
     }
 
     pub fn update(&self, stm: Color, key: u64, bonus: i32) {
-        let current = self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32;
+        let current = self.entries[stm][key as usize & self.mask()].load(Ordering::Relaxed) as i32;
         let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
-        self.entries[stm][key as usize & Self::MASK].store(new as i16, Ordering::Relaxed);
+        self.entries[stm][key as usize & self.mask()].store(new as i16, Ordering::Relaxed);
     }
 
     pub fn clear(&self) {
@@ -149,11 +159,15 @@ impl CorrectionHistory {
             }
         }
     }
+
+    fn mask(&self) -> usize {
+        self.size - 1
+    }
 }
 
 impl Default for CorrectionHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self::new(1)
     }
 }
 

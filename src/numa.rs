@@ -62,7 +62,7 @@ unsafe impl<T: NumaValue> Sync for NumaReplicator<T> {}
 
 impl<T: NumaValue> NumaReplicator<T> {
     #[cfg(feature = "numa")]
-    pub unsafe fn new(source: fn() -> T) -> Self {
+    pub unsafe fn new<S: Fn() -> T>(source: S) -> Self {
         if api::numa_available() < 0 {
             panic!("NUMA is not available on this system");
         }
@@ -94,7 +94,7 @@ impl<T: NumaValue> NumaReplicator<T> {
     }
 
     #[cfg(not(feature = "numa"))]
-    pub unsafe fn new(source: fn() -> T) -> Self {
+    pub unsafe fn new<S: Fn() -> T>(source: S) -> Self {
         let ptr = std::alloc::alloc(std::alloc::Layout::new::<T>()) as *mut T;
         if ptr.is_null() {
             panic!("Failed to allocate memory for NumaReplicator");

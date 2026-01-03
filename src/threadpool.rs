@@ -7,7 +7,10 @@ use std::{
     thread::Scope,
 };
 
-use crate::thread::{SharedContext, ThreadData};
+use crate::{
+    numa::NumaReplicator,
+    thread::{SharedContext, SharedCorrectionHistory, ThreadData},
+};
 
 pub struct ThreadPool {
     pub workers: Vec<WorkerThread>,
@@ -33,6 +36,12 @@ impl ThreadPool {
 
     pub fn set_count(&mut self, threads: usize) {
         let shared = self.vector[0].shared.clone();
+
+        unsafe {
+            let replicator = NumaReplicator::new(|| SharedCorrectionHistory::new(threads));
+            *shared.replicator.get() = replicator;
+            *shared.history.get() = (*shared.replicator.get()).get();
+        }
 
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);
@@ -195,7 +204,10 @@ fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     #[cfg(feature = "numa")]
     {
         let concurrency = std::thread::available_parallelism().map_or(1, |n| n.get());
-        println!("(num_threads ({num_threads}) >= concurrency ({concurrency}) / 2): {}", num_threads >= concurrency / 2);
+        println!(
+            "(num_threads ({num_threads}) >= concurrency ({concurrency}) / 2): {}",
+            num_threads >= concurrency / 2
+        );
 
         (0..num_threads).map(|id| make_worker_thread((num_threads >= concurrency / 2).then_some(id))).collect()
     }
