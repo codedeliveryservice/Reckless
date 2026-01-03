@@ -49,6 +49,12 @@ pub fn bind_thread(id: usize) {
     }
 }
 
+/// Marker trait for types that can be safely replicated per NUMA node.
+///
+/// # Safety
+///
+/// Implementing `NumaValue` asserts that `T` may be replicated per NUMA node
+/// and safely accessed concurrently (i.e., `&T` must be `Sync`).
 pub unsafe trait NumaValue: Sync {}
 
 pub struct NumaReplicator<T: NumaValue> {
