@@ -101,7 +101,7 @@ impl<T: NumaValue> NumaReplicator<T> {
     }
 
     #[cfg(feature = "numa")]
-    pub unsafe fn get(&self) -> *const T {
+    pub unsafe fn get(&self) -> &T {
         let cpu = libc::sched_getcpu();
         let node = api::numa_node_of_cpu(cpu);
 
