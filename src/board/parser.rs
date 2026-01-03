@@ -41,7 +41,14 @@ impl Board {
                 let square = Square::from_rank_file(rank as u8, file);
 
                 board.add_piece(piece, square);
-                board.state.material += PIECE_VALUES[piece.piece_type()];
+                match piece.piece_type() {
+                    PieceType::Pawn => {
+                        board.state.pawn_material[piece.piece_color() as usize] += PIECE_VALUES[PieceType::Pawn];
+                    }
+                    _ => {
+                        board.state.non_pawn_material[piece.piece_color() as usize] += PIECE_VALUES[piece.piece_type()];
+                    }
+                }
                 file += 1;
             }
         }

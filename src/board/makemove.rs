@@ -68,7 +68,14 @@ impl Board {
 
             self.update_hash(captured, to);
 
-            self.state.material -= PIECE_VALUES[captured.piece_type()];
+            match captured.piece_type() {
+                PieceType::Pawn => {
+                    self.state.pawn_material[!self.side_to_move] -= PIECE_VALUES[PieceType::Pawn];
+                }
+                _ => {
+                    self.state.non_pawn_material[!self.side_to_move] -= PIECE_VALUES[captured.piece_type()];
+                }
+            }
             self.state.captured = Some(captured);
             self.state.recapture_square = to;
         }
@@ -97,7 +104,7 @@ impl Board {
 
                 self.update_hash(captured, to ^ 8);
 
-                self.state.material -= PIECE_VALUES[captured.piece_type()];
+                self.state.pawn_material[!self.side_to_move] -= PIECE_VALUES[PieceType::Pawn];
             }
             MoveKind::Castling => {
                 let (rook_from, rook_to) = self.get_castling_rook(to);
@@ -130,7 +137,8 @@ impl Board {
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
 
-                self.state.material += PIECE_VALUES[promotion.piece_type()] - PIECE_VALUES[PieceType::Pawn];
+                self.state.non_pawn_material[self.side_to_move] += PIECE_VALUES[promotion.piece_type()];
+                self.state.pawn_material[self.side_to_move] -= PIECE_VALUES[PieceType::Pawn];
             }
             _ => (),
         }

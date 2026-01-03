@@ -695,7 +695,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
-        if !NODE::ROOT && !is_loss(best_score) {
+        if !NODE::ROOT && td.board.has_non_pawns() && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count

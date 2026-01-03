@@ -28,7 +28,8 @@ struct InternalState {
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
-    material: i32,
+    non_pawn_material: [i32; Color::NUM],
+    pawn_material: [i32; Color::NUM],
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
@@ -131,7 +132,10 @@ impl Board {
     }
 
     pub const fn material(&self) -> i32 {
-        self.state.material
+        self.state.pawn_material[Color::White as usize]
+            + self.state.pawn_material[Color::Black as usize]
+            + self.state.non_pawn_material[Color::White as usize]
+            + self.state.non_pawn_material[Color::Black as usize]
     }
 
     pub const fn in_check(&self) -> bool {
@@ -191,7 +195,7 @@ impl Board {
     }
 
     pub fn has_non_pawns(&self) -> bool {
-        self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
+        self.state.non_pawn_material[self.side_to_move] != 0
     }
 
     pub fn advance_fullmove_counter(&mut self) {
