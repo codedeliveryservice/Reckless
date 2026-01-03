@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::Board,
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{ArrayVec, Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -220,7 +220,7 @@ impl Network {
     ))]
     #[allow(clippy::too_many_arguments)]
     fn splat_threats(
-        deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, pboard: std::arch::x86_64::__m512i,
+        deltas: &mut crate::types::ArrayVec<ThreatDelta, 80>, is_to: bool, pboard: std::arch::x86_64::__m512i,
         perm: std::arch::x86_64::__m512i, bitray: u64, p2: Piece, sq2: Square, add: bool,
     ) {
         use std::arch::x86_64::*;

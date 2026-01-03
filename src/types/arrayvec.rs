@@ -74,6 +74,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
 
+    #[allow(dead_code)]
     pub unsafe fn unchecked_write<F>(&mut self, op: F)
     where
         F: FnOnce(*mut T) -> usize,
