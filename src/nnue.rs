@@ -7,7 +7,7 @@ use crate::{
     board::Board,
     lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{ArrayVec, Bitboard, Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -111,11 +111,7 @@ impl Network {
         let deltas = &mut self.threat_stack[self.index].delta;
 
         let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
-
-        for to in attacked {
-            let attacked = board.piece_on(to);
-            deltas.push(ThreatDelta::new(piece, square, attacked, to, add));
-        }
+        Self::splat_threats(deltas, true, board, attacked, piece, square, add);
 
         let rook_attacks = rook_attacks(square, board.occupancies());
         let bishop_attacks = bishop_attacks(square, board.occupancies());
@@ -141,8 +137,25 @@ impl Network {
         let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
         let kings = board.pieces(PieceType::King) & king_attacks(square);
 
-        for from in black_pawns | white_pawns | knights | kings {
-            deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
+        let attackers = black_pawns | white_pawns | knights | kings;
+        Self::splat_threats(deltas, false, board, attackers, piece, square, add);
+    }
+
+    #[inline]
+    fn splat_threats(
+        deltas: &mut ArrayVec<ThreatDelta, 80>, is_to: bool, board: &Board, bb: Bitboard, p2: Piece, sq2: Square,
+        add: bool,
+    ) {
+        if is_to {
+            for sq1 in bb {
+                let p1 = board.piece_on(sq1);
+                deltas.push(ThreatDelta::new(p2, sq2, p1, sq1, add));
+            }
+        } else {
+            for sq1 in bb {
+                let p1 = board.piece_on(sq1);
+                deltas.push(ThreatDelta::new(p1, sq1, p2, sq2, add));
+            }
         }
     }
 
