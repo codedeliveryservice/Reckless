@@ -229,17 +229,38 @@ fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: 
 }
 
 #[derive(Copy, Clone)]
-pub struct ThreatDelta {
-    piece: Piece,
-    from: Square,
-    attacked: Piece,
-    to: Square,
-    add: bool,
-}
+#[repr(transparent)]
+pub struct ThreatDelta(u32);
 
 impl ThreatDelta {
     pub fn new(piece: Piece, from: Square, attacked: Piece, to: Square, add: bool) -> Self {
-        Self { piece, from, attacked, to, add }
+        Self(
+            piece as u32
+                | ((from as u32) << 8)
+                | ((attacked as u32) << 16)
+                | ((to as u32) << 24)
+                | ((add as u32) << 31),
+        )
+    }
+
+    pub fn piece(self) -> Piece {
+        unsafe { std::mem::transmute(self.0 as u8) }
+    }
+
+    pub fn from(self) -> Square {
+        unsafe { std::mem::transmute((self.0 >> 8) as u8) }
+    }
+
+    pub fn attacked(self) -> Piece {
+        unsafe { std::mem::transmute((self.0 >> 16) as u8) }
+    }
+
+    pub fn to(self) -> Square {
+        unsafe { std::mem::transmute(((self.0 >> 24) & 0x7F) as u8) }
+    }
+
+    pub fn add(self) -> bool {
+        self.0 >> 31 != 0
     }
 }
 
@@ -286,7 +307,8 @@ impl ThreatAccumulator {
         let mut adds = ArrayVec::<usize, 256>::new();
         let mut subs = ArrayVec::<usize, 256>::new();
 
-        for &ThreatDelta { piece, from, attacked, to, add } in self.delta.iter() {
+        for &td in self.delta.iter() {
+            let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
             let mirrored = king.file() >= 4;
 
             let index = threat_index(piece, from, attacked, to, mirrored, pov);
