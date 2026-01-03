@@ -167,10 +167,17 @@ impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     }
 }
 
-fn make_worker_thread() -> WorkerThread {
+fn make_worker_thread(id: Option<usize>) -> WorkerThread {
     let (sender, receiver) = make_work_channel();
 
     let handle = std::thread::spawn(move || {
+        #[cfg(feature = "numa")]
+        if let Some(id) = id {
+            crate::numa::bind_thread(id);
+        }
+        #[cfg(not(feature = "numa"))]
+        let _ = id;
+
         while let Ok(work) = receiver.receiver.recv() {
             work();
             let (lock, cvar) = &*receiver.completion_signal;
@@ -185,7 +192,15 @@ fn make_worker_thread() -> WorkerThread {
 }
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
-    (0..num_threads).map(|_| make_worker_thread()).collect()
+    #[cfg(feature = "numa")]
+    {
+        let concurrency = std::thread::available_parallelism().map_or(1, |n| n.get());
+        (0..num_threads).map(|id| make_worker_thread((num_threads >= concurrency / 2).then_some(id))).collect()
+    }
+    #[cfg(not(feature = "numa"))]
+    {
+        (0..num_threads).map(|_| make_worker_thread(None)).collect()
+    }
 }
 
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<Box<ThreadData>> {
