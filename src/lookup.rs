@@ -104,6 +104,7 @@ pub fn between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN[a as usize][b as usize] }
 }
 
+#[allow(dead_code)]
 pub fn ray_pass(a: Square, b: Square) -> Bitboard {
     unsafe { RAY_PASS[a as usize][b as usize] }
 }
