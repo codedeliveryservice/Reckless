@@ -1350,6 +1350,15 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.board.make_move(mv, |board, piece, square, add| td.nnue.push_threats(board, piece, square, add));
 
     td.shared.tt.prefetch(td.board.hash());
+
+    let stm = td.board.side_to_move();
+    let corrhist = td.corrhist();
+
+    corrhist.pawn.prefetch(stm, td.board.pawn_key());
+    corrhist.minor.prefetch(stm, td.board.minor_key());
+    corrhist.major.prefetch(stm, td.board.major_key());
+    corrhist.non_pawn[Color::White].prefetch(stm, td.board.non_pawn_key(Color::White));
+    corrhist.non_pawn[Color::Black].prefetch(stm, td.board.non_pawn_key(Color::Black));
 }
 
 fn undo_move(td: &mut ThreadData, mv: Move) {

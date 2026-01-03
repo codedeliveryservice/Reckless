@@ -132,6 +132,20 @@ impl CorrectionHistory {
     const SIZE: usize = 65536;
     const MASK: usize = Self::SIZE - 1;
 
+    pub fn prefetch(&self, stm: Color, key: u64) {
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T1};
+
+            let ptr = &self.entries[stm][key as usize & Self::MASK].as_ptr();
+            _mm_prefetch::<_MM_HINT_T1>(ptr.cast());
+        }
+
+        // No prefetching for non-x86_64 architectures
+        #[cfg(not(target_arch = "x86_64"))]
+        let _ = (stm, key);
+    }
+
     pub fn get(&self, stm: Color, key: u64) -> i32 {
         self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32
     }
