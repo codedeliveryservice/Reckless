@@ -173,7 +173,7 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
 
     let mut best = 0;
 
-    if matches!(threads[best].time_manager.limits(), Limits::Depth(_)) && threads[0].multi_pv == 1 {
+    if !matches!(threads[best].time_manager.limits(), Limits::Depth(_)) && threads[0].multi_pv == 1 {
         for current in 1..threads.len() {
             let is_better_candidate = || -> bool {
                 let best = &threads[best];
