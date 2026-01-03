@@ -15,7 +15,7 @@ fn mapping() -> HashMap<usize, Vec<usize>> {
             unsafe { api::numa_node_to_cpus(node as i32, mask) };
 
             let mut cpus = Vec::new();
-            for cpu in 0..libc::CPU_SETSIZE as i32 {
+            for cpu in 0..libc::CPU_SETSIZE {
                 if unsafe { api::numa_bitmask_isbitset(mask, cpu) } != 0 {
                     cpus.push(cpu as usize);
                 }
@@ -28,12 +28,10 @@ fn mapping() -> HashMap<usize, Vec<usize>> {
             }
         }
 
-        println!("NUMA mapping initialized: {:?}", map);
-
         map
     }
 
-    MAPPING.get_or_init(|| initialize()).clone()
+    MAPPING.get_or_init(initialize).clone()
 }
 
 #[cfg(feature = "numa")]
@@ -87,9 +85,6 @@ impl<T: NumaValue> NumaReplicator<T> {
             nodes.push(node);
         }
 
-        println!("NumaReplicator allocated on nodes: {:?}", nodes);
-        println!("NumaReplicator total replicas: {}", allocated.len());
-
         Self { allocated }
     }
 
@@ -133,8 +128,6 @@ impl<T: NumaValue> Drop for NumaReplicator<T> {
                 #[cfg(feature = "numa")]
                 api::numa_free(ptr as *mut libc::c_void, std::mem::size_of::<T>());
             }
-
-            println!("NumaReplicator deallocated");
         }
     }
 }

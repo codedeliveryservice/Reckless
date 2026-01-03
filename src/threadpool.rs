@@ -204,11 +204,6 @@ fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     #[cfg(feature = "numa")]
     {
         let concurrency = std::thread::available_parallelism().map_or(1, |n| n.get());
-        println!(
-            "(num_threads ({num_threads}) >= concurrency ({concurrency}) / 2): {}",
-            num_threads >= concurrency / 2
-        );
-
         (0..num_threads).map(|id| make_worker_thread((num_threads >= concurrency / 2).then_some(id))).collect()
     }
     #[cfg(not(feature = "numa"))]
