@@ -74,7 +74,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
 
-    #[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+    #[cfg(target_feature = "avx512f")]
     pub unsafe fn push_vector_unchecked(&mut self, count: usize, vector: std::arch::x86_64::__m512i) {
         use std::arch::x86_64::*;
 
