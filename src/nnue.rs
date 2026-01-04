@@ -353,6 +353,33 @@ impl Network {
         }
     }
 
+    #[cfg(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    ))]
+    pub fn push_threats_on_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, square: Square) {
+        use rays::*;
+        use std::arch::x86_64::*;
+
+        let deltas = &mut self.threat_stack[self.index].delta;
+
+        let (perm, valid) = ray_permuation(square);
+        let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
+        let occupied = unsafe { _mm512_test_epi8_mask(rays, rays) };
+
+        let closest = closest_on_rays(occupied);
+        let old_attacked = attacking_along_rays(old_piece, closest);
+        let new_attacked = attacking_along_rays(new_piece, closest);
+        let attackers = attackers_along_rays(rays) & closest;
+
+        Self::splat_threats(deltas, true, pboard, perm, old_attacked, old_piece, square, false);
+        Self::splat_threats(deltas, false, pboard, perm, attackers, old_piece, square, false);
+        Self::splat_threats(deltas, true, pboard, perm, new_attacked, new_piece, square, true);
+        Self::splat_threats(deltas, false, pboard, perm, attackers, new_piece, square, true);
+    }
+
     #[inline]
     #[cfg(all(
         target_feature = "avx512vl",
