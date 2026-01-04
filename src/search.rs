@@ -761,19 +761,16 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32;
-
-            reduction += 28 * move_count.ilog2() as i32;
-            reduction += 28 * depth.ilog2() as i32;
+            let mut reduction = (240 * fractional_log2(move_count) * fractional_log2(depth) / (1024 * 1024)) as i32;
 
             reduction -= 68 * move_count;
             reduction -= 3326 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 2031;
+                reduction += 2031 - 368;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += 1563;
+                reduction += 1563 - 368;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -1355,4 +1352,16 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+const fn fractional_log2(x: i32) -> i64 {
+    debug_assert!(x > 0);
+
+    let head = x.leading_zeros();
+    let rem = (x as u32) << (head + 1) >> 22;
+
+    let big = (31 - head) * 1024;
+    let small = rem + (355 * rem * (1024 - rem)) / (1024 * 1024);
+
+    (big + small) as i64
 }
