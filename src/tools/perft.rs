@@ -5,7 +5,7 @@
 
 use std::time::Instant;
 
-use crate::board::Board;
+use crate::board::{Board, NullBoardObserver};
 
 pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
@@ -25,7 +25,7 @@ pub fn perft(depth: usize, board: &mut Board) {
             continue;
         }
 
-        board.make_move(mv, |_, _, _, _| ());
+        board.make_move(mv, &mut NullBoardObserver {});
 
         let count = perft_internal(depth - 1, board);
         nodes += count;
@@ -63,7 +63,7 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
         if depth == 1 {
             nodes += 1;
         } else {
-            board.make_move(mv, |_, _, _, _| ());
+            board.make_move(mv, &mut NullBoardObserver {});
             nodes += perft_internal(depth - 1, board);
             board.undo_move(mv);
         }

@@ -1,6 +1,6 @@
 use std::sync::Once;
 
-use super::Board;
+use super::{Board, NullBoardObserver};
 use crate::lookup;
 
 static LUT_INITIALIZED: Once = Once::new();
@@ -29,7 +29,7 @@ fn perft(board: &mut Board, depth: usize) -> u32 {
         let mv = entry.mv;
 
         if board.is_legal(mv) {
-            board.make_move(mv, |_, _, _, _| ());
+            board.make_move(mv, &mut NullBoardObserver {});
             nodes += if depth > 1 { perft(board, depth - 1) } else { 1 };
             board.undo_move(mv);
         }

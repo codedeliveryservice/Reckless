@@ -12,7 +12,7 @@ mod rays;
 pub use threats::initialize;
 
 use crate::{
-    board::Board,
+    board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
     types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
@@ -393,6 +393,16 @@ impl Default for Network {
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
         }
+    }
+}
+
+impl BoardObserver for Network {
+    fn on_piece_move(&mut self, _board: &Board, _src_piece: Piece, _from: Square, _dest_piece: Piece, _to: Square) {}
+
+    fn on_piece_mutate(&mut self, _board: &Board, _old_piece: Piece, _new_piece: Piece, _sq: Square) {}
+
+    fn on_piece_change(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        self.push_threats(board, piece, square, add);
     }
 }
 
