@@ -505,6 +505,7 @@ fn search<NODE: NodeType>(
                 + 35 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
+        && !tt_move.is_quiet()
     {
         return beta + (estimated_score - beta) / 3;
     }
@@ -520,6 +521,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && !tt_move.is_quiet()
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
