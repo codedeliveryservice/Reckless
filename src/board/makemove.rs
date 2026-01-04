@@ -75,10 +75,8 @@ impl Board {
 
         if !mv.is_castling() {
             self.remove_piece(piece, from);
-            observer.on_piece_change(self, piece, from, false);
-
             self.add_piece(piece, to);
-            observer.on_piece_change(self, piece, to, true);
+            observer.on_piece_move(self, piece, from, to);
         }
 
         self.update_hash(piece, from);

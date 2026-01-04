@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{Bitboard, Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -120,28 +120,50 @@ impl Network {
         target_feature = "gfni",
         target_feature = "avx512vbmi"
     )))]
-    pub fn push_threats(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+    pub fn push_threats_on_change(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
+        self.push_threats_single(board, board.occupancies(), piece, square, add);
+    }
+
+    #[cfg(not(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    )))]
+    pub fn push_threats_on_move(&mut self, board: &Board, piece: Piece, from: Square, to: Square) {
+        let occupancies = board.occupancies() ^ to.to_bb();
+        self.push_threats_single(board, occupancies, piece, from, false);
+        self.push_threats_single(board, occupancies, piece, to, true);
+    }
+
+    #[cfg(not(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    )))]
+    fn push_threats_single(&mut self, board: &Board, occupancies: Bitboard, piece: Piece, square: Square, add: bool) {
         use crate::lookup::{
             attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
         };
 
         let deltas = &mut self.threat_stack[self.index].delta;
 
-        let attacked = attacks(piece, square, board.occupancies()) & board.occupancies();
+        let attacked = attacks(piece, square, occupancies) & occupancies;
         for to in attacked {
             deltas.push(ThreatDelta::new(piece, square, board.piece_on(to), to, add));
         }
 
-        let rook_attacks = rook_attacks(square, board.occupancies());
-        let bishop_attacks = bishop_attacks(square, board.occupancies());
+        let rook_attacks = rook_attacks(square, occupancies);
+        let bishop_attacks = bishop_attacks(square, occupancies);
         let queen_attacks = rook_attacks | bishop_attacks;
 
         let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
         let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
 
-        for from in diagonal | orthogonal {
+        for from in (diagonal | orthogonal) & occupancies {
             let sliding_piece = board.piece_on(from);
-            let threatened = ray_pass(from, square) & board.occupancies() & queen_attacks;
+            let threatened = ray_pass(from, square) & occupancies & queen_attacks;
 
             if let Some(to) = threatened.into_iter().next() {
                 deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
@@ -156,7 +178,7 @@ impl Network {
         let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
         let kings = board.pieces(PieceType::King) & king_attacks(square);
 
-        for from in black_pawns | white_pawns | knights | kings {
+        for from in (black_pawns | white_pawns | knights | kings) & occupancies {
             deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
         }
     }
@@ -397,12 +419,14 @@ impl Default for Network {
 }
 
 impl BoardObserver for Network {
-    fn on_piece_move(&mut self, _board: &Board, _src_piece: Piece, _from: Square, _dest_piece: Piece, _to: Square) {}
+    fn on_piece_move(&mut self, board: &Board, piece: Piece, from: Square, to: Square) {
+        self.push_threats_on_move(board, piece, from, to);
+    }
 
     fn on_piece_mutate(&mut self, _board: &Board, _old_piece: Piece, _new_piece: Piece, _sq: Square) {}
 
     fn on_piece_change(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
-        self.push_threats(board, piece, square, add);
+        self.push_threats_on_change(board, piece, square, add);
     }
 }
 

@@ -585,7 +585,7 @@ impl Default for Board {
 
 pub trait BoardObserver {
     fn on_piece_change(&mut self, board: &Board, piece: Piece, sq: Square, add: bool);
-    fn on_piece_move(&mut self, board: &Board, src_piece: Piece, from: Square, dest_piece: Piece, to: Square);
+    fn on_piece_move(&mut self, board: &Board, piece: Piece, from: Square, to: Square);
     fn on_piece_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, sq: Square);
 }
 
@@ -593,6 +593,6 @@ pub struct NullBoardObserver {}
 
 impl BoardObserver for NullBoardObserver {
     fn on_piece_change(&mut self, _: &Board, _: Piece, _: Square, _: bool) {}
-    fn on_piece_move(&mut self, _: &Board, _: Piece, _: Square, _: Piece, _: Square) {}
+    fn on_piece_move(&mut self, _: &Board, _: Piece, _: Square, _: Square) {}
     fn on_piece_mutate(&mut self, _: &Board, _: Piece, _: Piece, _: Square) {}
 }
