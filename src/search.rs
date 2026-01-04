@@ -767,7 +767,7 @@ fn search<NODE: NodeType>(
             reduction += 28 * depth.ilog2() as i32;
 
             reduction -= 68 * move_count;
-            reduction -= 3326 * correction_value.abs() / 1024;
+            reduction -= td.board.occupancies().popcount() as i32 * 128 * correction_value.abs() / 1024;
 
             if is_quiet {
                 reduction += 2031;
