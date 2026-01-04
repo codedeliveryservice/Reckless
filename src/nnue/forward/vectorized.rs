@@ -54,32 +54,54 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
 pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
-    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
+    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES * 4]);
+	let half_size = pre_activations.len() / 4;
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
-    let mut pairs = nnz.chunks_exact(2);
+    let mut pairs = nnz.chunks_exact(4);
 
     for pair in &mut pairs {
         let index1 = *pair.get_unchecked(0) as usize;
         let index2 = *pair.get_unchecked(1) as usize;
+        let index3 = *pair.get_unchecked(2) as usize;
+        let index4 = *pair.get_unchecked(3) as usize;
 
         let input1 = simd::splat_i32(*packed.get_unchecked(index1));
         let input2 = simd::splat_i32(*packed.get_unchecked(index2));
+        let input3 = simd::splat_i32(*packed.get_unchecked(index3));
+        let input4 = simd::splat_i32(*packed.get_unchecked(index4));
 
         let weights1 = PARAMETERS.l1_weights.as_ptr().add(index1 * L2_SIZE * CHUNKS);
         let weights2 = PARAMETERS.l1_weights.as_ptr().add(index2 * L2_SIZE * CHUNKS);
+        let weights3 = PARAMETERS.l1_weights.as_ptr().add(index3 * L2_SIZE * CHUNKS);
+        let weights4 = PARAMETERS.l1_weights.as_ptr().add(index4 * L2_SIZE * CHUNKS);
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights1 = *weights1.add(j * CHUNKS).cast();
             let weights2 = *weights2.add(j * CHUNKS).cast();
+            let weights3 = *weights3.add(j * CHUNKS).cast();
+            let weights4 = *weights4.add(j * CHUNKS).cast();
 
             let vector = &mut pre_activations[j / simd::F32_LANES];
-            *vector = simd::double_dpbusd(*vector, input1, weights1, input2, weights2);
+            *vector = simd::dpbusd(*vector, input1, weights1);
+            let vector = &mut pre_activations[j / simd::F32_LANES + half_size];
+            *vector = simd::dpbusd(*vector, input2, weights2);
+            let vector = &mut pre_activations[j / simd::F32_LANES + half_size * 2];
+            *vector = simd::dpbusd(*vector, input3, weights3);
+            let vector = &mut pre_activations[j / simd::F32_LANES + half_size * 3];
+            *vector = simd::dpbusd(*vector, input4, weights4);
         }
     }
 
-    if let Some(last) = pairs.remainder().first() {
+	// Fold upper half into lower half
+	for i in 0..half_size {
+		pre_activations[i] = simd::add_i32(pre_activations[i], pre_activations[i + half_size]);
+		pre_activations[i] = simd::add_i32(pre_activations[i], pre_activations[i + half_size * 2]);
+		pre_activations[i] = simd::add_i32(pre_activations[i], pre_activations[i + half_size * 3]);
+	}
+
+    for last in pairs.remainder() {
         let index = *last as usize;
         let input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = PARAMETERS.l1_weights.as_ptr().add(index * L2_SIZE * CHUNKS);
