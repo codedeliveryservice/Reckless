@@ -309,6 +309,28 @@ fn search<NODE: NodeType>(
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
 
+        if !NODE::ROOT
+            && !excluded
+            && is_valid(tt_score)
+            && tt_depth >= 1
+            && tt_move.is_quiet()
+            && tt_score >= beta
+            && match tt_bound {
+                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
+                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+                _ => true,
+            }
+            && td.stack[ply - 1].move_count < 4
+        {
+            let update_depth = if tt_depth > depth - (tt_score < beta) as i32 { depth } else { tt_depth };
+
+            let quiet_bonus = (190 * update_depth - 80).min(1830);
+            let cont_bonus = (109 * update_depth - 56).min(1337);
+
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
+        }
+
         if !NODE::PV
             && !excluded
             && tt_depth > depth - (tt_score < beta) as i32
@@ -319,14 +341,6 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
-                let quiet_bonus = (190 * depth - 80).min(1830);
-                let cont_bonus = (109 * depth - 56).min(1337);
-
-                td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
-            }
-
             if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
                 let pcm_move = td.stack[ply - 1].mv;
                 if pcm_move.is_quiet() {
