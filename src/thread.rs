@@ -5,7 +5,7 @@ use std::sync::{
 
 use crate::{
     board::Board,
-    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, PawnHistory, QuietHistory},
     nnue::Network,
     numa::{NumaReplicator, NumaValue},
     stack::Stack,
@@ -92,6 +92,7 @@ pub struct SharedDomainContext {
     pub minor_corrhist: CorrectionHistory,
     pub major_corrhist: CorrectionHistory,
     pub non_pawn_corrhist: [CorrectionHistory; 2],
+    pub pawn_history: PawnHistory,
 }
 
 unsafe impl NumaValue for SharedDomainContext {}

@@ -126,6 +126,8 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
         domain.major_corrhist.clear();
         domain.non_pawn_corrhist[Color::White].clear();
         domain.non_pawn_corrhist[Color::Black].clear();
+
+        domain.pawn_history.clear();
     }
 }
 
