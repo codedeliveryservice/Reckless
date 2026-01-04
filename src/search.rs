@@ -391,7 +391,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let correction_value = eval_correction(td, ply);
+    let (correction_value, corrplexity) = eval_correction(td, ply);
 
     let raw_eval;
     let mut eval;
@@ -501,7 +501,7 @@ fn search<NODE: NodeType>(
         && estimated_score >= beta
         && estimated_score
             >= beta + 1085 * depth * depth / 128 + 25 * depth - (79 * improving as i32)
-                + 500 * correction_value.abs() / 1024
+                + 250 * corrplexity / 1024
                 + 35 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
@@ -633,10 +633,8 @@ fn search<NODE: NodeType>(
         }
 
         if score < singular_beta {
-            let double_margin =
-                -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-            let triple_margin =
-                48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+            let double_margin = -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 8 * corrplexity / 128;
+            let triple_margin = 48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 8 * corrplexity / 128;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
@@ -767,7 +765,7 @@ fn search<NODE: NodeType>(
             reduction += 28 * depth.ilog2() as i32;
 
             reduction -= 68 * move_count;
-            reduction -= 3326 * correction_value.abs() / 1024;
+            reduction -= 1663 * corrplexity / 1024;
 
             if is_quiet {
                 reduction += 2031;
@@ -846,7 +844,7 @@ fn search<NODE: NodeType>(
             reduction += 25 * depth.ilog2() as i32;
 
             reduction -= 55 * move_count;
-            reduction -= 2484 * correction_value.abs() / 1024;
+            reduction -= 1242 * corrplexity / 1024;
 
             if is_quiet {
                 reduction += 1634;
@@ -1151,11 +1149,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     // Evaluation
     if !in_check {
+        let (correction_value, _) = eval_correction(td, ply);
+
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
         };
-        best_score = correct_eval(td, raw_eval, eval_correction(td, ply));
+        best_score = correct_eval(td, raw_eval, correction_value);
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1274,26 +1274,30 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     best_score
 }
 
-fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
+fn eval_correction(td: &ThreadData, ply: isize) -> (i32, i32) {
     let stm = td.board.side_to_move();
     let corrhist = td.corrhist();
 
-    (corrhist.pawn.get(stm, td.board.pawn_key())
-        + corrhist.minor.get(stm, td.board.minor_key())
-        + corrhist.major.get(stm, td.board.major_key())
-        + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + td.continuation_corrhist.get(
-            td.stack[ply - 2].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-        )
-        + td.continuation_corrhist.get(
-            td.stack[ply - 4].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-        ))
-        / 88
+    let pawn = corrhist.pawn.get(stm, td.board.pawn_key());
+    let minor = corrhist.minor.get(stm, td.board.minor_key());
+    let major = corrhist.major.get(stm, td.board.major_key());
+    let non_pawn1 = corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White));
+    let non_pawn2 = corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black));
+    let cont1 = td.continuation_corrhist.get(
+        td.stack[ply - 2].contcorrhist,
+        td.stack[ply - 1].piece,
+        td.stack[ply - 1].mv.to(),
+    );
+    let cont2 = td.continuation_corrhist.get(
+        td.stack[ply - 4].contcorrhist,
+        td.stack[ply - 1].piece,
+        td.stack[ply - 1].mv.to(),
+    );
+
+    (
+        (pawn + minor + major + non_pawn1 + non_pawn2 + cont1 + cont2) / 88,
+        (pawn.abs() + minor.abs() + major.abs() + non_pawn1.abs() + non_pawn2.abs() + cont1.abs() + cont2.abs()) / 88,
+    )
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
