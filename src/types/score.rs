@@ -60,9 +60,9 @@ pub fn normalize_to_cp(score: i32, board: &Board) -> i32 {
         + 5 * board.pieces(PieceType::Rook).popcount()
         + 9 * board.pieces(PieceType::Queen).popcount();
 
-    let v = material.clamp(16, 64) as f64 / 56.0;
+    let v = material.clamp(16, 78) as f64 / 58.0;
 
-    let normalization = -141.4 * v.powi(3) + 353.4 * v.powi(2) - 338.9 * v + 437.1;
+    let normalization = -166.3 * v.powi(3) + 402.2 * v.powi(2) - 340.0 * v + 419.9;
 
     (100.0 * score as f64 / normalization).round() as i32
 }
