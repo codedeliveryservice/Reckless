@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Bitboard, Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -142,7 +142,9 @@ impl Network {
         target_feature = "gfni",
         target_feature = "avx512vbmi"
     )))]
-    fn push_threats_single(&mut self, board: &Board, occupancies: Bitboard, piece: Piece, square: Square, add: bool) {
+    fn push_threats_single(
+        &mut self, board: &Board, occupancies: crate::types::Bitboard, piece: Piece, square: Square, add: bool,
+    ) {
         use crate::lookup::{
             attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
         };
