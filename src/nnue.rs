@@ -183,6 +183,48 @@ impl Network {
         }
     }
 
+    #[cfg(not(all(
+        target_feature = "avx512vl",
+        target_feature = "avx512bw",
+        target_feature = "gfni",
+        target_feature = "avx512vbmi"
+    )))]
+    pub fn push_threats_on_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, square: Square) {
+        use crate::lookup::{
+            attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
+        };
+
+        let deltas = &mut self.threat_stack[self.index].delta;
+
+        let occupancies = board.occupancies();
+
+        let attacked = attacks(old_piece, square, occupancies) & occupancies;
+        for to in attacked {
+            deltas.push(ThreatDelta::new(old_piece, square, board.piece_on(to), to, false));
+        }
+        let attacked = attacks(new_piece, square, occupancies) & occupancies;
+        for to in attacked {
+            deltas.push(ThreatDelta::new(new_piece, square, board.piece_on(to), to, true));
+        }
+
+        let rook_attacks = rook_attacks(square, occupancies);
+        let bishop_attacks = bishop_attacks(square, occupancies);
+
+        let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
+        let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
+
+        let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
+        let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
+
+        let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
+        let kings = board.pieces(PieceType::King) & king_attacks(square);
+
+        for from in black_pawns | white_pawns | knights | kings | diagonal | orthogonal {
+            deltas.push(ThreatDelta::new(board.piece_on(from), from, old_piece, square, false));
+            deltas.push(ThreatDelta::new(board.piece_on(from), from, new_piece, square, true));
+        }
+    }
+
     #[cfg(all(
         target_feature = "avx512vl",
         target_feature = "avx512bw",
@@ -501,7 +543,9 @@ impl BoardObserver for Network {
         self.push_threats_on_move(board, piece, from, to);
     }
 
-    fn on_piece_mutate(&mut self, _board: &Board, _old_piece: Piece, _new_piece: Piece, _sq: Square) {}
+    fn on_piece_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, square: Square) {
+        self.push_threats_on_mutate(board, old_piece, new_piece, square);
+    }
 
     fn on_piece_change(&mut self, board: &Board, piece: Piece, square: Square, add: bool) {
         self.push_threats_on_change(board, piece, square, add);
