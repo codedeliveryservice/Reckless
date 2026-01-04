@@ -192,9 +192,7 @@ impl Network {
         target_feature = "avx512vbmi"
     )))]
     pub fn push_threats_on_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, square: Square) {
-        use crate::lookup::{
-            attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
-        };
+        use crate::lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
 
         let deltas = &mut self.threat_stack[self.index].delta;
 
