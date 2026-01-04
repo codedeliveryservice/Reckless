@@ -87,34 +87,34 @@ impl Default for Status {
 }
 
 #[derive(Default)]
-pub struct SharedCorrectionHistory {
-    pub pawn: CorrectionHistory,
-    pub minor: CorrectionHistory,
-    pub major: CorrectionHistory,
-    pub non_pawn: [CorrectionHistory; 2],
+pub struct SharedDomainContext {
+    pub pawn_corrhist: CorrectionHistory,
+    pub minor_corrhist: CorrectionHistory,
+    pub major_corrhist: CorrectionHistory,
+    pub non_pawn_corrhist: [CorrectionHistory; 2],
 }
 
-unsafe impl NumaValue for SharedCorrectionHistory {}
+unsafe impl NumaValue for SharedDomainContext {}
 
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
-    pub history: *const SharedCorrectionHistory,
-    pub replicator: NumaReplicator<SharedCorrectionHistory>,
+    pub domain: *const SharedDomainContext,
+    pub replicator: NumaReplicator<SharedDomainContext>,
 }
 
 impl Default for SharedContext {
     fn default() -> Self {
-        let replicator = unsafe { NumaReplicator::new(SharedCorrectionHistory::default) };
+        let replicator = unsafe { NumaReplicator::new(SharedDomainContext::default) };
 
         Self {
             tt: TranspositionTable::default(),
             status: Status::default(),
             nodes: Counter::default(),
             tb_hits: Counter::default(),
-            history: unsafe { replicator.get() },
+            domain: unsafe { replicator.get() },
             replicator,
         }
     }
@@ -190,8 +190,8 @@ impl ThreadData {
         self.shared.nodes.get(self.id)
     }
 
-    pub fn corrhist(&self) -> &SharedCorrectionHistory {
-        unsafe { &*self.shared.history }
+    pub fn domain(&self) -> &SharedDomainContext {
+        unsafe { &*self.shared.domain }
     }
 
     pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {

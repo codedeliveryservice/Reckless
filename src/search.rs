@@ -1275,14 +1275,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 }
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
+    let domain = td.domain();
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
 
-    (corrhist.pawn.get(stm, td.board.pawn_key())
-        + corrhist.minor.get(stm, td.board.minor_key())
-        + corrhist.major.get(stm, td.board.major_key())
-        + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+    (domain.pawn_corrhist.get(stm, td.board.pawn_key())
+        + domain.minor_corrhist.get(stm, td.board.minor_key())
+        + domain.major_corrhist.get(stm, td.board.major_key())
+        + domain.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + domain.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + td.continuation_corrhist.get(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1297,16 +1297,17 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
+    let domain = td.domain();
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
+
     let bonus = (140 * depth * diff / 128).clamp(-5042, 2895);
 
-    corrhist.pawn.update(stm, td.board.pawn_key(), bonus);
-    corrhist.minor.update(stm, td.board.minor_key(), bonus);
-    corrhist.major.update(stm, td.board.major_key(), bonus);
+    domain.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    domain.minor_corrhist.update(stm, td.board.minor_key(), bonus);
+    domain.major_corrhist.update(stm, td.board.major_key(), bonus);
 
-    corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    domain.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    domain.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
