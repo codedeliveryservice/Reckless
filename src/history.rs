@@ -70,8 +70,8 @@ impl Default for QuietHistory {
 }
 
 struct NoisyHistoryEntry {
-    factorizer: i16,
-    buckets: [[i16; 2]; 7],
+    factorizer: AtomicI16,
+    buckets: [[AtomicI16; 2]; 7],
 }
 
 impl NoisyHistoryEntry {
@@ -80,18 +80,22 @@ impl NoisyHistoryEntry {
 
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
         let threatened = threats.contains(sq) as usize;
-        self.buckets[captured][threatened]
+        self.buckets[captured][threatened].load(Ordering::Relaxed)
     }
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        let current = entry.load(Ordering::Relaxed) as i32;
+        let new = current + bonus - bonus.abs() * current / Self::MAX_FACTORIZER;
+        entry.store(new as i16, Ordering::Relaxed);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
         let threatened = threats.contains(sq) as usize;
         let entry = &mut self.buckets[captured][threatened];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        let current = entry.load(Ordering::Relaxed) as i32;
+        let new = current + bonus - bonus.abs() * current / Self::MAX_BUCKET;
+        entry.store(new as i16, Ordering::Relaxed);
     }
 }
 
@@ -100,10 +104,12 @@ pub struct NoisyHistory {
     entries: Box<PieceToHistory<NoisyHistoryEntry>>,
 }
 
+unsafe impl NumaValue for NoisyHistory {}
+
 impl NoisyHistory {
     pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType) -> i32 {
         let entry = &self.entries[piece][sq];
-        (entry.factorizer + entry.bucket(threats, sq, captured)) as i32
+        (entry.factorizer.load(Ordering::Relaxed) + entry.bucket(threats, sq, captured)) as i32
     }
 
     pub fn update(&mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, bonus: i32) {
@@ -111,6 +117,15 @@ impl NoisyHistory {
 
         entry.update_factorizer(bonus);
         entry.update_bucket(threats, sq, captured, bonus);
+    }
+
+    pub fn clear(&self) {
+        for atomic in self.entries.iter().flatten() {
+            atomic.factorizer.store(0, Ordering::Relaxed);
+            for bucket in atomic.buckets.iter().flatten() {
+                bucket.store(0, Ordering::Relaxed);
+            }
+        }
     }
 }
 

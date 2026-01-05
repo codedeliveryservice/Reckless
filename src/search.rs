@@ -1276,30 +1276,30 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
+    let domain = td.domain();
 
-    (corrhist.pawn.get(stm, td.board.pawn_key())
-        + corrhist.minor.get(stm, td.board.minor_key())
-        + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + corrhist.continuation.get(td.stack[ply - 2].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to())
-        + corrhist.continuation.get(td.stack[ply - 4].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to()))
+    (domain.pawn_corrhist.get(stm, td.board.pawn_key())
+        + domain.minor_corrhist.get(stm, td.board.minor_key())
+        + domain.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + domain.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + domain.continuation_corrhist.get(td.stack[ply - 2].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to())
+        + domain.continuation_corrhist.get(td.stack[ply - 4].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to()))
         / 88
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
+    let domain = td.domain();
     let bonus = (140 * depth * diff / 128).clamp(-5042, 2895);
 
-    corrhist.pawn.update(stm, td.board.pawn_key(), bonus);
-    corrhist.minor.update(stm, td.board.minor_key(), bonus);
+    domain.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    domain.minor_corrhist.update(stm, td.board.minor_key(), bonus);
 
-    corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    domain.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    domain.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        corrhist.continuation.update(
+        domain.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1308,7 +1308,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        corrhist.continuation.update(
+        domain.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1332,7 +1332,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
     td.stack[ply].contcorrhist =
-        td.corrhist().continuation.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
+        td.domain().continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
 
     td.shared.nodes.increment(td.id);
 
