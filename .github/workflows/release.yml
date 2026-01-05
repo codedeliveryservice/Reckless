@@ -23,7 +23,7 @@ jobs:
 
           - os: ubuntu-latest
             name: reckless-linux-avx512
-            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+avx512vl,+avx512vbmi"
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
             sde_flag: -icx
 
           - os: windows-latest
@@ -37,7 +37,7 @@ jobs:
 
           - os: windows-latest
             name: reckless-windows-avx512
-            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+avx512vl,+avx512vbmi"
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
             sde_flag: -icx
 
           - os: macos-latest
