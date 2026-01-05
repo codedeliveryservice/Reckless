@@ -34,3 +34,23 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 lmr1: 260;
+    i32 lmr2: 68;
+    i32 lmr3: 2031;
+    i32 lmr4: 1563;
+    i32 lmr5: 120;
+    i32 lmr6: 1024;
+    i32 lmr7: 100;
+    i32 lmr8: 1024;
+    i32 lmr9: 146;
+    i32 fds1: 246;
+    i32 fds2: 55;
+    i32 fds3: 1634;
+    i32 fds4: 1423;
+    i32 fds5: 120;
+    i32 fds6: 1024;
+    i32 fds7: 100;
+    i32 fds8: 1024;
+);
