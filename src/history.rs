@@ -159,25 +159,33 @@ impl Default for CorrectionHistory {
 
 pub struct ContinuationCorrectionHistory {
     // [in_check][capture][piece][to][piece][to]
-    entries: Box<ContinuationHistoryType>,
+    entries: Box<[[[[PieceToHistory<AtomicI16>; 64]; 13]; 2]; 2]>,
 }
 
 impl ContinuationCorrectionHistory {
     const MAX_HISTORY: i32 = 16222;
 
     pub fn subtable_ptr(
-        &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
-    ) -> *mut PieceToHistory<i16> {
-        self.entries[in_check as usize][capture as usize][piece][to].as_mut_ptr().cast()
+        &self, in_check: bool, capture: bool, piece: Piece, to: Square,
+    ) -> *const PieceToHistory<AtomicI16> {
+        self.entries[in_check as usize][capture as usize][piece][to].as_ptr().cast()
     }
 
-    pub fn get(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
-        unsafe { (&*subtable_ptr)[piece][to] as i32 }
+    pub fn get(&self, subtable_ptr: *const PieceToHistory<AtomicI16>, piece: Piece, to: Square) -> i32 {
+        unsafe { (&*subtable_ptr)[piece][to].load(Ordering::Relaxed) as i32 }
     }
 
-    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
-        let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    pub fn update(&self, subtable_ptr: *const PieceToHistory<AtomicI16>, piece: Piece, to: Square, bonus: i32) {
+        let entry = unsafe { &(&*subtable_ptr)[piece][to] };
+        let current = entry.load(Ordering::Relaxed) as i32;
+        let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
+        entry.store(new as i16, Ordering::Relaxed);
+    }
+
+    pub fn clear(&self) {
+        for atomic in self.entries.iter().flatten().flatten().flatten().flatten().flatten() {
+            atomic.store(0, Ordering::Relaxed);
+        }
     }
 }
 
