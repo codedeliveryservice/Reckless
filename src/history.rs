@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicI16, Ordering};
+use std::cell::UnsafeCell;
 
 use crate::{
     numa::NumaValue,
@@ -8,7 +8,6 @@ use crate::{
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
-type ContinuationCorrectionHistoryType = [[[[PieceToHistory<AtomicI16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
@@ -122,9 +121,10 @@ impl Default for NoisyHistory {
 
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[AtomicI16; Self::SIZE]; 2]>,
+    entries: UnsafeCell<Box<[[i16; Self::SIZE]; 2]>>,
 }
 
+unsafe impl Sync for CorrectionHistory {}
 unsafe impl NumaValue for CorrectionHistory {}
 
 impl CorrectionHistory {
@@ -134,19 +134,18 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32
+        unsafe { (&*self.entries.get())[stm][key as usize & Self::MASK] as i32 }
     }
 
     pub fn update(&self, stm: Color, key: u64, bonus: i32) {
-        let current = self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32;
-        let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
-        self.entries[stm][key as usize & Self::MASK].store(new as i16, Ordering::Relaxed);
+        let entry = unsafe { &mut (&mut *(self.entries.get()))[stm][key as usize & Self::MASK] };
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 
     pub fn clear(&self) {
-        for entries in self.entries.iter() {
-            for entry in entries.iter() {
-                entry.store(0, Ordering::Relaxed);
+        unsafe {
+            for entry in (&mut *self.entries.get()).iter_mut().flatten() {
+                *entry = 0;
             }
         }
     }
@@ -154,45 +153,46 @@ impl CorrectionHistory {
 
 impl Default for CorrectionHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self { entries: UnsafeCell::new(zeroed_box()) }
     }
 }
 
 pub struct ContinuationCorrectionHistory {
     // [in_check][capture][piece][to][piece][to]
-    entries: Box<ContinuationCorrectionHistoryType>,
+    entries: UnsafeCell<Box<ContinuationHistoryType>>,
 }
+
+unsafe impl Sync for ContinuationCorrectionHistory {}
+unsafe impl NumaValue for ContinuationCorrectionHistory {}
 
 impl ContinuationCorrectionHistory {
     const MAX_HISTORY: i32 = 16222;
 
-    pub fn subtable_ptr(
-        &self, in_check: bool, capture: bool, piece: Piece, to: Square,
-    ) -> *const PieceToHistory<AtomicI16> {
-        self.entries[in_check as usize][capture as usize][piece][to].as_ptr().cast()
+    pub fn subtable_ptr(&self, in_check: bool, capture: bool, piece: Piece, to: Square) -> *const PieceToHistory<i16> {
+        unsafe { (&*self.entries.get())[in_check as usize][capture as usize][piece][to].as_ptr().cast() }
     }
 
-    pub fn get(&self, subtable_ptr: *const PieceToHistory<AtomicI16>, piece: Piece, to: Square) -> i32 {
-        unsafe { (&*subtable_ptr)[piece][to].load(Ordering::Relaxed) as i32 }
+    pub fn get(&self, subtable_ptr: *const PieceToHistory<i16>, piece: Piece, to: Square) -> i32 {
+        unsafe { (&*subtable_ptr)[piece][to] as i32 }
     }
 
-    pub fn update(&self, subtable_ptr: *const PieceToHistory<AtomicI16>, piece: Piece, to: Square, bonus: i32) {
-        let entry = unsafe { &(&*subtable_ptr)[piece][to] };
-        let current = entry.load(Ordering::Relaxed) as i32;
-        let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
-        entry.store(new as i16, Ordering::Relaxed);
+    pub fn update(&self, subtable_ptr: *const PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
+        let entry = unsafe { &mut (&mut *(subtable_ptr.cast_mut()))[piece][to] };
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 
     pub fn clear(&self) {
-        for atomic in self.entries.iter().flatten().flatten().flatten().flatten().flatten() {
-            atomic.store(0, Ordering::Relaxed);
+        unsafe {
+            for entry in (&mut *self.entries.get()).iter_mut().flatten().flatten().flatten().flatten().flatten() {
+                *entry = 0;
+            }
         }
     }
 }
 
 impl Default for ContinuationCorrectionHistory {
     fn default() -> Self {
-        Self { entries: zeroed_box() }
+        Self { entries: UnsafeCell::new(zeroed_box()) }
     }
 }
 

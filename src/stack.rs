@@ -45,7 +45,7 @@ pub struct StackEntry {
     pub move_count: i32,
     pub reduction: i32,
     pub conthist: *mut [[i16; 64]; 13],
-    pub contcorrhist: *const [[AtomicI16; 64]; 13],
+    pub contcorrhist: *const [[i16; 64]; 13],
 }
 
 unsafe impl Send for StackEntry {}
