@@ -520,6 +520,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
+        && !(tt_pv && tt_bound == Bound::Upper)
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
