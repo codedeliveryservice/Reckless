@@ -72,7 +72,6 @@ impl<T: NumaValue> NumaReplicator<T> {
         }
 
         let mut allocated = Vec::new();
-        let mut nodes = Vec::new();
 
         for (node, cpus) in mapping() {
             if cpus.is_empty() {
@@ -88,7 +87,6 @@ impl<T: NumaValue> NumaReplicator<T> {
             std::ptr::write(tptr, source());
 
             allocated.push(tptr);
-            nodes.push(node);
         }
 
         Self { allocated }
@@ -104,6 +102,37 @@ impl<T: NumaValue> NumaReplicator<T> {
         std::ptr::write(ptr, source());
 
         Self { allocated: vec![ptr] }
+    }
+
+    #[cfg(feature = "numa")]
+    pub unsafe fn from_static_ref(source: &'static T) -> Self {
+        if api::numa_available() < 0 {
+            panic!("NUMA is not available on this system");
+        }
+
+        let mut allocated = Vec::new();
+        for (node, cpus) in mapping() {
+            if cpus.is_empty() {
+                continue;
+            }
+
+            let ptr = api::numa_alloc_onnode(std::mem::size_of::<T>(), node as i32);
+            if ptr.is_null() {
+                panic!("Failed to allocate memory on NUMA node {node}");
+            }
+
+            let tptr = ptr as *mut T;
+            std::ptr::copy_nonoverlapping(source as *const T, tptr, 1);
+
+            allocated.push(tptr);
+        }
+
+        Self { allocated }
+    }
+
+    #[cfg(not(feature = "numa"))]
+    pub unsafe fn from_static_ref(source: &'static T) -> Self {
+        Self { allocated: vec![source as *const _ as *mut _] }
     }
 
     #[cfg(feature = "numa")]
