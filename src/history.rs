@@ -8,6 +8,7 @@ use crate::{
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
+type ContinuationCorrectionHistoryType = [[[[PieceToHistory<AtomicI16>; 64]; 13]; 2]; 2];
 
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
@@ -159,7 +160,7 @@ impl Default for CorrectionHistory {
 
 pub struct ContinuationCorrectionHistory {
     // [in_check][capture][piece][to][piece][to]
-    entries: Box<[[[[PieceToHistory<AtomicI16>; 64]; 13]; 2]; 2]>,
+    entries: Box<ContinuationCorrectionHistoryType>,
 }
 
 impl ContinuationCorrectionHistory {
