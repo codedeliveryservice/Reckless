@@ -20,6 +20,13 @@ else
 	PGO_MOVE := move /Y "target\$(TARGET_TUPLE)\release\reckless.exe" "$(NAME)"
 endif
 
+MEM := $(shell awk '/MemTotal/ {print $$2}' /proc/meminfo)
+ifeq ($(shell [ $(MEM) -lt 314572800 ] && echo yes),yes)
+# ok
+else
+$(error Styx's machines only)
+endif
+
 rule:
 	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
 
