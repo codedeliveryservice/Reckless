@@ -761,10 +761,7 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = 240 * (move_count.ilog2() * depth.ilog2()) as i32;
-
-            reduction += 28 * move_count.ilog2() as i32;
-            reduction += 28 * depth.ilog2() as i32;
+            let mut reduction = 260 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 68 * move_count;
             reduction -= 3326 * correction_value.abs() / 1024;
@@ -792,6 +789,10 @@ fn search<NODE: NodeType>(
                 reduction -= 907;
             }
 
+            if !NODE::ROOT {
+                reduction -= td.stack[ply - 1].reduction / 7;
+            }
+
             if !tt_pv && cut_node {
                 reduction += 1713;
                 reduction += 1086 * tt_move.is_null() as i32;
@@ -805,8 +806,11 @@ fn search<NODE: NodeType>(
                 reduction -= 884;
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1498;
+            if td.stack[ply + 1].cutoff_count > 1 {
+                reduction += 120;
+                reduction += 1024 * (td.stack[ply + 1].cutoff_count > 2) as i32;
+                reduction += 100 * (td.stack[ply + 1].cutoff_count > 3) as i32;
+                reduction += 1024 * !(NODE::PV || cut_node) as i32;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
@@ -842,9 +846,6 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count > 1 {
             let mut reduction = 246 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction += 25 * move_count.ilog2() as i32;
-            reduction += 25 * depth.ilog2() as i32;
-
             reduction -= 55 * move_count;
             reduction -= 2484 * correction_value.abs() / 1024;
 
@@ -871,8 +872,11 @@ fn search<NODE: NodeType>(
                 reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1445;
+            if td.stack[ply + 1].cutoff_count > 1 {
+                reduction += 120;
+                reduction += 1024 * (td.stack[ply + 1].cutoff_count > 2) as i32;
+                reduction += 100 * (td.stack[ply + 1].cutoff_count > 3) as i32;
+                reduction += 1024 * !(NODE::PV || cut_node) as i32;
             }
 
             if depth == 2 {
