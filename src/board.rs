@@ -23,7 +23,6 @@ struct InternalState {
     key: u64,
     pawn_key: u64,
     minor_key: u64,
-    major_key: u64,
     non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
@@ -84,10 +83,6 @@ impl Board {
 
     pub const fn minor_key(&self) -> u64 {
         self.state.minor_key
-    }
-
-    pub const fn major_key(&self) -> u64 {
-        self.state.major_key
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
@@ -226,13 +221,8 @@ impl Board {
         } else {
             self.state.non_pawn_keys[piece.piece_color()] ^= key;
 
-            if [PieceType::Knight, PieceType::Bishop].contains(&piece.piece_type()) {
+            if [PieceType::Knight, PieceType::Bishop, PieceType::King].contains(&piece.piece_type()) {
                 self.state.minor_key ^= key;
-            } else if [PieceType::Rook, PieceType::Queen].contains(&piece.piece_type()) {
-                self.state.major_key ^= key;
-            } else {
-                self.state.minor_key ^= key;
-                self.state.major_key ^= key;
             }
         }
     }
@@ -526,7 +516,6 @@ impl Board {
         self.state.key = 0;
         self.state.pawn_key = 0;
         self.state.minor_key = 0;
-        self.state.major_key = 0;
         self.state.non_pawn_keys = [0; Color::NUM];
 
         for piece in 0..Piece::NUM {
