@@ -120,12 +120,14 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     threads.clear();
     shared.tt.clear(threads.len());
 
-    for corrhist in unsafe { shared.replicator.get_all() } {
-        corrhist.pawn.clear();
-        corrhist.minor.clear();
-        corrhist.non_pawn[Color::White].clear();
-        corrhist.non_pawn[Color::Black].clear();
-        corrhist.continuation.clear();
+    for domain in unsafe { shared.replicator.get_all() } {
+        domain.pawn_corrhist.clear();
+        domain.minor_corrhist.clear();
+        domain.non_pawn_corrhist[Color::White].clear();
+        domain.non_pawn_corrhist[Color::Black].clear();
+        domain.continuation_corrhist.clear();
+
+        domain.pawn_history.clear();
     }
 }
 

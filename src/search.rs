@@ -322,9 +322,14 @@ fn search<NODE: NodeType>(
             if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
                 let quiet_bonus = (190 * depth - 80).min(1830);
                 let cont_bonus = (109 * depth - 56).min(1337);
+                let pawn_bonus = (130 * depth - 60).min(1250);
+
+                let moved_piece = td.board.moved_piece(tt_move);
 
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, quiet_bonus);
-                update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
+                td.domain().pawn_history.update(td.board.pawn_key(), moved_piece, tt_move.to(), pawn_bonus);
+
+                update_continuation_histories(td, ply, moved_piece, tt_move.to(), cont_bonus);
             }
 
             if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
@@ -991,6 +996,9 @@ fn search<NODE: NodeType>(
         let quiet_bonus = (179 * depth - 75).min(1335) - 56 * cut_node as i32;
         let quiet_malus = (156 * initial_depth - 44).min(1056) - 41 * quiet_moves.len() as i32;
 
+        let pawn_bonus = (125 * depth - 53).min(1200) - 50 * cut_node as i32;
+        let pawn_malus = (109 * initial_depth - 31).min(800) - 35 * quiet_moves.len() as i32;
+
         let cont_bonus = (115 * depth - 67).min(972) - 50 * cut_node as i32;
         let cont_malus = (343 * initial_depth - 47).min(856) - 21 * quiet_moves.len() as i32;
 
@@ -1003,12 +1011,20 @@ fn search<NODE: NodeType>(
                 noisy_bonus,
             );
         } else {
+            let moved_piece = td.board.moved_piece(best_move);
+
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, quiet_bonus);
-            update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
+            td.domain().pawn_history.update(td.board.pawn_key(), moved_piece, best_move.to(), pawn_bonus);
+
+            update_continuation_histories(td, ply, moved_piece, best_move.to(), cont_bonus);
 
             for &mv in quiet_moves.iter() {
+                let moved_piece = td.board.moved_piece(mv);
+
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
-                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
+                td.domain().pawn_history.update(td.board.pawn_key(), moved_piece, mv.to(), -pawn_malus);
+
+                update_continuation_histories(td, ply, moved_piece, mv.to(), -cont_malus);
             }
         }
 
@@ -1276,30 +1292,38 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
+    let domain = td.domain();
 
-    (corrhist.pawn.get(stm, td.board.pawn_key())
-        + corrhist.minor.get(stm, td.board.minor_key())
-        + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + corrhist.continuation.get(td.stack[ply - 2].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to())
-        + corrhist.continuation.get(td.stack[ply - 4].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to()))
+    (domain.pawn_corrhist.get(stm, td.board.pawn_key())
+        + domain.minor_corrhist.get(stm, td.board.minor_key())
+        + domain.non_pawn_corrhist[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + domain.non_pawn_corrhist[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + domain.continuation_corrhist.get(
+            td.stack[ply - 2].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        )
+        + domain.continuation_corrhist.get(
+            td.stack[ply - 4].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        ))
         / 88
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
-    let corrhist = td.corrhist();
+    let domain = td.domain();
     let bonus = (140 * depth * diff / 128).clamp(-5042, 2895);
 
-    corrhist.pawn.update(stm, td.board.pawn_key(), bonus);
-    corrhist.minor.update(stm, td.board.minor_key(), bonus);
+    domain.pawn_corrhist.update(stm, td.board.pawn_key(), bonus);
+    domain.minor_corrhist.update(stm, td.board.minor_key(), bonus);
 
-    corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
-    corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
+    domain.non_pawn_corrhist[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
+    domain.non_pawn_corrhist[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        corrhist.continuation.update(
+        domain.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1308,7 +1332,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        corrhist.continuation.update(
+        domain.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1331,8 +1355,12 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
-    td.stack[ply].contcorrhist =
-        td.corrhist().continuation.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
+    td.stack[ply].contcorrhist = td.domain().continuation_corrhist.subtable_ptr(
+        td.board.in_check(),
+        mv.is_noisy(),
+        td.board.moved_piece(mv),
+        mv.to(),
+    );
 
     td.shared.nodes.increment(td.id);
 

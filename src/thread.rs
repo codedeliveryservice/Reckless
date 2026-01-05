@@ -5,7 +5,9 @@ use std::sync::{
 
 use crate::{
     board::Board,
-    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{
+        ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, PawnHistory, QuietHistory,
+    },
     nnue::Network,
     numa::{NumaReplicator, NumaValue},
     stack::Stack,
@@ -87,27 +89,28 @@ impl Default for Status {
 }
 
 #[derive(Default)]
-pub struct SharedCorrectionHistory {
-    pub pawn: CorrectionHistory,
-    pub minor: CorrectionHistory,
-    pub non_pawn: [CorrectionHistory; 2],
-    pub continuation: ContinuationCorrectionHistory,
+pub struct SharedDomainContext {
+    pub pawn_corrhist: CorrectionHistory,
+    pub minor_corrhist: CorrectionHistory,
+    pub non_pawn_corrhist: [CorrectionHistory; 2],
+    pub continuation_corrhist: ContinuationCorrectionHistory,
+    pub pawn_history: PawnHistory,
 }
 
-unsafe impl NumaValue for SharedCorrectionHistory {}
+unsafe impl NumaValue for SharedDomainContext {}
 
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
-    pub history: *const SharedCorrectionHistory,
-    pub replicator: NumaReplicator<SharedCorrectionHistory>,
+    pub history: *const SharedDomainContext,
+    pub replicator: NumaReplicator<SharedDomainContext>,
 }
 
 impl Default for SharedContext {
     fn default() -> Self {
-        let replicator = unsafe { NumaReplicator::new(SharedCorrectionHistory::default) };
+        let replicator = unsafe { NumaReplicator::new(SharedDomainContext::default) };
 
         Self {
             tt: TranspositionTable::default(),
@@ -188,7 +191,7 @@ impl ThreadData {
         self.shared.nodes.get(self.id)
     }
 
-    pub fn corrhist(&self) -> &SharedCorrectionHistory {
+    pub fn domain(&self) -> &SharedDomainContext {
         unsafe { &*self.shared.history }
     }
 
