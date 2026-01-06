@@ -332,7 +332,6 @@ fn search<NODE: NodeType>(
                 if pcm_move.is_quiet() {
                     let mut factor = 94;
                     factor += 183 * (initial_depth > 5) as i32;
-                    factor += 132 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
                     factor +=
                         240 * (is_valid(td.stack[ply - 1].eval) && tt_score <= -td.stack[ply - 1].eval - 95) as i32;
 
@@ -491,6 +490,23 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV && !in_check && estimated_score < alpha - 281 - 271 * depth * depth && alpha < 2048 {
+        if td.stack[ply - 1].move_count > 11 {
+            let pcm_move = td.stack[ply - 1].mv;
+            if pcm_move.is_quiet() {
+                let mut factor = 94;
+                factor += 183 * (initial_depth > 5) as i32;
+
+                let scaled_bonus = factor * (163 * initial_depth - 44).min(2389) / 128;
+
+                td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+
+                let entry = &td.stack[ply - 2];
+                if entry.mv.is_some() {
+                    let bonus = (122 * initial_depth - 34).min(1723);
+                    td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
+                }
+            }
+        }
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
