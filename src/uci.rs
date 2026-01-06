@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     board::{Board, NullBoardObserver},
@@ -9,7 +9,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::DEFAULT_TT_SIZE,
-    types::{is_decisive, is_loss, is_win, Color, Score, Square, MAX_MOVES},
+    types::{is_decisive, is_loss, is_win, Color, Move, Score, Square, MAX_MOVES},
 };
 
 struct Settings {
@@ -174,9 +174,9 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
     let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
 
-    let mut votes = vec![0; 4096];
+    let mut votes = HashMap::<Move, i32>::new();
     for result in threads.iter() {
-        votes[result.root_moves[0].mv.encoded()] += vote_value(result);
+        *votes.entry(result.root_moves[0].mv).or_default() += vote_value(result);
     }
 
     let mut best = 0;
@@ -202,8 +202,8 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
                     return true;
                 }
 
-                let best_vote = votes[best.root_moves[0].mv.encoded()];
-                let current_vote = votes[current.root_moves[0].mv.encoded()];
+                let best_vote = votes[&best.root_moves[0].mv];
+                let current_vote = votes[&current.root_moves[0].mv];
 
                 !is_loss(current.root_moves[0].score)
                     && (current_vote > best_vote
