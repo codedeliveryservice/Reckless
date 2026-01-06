@@ -652,7 +652,7 @@ fn search<NODE: NodeType>(
         }
         // Negative Extensions
         else if tt_score >= beta {
-            extension = -2;
+            extension = -2 - !NODE::PV as i32;
         } else if cut_node {
             extension = -2;
         }
