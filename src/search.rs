@@ -1,7 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::*,
+    parameters::PIECE_VALUES,
     tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
@@ -761,16 +761,16 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
-            let mut reduction = lmr1() * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 219 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction -= lmr2() * move_count;
+            reduction -= 66 * move_count;
             reduction -= 3326 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += lmr3();
+                reduction += 2059;
                 reduction -= 152 * history / 1024;
             } else {
-                reduction += lmr4();
+                reduction += 1564;
                 reduction -= 102 * history / 1024;
                 reduction -= 50 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -790,7 +790,7 @@ fn search<NODE: NodeType>(
             }
 
             if !NODE::ROOT {
-                reduction -= lmr9() * td.stack[ply - 1].reduction / 1024;
+                reduction -= 129 * td.stack[ply - 1].reduction / 1024;
             }
 
             if !tt_pv && cut_node {
@@ -807,10 +807,10 @@ fn search<NODE: NodeType>(
             }
 
             if td.stack[ply + 1].cutoff_count > 1 {
-                reduction += lmr5();
-                reduction += lmr6() * (td.stack[ply + 1].cutoff_count > 2) as i32;
-                reduction += lmr7() * (td.stack[ply + 1].cutoff_count > 3) as i32;
-                reduction += lmr8() * !(NODE::PV || cut_node) as i32;
+                reduction += 116;
+                reduction += 1091 * (td.stack[ply + 1].cutoff_count > 2) as i32;
+                reduction += 97 * (td.stack[ply + 1].cutoff_count > 3) as i32;
+                reduction += 880 * !(NODE::PV || cut_node) as i32;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
@@ -844,16 +844,16 @@ fn search<NODE: NodeType>(
         }
         // Full Depth Search (FDS)
         else if !NODE::PV || move_count > 1 {
-            let mut reduction = fds1() * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 250 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction -= fds2() * move_count;
+            reduction -= 53 * move_count;
             reduction -= 2484 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += fds3();
+                reduction += 1517;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += fds4();
+                reduction += 1430;
                 reduction -= 65 * history / 1024;
                 reduction -= 47 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
@@ -873,10 +873,10 @@ fn search<NODE: NodeType>(
             }
 
             if td.stack[ply + 1].cutoff_count > 1 {
-                reduction += fds5();
-                reduction += fds6() * (td.stack[ply + 1].cutoff_count > 2) as i32;
-                reduction += fds7() * (td.stack[ply + 1].cutoff_count > 3) as i32;
-                reduction += fds8() * !(NODE::PV || cut_node) as i32;
+                reduction += 110;
+                reduction += 1030 * (td.stack[ply + 1].cutoff_count > 2) as i32;
+                reduction += 95 * (td.stack[ply + 1].cutoff_count > 3) as i32;
+                reduction += 956 * !(NODE::PV || cut_node) as i32;
             }
 
             if depth == 2 {
