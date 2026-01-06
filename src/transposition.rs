@@ -73,15 +73,14 @@ pub struct InternalEntry {
     mv: Move,      // 2 bytes
     score: i16,    // 2 bytes
     raw_eval: i16, // 2 bytes
-    depth: i8,     // 1 byte
+    depth: u8,     // 1 byte
     flags: Flags,  // 1 byte
 }
 
 pub enum TtDepth {}
 
 impl TtDepth {
-    pub const NONE: i32 = 0;
-    pub const SOME: i32 = -1;
+    pub const NONE: u8 = 0;
 }
 
 impl InternalEntry {
@@ -151,9 +150,9 @@ impl TranspositionTable {
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
-            if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+            if key == entry.key && entry.depth != TtDepth::NONE {
                 let hit = Entry {
-                    depth: entry.depth as i32,
+                    depth: depth_from_tt(entry.depth),
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
                     raw_eval: entry.raw_eval as i32,
                     bound: entry.flags.bound(),
@@ -174,7 +173,7 @@ impl TranspositionTable {
         force: bool,
     ) {
         // Used for checking if an entry exists
-        debug_assert!(depth != TtDepth::NONE);
+        debug_assert!(depth_to_tt(depth) != TtDepth::NONE);
 
         let cluster = {
             let index = index(hash, self.len());
@@ -188,7 +187,7 @@ impl TranspositionTable {
         let mut lowest_quality = i32::MAX;
 
         for candidate in &mut cluster.entries {
-            if candidate.key == key || candidate.depth as i32 == TtDepth::NONE {
+            if candidate.key == key || candidate.depth == TtDepth::NONE {
                 replacement_slot = Some(candidate);
                 break;
             }
@@ -220,7 +219,7 @@ impl TranspositionTable {
         }
 
         entry.key = key;
-        entry.depth = depth as i8;
+        entry.depth = depth_to_tt(depth);
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
@@ -263,6 +262,14 @@ const fn index(hash: u64, len: usize) -> usize {
 /// Returns the verification key of the hash (bottom 16 bits).
 const fn verification_key(hash: u64) -> u16 {
     hash as u16
+}
+
+const fn depth_from_tt(depth: u8) -> i32 {
+    (depth - 1) as i32
+}
+
+const fn depth_to_tt(depth: i32) -> u8 {
+    (depth + 1) as u8
 }
 
 /// Adjust mate distance from "plies from the root" to "plies from the current position".

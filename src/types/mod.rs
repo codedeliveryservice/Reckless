@@ -21,7 +21,7 @@ pub use square::*;
 pub use zobrist::*;
 
 /// The maximum number of plies that can be searched.
-pub const MAX_PLY: usize = 128;
+pub const MAX_PLY: usize = 240;
 
 /// According to [Chess Programming Wiki](https://www.chessprogramming.org/Encoding_Moves#MoveIndex),
 /// the maximum number of chess moves in a certain position *appears* to be 218.
