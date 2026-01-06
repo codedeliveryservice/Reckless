@@ -50,7 +50,7 @@ impl Move {
     }
 
     pub const fn encoded(self) -> usize {
-        (self.0 & 0b0000_1111_1111_1111) as usize
+        self.0 as usize
     }
 
     pub const fn kind(self) -> MoveKind {
