@@ -1282,8 +1282,16 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         + corrhist.minor.get(stm, td.board.minor_key())
         + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
         + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + corrhist.continuation.get(td.stack[ply - 2].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to())
-        + corrhist.continuation.get(td.stack[ply - 4].contcorrhist, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to()))
+        + td.continuation_corrhist.get(
+            td.stack[ply - 2].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        )
+        + td.continuation_corrhist.get(
+            td.stack[ply - 4].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        ))
         / 88
 }
 
@@ -1299,7 +1307,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
-        corrhist.continuation.update(
+        td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1308,7 +1316,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
-        corrhist.continuation.update(
+        td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1332,7 +1340,7 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
     td.stack[ply].contcorrhist =
-        td.corrhist().continuation.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
+        td.continuation_corrhist.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
 
     td.shared.nodes.increment(td.id);
 

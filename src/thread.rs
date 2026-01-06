@@ -91,7 +91,6 @@ pub struct SharedCorrectionHistory {
     pub pawn: CorrectionHistory,
     pub minor: CorrectionHistory,
     pub non_pawn: [CorrectionHistory; 2],
-    pub continuation: ContinuationCorrectionHistory,
 }
 
 unsafe impl NumaValue for SharedCorrectionHistory {}
@@ -135,6 +134,7 @@ pub struct ThreadData {
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
+    pub continuation_corrhist: ContinuationCorrectionHistory,
     pub best_move_changes: usize,
     pub optimism: [i32; 2],
     pub stopped: bool,
@@ -166,6 +166,7 @@ impl ThreadData {
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
             continuation_history: ContinuationHistory::default(),
+            continuation_corrhist: ContinuationCorrectionHistory::default(),
             best_move_changes: 0,
             optimism: [0; 2],
             stopped: false,
