@@ -129,7 +129,7 @@ unsafe impl NumaValue for CorrectionHistory {}
 
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14734;
-    const BASE_SIZE: usize = 65536;
+    const BASE_SIZE: usize = 8192;
 
     pub fn new(threads: usize) -> Self {
         let size = threads.next_power_of_two() * Self::BASE_SIZE;
