@@ -320,7 +320,7 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < ttcut7() {
                 let quiet_bonus = (ttcut1() * depth - ttcut2()).min(ttcut3());
                 let cont_bonus = (ttcut4() * depth - ttcut5()).min(ttcut6());
 
@@ -328,11 +328,11 @@ fn search<NODE: NodeType>(
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
             }
 
-            if tt_score <= alpha && td.stack[ply - 1].move_count > 8 {
+            if tt_score <= alpha && td.stack[ply - 1].move_count > ttpcm12() {
                 let pcm_move = td.stack[ply - 1].mv;
                 if pcm_move.is_quiet() {
                     let mut factor = ttpcm1();
-                    factor += ttpcm2() * (initial_depth > 5) as i32;
+                    factor += ttpcm2() * (initial_depth > ttpcm13()) as i32;
                     factor += ttpcm3() * (pcm_move == td.stack[ply - 1].tt_move) as i32;
                     factor += ttpcm4()
                         * (is_valid(td.stack[ply - 1].eval) && tt_score <= -td.stack[ply - 1].eval - ttpcm5()) as i32;
@@ -965,7 +965,7 @@ fn search<NODE: NodeType>(
                     break;
                 }
 
-                if depth > 2 && depth < 17 && !is_decisive(score) {
+                if depth > 2 && depth < alpharaise1() && !is_decisive(score) {
                     depth -= 1;
                 }
 
@@ -1038,8 +1038,8 @@ fn search<NODE: NodeType>(
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = pcm1();
-            factor += pcm2() * (initial_depth > 5) as i32;
-            factor += pcm3() * (td.stack[ply - 1].move_count > 8) as i32;
+            factor += pcm2() * (initial_depth > pcm16()) as i32;
+            factor += pcm3() * (td.stack[ply - 1].move_count > pcm17()) as i32;
             factor += pcm4() * (pcm_move == td.stack[ply - 1].tt_move) as i32;
             factor += pcm5() * (!in_check && best_score <= eval.min(raw_eval) - pcm6()) as i32;
             factor +=
@@ -1289,27 +1289,27 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     (corrhist1() * corrhist.pawn.get(stm, td.board.pawn_key())
         + corrhist2() * corrhist.minor.get(stm, td.board.minor_key())
         + corrhist3() * corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + corrhist4() * corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + corrhist5()
+        + corrhist3() * corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + corrhist4()
             * td.continuation_corrhist.get(
                 td.stack[ply - 2].contcorrhist,
                 td.stack[ply - 1].piece,
                 td.stack[ply - 1].mv.to(),
             )
-        + corrhist6()
+        + corrhist5()
             * td.continuation_corrhist.get(
                 td.stack[ply - 4].contcorrhist,
                 td.stack[ply - 1].piece,
                 td.stack[ply - 1].mv.to(),
             ))
         / 1024
-        / corrhist7()
+        / corrhist6()
 }
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let corrhist = td.corrhist();
-    let bonus = (corrhist8() * depth * diff / 128).clamp(-corrhist9(), corrhist10());
+    let bonus = (corrhist7() * depth * diff / 128).clamp(-corrhist8(), corrhist9());
 
     corrhist.pawn.update(stm, td.board.pawn_key(), bonus);
     corrhist.minor.update(stm, td.board.minor_key(), bonus);

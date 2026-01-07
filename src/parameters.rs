@@ -62,6 +62,7 @@ define!(
     i32 ttcut4: 109;
     i32 ttcut5: 56;
     i32 ttcut6: 1337;
+    i32 ttcut7: 4;
     i32 ttpcm1: 94;
     i32 ttpcm2: 183;
     i32 ttpcm3: 132;
@@ -73,6 +74,8 @@ define!(
     i32 ttpcm9: 122;
     i32 ttpcm10: 34;
     i32 ttpcm11: 1723;
+    i32 ttpcm12: 8;
+    i32 ttpcm13: 5;
     i32 evalord1: 865;
     i32 evalord2: 119;
     i32 evalord3: 325;
@@ -173,6 +176,7 @@ define!(
     i32 fds20: 3187;
     i32 fdsred1: 5653;
     i32 pvs1: 8;
+    i32 alpharaise1: 17;
     i32 noisy1: 111;
     i32 noisy2: 54;
     i32 noisy3: 861;
@@ -218,6 +222,8 @@ define!(
     i32 pcm13: 37;
     i32 pcm14: 1268;
     i32 pcm15: 57;
+    i32 pcm16: 5;
+    i32 pcm17: 8;
     i32 qs1: 109;
     i32 qs2: 42;
     i32 qs3: 79;
@@ -226,11 +232,10 @@ define!(
     i32 corrhist3: 1024;
     i32 corrhist4: 1024;
     i32 corrhist5: 1024;
-    i32 corrhist6: 1024;
-    i32 corrhist7: 88;
-    i32 corrhist8: 140;
-    i32 corrhist9: 5042;
-    i32 corrhist10: 2895;
+    i32 corrhist6: 88;
+    i32 corrhist7: 140;
+    i32 corrhist8: 5042;
+    i32 corrhist9: 2895;
     i32 quiettable1: 1940;
     i32 quiettable2: 6029;
     i32 noisytable1: 4449;
