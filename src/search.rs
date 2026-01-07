@@ -559,6 +559,51 @@ fn search<NODE: NodeType>(
         }
     }
 
+    // Singular Extensions (SE)
+    let mut extension = 0;
+
+    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+        debug_assert!(is_valid(tt_score));
+
+        let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
+        let singular_depth = (depth - 1) / 2;
+
+        td.stack[ply].excluded = tt_move;
+        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        td.stack[ply].excluded = Move::NULL;
+
+        if td.stopped {
+            return Score::ZERO;
+        }
+
+        if score < singular_beta {
+            let double_margin =
+                -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+            let triple_margin =
+                48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+
+            extension = 1;
+            extension += (score < singular_beta - double_margin) as i32;
+            extension += (score < singular_beta - triple_margin) as i32;
+
+            if extension > 1 && depth < 14 {
+                depth += 1;
+            }
+        }
+        // Multi-Cut
+        else if score >= beta && !is_decisive(score) {
+            return (score * singular_depth + beta) / (singular_depth + 1);
+        }
+        // Negative Extensions
+        else if tt_score >= beta {
+            extension = -2;
+        } else if cut_node {
+            extension = -2;
+        }
+    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
+        extension = 1;
+    }
+
     // ProbCut
     let mut probcut_beta = beta + 257 - 75 * improving as i32;
 
@@ -566,6 +611,7 @@ fn search<NODE: NodeType>(
         && !is_decisive(beta)
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
+        && extension <= 0
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
@@ -613,51 +659,6 @@ fn search<NODE: NodeType>(
                 }
             }
         }
-    }
-
-    // Singular Extensions (SE)
-    let mut extension = 0;
-
-    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
-        debug_assert!(is_valid(tt_score));
-
-        let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
-        let singular_depth = (depth - 1) / 2;
-
-        td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
-        td.stack[ply].excluded = Move::NULL;
-
-        if td.stopped {
-            return Score::ZERO;
-        }
-
-        if score < singular_beta {
-            let double_margin =
-                -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-            let triple_margin =
-                48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-
-            extension = 1;
-            extension += (score < singular_beta - double_margin) as i32;
-            extension += (score < singular_beta - triple_margin) as i32;
-
-            if extension > 1 && depth < 14 {
-                depth += 1;
-            }
-        }
-        // Multi-Cut
-        else if score >= beta && !is_decisive(score) {
-            return (score * singular_depth + beta) / (singular_depth + 1);
-        }
-        // Negative Extensions
-        else if tt_score >= beta {
-            extension = -2;
-        } else if cut_node {
-            extension = -2;
-        }
-    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
-        extension = 1;
     }
 
     let mut best_move = Move::NULL;
