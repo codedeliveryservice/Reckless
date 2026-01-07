@@ -1221,6 +1221,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 continue;
             }
+
+            if futility_score > alpha && !td.board.see(mv, (alpha - futility_score) * 4) {
+                best_score = alpha;
+                continue;
+            }
         }
 
         if !is_loss(best_score) && !td.board.see(mv, -79) {
