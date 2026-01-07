@@ -652,6 +652,18 @@ fn search<NODE: NodeType>(
         }
         // Negative Extensions
         else if tt_score >= beta {
+            td.stack[ply].excluded = tt_move;
+            let score = search::<NonPV>(td, beta - 1, beta, singular_depth, cut_node, ply);
+            td.stack[ply].excluded = Move::NULL;
+
+            if td.stopped {
+                return Score::ZERO;
+            }
+
+            if score >= beta {
+                return (score + beta) / 2;
+            }
+
             extension = -2;
         } else if cut_node {
             extension = -2;
