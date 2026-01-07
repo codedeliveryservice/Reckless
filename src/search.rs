@@ -1166,7 +1166,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
         {
             best_score = tt_score;
-        } else if best_score >= beta && raw_eval < beta {
+        } else if raw_eval >= beta && best_score < beta && (raw_eval - best_score) < 200 {
             best_score = raw_eval;
         }
 
