@@ -3,10 +3,8 @@ use std::arch::x86_64::*;
 use crate::types::{Piece, Square};
 
 pub fn ray_permuation(focus: Square) -> (__m512i, u64) {
-    unsafe {
-        // We use the 0x88 board representation here for intermediate calculations.
-        // We convert to and from this representation to avoid a 4KiB LUT.
-        let offsets: [u8; 64] = [
+    const PERMS: [[u8; 64]; 64] = {
+        const OFFSETS: [u8; 64] = [
             0x1F, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, // N
             0x21, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, // NE
             0x12, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // E
@@ -16,15 +14,30 @@ pub fn ray_permuation(focus: Square) -> (__m512i, u64) {
             0xEE, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, // W
             0x0E, 0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, // NW
         ];
-        let offsets = _mm512_loadu_si512(offsets.as_ptr().cast());
 
-        let focus = focus as u8;
-        let focus = focus + (focus & 0x38);
+        let mut perms = [[0u8; 64]; 64];
 
-        let coords = _mm512_add_epi8(offsets, _mm512_set1_epi8(focus as i8));
+        let mut sq = 0;
+        while sq < 64 {
+            let focus = sq as u8;
+            let focus = focus + (focus & 0x38);
+            let mut i = 0;
+            while i < 64 {
+                let wide_result = OFFSETS[i].wrapping_add(focus);
+                let valid = wide_result & 0x88 == 0;
+                let narrow_result = ((wide_result & 0x70) >> 1) + (wide_result & 0x07);
+                perms[sq][i] = if valid { narrow_result } else { 0x80 };
+                i += 1;
+            }
+            sq += 1;
+        }
 
-        let perm = _mm512_gf2p8affine_epi64_epi8(coords, _mm512_set1_epi64(0x0102041020400000), 0);
-        let mask = _mm512_testn_epi8_mask(coords, _mm512_set1_epi8(0x88u8 as i8));
+        perms
+    };
+
+    unsafe {
+        let perm = _mm512_loadu_si512(PERMS.get_unchecked(focus as usize).as_ptr().cast());
+        let mask = _mm512_testn_epi8_mask(perm, _mm512_set1_epi8(0x80u8 as i8));
 
         (perm, mask)
     }
