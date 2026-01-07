@@ -1,5 +1,5 @@
 use crate::{
-    parameters::PIECE_VALUES,
+    parameters::*,
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
@@ -85,7 +85,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 43 + 108);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / mp1() + mp2());
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -174,7 +174,7 @@ impl MovePicker {
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 16 * PIECE_VALUES[captured]
+            entry.score = mp3() * PIECE_VALUES[captured]
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
         }
     }
@@ -191,11 +191,12 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = td.quiet_history.get(threats, side, mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
-                + td.conthist(ply, 4, mv)
-                + td.conthist(ply, 6, mv);
+            entry.score = (mp4() * td.quiet_history.get(threats, side, mv)
+                + mp5() * td.conthist(ply, 1, mv)
+                + mp6() * td.conthist(ply, 2, mv)
+                + mp7() * td.conthist(ply, 4, mv)
+                + mp8() * td.conthist(ply, 6, mv))
+                / 1024;
         }
     }
 }
