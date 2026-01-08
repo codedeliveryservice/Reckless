@@ -651,7 +651,7 @@ fn search<NODE: NodeType>(
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative Extensions
-        else if tt_score >= beta {
+        else if tt_score >= beta || cut_node {
             td.stack[ply].excluded = tt_move;
             let score = search::<NonPV>(td, beta - 1, beta, singular_depth, cut_node, ply);
             td.stack[ply].excluded = Move::NULL;
@@ -664,8 +664,6 @@ fn search<NODE: NodeType>(
                 return (score + beta) / 2;
             }
 
-            extension = -2;
-        } else if cut_node {
             extension = -2;
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
