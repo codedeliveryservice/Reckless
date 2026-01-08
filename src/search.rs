@@ -991,14 +991,14 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let noisy_bonus = (noisy1() * depth - noisy2()).min(noisy3()) - noisy4() * cut_node as i32;
-        let noisy_malus = (noisy5() * initial_depth - noisy6()).min(noisy7()) - noisy8() * noisy_moves.len() as i32;
+        let noisy_bonus = (noisy1() * depth).min(noisy3()) - noisy2() - noisy4() * cut_node as i32;
+        let noisy_malus = (noisy5() * initial_depth).min(noisy7()) - noisy6() - noisy8() * noisy_moves.len() as i32;
 
-        let quiet_bonus = (quiet1() * depth - quiet2()).min(quiet3()) - quiet4() * cut_node as i32;
-        let quiet_malus = (quiet5() * initial_depth - quiet6()).min(quiet7()) - quiet8() * quiet_moves.len() as i32;
+        let quiet_bonus = (quiet1() * depth).min(quiet3()) - quiet2() - quiet4() * cut_node as i32;
+        let quiet_malus = (quiet5() * initial_depth).min(quiet7()) - quiet6() - quiet8() * quiet_moves.len() as i32;
 
-        let cont_bonus = (cont1() * depth - cont2()).min(cont3()) - cont4() * cut_node as i32;
-        let cont_malus = (cont5() * initial_depth - cont6()).min(cont7()) - cont8() * quiet_moves.len() as i32;
+        let cont_bonus = (cont1() * depth).min(cont3()) - cont2() - cont4() * cut_node as i32;
+        let cont_malus = (cont5() * initial_depth).min(cont7()) - cont6() - cont8() * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
