@@ -106,6 +106,7 @@ impl MovePicker {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
                 self.score_quiet(td, ply);
+                self.insertion_sort();
             } else {
                 self.stage = Stage::BadNoisy;
             }
@@ -114,14 +115,14 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let index = self.find_best_score_index();
-                    let entry = &self.list.remove(index);
+                    let entry = self.list.remove(0);
                     if entry.mv == self.tt_move {
                         continue;
                     }
 
                     if NODE::ROOT {
                         self.score_quiet(td, ply);
+                        self.insertion_sort();
                     }
 
                     return Some(entry.mv);
@@ -196,6 +197,20 @@ impl MovePicker {
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv);
+        }
+    }
+
+    fn insertion_sort(&mut self) {
+        for current in 1..self.list.len() {
+            let item = self.list[current];
+            let mut position = current;
+
+            while position > 0 && self.list[position - 1].score < item.score {
+                self.list[position] = self.list[position - 1];
+                position -= 1;
+            }
+
+            self.list[position] = item;
         }
     }
 }
