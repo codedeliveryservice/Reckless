@@ -125,7 +125,8 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+        let clamped = simd::clamp_f32(*vector, zero, one);
+        *vector = simd::mul_f32(clamped, clamped);
     }
 
     output

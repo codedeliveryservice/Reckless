@@ -90,7 +90,7 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> 
 
     for i in 0..L3_SIZE {
         output[i] += PARAMETERS.l2_biases[i];
-        output[i] = output[i].clamp(0.0, 1.0);
+        output[i] = output[i].clamp(0.0, 1.0).powi(2);
     }
     output
 }
