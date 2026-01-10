@@ -74,7 +74,7 @@ cargo install cargo-pgo
 Then, you can build the engine using `make`:
 
 ```bash
-make
+make pgo
 # ./reckless
 ```
 
@@ -128,7 +128,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 
 - [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess)
 - [Bullet](https://github.com/jw1912/bullet) is the NNUE trainer
-- [Stockfish](https://github.com/official-stockfish/Stockfish), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and many other open source chess engines
+- [Stockfish](https://github.com/official-stockfish/Stockfish), and many other open source chess engines
 - Members of the [Stockfish Discord server](https://discord.gg/GWDRS3kU6R)
 - [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
 - [CCRL](https://www.computerchess.org.uk/ccrl/) and all chess engine testers out there
