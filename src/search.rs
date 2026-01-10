@@ -1052,7 +1052,7 @@ fn search<NODE: NodeType>(
             }
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
-            let bonus = 57;
+            let bonus = 57 + 64 * (td.stack[ply - 1].move_count > 8) as i32;
 
             td.noisy_history.update(
                 td.board.prior_threats(),
