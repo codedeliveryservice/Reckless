@@ -808,8 +808,8 @@ fn search<NODE: NodeType>(
                 reduction -= 884;
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1498;
+            if td.stack[ply + 1].cutoff_count > 1 {
+                reduction += 768 * (td.stack[ply + 1].cutoff_count > 2) as i32 + 768 * !(NODE::PV || cut_node) as i32;
             }
 
             if is_valid(tt_score) && tt_score < alpha && tt_bound == Bound::Upper {
@@ -874,8 +874,8 @@ fn search<NODE: NodeType>(
                 reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
-                reduction += 1445;
+            if td.stack[ply + 1].cutoff_count > 1 {
+                reduction += 768 * (td.stack[ply + 1].cutoff_count > 2) as i32 + 768 * !(NODE::PV || cut_node) as i32;
             }
 
             if depth == 2 {
