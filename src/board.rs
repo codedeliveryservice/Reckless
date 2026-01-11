@@ -292,12 +292,15 @@ impl Board {
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
-            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
-            | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
-            | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
-            | knight_attacks(square) & self.pieces(PieceType::Knight)
-            | king_attacks(square) & self.pieces(PieceType::King)
+        let bishops_queens = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
+        let rooks_queens = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
+
+        (pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black))
+            | (pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White))
+            | (knight_attacks(square) & self.pieces(PieceType::Knight))
+            | (king_attacks(square) & self.pieces(PieceType::King))
+            | (bishop_attacks(square, occupancies) & bishops_queens)
+            | (rook_attacks(square, occupancies) & rooks_queens)
     }
 
     /// Checks if the given move is legal in the current position.
