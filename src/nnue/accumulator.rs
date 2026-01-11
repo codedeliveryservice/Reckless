@@ -11,6 +11,7 @@ pub struct AccumulatorCache {
     entries: Box<[[[CacheEntry; INPUT_BUCKETS]; 2]; 2]>,
 }
 
+#[repr(align(64))]
 #[derive(Clone)]
 pub struct CacheEntry {
     values: Aligned<[i16; L1_SIZE]>,
