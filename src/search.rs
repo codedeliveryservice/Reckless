@@ -772,6 +772,8 @@ fn search<NODE: NodeType>(
             reduction -= 68 * move_count;
             reduction -= 3326 * correction_value.abs() / 1024;
 
+            reduction += (443 - 268 * improvement / 128).min(1321);
+
             if is_quiet {
                 reduction += 2031;
                 reduction -= 152 * history / 1024;
@@ -798,10 +800,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1713;
                 reduction += 1086 * tt_move.is_null() as i32;
-            }
-
-            if !improving {
-                reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
             if td.board.in_check() || !td.board.has_non_pawns() {
@@ -851,6 +849,8 @@ fn search<NODE: NodeType>(
             reduction -= 55 * move_count;
             reduction -= 2484 * correction_value.abs() / 1024;
 
+            reduction += (443 - 268 * improvement / 128).min(1321);
+
             if is_quiet {
                 reduction += 1634;
                 reduction -= 154 * history / 1024;
@@ -868,10 +868,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1379;
                 reduction += 1211 * tt_move.is_null() as i32;
-            }
-
-            if !improving {
-                reduction += (443 - 268 * improvement / 128).min(1321);
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
