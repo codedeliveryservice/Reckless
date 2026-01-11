@@ -988,14 +988,14 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let noisy_bonus = (111 * depth).min(861) - 54 - 77 * cut_node as i32;
-        let noisy_malus = (173 * initial_depth).min(1257) - 53 - 23 * noisy_moves.len() as i32;
+        let noisy_bonus = ((111 * depth).min(861) - 54 - 77 * cut_node as i32).max(16);
+        let noisy_malus = ((173 * initial_depth).min(1257) - 53 - 23 * noisy_moves.len() as i32).max(16);
 
-        let quiet_bonus = (179 * depth).min(1335) - 75 - 56 * cut_node as i32;
-        let quiet_malus = (156 * initial_depth).min(1056) - 44 - 41 * quiet_moves.len() as i32;
+        let quiet_bonus = ((179 * depth).min(1335) - 75 - 56 * cut_node as i32).max(16);
+        let quiet_malus = ((156 * initial_depth).min(1056) - 44 - 41 * quiet_moves.len() as i32).max(16);
 
-        let cont_bonus = (115 * depth).min(972) - 67 - 50 * cut_node as i32;
-        let cont_malus = (343 * initial_depth).min(856) - 47 - 21 * quiet_moves.len() as i32;
+        let cont_bonus = ((115 * depth).min(972) - 67 - 50 * cut_node as i32).max(16);
+        let cont_malus = ((343 * initial_depth).min(856) - 47 - 21 * quiet_moves.len() as i32).max(16);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
