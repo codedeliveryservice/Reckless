@@ -776,9 +776,8 @@ fn search<NODE: NodeType>(
                 reduction += 1922;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1602;
+                reduction += 1402;
                 reduction -= 109 * history / 1024;
-                reduction -= 57 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
             if NODE::PV {
@@ -855,9 +854,8 @@ fn search<NODE: NodeType>(
                 reduction += 1577;
                 reduction -= 158 * history / 1024;
             } else {
-                reduction += 1423;
+                reduction += 1248;
                 reduction -= 65 * history / 1024;
-                reduction -= 48 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128;
             }
 
             if tt_pv {
