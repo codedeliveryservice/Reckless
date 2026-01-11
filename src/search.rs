@@ -977,7 +977,7 @@ fn search<NODE: NodeType>(
 
     if move_count == 0 {
         if excluded {
-            return alpha;
+            return -Score::TB_WIN_IN_MAX + 1;
         }
 
         return if in_check { mated_in(ply) } else { draw(td) };
