@@ -1064,16 +1064,16 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
+    if !(excluded || NODE::ROOT && td.pv_index > 0) {
+        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+    }
+
     if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
     }
 
     if NODE::PV {
         best_score = best_score.min(max_score);
-    }
-
-    if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
 
     if !(in_check
