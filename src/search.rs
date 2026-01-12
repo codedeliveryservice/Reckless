@@ -1018,7 +1018,7 @@ fn search<NODE: NodeType>(
             td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
         }
 
-        if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+        if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 4 {
             let malus = (90 * initial_depth - 60).min(771);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
         }
