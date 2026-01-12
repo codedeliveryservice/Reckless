@@ -332,9 +332,6 @@ fn search<NODE: NodeType>(
                 if pcm_move.is_quiet() {
                     let mut factor = 93;
                     factor += 190 * (initial_depth > 5) as i32;
-                    factor += 135 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
-                    factor +=
-                        202 * (is_valid(td.stack[ply - 1].eval) && tt_score <= -td.stack[ply - 1].eval - 94) as i32;
 
                     let scaled_bonus = factor * (171 * initial_depth - 42).min(2310) / 128;
 
