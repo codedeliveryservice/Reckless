@@ -300,6 +300,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut was_pv = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -307,6 +308,7 @@ fn search<NODE: NodeType>(
         tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
+        was_pv = entry.tt_pv;
         tt_pv |= entry.tt_pv;
 
         if !NODE::PV
@@ -701,6 +703,7 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
+                && (!NODE::PV || was_pv)
                 && move_count
                     >= if improving || eval >= beta + 20 {
                         (3127 + 1089 * initial_depth * initial_depth) / 1024
