@@ -1213,7 +1213,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            if move_count >= 3 && !td.board.is_direct_check(mv) {
+            if !NODE::PV && move_count >= 3 && !td.board.is_direct_check(mv) {
                 break;
             }
 
