@@ -488,6 +488,8 @@ fn search<NODE: NodeType>(
         improvement = eval - td.stack[ply - 2].eval;
     } else if is_valid(td.stack[ply - 4].eval) && !in_check {
         improvement = eval - td.stack[ply - 4].eval;
+    } else if is_valid(td.stack[ply - 6].eval) && !in_check {
+        improvement = eval - td.stack[ply - 6].eval;
     }
 
     let improving = improvement > 0;
