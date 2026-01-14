@@ -26,6 +26,7 @@ pub enum Piece {
 
 impl Piece {
     pub const NUM: usize = 12;
+    pub const NUM_VALUABLE: usize = 8;
 
     pub const ALL: [Piece; Self::NUM] = [
         Piece::WhitePawn,
@@ -41,6 +42,21 @@ impl Piece {
         Piece::WhiteKing,
         Piece::BlackKing,
     ];
+
+    pub const VALUABLE: [Piece; Self::NUM_VALUABLE] = [
+        Piece::WhiteKnight,
+        Piece::BlackKnight,
+        Piece::WhiteBishop,
+        Piece::BlackBishop,
+        Piece::WhiteRook,
+        Piece::BlackRook,
+        Piece::WhiteQueen,
+        Piece::BlackQueen,
+    ];
+
+    pub fn is_valuable(self) -> bool {
+        return Piece::VALUABLE.contains(&self);
+    }
 
     pub const fn new(color: Color, piece_type: PieceType) -> Self {
         unsafe { std::mem::transmute(((piece_type as u8) << 1) | color as u8) }
