@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use crate::{
     board::{Board, NullBoardObserver},
-    search::{self, Report},
+    search::Report,
     tb::tb_initialize,
     thread::{SharedContext, Status, ThreadData},
-    threadpool::{ScopeExt, ThreadPool},
+    threadpool::ThreadPool,
     time::{Limits, TimeManager},
     tools,
     transposition::DEFAULT_TT_SIZE,
@@ -80,13 +80,10 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
-            ["bench", v @ ..] => {
-                let arg = v.first().and_then(|v| v.parse().ok());
-                match mode {
-                    Mode::Uci => tools::bench::<true>(arg),
-                    Mode::Cli => tools::bench::<false>(arg),
-                }
-            }
+            ["bench", args @ ..] => match mode {
+                Mode::Uci => tools::bench::<true>(args),
+                Mode::Cli => tools::bench::<false>(args),
+            },
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
@@ -166,44 +163,10 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
 fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
+    let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
 
-    threads.main_thread().time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
     threads.main_thread().multi_pv = settings.multi_pv;
-
-    shared.nodes.reset();
-    shared.tb_hits.reset();
-    shared.tt.increment_age();
-    shared.status.set(Status::RUNNING);
-
-    std::thread::scope(|scope| {
-        let mut handlers = Vec::new();
-
-        let (t1, rest) = threads.vector.split_first_mut().unwrap();
-        let (w1, rest_workers) = threads.workers.split_first().unwrap();
-
-        handlers.push(scope.spawn_into(
-            || {
-                search::start(t1, settings.report);
-                shared.status.set(Status::STOPPED);
-            },
-            w1,
-        ));
-
-        for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
-            handlers.push(scope.spawn_into(
-                move || {
-                    t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
-                    t.id = index + 1;
-                    search::start(t, Report::None);
-                },
-                w,
-            ));
-        }
-
-        for handler in handlers {
-            handler.join();
-        }
-    });
+    threads.execute_searches(time_manager, settings.report, shared);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
     let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;

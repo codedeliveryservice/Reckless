@@ -116,7 +116,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 | Command         | Description                                                                        |
 | --------------- | ---------------------------------------------------------------------------------- |
 | `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
-| `bench <depth>` | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
+| `bench`         | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
 | `d`             | Print the current board position in a human-readable format together with FEN      |
 | `eval`          | Print the network evaluation of the current position from white's perspective      |
 | `compiler`      | Print the compiler version, target and flags used to compile the engine            |

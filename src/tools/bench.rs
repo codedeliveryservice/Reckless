@@ -11,8 +11,9 @@ use std::{sync::Arc, time::Instant};
 
 use crate::{
     board::Board,
-    search::{self, Report},
-    thread::{SharedContext, Status, ThreadData},
+    search::Report,
+    thread::SharedContext,
+    threadpool::ThreadPool,
     time::{Limits, TimeManager},
 };
 
@@ -65,42 +66,49 @@ const POSITIONS: &[&str] = &[
 ];
 
 const DEFAULT_DEPTH: i32 = 12;
+const DEFAULT_HASH: usize = 16;
+const DEFAULT_THREADS: usize = 1;
 
-pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
+pub fn bench<const PRETTY: bool>(args: &[&str]) {
+    #[allow(clippy::get_first)]
+    let hash = args.get(0).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_HASH);
+    let threads = args.get(1).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_THREADS);
+    let depth = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_DEPTH);
+
+    let shared = Arc::new(SharedContext::default());
+    shared.tt.resize(threads, hash);
+
+    let mut pool = ThreadPool::new(shared.clone());
+    pool.set_count(threads);
+
     if PRETTY {
         println!("{}", "-".repeat(50));
         println!("{:>15} {:>13} {:>15}", "Nodes", "Elapsed", "NPS");
         println!("{}", "-".repeat(50));
     }
 
-    let depth = depth.unwrap_or(DEFAULT_DEPTH);
-
-    let shared = Arc::new(SharedContext::default());
-    let mut td = ThreadData::new(shared);
+    let mut nodes = 0;
 
     let time = Instant::now();
 
-    let mut nodes = 0;
-    let mut index = 0;
-
-    for position in POSITIONS {
+    for (index, &position) in POSITIONS.iter().enumerate() {
         let now = Instant::now();
 
-        td.shared.status.set(Status::RUNNING);
-        td.shared.nodes.reset();
-        td.board = Board::from_fen(position).unwrap();
-        td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+        let board = Board::from_fen(position).unwrap();
+        let time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
-        search::start(&mut td, Report::None);
+        for td in pool.vector.iter_mut() {
+            td.board = board.clone()
+        }
 
-        nodes += td.nodes();
-        index += 1;
+        pool.execute_searches(time_manager, Report::None, &shared);
 
-        let seconds = now.elapsed().as_secs_f64();
-        let nps = td.nodes() as f64 / seconds;
+        nodes += shared.nodes.aggregate();
 
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes());
+            let seconds = now.elapsed().as_secs_f64();
+            let nps = shared.nodes.aggregate() as f64 / seconds;
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", shared.nodes.aggregate());
         }
     }
 
@@ -112,7 +120,6 @@ pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
         println!("{nodes:>15} {seconds:>12.3}s {nps:>15.0} N/s");
         println!("{}", "-".repeat(50));
     } else {
-        let nps = nodes as f64 / seconds;
         println!("Bench: {nodes} nodes {nps:.0} nps");
     }
 
