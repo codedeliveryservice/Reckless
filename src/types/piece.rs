@@ -55,7 +55,7 @@ impl Piece {
     ];
 
     pub fn is_valuable(self) -> bool {
-        return Piece::VALUABLE.contains(&self);
+        Piece::VALUABLE.contains(&self)
     }
 
     pub const fn new(color: Color, piece_type: PieceType) -> Self {
