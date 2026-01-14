@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 use crate::{
@@ -12,6 +13,12 @@ use crate::{
     transposition::DEFAULT_TT_SIZE,
     types::{is_decisive, is_loss, is_win, Color, Move, Score, Square, MAX_MOVES},
 };
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Mode {
+    Cli,
+    Uci,
+}
 
 struct Settings {
     frc: bool,
@@ -31,18 +38,34 @@ impl Default for Settings {
     }
 }
 
-pub fn message_loop() {
+pub fn message_loop(mut buffer: VecDeque<String>) {
     let shared = Arc::new(SharedContext::default());
-
     let mut settings = Settings::default();
     let mut threads = ThreadPool::new(shared.clone());
 
     let rx = spawn_listener(shared.clone());
 
-    while let Ok(message) = rx.recv() {
+    let mut mode = if buffer.is_empty() { Mode::Uci } else { Mode::Cli };
+
+    loop {
+        let message = if let Some(cmd) = buffer.pop_front() {
+            cmd
+        } else if mode == Mode::Uci {
+            match rx.recv() {
+                Ok(cmd) => cmd,
+                Err(_) => break,
+            }
+        } else {
+            break;
+        };
+
         let tokens = message.split_whitespace().collect::<Vec<_>>();
         match tokens.as_slice() {
-            ["uci"] => uci(),
+            ["uci"] => {
+                uci();
+                mode = Mode::Uci;
+            }
+
             ["isready"] => println!("readyok"),
 
             ["go", tokens @ ..] => go(&mut threads, &settings, &shared, tokens),
@@ -57,7 +80,13 @@ pub fn message_loop() {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
-            ["bench", v @ ..] => tools::bench::<true>(v.first().and_then(|v| v.parse().ok())),
+            ["bench", v @ ..] => {
+                let arg = v.first().and_then(|v| v.parse().ok());
+                match mode {
+                    Mode::Uci => tools::bench::<true>(arg),
+                    Mode::Cli => tools::bench::<false>(arg),
+                }
+            }
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
 
@@ -65,6 +94,11 @@ pub fn message_loop() {
             [] => (),
 
             _ => eprintln!("Unknown command: '{}'", message.trim_end()),
+        }
+
+        // Auto-exit after last CLI command
+        if matches!(mode, Mode::Cli) && buffer.is_empty() {
+            break;
         }
     }
 }
@@ -84,7 +118,7 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
                 // in the current state should be ignored silently.
                 // (https://backscattering.de/chess/uci/#unexpected)
                 if shared.status.get() != Status::RUNNING {
-                    tx.send(message).unwrap();
+                    let _ = tx.send(message);
                 }
             }
         }

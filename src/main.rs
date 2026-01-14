@@ -28,8 +28,7 @@ fn main() {
     lookup::initialize();
     nnue::initialize();
 
-    match std::env::args().nth(1).as_deref() {
-        Some("bench") => tools::bench::<false>(None),
-        _ => uci::message_loop(),
-    }
+    let buffer: std::collections::VecDeque<String> = std::env::args().skip(1).collect();
+
+    uci::message_loop(buffer);
 }
