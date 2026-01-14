@@ -80,11 +80,12 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => display(threads.main_thread()),
-            ["bench", v @ ..] => {
-                let arg = v.first().and_then(|v| v.parse().ok());
+            ["bench", args @ ..] => {
+                let parsed_args: Vec<i32> = args.iter().filter_map(|v| v.parse().ok()).collect();
+
                 match mode {
-                    Mode::Uci => tools::bench::<true>(arg),
-                    Mode::Cli => tools::bench::<false>(arg),
+                    Mode::Uci => tools::bench::<true>(&mut threads, &parsed_args),
+                    Mode::Cli => tools::bench::<false>(&mut threads, &parsed_args),
                 }
             }
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),

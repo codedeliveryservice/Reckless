@@ -13,6 +13,7 @@ use crate::{
     board::Board,
     search::{self, Report},
     thread::{SharedContext, Status, ThreadData},
+    threadpool::ThreadPool,
     time::{Limits, TimeManager},
 };
 
@@ -65,56 +66,63 @@ const POSITIONS: &[&str] = &[
 ];
 
 const DEFAULT_DEPTH: i32 = 12;
+const DEFAULT_TT_SIZE: i32 = 16;
+const DEFAULT_TREADS_COUNT: i32 = 1;
 
-pub fn bench<const PRETTY: bool>(depth: Option<i32>) {
+pub fn bench<const PRETTY: bool>(threads: &mut ThreadPool, args: &[i32]) {
+    // Defaults
+    let default_hash = DEFAULT_TT_SIZE;
+    let default_threads = 1;
+    let default_depth = DEFAULT_DEPTH;
+
+    let hash = args.get(0).copied().unwrap_or(default_hash);
+    let thread_count = args.get(1).copied().unwrap_or(default_threads);
+    let depth = args.get(2).copied().unwrap_or(default_depth);
+
+    let original_hash = threads.main_thread().shared.tt.size();
+    let original_threads = threads.len();
+
+    threads.main_thread().shared.tt.resize(thread_count as usize, hash as usize);
+    threads.set_count(thread_count as usize);
+
     if PRETTY {
         println!("{}", "-".repeat(50));
         println!("{:>15} {:>13} {:>15}", "Nodes", "Elapsed", "NPS");
         println!("{}", "-".repeat(50));
     }
 
-    let depth = depth.unwrap_or(DEFAULT_DEPTH);
-
-    let shared = Arc::new(SharedContext::default());
-    let mut td = ThreadData::new(shared);
-
-    let time = Instant::now();
-
     let mut nodes = 0;
-    let mut index = 0;
+    let time = std::time::Instant::now();
 
-    for position in POSITIONS {
-        let now = Instant::now();
+    for (index, &position) in POSITIONS.iter().enumerate() {
+        let now = std::time::Instant::now();
+        threads.main_thread().shared.status.set(Status::RUNNING);
+        threads.main_thread().shared.nodes.reset();
+        threads.main_thread().board = Board::from_fen(position).unwrap();
+        threads.main_thread().time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
-        td.shared.status.set(Status::RUNNING);
-        td.shared.nodes.reset();
-        td.board = Board::from_fen(position).unwrap();
-        td.time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+        search::start(&mut threads.main_thread(), Report::None);
 
-        search::start(&mut td, Report::None);
-
-        nodes += td.nodes();
-        index += 1;
-
-        let seconds = now.elapsed().as_secs_f64();
-        let nps = td.nodes() as f64 / seconds;
-
+        nodes += threads.main_thread().nodes();
         if PRETTY {
-            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", td.nodes());
+            let seconds = now.elapsed().as_secs_f64();
+            let nps = threads.main_thread().nodes() as f64 / seconds;
+            println!("{index:>3} {:>11} {seconds:>12.3}s {nps:>15.0} N/s", threads.main_thread().nodes());
         }
     }
 
     let seconds = time.elapsed().as_secs_f64();
     let nps = nodes as f64 / seconds;
-
     if PRETTY {
         println!("{}", "-".repeat(50));
         println!("{nodes:>15} {seconds:>12.3}s {nps:>15.0} N/s");
         println!("{}", "-".repeat(50));
     } else {
-        let nps = nodes as f64 / seconds;
         println!("Bench: {nodes} nodes {nps:.0} nps");
     }
 
     crate::misc::dbg_print();
+    // Restore original settings
+    threads.main_thread().shared.tt.resize(original_threads, original_hash);
+    threads.set_count(original_threads);
 }

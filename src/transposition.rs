@@ -123,6 +123,10 @@ impl TranspositionTable {
         self.age.store(0, Ordering::Relaxed);
     }
 
+    pub fn size(&self) -> usize {
+        (self.len() * CLUSTER_SIZE) / MEGABYTE
+    }
+
     /// Returns the approximate load factor of the transposition table in permille (on a scale of `0` to `1000`).
     pub fn hashfull(&self) -> usize {
         let age = self.age();
