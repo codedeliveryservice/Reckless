@@ -460,6 +460,16 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 1
     {
         depth += 1;
+
+        let help_singularity = depth >= 4 + tt_pv as i32
+            && tt_depth == depth - 4
+            && tt_bound != Bound::Upper
+            && is_valid(tt_score)
+            && !is_decisive(tt_score);
+
+        if help_singularity {
+            depth += 1;
+        }
     }
 
     if !NODE::ROOT
