@@ -10,6 +10,7 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
+    SpecialMove,
     GenerateQuiet,
     Quiet,
     BadNoisy,
@@ -18,6 +19,7 @@ pub enum Stage {
 pub struct MovePicker {
     list: MoveList,
     tt_move: Move,
+    special_move: Move,
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
@@ -29,6 +31,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move,
+            special_move: Move::NULL,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
@@ -36,10 +39,11 @@ impl MovePicker {
         }
     }
 
-    pub const fn new_probcut(threshold: i32) -> Self {
+    pub const fn new_probcut(threshold: i32, special_move: Move) -> Self {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            special_move,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -51,6 +55,7 @@ impl MovePicker {
         Self {
             list: MoveList::new(),
             tt_move: Move::NULL,
+            special_move: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
@@ -98,7 +103,18 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
+            self.stage = if !self.special_move.is_null() { Stage::SpecialMove } else { Stage::GenerateQuiet };
+        }
+
+        if self.stage == Stage::SpecialMove {
             self.stage = Stage::GenerateQuiet;
+
+            if self.special_move.is_quiet()
+                && td.board.see(self.special_move, self.threshold.unwrap())
+                && td.board.is_pseudo_legal(self.special_move)
+            {
+                return Some(self.special_move);
+            }
         }
 
         if self.stage == Stage::GenerateQuiet {
