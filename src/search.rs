@@ -708,9 +708,9 @@ fn search<NODE: NodeType>(
                 && (!NODE::PV || was_pv)
                 && move_count
                     >= if improving || eval >= beta + 20 {
-                        (3127 + 1089 * initial_depth * initial_depth + 2048 * (NODE::PV && !was_pv) as i32) / 1024
+                        (3127 + 1089 * initial_depth * initial_depth) / 1024
                     } else {
-                        (1320 + 315 * initial_depth * initial_depth + 2048 * (NODE::PV && !was_pv) as i32) / 1024
+                        (1320 + 315 * initial_depth * initial_depth) / 1024
                     };
 
             // Futility Pruning (FP)
