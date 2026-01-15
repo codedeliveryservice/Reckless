@@ -661,8 +661,6 @@ fn search<NODE: NodeType>(
         } else if cut_node {
             extension = -2;
         }
-    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
-        extension = 1;
     }
 
     let mut best_move = Move::NULL;
