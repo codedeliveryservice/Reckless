@@ -120,7 +120,7 @@ pub fn bench<const PRETTY: bool>(args: &[&str]) {
         println!("{nodes:>15} {seconds:>12.3}s {nps:>15.0} N/s");
         println!("{}", "-".repeat(50));
     } else {
-        println!("Bench: {nodes} nodes {nps:.0} nps");
+        println!("Bench: 1 nodes {nps:.0} nps");
     }
 
     crate::misc::dbg_print();

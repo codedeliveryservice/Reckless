@@ -545,7 +545,7 @@ impl Network {
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
-            let l2_out = forward::propagate_l2(l1_out.clone(), bucket);
+            let l2_out = forward::propagate_l2(l1_out, bucket);
             let l3_out = forward::propagate_l3(l2_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
