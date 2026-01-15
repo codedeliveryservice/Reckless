@@ -288,7 +288,6 @@ fn search<NODE: NodeType>(
     let mut max_score = Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
-    let initial_depth = depth;
 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
@@ -329,18 +328,18 @@ fn search<NODE: NodeType>(
                 let pcm_move = td.stack[ply - 1].mv;
                 if pcm_move.is_quiet() {
                     let mut factor = 93;
-                    factor += 190 * (initial_depth > 5) as i32;
+                    factor += 190 * (depth > 5) as i32;
                     factor += 135 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
                     factor +=
                         202 * (is_valid(td.stack[ply - 1].eval) && tt_score <= -td.stack[ply - 1].eval - 94) as i32;
 
-                    let scaled_bonus = factor * (171 * initial_depth - 42).min(2310) / 128;
+                    let scaled_bonus = factor * (171 * depth - 42).min(2310) / 128;
 
                     td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
                     let entry = &td.stack[ply - 2];
                     if entry.mv.is_some() {
-                        let bonus = (115 * initial_depth - 34).min(1776);
+                        let bonus = (115 * depth - 34).min(1776);
                         td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
                     }
                 }
@@ -705,9 +704,9 @@ fn search<NODE: NodeType>(
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || eval >= beta + 20 {
-                        (3127 + 1089 * initial_depth * initial_depth) / 1024
+                        (3127 + 1089 * depth * depth) / 1024
                     } else {
-                        (1320 + 315 * initial_depth * initial_depth) / 1024
+                        (1320 + 315 * depth * depth) / 1024
                     };
 
             // Futility Pruning (FP)
@@ -888,7 +887,7 @@ fn search<NODE: NodeType>(
 
             let reduced_depth = new_depth - (reduction >= 3072) as i32 - (reduction >= 5687 && new_depth >= 3) as i32;
 
-            td.stack[ply].reduction = 1024 * ((initial_depth - 1) - new_depth);
+            td.stack[ply].reduction = 1024 * ((depth - 1) - new_depth);
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             td.stack[ply].reduction = 0;
             current_search_count += 1;
@@ -989,13 +988,13 @@ fn search<NODE: NodeType>(
 
     if best_move.is_some() {
         let noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
-        let noisy_malus = (172 * initial_depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
+        let noisy_malus = (172 * depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
 
         let quiet_bonus = (172 * depth).min(1459) - 78 - 54 * cut_node as i32;
-        let quiet_malus = (151 * initial_depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
+        let quiet_malus = (151 * depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
 
         let cont_bonus = (108 * depth).min(977) - 67 - 52 * cut_node as i32;
-        let cont_malus = (369 * initial_depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
+        let cont_malus = (369 * depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
             td.noisy_history.update(
@@ -1021,7 +1020,7 @@ fn search<NODE: NodeType>(
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
-            let malus = (90 * initial_depth - 60).min(771);
+            let malus = (90 * depth - 60).min(771);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
         }
 
@@ -1035,19 +1034,19 @@ fn search<NODE: NodeType>(
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = 95;
-            factor += 156 * (initial_depth > 5) as i32;
+            factor += 156 * (depth > 5) as i32;
             factor += 215 * (td.stack[ply - 1].move_count > 8) as i32;
             factor += 113 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
             factor += 156 * (!in_check && best_score <= eval.min(raw_eval) - 96) as i32;
             factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
 
-            let scaled_bonus = factor * (158 * initial_depth - 34).min(2474) / 128;
+            let scaled_bonus = factor * (158 * depth - 34).min(2474) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
 
             let entry = &td.stack[ply - 2];
             if entry.mv.is_some() {
-                let bonus = (161 * initial_depth - 38).min(1169);
+                let bonus = (161 * depth - 38).min(1169);
                 td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
         } else if pcm_move.is_noisy() {
