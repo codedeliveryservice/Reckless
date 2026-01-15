@@ -95,10 +95,16 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> 
     output
 }
 
-pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>) -> f32 {
+pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, l1_out: Aligned<[f32; L2_SIZE]>) -> f32 {
     let mut output = 0.0;
+
     for i in 0..L3_SIZE {
         output = PARAMETERS.l3_weights[i].mul_add(l2_out[i], output);
     }
+
+    for i in 0..L2_SIZE {
+        output = PARAMETERS.l3_weights[L3_SIZE + i].mul_add(l1_out[i], output);
+    }
+
     output + PARAMETERS.l3_biases
 }
