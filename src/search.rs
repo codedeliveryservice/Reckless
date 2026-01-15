@@ -805,7 +805,7 @@ fn search<NODE: NodeType>(
                 reduction += (438 - 279 * improvement / 128).min(1288);
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
+            if td.board.in_check() {
                 reduction -= 966;
             }
 
