@@ -7,7 +7,11 @@ use std::{
     thread::Scope,
 };
 
-use crate::thread::{SharedContext, ThreadData};
+use crate::{
+    search::{self, Report},
+    thread::{SharedContext, Status, ThreadData},
+    time::{Limits, TimeManager},
+};
 
 pub struct ThreadPool {
     pub workers: Vec<WorkerThread>,
@@ -62,6 +66,47 @@ impl ThreadPool {
 
         std::mem::drop(self.vector.drain(..));
         self.vector = make_thread_data(shared, &self.workers);
+    }
+
+    pub fn execute_searches(&mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>) {
+        shared.tt.increment_age();
+
+        shared.nodes.reset();
+        shared.tb_hits.reset();
+        shared.status.set(Status::RUNNING);
+
+        std::thread::scope(|scope| {
+            let mut handlers = Vec::new();
+
+            let (t1, rest) = self.vector.split_first_mut().unwrap();
+            let (w1, rest_workers) = self.workers.split_first().unwrap();
+
+            handlers.push(scope.spawn_into(
+                || {
+                    t1.time_manager = time_manager;
+
+                    search::start(t1, report);
+                    shared.status.set(Status::STOPPED);
+                },
+                w1,
+            ));
+
+            for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
+                handlers.push(scope.spawn_into(
+                    move || {
+                        t.id = index + 1;
+                        t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+
+                        search::start(t, Report::None);
+                    },
+                    w,
+                ));
+            }
+
+            for handler in handlers {
+                handler.join();
+            }
+        })
     }
 }
 
