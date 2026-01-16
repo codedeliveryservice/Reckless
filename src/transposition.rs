@@ -7,13 +7,13 @@ pub const DEFAULT_TT_SIZE: usize = 16;
 const MEGABYTE: usize = 1024 * 1024;
 const CLUSTER_SIZE: usize = std::mem::size_of::<Cluster>();
 
-const ENTRIES_PER_CLUSTER: usize = 3;
+const ENTRIES_PER_CLUSTER: usize = 4;
 
 const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
-const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
-const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
+const _: () = assert!(std::mem::size_of::<Cluster>() == 64);
+const _: () = assert!(std::mem::size_of::<InternalEntry>() == 16);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -25,39 +25,9 @@ pub struct Entry {
     pub tt_pv: bool,
 }
 
-#[derive(Copy, Clone)]
-pub struct Flags {
-    data: u8,
-}
-
-impl Flags {
-    pub const fn new(bound: Bound, tt_pv: bool, age: u8) -> Self {
-        debug_assert!(age <= AGE_MASK);
-
-        Self { data: (bound as u8) | ((tt_pv as u8) << 2) | (age << 3) }
-    }
-
-    pub const fn bound(self) -> Bound {
-        match self.data & 0b11 {
-            0 => Bound::None,
-            1 => Bound::Exact,
-            2 => Bound::Lower,
-            3 => Bound::Upper,
-            _ => unreachable!(),
-        }
-    }
-
-    pub const fn tt_pv(self) -> bool {
-        (self.data & (1 << 2)) != 0
-    }
-
-    pub const fn age(self) -> u8 {
-        self.data >> 3
-    }
-}
-
 /// Type of the score returned by the search.
 #[derive(Copy, Clone, Eq, PartialEq)]
+#[repr(u8)]
 pub enum Bound {
     None,
     Exact,
@@ -65,16 +35,19 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (10 bytes).
+/// Internal representation of a transposition table entry (16 bytes).
 #[derive(Clone)]
-#[repr(C)]
+#[repr(align(16))]
 pub struct InternalEntry {
     key: u16,      // 2 bytes
     mv: Move,      // 2 bytes
     score: i16,    // 2 bytes
     raw_eval: i16, // 2 bytes
+    bound: Bound,  // 1 byte
     depth: i8,     // 1 byte
-    flags: Flags,  // 1 byte
+    tt_pv: bool,   // 1 byte
+    age: u8,       // 1 byte
+                   // 4 bytes padding
 }
 
 pub enum TtDepth {}
@@ -86,12 +59,12 @@ impl TtDepth {
 
 impl InternalEntry {
     pub const fn relative_age(&self, tt_age: u8) -> i32 {
-        ((AGE_CYCLE + tt_age - self.flags.age()) & AGE_MASK) as i32
+        ((AGE_CYCLE + tt_age - self.age) & AGE_MASK) as i32
     }
 }
 
 #[derive(Clone)]
-#[repr(align(32))]
+#[repr(align(64))]
 struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
 }
@@ -131,7 +104,7 @@ impl TranspositionTable {
         let mut count = 0;
         for cluster in clusters.iter().take(1000) {
             for entry in &cluster.entries {
-                count += (entry.flags.bound() != Bound::None && entry.flags.age() == age) as usize;
+                count += (entry.bound != Bound::None && entry.age == age) as usize;
             }
         }
 
@@ -156,8 +129,8 @@ impl TranspositionTable {
                     depth: entry.depth as i32,
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
                     raw_eval: entry.raw_eval as i32,
-                    bound: entry.flags.bound(),
-                    tt_pv: entry.flags.tt_pv(),
+                    bound: entry.bound,
+                    tt_pv: entry.tt_pv,
                     mv: entry.mv,
                 };
 
@@ -206,11 +179,7 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !force
-            && key == entry.key
-            && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
-            && entry.flags.age() == tt_age
-        {
+        if !force && key == entry.key && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32 && entry.age == tt_age {
             return;
         }
 
@@ -219,11 +188,16 @@ impl TranspositionTable {
             score += score.signum() * ply as i32;
         }
 
-        entry.key = key;
-        entry.depth = depth as i8;
-        entry.score = score as i16;
-        entry.raw_eval = raw_eval as i16;
-        entry.flags = Flags::new(bound, tt_pv, tt_age);
+        *entry = InternalEntry {
+            key,
+            mv: entry.mv,
+            score: score as i16,
+            raw_eval: raw_eval as i16,
+            bound,
+            depth: depth as i8,
+            tt_pv,
+            age: tt_age,
+        };
     }
 
     pub fn prefetch(&self, hash: u64) {
