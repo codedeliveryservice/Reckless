@@ -62,6 +62,12 @@ cargo rustc --release -- -C target-cpu=native
 # ./target/release/reckless
 ```
 
+To build without Syzygy tablebase support and Clang dependency, add the `--no-default-features` flag:
+
+```bash
+cargo rustc --release --no-default-features -- -C target-cpu=native
+```
+
 #### PGO builds
 
 For profile-guided optimization (PGO) builds, you need to install additional tools:

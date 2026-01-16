@@ -17,27 +17,27 @@ pub enum GameOutcome {
     Draw,
 }
 
-static mut TB_SIZE: usize = 0;
+static mut SIZE: usize = 0;
 
-pub fn tb_initialize(path: &str) -> Option<usize> {
+pub fn initialize(path: &str) -> Option<usize> {
     let cpath = ffi::CString::new(path).ok()?;
 
     unsafe {
         tb_init(cpath.as_ptr());
-        TB_SIZE = TB_LARGEST as usize;
+        SIZE = TB_LARGEST as usize;
     };
 
-    match tb_size() {
+    match size() {
         0 => None,
-        _ => Some(tb_size()),
+        _ => Some(size()),
     }
 }
 
-pub fn tb_size() -> usize {
-    unsafe { TB_SIZE }
+pub fn size() -> usize {
+    unsafe { SIZE }
 }
 
-pub fn tb_probe(board: &Board) -> Option<GameOutcome> {
+pub fn probe(board: &Board) -> Option<GameOutcome> {
     let code = unsafe {
         tb_probe_wdl(
             board.colors(Color::White).0,
@@ -87,7 +87,7 @@ fn reckless_move_to_tb_move(mv: Move) -> TbMove {
     tb_move
 }
 
-pub fn tb_rank_rootmoves(td: &mut ThreadData) {
+pub fn rank_rootmoves(td: &mut ThreadData) {
     let mut rootmoves_in_c: mem::MaybeUninit<TbRootMoves> = mem::MaybeUninit::uninit();
 
     unsafe {

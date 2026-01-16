@@ -29,10 +29,12 @@ pub const fn mate_in(ply: isize) -> i32 {
     Score::MATE - ply as i32
 }
 
+#[cfg(feature = "syzygy")]
 pub const fn tb_loss_in(ply: isize) -> i32 {
     -Score::TB_WIN + ply as i32
 }
 
+#[cfg(feature = "syzygy")]
 pub const fn tb_win_in(ply: isize) -> i32 {
     Score::TB_WIN - ply as i32
 }
