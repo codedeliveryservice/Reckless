@@ -1,4 +1,4 @@
-use super::{PieceType, MAX_PLY};
+use super::{MAX_PLY, PieceType};
 use crate::{board::Board, thread::ThreadData};
 
 pub struct Score;

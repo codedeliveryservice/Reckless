@@ -2,12 +2,12 @@ use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
-    tb::{tb_probe, tb_rank_rootmoves, tb_size, GameOutcome},
+    tb::{GameOutcome, tb_probe, tb_rank_rootmoves, tb_size},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
-        draw, is_decisive, is_loss, is_valid, is_win, mate_in, mated_in, tb_loss_in, tb_win_in, ArrayVec, Color, Move,
-        Piece, Score, Square, MAX_PLY,
+        ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, draw, is_decisive, is_loss, is_valid, is_win, mate_in,
+        mated_in, tb_loss_in, tb_win_in,
     },
 };
 
@@ -359,32 +359,31 @@ fn search<NODE: NodeType>(
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().popcount() <= tb_size()
+        && let Some(outcome) = tb_probe(&td.board)
     {
-        if let Some(outcome) = tb_probe(&td.board) {
-            td.shared.tb_hits.increment(td.id);
+        td.shared.tb_hits.increment(td.id);
 
-            let (score, bound) = match outcome {
-                GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
-                GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
-                GameOutcome::Draw => (Score::ZERO, Bound::Exact),
-            };
+        let (score, bound) = match outcome {
+            GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
+            GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
+            GameOutcome::Draw => (Score::ZERO, Bound::Exact),
+        };
 
-            if bound == Bound::Exact
-                || (bound == Bound::Lower && score >= beta)
-                || (bound == Bound::Upper && score <= alpha)
-            {
-                let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-                td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, false);
-                return score;
-            }
+        if bound == Bound::Exact
+            || (bound == Bound::Lower && score >= beta)
+            || (bound == Bound::Upper && score <= alpha)
+        {
+            let depth = (depth + 6).min(MAX_PLY as i32 - 1);
+            td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, false);
+            return score;
+        }
 
-            if NODE::PV {
-                if bound == Bound::Lower {
-                    best_score = score;
-                    alpha = alpha.max(best_score);
-                } else {
-                    max_score = score;
-                }
+        if NODE::PV {
+            if bound == Bound::Lower {
+                best_score = score;
+                alpha = alpha.max(best_score);
+            } else {
+                max_score = score;
             }
         }
     }

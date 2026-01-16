@@ -2,12 +2,12 @@ use std::{ffi, mem, ptr};
 
 use crate::{
     bindings::{
-        tb_init, tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl, TbMove, TbRootMove, TbRootMoves, TB_DRAW,
-        TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN,
+        TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbMove, TbRootMove, TbRootMoves, tb_init,
+        tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl,
     },
     board::Board,
     thread::{RootMove, ThreadData},
-    types::{Color, Move, PieceType, Score, MAX_PLY},
+    types::{Color, MAX_PLY, Move, PieceType, Score},
 };
 
 #[derive(Eq, PartialEq)]

@@ -1,5 +1,6 @@
 #![allow(clippy::manual_is_multiple_of)]
 #![allow(clippy::if_same_then_else)]
+#![allow(unsafe_op_in_unsafe_fn)]
 
 mod board;
 mod evaluation;

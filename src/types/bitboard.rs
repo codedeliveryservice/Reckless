@@ -42,11 +42,7 @@ impl Bitboard {
     }
 
     pub const fn shift(self, offset: i8) -> Self {
-        if offset > 0 {
-            Self(self.0 << offset)
-        } else {
-            Self(self.0 >> -offset)
-        }
+        if offset > 0 { Self(self.0 << offset) } else { Self(self.0 >> -offset) }
     }
 
     pub fn set(&mut self, square: Square) {

@@ -2,7 +2,7 @@ use crate::{
     parameters::PIECE_VALUES,
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, Move, MoveList, PieceType, MAX_MOVES},
+    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]

@@ -1,6 +1,6 @@
 use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{normalize_to_cp, Move, Score, MAX_PLY},
+    types::{MAX_PLY, Move, Score, normalize_to_cp},
 };
 
 #[repr(align(64))]

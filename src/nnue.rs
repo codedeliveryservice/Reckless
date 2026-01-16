@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Color, Move, Piece, PieceType, Square, MAX_PLY},
+    types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};

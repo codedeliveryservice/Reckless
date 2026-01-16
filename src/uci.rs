@@ -11,7 +11,7 @@ use crate::{
     time::{Limits, TimeManager},
     tools,
     transposition::DEFAULT_TT_SIZE,
-    types::{is_decisive, is_loss, is_win, Color, Move, Score, Square, MAX_MOVES},
+    types::{Color, MAX_MOVES, Move, Score, Square, is_decisive, is_loss, is_win},
 };
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -103,19 +103,21 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
 fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<String> {
     let (tx, rx) = std::sync::mpsc::channel();
 
-    std::thread::spawn(move || loop {
-        let mut message = String::new();
-        std::io::stdin().read_line(&mut message).unwrap();
+    std::thread::spawn(move || {
+        loop {
+            let mut message = String::new();
+            std::io::stdin().read_line(&mut message).unwrap();
 
-        match message.trim_end() {
-            "isready" => println!("readyok"),
-            "stop" => shared.status.set(Status::STOPPED),
-            _ => {
-                // According to the UCI specs, commands that are unexpected
-                // in the current state should be ignored silently.
-                // (https://backscattering.de/chess/uci/#unexpected)
-                if shared.status.get() != Status::RUNNING {
-                    let _ = tx.send(message);
+            match message.trim_end() {
+                "isready" => println!("readyok"),
+                "stop" => shared.status.set(Status::STOPPED),
+                _ => {
+                    // According to the UCI specs, commands that are unexpected
+                    // in the current state should be ignored silently.
+                    // (https://backscattering.de/chess/uci/#unexpected)
+                    if shared.status.get() != Status::RUNNING {
+                        let _ = tx.send(message);
+                    }
                 }
             }
         }

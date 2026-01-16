@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use std::sync::{
-    atomic::{AtomicI64, Ordering},
     Mutex,
+    atomic::{AtomicI64, Ordering},
 };
 
 const SLOTS: usize = 32;
@@ -44,11 +44,7 @@ impl Wrapper {
         let mut sorted = vals.to_vec();
         sorted.sort_unstable();
         let mid = sorted.len() / 2;
-        if sorted.len().is_multiple_of(2) {
-            (sorted[mid - 1] + sorted[mid]) as f64 / 2.0
-        } else {
-            sorted[mid] as f64
-        }
+        if sorted.len().is_multiple_of(2) { (sorted[mid - 1] + sorted[mid]) as f64 / 2.0 } else { sorted[mid] as f64 }
     }
 
     fn gini_mean_difference(&self) -> f64 {
