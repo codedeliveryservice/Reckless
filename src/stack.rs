@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use crate::types::{Move, Piece, Score, MAX_PLY};
+use crate::types::{MAX_PLY, Move, Piece, Score};
 
 pub struct Stack {
     data: [StackEntry; MAX_PLY + 16],

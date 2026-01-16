@@ -52,7 +52,7 @@ You can download precompiled builds from the [GitHub Releases page](https://gith
 
 To build Reckless from source, make sure you have:
 
-- `Rust 1.79.0` or a later version installed ([official Rust installation guide](https://www.rust-lang.org/tools/install))
+- `Rust 1.88.0` or a later version installed ([official Rust installation guide](https://www.rust-lang.org/tools/install))
 - `Clang` installed (required for building the [Fathom](https://github.com/jdart1/Fathom) library used for Syzygy endgame tablebase support)
 
 Once installed, you can build it with:

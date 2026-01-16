@@ -1,8 +1,8 @@
-use super::{simd, Aligned, L1_SIZE, PARAMETERS};
+use super::{Aligned, L1_SIZE, PARAMETERS, simd};
 use crate::{
     board::Board,
     lookup::attacks,
-    nnue::{threats::threat_index, BUCKETS, INPUT_BUCKETS},
+    nnue::{BUCKETS, INPUT_BUCKETS, threats::threat_index},
     types::{ArrayVec, Bitboard, Color, Move, MoveKind, Piece, PieceType, Square},
 };
 

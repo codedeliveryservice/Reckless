@@ -1,8 +1,8 @@
 use std::{
     ops::Index,
     sync::{
-        mpsc::{Receiver, SyncSender},
         Arc, Condvar, Mutex,
+        mpsc::{Receiver, SyncSender},
     },
     thread::Scope,
 };

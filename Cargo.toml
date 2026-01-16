@@ -1,7 +1,7 @@
 [package]
 name = "reckless"
 version = "0.9.0-dev"
-edition = "2021"
+edition = "2024"
 build = "build/build.rs"
 publish = false
 

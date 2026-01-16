@@ -1,7 +1,7 @@
 use crate::{
     nnue::{
+        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
-        Aligned, SparseEntry, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
     },
     types::Color,
 };

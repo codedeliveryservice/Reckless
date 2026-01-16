@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use super::{ArrayVec, Bitboard, Move, MoveKind, Square, MAX_MOVES};
+use super::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveKind, Square};
 
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
 
-use crate::types::{is_decisive, is_loss, is_valid, is_win, Move, Score};
+use crate::types::{Move, Score, is_decisive, is_loss, is_valid, is_win};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -229,7 +229,7 @@ impl TranspositionTable {
     pub fn prefetch(&self, hash: u64) {
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T1};
+            use std::arch::x86_64::{_MM_HINT_T1, _mm_prefetch};
 
             let index = index(hash, self.len());
             let ptr = self.ptr().add(index).cast();
@@ -323,7 +323,7 @@ impl Drop for TranspositionTable {
 
 unsafe fn allocate(threads: usize, size_mb: usize) -> (*mut Cluster, usize) {
     #[cfg(target_os = "linux")]
-    use libc::{madvise, mmap, MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+    use libc::{MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE, madvise, mmap};
 
     let size = size_mb * MEGABYTE;
     let len = size / CLUSTER_SIZE;
