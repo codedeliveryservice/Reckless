@@ -978,7 +978,7 @@ fn search<NODE: NodeType>(
             }
         }
 
-        if mv != best_move && move_count < 32 {
+        if mv != best_move && (!NODE::PV || best_move.is_null()) && move_count < 32 {
             if is_quiet {
                 quiet_moves.push(mv);
             } else {
