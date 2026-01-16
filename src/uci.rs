@@ -5,7 +5,6 @@ use std::sync::Arc;
 use crate::{
     board::{Board, NullBoardObserver},
     search::Report,
-    tb::tb_initialize,
     thread::{SharedContext, Status, ThreadData},
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
@@ -134,9 +133,11 @@ fn uci() {
     println!("option name MoveOverhead type spin default 100 min 0 max 2000");
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
-    println!("option name SyzygyPath type string default");
     println!("option name UCI_Chess960 type check default false");
     println!("option name MultiPV type spin default 1 min 1 max {MAX_MOVES}");
+
+    #[cfg(feature = "syzygy")]
+    println!("option name SyzygyPath type string default");
 
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
@@ -289,7 +290,8 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             settings.move_overhead = v.parse().unwrap();
             println!("info string set MoveOverhead to {v} ms");
         }
-        ["name", "SyzygyPath", "value", v] => match tb_initialize(v) {
+        #[cfg(feature = "syzygy")]
+        ["name", "SyzygyPath", "value", v] => match crate::tb::initialize(v) {
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },

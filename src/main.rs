@@ -13,7 +13,6 @@ mod numa;
 mod parameters;
 mod search;
 mod stack;
-mod tb;
 mod thread;
 mod threadpool;
 mod time;
@@ -22,6 +21,10 @@ mod transposition;
 mod types;
 mod uci;
 
+#[cfg(feature = "syzygy")]
+mod tb;
+
+#[cfg(feature = "syzygy")]
 #[allow(warnings)]
 mod bindings;
 

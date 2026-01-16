@@ -18,6 +18,8 @@ fn main() {
     generate_attack_maps();
     generate_compiler_info();
     generate_engine_version();
+
+    #[cfg(feature = "syzygy")]
     generate_syzygy_binding();
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
@@ -30,6 +32,7 @@ fn main() {
     println!("cargo:rerun-if-changed=networks/{NETWORK_NAME}");
 }
 
+#[cfg(feature = "syzygy")]
 fn generate_syzygy_binding() {
     cc::Build::new()
         .compiler("clang")

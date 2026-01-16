@@ -2,13 +2,18 @@ use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
     parameters::PIECE_VALUES,
-    tb::{GameOutcome, tb_probe, tb_rank_rootmoves, tb_size},
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, draw, is_decisive, is_loss, is_valid, is_win, mate_in,
-        mated_in, tb_loss_in, tb_win_in,
+        mated_in,
     },
+};
+
+#[cfg(feature = "syzygy")]
+use crate::{
+    tb,
+    types::{tb_loss_in, tb_win_in},
 };
 
 #[allow(unused_imports)]
@@ -62,8 +67,9 @@ pub fn start(td: &mut ThreadData, report: Report) {
     td.root_in_tb = false;
     td.stop_probing_tb = false;
 
-    if td.board.castling().raw() == 0 && td.board.occupancies().popcount() <= tb_size() {
-        tb_rank_rootmoves(td);
+    #[cfg(feature = "syzygy")]
+    if td.board.castling().raw() == 0 && td.board.occupancies().popcount() <= tb::size() {
+        tb::rank_rootmoves(td);
     }
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
@@ -284,8 +290,10 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let mut best_score = -Score::INFINITE;
+    #[cfg(feature = "syzygy")]
     let mut max_score = Score::INFINITE;
+
+    let mut best_score = -Score::INFINITE;
 
     let mut depth = depth.min(MAX_PLY as i32 - 1);
     let initial_depth = depth;
@@ -353,20 +361,21 @@ fn search<NODE: NodeType>(
     }
 
     // Tablebases Probe
+    #[cfg(feature = "syzygy")]
     if !NODE::ROOT
         && !excluded
         && !td.stop_probing_tb
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
-        && td.board.occupancies().popcount() <= tb_size()
-        && let Some(outcome) = tb_probe(&td.board)
+        && td.board.occupancies().popcount() <= tb::size()
+        && let Some(outcome) = tb::probe(&td.board)
     {
         td.shared.tb_hits.increment(td.id);
 
         let (score, bound) = match outcome {
-            GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
-            GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
-            GameOutcome::Draw => (Score::ZERO, Bound::Exact),
+            tb::GameOutcome::Win => (tb_win_in(ply), Bound::Lower),
+            tb::GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
+            tb::GameOutcome::Draw => (Score::ZERO, Bound::Exact),
         };
 
         if bound == Bound::Exact
@@ -1069,6 +1078,7 @@ fn search<NODE: NodeType>(
         best_score = (best_score * depth + beta) / (depth + 1);
     }
 
+    #[cfg(feature = "syzygy")]
     if NODE::PV {
         best_score = best_score.min(max_score);
     }
