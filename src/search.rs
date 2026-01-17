@@ -1159,7 +1159,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         if !NODE::PV && !td.reverse_qsearch && entry.mv.is_quiet() {
             td.reverse_qsearch = true;
-            let score = search::<NonPV>(td, alpha, beta, 1, true, ply);
+            let score = search::<NonPV>(td, alpha, beta, 2, true, ply);
             td.reverse_qsearch = false;
             return score;
         }
