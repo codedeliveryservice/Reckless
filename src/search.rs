@@ -755,7 +755,7 @@ fn search<NODE: NodeType>(
                 (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
             };
 
-            if !td.board.see(mv, threshold) {
+            if mv.to() != td.board.recapture_square() && !td.board.see(mv, threshold) {
                 continue;
             }
         }
