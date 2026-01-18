@@ -2,7 +2,7 @@ use super::{Aligned, L1_SIZE, PARAMETERS, simd};
 use crate::{
     board::Board,
     lookup::attacks,
-    nnue::{BUCKETS, INPUT_BUCKETS, threats::threat_index},
+    nnue::{INPUT_BUCKETS, INPUT_BUCKETS_LAYOUT, threats::threat_index},
     types::{ArrayVec, Bitboard, Color, Move, MoveKind, Piece, PieceType, Square},
 };
 
@@ -54,7 +54,8 @@ impl PstAccumulator {
     pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
 
-        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize][BUCKETS[king as usize ^ (56 * pov as usize)]];
+        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
+            [INPUT_BUCKETS_LAYOUT[king as usize ^ (56 * pov as usize)]];
 
         let mut adds = ArrayVec::<_, 32>::new();
         let mut subs = ArrayVec::<_, 32>::new();
@@ -225,7 +226,10 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
 fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> usize {
     let flip = (7 * ((king.file() >= 4) as u8)) ^ (56 * (pov as u8));
 
-    BUCKETS[king ^ flip] * 768 + 384 * (color != pov) as usize + 64 * piece as usize + (square ^ flip) as usize
+    INPUT_BUCKETS_LAYOUT[king ^ flip] * 768
+        + 384 * (color != pov) as usize
+        + 64 * piece as usize
+        + (square ^ flip) as usize
 }
 
 #[derive(Copy, Clone)]
