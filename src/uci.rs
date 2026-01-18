@@ -73,7 +73,10 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             ["ucinewgame"] => reset(&mut threads, &shared),
 
             ["stop"] => shared.status.set(Status::STOPPED),
-            ["quit"] => break,
+            ["quit"] => {
+                drop(threads);
+                break;
+            }
 
             // Non-UCI commands
             ["compiler"] => compiler(),
@@ -94,6 +97,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
 
         // Auto-exit after last CLI command
         if matches!(mode, Mode::Cli) && buffer.is_empty() {
+            drop(threads);
             break;
         }
     }
