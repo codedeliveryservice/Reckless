@@ -109,7 +109,13 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
     std::thread::spawn(move || {
         loop {
             let mut message = String::new();
-            std::io::stdin().read_line(&mut message).unwrap();
+
+            if std::io::stdin().read_line(&mut message).unwrap() == 0 {
+                // EOF received
+                if shared.status.get() != Status::RUNNING {
+                    let _ = tx.send("quit".to_string());
+                }
+            }
 
             match message.trim_end() {
                 "isready" => println!("readyok"),
