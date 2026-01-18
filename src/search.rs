@@ -731,7 +731,8 @@ fn search<NODE: NodeType>(
             let noisy_futility_value =
                 eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
 
-            if !in_check
+            if !NODE::PV
+                && !in_check
                 && depth < 12
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
