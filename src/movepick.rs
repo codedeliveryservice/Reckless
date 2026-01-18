@@ -62,12 +62,12 @@ impl MovePicker {
         self.stage
     }
 
-    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
+    pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<(Move, Option<i32>)> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
             if td.board.is_pseudo_legal(self.tt_move) {
-                return Some(self.tt_move);
+                return Some((self.tt_move, None));
             }
         }
 
@@ -95,7 +95,7 @@ impl MovePicker {
                     self.score_noisy(td);
                 }
 
-                return Some(entry.mv);
+                return Some((entry.mv, Some(threshold)));
             }
 
             self.stage = Stage::GenerateQuiet;
@@ -124,7 +124,7 @@ impl MovePicker {
                         self.score_quiet(td, ply);
                     }
 
-                    return Some(entry.mv);
+                    return Some((entry.mv, None));
                 }
             }
 
@@ -140,7 +140,7 @@ impl MovePicker {
                 continue;
             }
 
-            return Some(mv);
+            return Some((mv, None));
         }
 
         None

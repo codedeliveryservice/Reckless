@@ -581,7 +581,7 @@ fn search<NODE: NodeType>(
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
-        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
+        while let Some((mv, _)) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
@@ -683,7 +683,7 @@ fn search<NODE: NodeType>(
     let mut skip_quiets = false;
     let mut current_search_count = 0;
 
-    while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
+    while let Some((mv, mp_threshold)) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
             continue;
         }
@@ -754,7 +754,7 @@ fn search<NODE: NodeType>(
                 (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
             };
 
-            if !td.board.see(mv, threshold) {
+            if mp_threshold.is_some_and(|v| threshold <= v) && !td.board.see(mv, threshold) {
                 continue;
             }
         }
@@ -1218,7 +1218,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
-    while let Some(mv) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
+    while let Some((mv, _)) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
         if !td.board.is_legal(mv) {
             continue;
         }
