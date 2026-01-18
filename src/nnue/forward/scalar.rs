@@ -73,7 +73,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16]) -> Align
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[i]).clamp(0.0, 1.0);
+        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[i]).max(0.0);
     }
 
     output
@@ -90,7 +90,7 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>) -> Aligned<[f32; L3_SIZE]> 
 
     for i in 0..L3_SIZE {
         output[i] += PARAMETERS.l2_biases[i];
-        output[i] = output[i].clamp(0.0, 1.0);
+        output[i] = output[i].clamp(0.0, 1.0).powi(2);
     }
     output
 }
