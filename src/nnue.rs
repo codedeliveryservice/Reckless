@@ -54,6 +54,7 @@ mod simd {
 }
 
 const NETWORK_SCALE: i32 = 380;
+const OUTPUT_BUCKETS: usize = 8;
 
 const INPUT_BUCKETS: usize = 10;
 
@@ -72,7 +73,7 @@ const FT_SHIFT: i32 = 9;
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
 #[rustfmt::skip]
-const BUCKETS: [usize; 64] = [
+const INPUT_BUCKETS_LAYOUT: [usize; 64] = [
     0, 1, 2, 3, 3, 2, 1, 0,
     4, 5, 6, 7, 7, 6, 5, 4,
     8, 8, 8, 8, 8, 8, 8, 8,
@@ -81,6 +82,18 @@ const BUCKETS: [usize; 64] = [
     9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9,
     9, 9, 9, 9, 9, 9, 9, 9,
+];
+
+#[rustfmt::skip]
+const OUTPUT_BUCKETS_LAYOUT: [usize; 33] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1,
+    2, 2, 2,
+    3, 3, 3,
+    4, 4, 4,
+    5, 5, 5,
+    6, 6, 6,
+    7, 7, 7, 7,
 ];
 
 #[repr(align(16))]
@@ -492,7 +505,7 @@ impl Network {
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
-                && ((from.file() >= 4) != (to.file() >= 4) || BUCKETS[from] != BUCKETS[to])
+                && ((from.file() >= 4) != (to.file() >= 4) || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
             {
                 return None;
             }
@@ -524,14 +537,16 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
+        let bucket = OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
+
         unsafe {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count]);
-            let l2_out = forward::propagate_l2(l1_out);
-            let l3_out = forward::propagate_l3(l2_out);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
+            let l2_out = forward::propagate_l2(l1_out.clone(), bucket);
+            let l3_out = forward::propagate_l3(l2_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -584,12 +599,12 @@ struct Parameters {
     ft_threat_weights: Aligned<[[i8; L1_SIZE]; 79856]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
-    l1_weights: Aligned<[i8; L2_SIZE * L1_SIZE]>,
-    l1_biases: Aligned<[f32; L2_SIZE]>,
-    l2_weights: Aligned<[[f32; L3_SIZE]; L2_SIZE]>,
-    l2_biases: Aligned<[f32; L3_SIZE]>,
-    l3_weights: Aligned<[f32; L3_SIZE]>,
-    l3_biases: f32,
+    l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
+    l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
