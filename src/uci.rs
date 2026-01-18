@@ -120,6 +120,11 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
             match message.trim_end() {
                 "isready" => println!("readyok"),
                 "stop" => shared.status.set(Status::STOPPED),
+                "quit" => {
+                    shared.status.set(Status::STOPPED);
+                    let _ = tx.send("quit".to_string());
+                    break;
+                }
                 _ => {
                     // According to the UCI specs, commands that are unexpected
                     // in the current state should be ignored silently.
