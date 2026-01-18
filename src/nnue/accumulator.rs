@@ -234,7 +234,7 @@ pub struct ThreatDelta(u32);
 
 impl ThreatDelta {
     #[allow(dead_code)]
-    pub fn new(piece: Piece, from: Square, attacked: Piece, to: Square, add: bool) -> Self {
+    pub const fn new(piece: Piece, from: Square, attacked: Piece, to: Square, add: bool) -> Self {
         Self(
             piece as u32
                 | ((from as u32) << 8)
@@ -244,23 +244,23 @@ impl ThreatDelta {
         )
     }
 
-    pub fn piece(self) -> Piece {
+    pub const fn piece(self) -> Piece {
         unsafe { std::mem::transmute(self.0 as u8) }
     }
 
-    pub fn from(self) -> Square {
+    pub const fn from(self) -> Square {
         unsafe { std::mem::transmute((self.0 >> 8) as u8) }
     }
 
-    pub fn attacked(self) -> Piece {
+    pub const fn attacked(self) -> Piece {
         unsafe { std::mem::transmute((self.0 >> 16) as u8) }
     }
 
-    pub fn to(self) -> Square {
+    pub const fn to(self) -> Square {
         unsafe { std::mem::transmute(((self.0 >> 24) & 0x7F) as u8) }
     }
 
-    pub fn add(self) -> bool {
+    pub const fn add(self) -> bool {
         self.0 >> 31 != 0
     }
 }
@@ -273,7 +273,7 @@ pub struct ThreatAccumulator {
 }
 
 impl ThreatAccumulator {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             values: Aligned::new([[0; L1_SIZE]; 2]),
             delta: ArrayVec::new(),

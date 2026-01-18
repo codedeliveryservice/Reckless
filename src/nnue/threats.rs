@@ -12,7 +12,7 @@ struct PiecePair {
 }
 
 impl PiecePair {
-    fn new(excluded: bool, semi_excluded: bool, base: i32) -> Self {
+    const fn new(excluded: bool, semi_excluded: bool, base: i32) -> Self {
         Self {
             inner: (((semi_excluded && !excluded) as u32) << 30)
                 | ((excluded as u32) << 31)
@@ -20,7 +20,7 @@ impl PiecePair {
         }
     }
 
-    fn base(self, attacking: Square, attacked: Square) -> isize {
+    const fn base(self, attacking: Square, attacked: Square) -> isize {
         let below = ((attacking as u8) < (attacked as u8)) as u32;
         ((self.inner.wrapping_add(below << 30)) & 0x80FFFFFF) as i32 as isize
     }

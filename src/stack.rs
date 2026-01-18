@@ -20,8 +20,8 @@ impl Default for Stack {
             sentinel: [[0; 64]; 13],
         };
 
-        let ptr = &mut stack.sentinel as *mut _;
-        for entry in stack.data.iter_mut() {
+        let ptr = &raw mut stack.sentinel;
+        for entry in &mut stack.data {
             entry.conthist = ptr;
             entry.contcorrhist = ptr;
         }

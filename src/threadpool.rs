@@ -106,7 +106,7 @@ impl ThreadPool {
             for handler in handlers {
                 handler.join();
             }
-        })
+        });
     }
 }
 
