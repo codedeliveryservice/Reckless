@@ -530,7 +530,7 @@ fn search<NODE: NodeType>(
         && !(tt_bound == Bound::Lower
             && tt_move.is_some()
             && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).piece_type().value() >= PieceType::Knight.value())
+            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
@@ -728,11 +728,8 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = eval
-                + 71 * depth
-                + 69 * history / 1024
-                + 81 * td.board.piece_on(mv.to()).piece_type().value() / 1024
-                + 25;
+            let noisy_futility_value =
+                eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
 
             if !in_check
                 && depth < 12
@@ -771,7 +768,7 @@ fn search<NODE: NodeType>(
         }
 
         // Late Move Reductions (LMR)
-        if depth >= 2 && move_count > 1 {
+        if depth >= 2 && move_count >= 2 {
             let mut reduction = 237 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction += 29 * move_count.ilog2() as i32;
