@@ -26,6 +26,10 @@ impl MoveList {
         self.inner.is_empty()
     }
 
+    pub fn add(&mut self, entry: MoveEntry) {
+        self.inner.push(entry);
+    }
+
     pub fn push(&mut self, from: Square, to: Square, kind: MoveKind) {
         self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
     }

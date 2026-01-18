@@ -2,14 +2,15 @@ use crate::{
     parameters::PIECE_VALUES,
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
+    types::{Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
     GenerateNoisy,
-    GoodNoisy,
+    WinningNoisy,
+    LosingNoisy,
     GenerateQuiet,
     Quiet,
     BadNoisy,
@@ -20,7 +21,8 @@ pub struct MovePicker {
     tt_move: Move,
     threshold: Option<i32>,
     stage: Stage,
-    bad_noisy: ArrayVec<Move, MAX_MOVES>,
+    deferred_noisy: MoveList,
+    losing_noisy_idx: usize,
     bad_noisy_idx: usize,
 }
 
@@ -31,7 +33,8 @@ impl MovePicker {
             tt_move,
             threshold: None,
             stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
-            bad_noisy: ArrayVec::new(),
+            deferred_noisy: MoveList::new(),
+            losing_noisy_idx: 0,
             bad_noisy_idx: 0,
         }
     }
@@ -42,7 +45,8 @@ impl MovePicker {
             tt_move: Move::NULL,
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
+            deferred_noisy: MoveList::new(),
+            losing_noisy_idx: 0,
             bad_noisy_idx: 0,
         }
     }
@@ -53,7 +57,8 @@ impl MovePicker {
             tt_move: Move::NULL,
             threshold: None,
             stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
+            deferred_noisy: MoveList::new(),
+            losing_noisy_idx: 0,
             bad_noisy_idx: 0,
         }
     }
@@ -65,29 +70,27 @@ impl MovePicker {
     pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
-
             if td.board.is_pseudo_legal(self.tt_move) {
                 return Some(self.tt_move);
             }
         }
 
         if self.stage == Stage::GenerateNoisy {
-            self.stage = Stage::GoodNoisy;
+            self.stage = Stage::WinningNoisy;
             td.board.append_noisy_moves(&mut self.list);
             self.score_noisy(td);
         }
 
-        if self.stage == Stage::GoodNoisy {
+        if self.stage == Stage::WinningNoisy {
             while !self.list.is_empty() {
                 let index = self.find_best_score_index();
-                let entry = &self.list.remove(index);
+                let entry = self.list.remove(index);
                 if entry.mv == self.tt_move {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 46 + 109);
-                if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                if !td.board.see(entry.mv, 1) {
+                    self.deferred_noisy.add(entry);
                     continue;
                 }
 
@@ -95,6 +98,27 @@ impl MovePicker {
                     self.score_noisy(td);
                 }
 
+                return Some(entry.mv);
+            }
+
+            self.stage = Stage::LosingNoisy;
+        }
+
+        if self.stage == Stage::LosingNoisy {
+            while self.losing_noisy_idx < self.deferred_noisy.len() {
+                let entry = self.deferred_noisy[self.losing_noisy_idx];
+                if entry.mv == self.tt_move {
+                    self.losing_noisy_idx += 1;
+                    continue;
+                }
+
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 46 + 109);
+                if !td.board.see(entry.mv, threshold) {
+                    self.losing_noisy_idx += 1;
+                    continue;
+                }
+
+                self.deferred_noisy.remove(self.losing_noisy_idx);
                 return Some(entry.mv);
             }
 
@@ -132,15 +156,15 @@ impl MovePicker {
         }
 
         // Stage::BadNoisy
-        while self.bad_noisy_idx < self.bad_noisy.len() {
-            let mv = self.bad_noisy[self.bad_noisy_idx];
+        while self.bad_noisy_idx < self.deferred_noisy.len() {
+            let entry = self.deferred_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
 
-            if mv == self.tt_move {
+            if entry.mv == self.tt_move {
                 continue;
             }
 
-            return Some(mv);
+            return Some(entry.mv);
         }
 
         None
