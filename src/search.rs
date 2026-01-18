@@ -304,6 +304,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut was_pv = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -312,6 +313,7 @@ fn search<NODE: NodeType>(
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
+        was_pv = entry.tt_pv;
 
         if !NODE::PV
             && !excluded
@@ -792,10 +794,10 @@ fn search<NODE: NodeType>(
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
 
-            if tt_pv {
+            if was_pv && is_valid(tt_score) {
                 reduction -= 371;
-                reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 656 * (tt_score > alpha) as i32;
+                reduction -= 824 * (tt_depth >= depth) as i32;
             }
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
@@ -866,9 +868,9 @@ fn search<NODE: NodeType>(
                 reduction -= 65 * history / 1024;
             }
 
-            if tt_pv {
+            if was_pv && is_valid(tt_score) {
                 reduction -= 897;
-                reduction -= 1127 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 1127 * (tt_depth >= depth) as i32;
             }
 
             if !tt_pv && cut_node {
