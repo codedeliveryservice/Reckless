@@ -481,6 +481,10 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
+    if !NODE::ROOT && cut_node && td.stack[ply - 1].reduction <= 3072 && depth >= 5 && tt_move.is_null() {
+        depth -= 1;
+    }
+
     let potential_singularity = depth >= 5 + tt_pv as i32
         && tt_depth >= depth - 3
         && tt_bound != Bound::Upper
@@ -765,11 +769,6 @@ fn search<NODE: NodeType>(
 
         let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
-
-        // Internal Iterative Reductions (IIR)
-        if (NODE::PV || cut_node) && new_depth >= 5 && tt_move.is_null() {
-            new_depth -= 1;
-        }
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count > 1 {
