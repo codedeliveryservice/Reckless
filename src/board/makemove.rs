@@ -1,8 +1,5 @@
 use super::{Board, BoardObserver};
-use crate::{
-    parameters::PIECE_VALUES,
-    types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST},
-};
+use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
@@ -72,7 +69,7 @@ impl Board {
 
             self.update_hash(captured, to);
 
-            self.state.material -= PIECE_VALUES[captured.piece_type()];
+            self.state.material -= captured.piece_type().value();
             self.state.captured = Some(captured);
             self.state.recapture_square = to;
         } else if !mv.is_castling() {
@@ -97,7 +94,7 @@ impl Board {
 
                 self.update_hash(captured, to ^ 8);
 
-                self.state.material -= PIECE_VALUES[captured.piece_type()];
+                self.state.material -= captured.piece_type().value();
             }
             MoveKind::Castling => {
                 let (rook_from, rook_to) = self.get_castling_rook(to);
@@ -130,7 +127,7 @@ impl Board {
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
 
-                self.state.material += PIECE_VALUES[promotion.piece_type()] - PIECE_VALUES[PieceType::Pawn];
+                self.state.material += promotion.piece_type().value() - PieceType::Pawn.value();
             }
             _ => (),
         }

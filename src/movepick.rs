@@ -1,5 +1,4 @@
 use crate::{
-    parameters::PIECE_VALUES,
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
@@ -167,15 +166,15 @@ impl MovePicker {
             let mv = entry.mv;
 
             if mv == self.tt_move {
-                entry.score = -32768;
+                entry.score = i32::MIN;
                 continue;
             }
 
             let captured =
                 if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score = 16 * PIECE_VALUES[captured]
-                + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+            entry.score =
+                16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
         }
     }
 
@@ -187,7 +186,7 @@ impl MovePicker {
             let mv = entry.mv;
 
             if mv == self.tt_move {
-                entry.score = -32768;
+                entry.score = i32::MIN;
                 continue;
             }
 

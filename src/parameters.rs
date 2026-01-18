@@ -1,5 +1,3 @@
-pub const PIECE_VALUES: [i32; 7] = [109, 403, 435, 679, 1242, 0, 0];
-
 #[allow(unused_macros)]
 #[cfg(not(feature = "spsa"))]
 macro_rules! define {

@@ -1,6 +1,5 @@
 use crate::{
     lookup::{between, bishop_attacks, rook_attacks},
-    parameters::PIECE_VALUES,
     types::{Bitboard, Color, Move, PieceType},
 };
 
@@ -22,10 +21,10 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= PIECE_VALUES[self.piece_on(mv.from()).piece_type()];
+        balance -= self.piece_on(mv.from()).piece_type().value();
 
         if let Some(promotion) = mv.promotion_piece() {
-            balance -= PIECE_VALUES[promotion];
+            balance -= promotion.value();
         }
 
         if balance >= 0 {
@@ -69,7 +68,7 @@ impl super::Board {
             stm = !stm;
 
             // Assume our piece is going to be captured
-            balance = -balance - 1 - PIECE_VALUES[attacker];
+            balance = -balance - 1 - attacker.value();
             if balance >= 0 {
                 break;
             }
@@ -91,15 +90,15 @@ impl super::Board {
 
     fn move_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
-            return PIECE_VALUES[PieceType::Pawn];
+            return PieceType::Pawn.value();
         }
 
         let capture = self.piece_on(mv.to()).piece_type();
 
         if let Some(promotion) = mv.promotion_piece() {
-            PIECE_VALUES[capture] + PIECE_VALUES[promotion] - PIECE_VALUES[PieceType::Pawn]
+            capture.value() + promotion.value() - PieceType::Pawn.value()
         } else {
-            PIECE_VALUES[capture]
+            capture.value()
         }
     }
 

@@ -97,9 +97,7 @@ impl<T: NumaValue> NumaReplicator<T> {
     #[cfg(not(feature = "numa"))]
     pub unsafe fn new<S: Fn() -> T>(source: S) -> Self {
         let ptr = std::alloc::alloc(std::alloc::Layout::new::<T>()) as *mut T;
-        if ptr.is_null() {
-            panic!("Failed to allocate memory for NumaReplicator");
-        }
+        assert!(!ptr.is_null(), "Failed to allocate memory for NumaReplicator");
 
         std::ptr::write(ptr, source());
 
@@ -133,6 +131,9 @@ impl<T: NumaValue> Drop for NumaReplicator<T> {
 
                 #[cfg(feature = "numa")]
                 api::numa_free(ptr as *mut libc::c_void, std::mem::size_of::<T>());
+
+                #[cfg(not(feature = "numa"))]
+                std::alloc::dealloc(ptr as *mut u8, std::alloc::Layout::new::<T>());
             }
         }
     }

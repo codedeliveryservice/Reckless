@@ -1,12 +1,11 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::PIECE_VALUES,
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
-        ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, draw, is_decisive, is_loss, is_valid, is_win, mate_in,
-        mated_in,
+        ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
+        mate_in, mated_in,
     },
 };
 
@@ -531,7 +530,7 @@ fn search<NODE: NodeType>(
         && !(tt_bound == Bound::Lower
             && tt_move.is_some()
             && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).is_valuable())
+            && td.board.piece_on(tt_move.to()).piece_type().value() >= PieceType::Knight.value())
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
@@ -732,7 +731,7 @@ fn search<NODE: NodeType>(
             let noisy_futility_value = eval
                 + 71 * depth
                 + 69 * history / 1024
-                + 81 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 1024
+                + 81 * td.board.piece_on(mv.to()).piece_type().value() / 1024
                 + 25;
 
             if !in_check
@@ -1234,7 +1233,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            let futility_score = best_score + 42 * PIECE_VALUES[td.board.piece_on(mv.to()).piece_type()] / 128 + 104;
+            let futility_score = best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104;
 
             if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
                 continue;
