@@ -403,7 +403,7 @@ fn search<NODE: NodeType>(
     // Evaluation
     if in_check {
         raw_eval = Score::NONE;
-        eval = Score::NONE;
+        eval = td.stack[ply - 2].eval;
     } else if excluded {
         raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
@@ -490,8 +490,6 @@ fn search<NODE: NodeType>(
 
     if is_valid(td.stack[ply - 2].eval) && !in_check {
         improvement = eval - td.stack[ply - 2].eval;
-    } else if is_valid(td.stack[ply - 4].eval) && !in_check {
-        improvement = eval - td.stack[ply - 4].eval;
     }
 
     let improving = improvement > 0;
