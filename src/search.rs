@@ -831,7 +831,7 @@ fn search<NODE: NodeType>(
             td.stack[ply].reduction = 0;
             current_search_count += 1;
 
-            if score > alpha && new_depth > reduced_depth {
+            if (score > alpha || (NODE::PV && score == alpha && best_score != alpha)) && new_depth > reduced_depth {
                 if !NODE::ROOT {
                     new_depth += (score > best_score + 41 + 447 * depth / 128) as i32;
                     new_depth -= (score < best_score + new_depth) as i32;
