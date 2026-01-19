@@ -820,6 +820,10 @@ fn search<NODE: NodeType>(
                 reduction += 668;
             }
 
+            if !cut_node && is_valid(tt_score) && tt_score >= beta && tt_bound == Bound::Lower {
+                reduction -= tt_score - beta;
+            }
+
             if depth == 2 {
                 reduction -= 1195;
             }
