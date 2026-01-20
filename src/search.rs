@@ -697,7 +697,7 @@ fn search<NODE: NodeType>(
 
         let is_quiet = mv.is_quiet();
 
-        let history = if is_quiet {
+        let mut history = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
@@ -753,6 +753,10 @@ fn search<NODE: NodeType>(
             if !td.board.see(mv, threshold) {
                 continue;
             }
+        }
+
+        if is_quiet {
+            history += td.conthist(ply, 4, mv);
         }
 
         let initial_nodes = td.nodes();
