@@ -5,14 +5,14 @@ use std::sync::{
 
 use crate::{
     board::Board,
-    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
+    history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, PawnHistory, QuietHistory},
     nnue::Network,
     numa::{NumaReplicator, NumaValue},
     stack::Stack,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
     transposition::TranspositionTable,
-    types::{MAX_PLY, Move, Score, normalize_to_cp},
+    types::{normalize_to_cp, Move, Score, MAX_PLY},
 };
 
 #[repr(align(64))]
@@ -133,6 +133,7 @@ pub struct ThreadData {
     pub pv_table: PrincipalVariationTable,
     pub noisy_history: NoisyHistory,
     pub quiet_history: QuietHistory,
+    pub pawn_history: PawnHistory,
     pub continuation_history: ContinuationHistory,
     pub continuation_corrhist: ContinuationCorrectionHistory,
     pub best_move_changes: usize,
@@ -166,6 +167,7 @@ impl ThreadData {
             pv_table: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
             quiet_history: QuietHistory::default(),
+            pawn_history: PawnHistory::default(),
             continuation_history: ContinuationHistory::default(),
             continuation_corrhist: ContinuationCorrectionHistory::default(),
             best_move_changes: 0,
