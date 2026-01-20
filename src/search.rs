@@ -1229,15 +1229,18 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             if !NODE::PV && move_count >= 3 && !td.board.is_direct_check(mv) {
                 break;
             }
-
-            let futility_score = best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104;
-
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                continue;
-            }
         }
 
-        if !is_loss(best_score) && !td.board.see(mv, -81) {
+        let threshold = if !in_check
+            && best_score + 42 * td.board.piece_on(mv.to()).value() / 128 + 104 <= alpha
+            && mv.to() != td.board.recapture_square()
+        {
+            1
+        } else {
+            -81
+        };
+
+        if !is_loss(best_score) && !td.board.see(mv, threshold) {
             continue;
         }
 
