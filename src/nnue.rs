@@ -237,7 +237,7 @@ impl Network {
 
         let deltas = &mut self.threat_stack[self.index].delta;
 
-        let (perm, valid) = ray_permuation(square);
+        let (perm, valid) = ray_permutation(square);
         let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
         let occupied = unsafe { _mm512_test_epi8_mask(rays, rays) };
 
@@ -293,8 +293,8 @@ impl Network {
             _mm512_mask_blend_epi8(dst.to_bb().0, board.mailbox_vector(), _mm512_set1_epi8(Piece::None as i8))
         };
 
-        let (src_perm, src_valid) = ray_permuation(src);
-        let (dst_perm, dst_valid) = ray_permuation(dst);
+        let (src_perm, src_valid) = ray_permutation(src);
+        let (dst_perm, dst_valid) = ray_permutation(dst);
         let (src_pboard, src_rays) = board_to_rays(src_perm, src_valid, board);
         let (dst_pboard, dst_rays) = board_to_rays(dst_perm, dst_valid, board);
         let src_occupied = unsafe { _mm512_test_epi8_mask(src_rays, src_rays) };
@@ -365,7 +365,7 @@ impl Network {
 
         let deltas = &mut self.threat_stack[self.index].delta;
 
-        let (perm, valid) = ray_permuation(square);
+        let (perm, valid) = ray_permutation(square);
         let (pboard, rays) = board_to_rays(perm, valid, unsafe { board.mailbox_vector() });
         let occupied = unsafe { _mm512_test_epi8_mask(rays, rays) };
 

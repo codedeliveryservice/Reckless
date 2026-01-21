@@ -2,7 +2,7 @@ use std::arch::x86_64::*;
 
 use crate::types::{Piece, Square};
 
-pub fn ray_permuation(focus: Square) -> (__m512i, u64) {
+pub fn ray_permutation(focus: Square) -> (__m512i, u64) {
     const PERMS: [[u8; 64]; 64] = {
         const OFFSETS: [u8; 64] = [
             0x1F, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, // N
