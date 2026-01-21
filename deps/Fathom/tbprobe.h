@@ -251,7 +251,7 @@ unsigned tb_probe_wdl(
  *   1) The WDL value (TB_GET_WDL)
  *   2) The suggested move (TB_GET_FROM, TB_GET_TO, TB_GET_PROMOTES, TB_GET_EP)
  *   3) The DTZ value (TB_GET_DTZ)
- *   The suggested move is guaranteed to preserved the WDL value.
+ *   The suggested move is guaranteed to preserve the WDL value.
  *
  *   Otherwise:
  *   1) TB_RESULT_STALEMATE is returned if the position is in stalemate.
