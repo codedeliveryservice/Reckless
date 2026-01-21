@@ -1012,7 +1012,13 @@ fn search<NODE: NodeType>(
 
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
-                update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
+                update_continuation_histories(
+                    td,
+                    ply,
+                    td.board.moved_piece(mv),
+                    mv.to(),
+                    -cont_malus * (1 + (mv.to() == best_move.to()) as i32),
+                );
             }
         }
 
