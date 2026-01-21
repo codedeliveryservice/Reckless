@@ -832,10 +832,8 @@ fn search<NODE: NodeType>(
             current_search_count += 1;
 
             if score > alpha {
-                if !NODE::ROOT {
-                    new_depth += (score > best_score + 41 + 447 * depth / 128) as i32;
-                    new_depth -= (score < best_score + new_depth) as i32;
-                }
+                new_depth += (score > best_score + 41 + 447 * depth / 128) as i32;
+                new_depth -= (score < best_score + new_depth) as i32;
 
                 if new_depth > reduced_depth {
                     score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
