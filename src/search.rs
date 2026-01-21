@@ -343,12 +343,6 @@ fn search<NODE: NodeType>(
                     let scaled_bonus = factor * (171 * depth - 42).min(2310) / 128;
 
                     td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
-
-                    let entry = &td.stack[ply - 2];
-                    if entry.mv.is_some() {
-                        let bonus = (115 * depth - 34).min(1776);
-                        td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-                    }
                 }
             }
 
@@ -701,6 +695,7 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
+                + 1024
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -1045,12 +1040,6 @@ fn search<NODE: NodeType>(
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
-
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_some() {
-                let bonus = (156 * depth - 38).min(1169);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-            }
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
@@ -1344,7 +1333,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_some() {
-            td.continuation_history.update(entry.conthist, piece, sq, bonus);
+            td.continuation_history.update(td, ply, entry.conthist, piece, sq, bonus);
         }
     }
 }
