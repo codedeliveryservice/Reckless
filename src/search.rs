@@ -1080,6 +1080,10 @@ fn search<NODE: NodeType>(
         td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
 
+    if !in_check && !excluded {
+        eval += eval_correction(td, ply) - correction_value;
+    }
+
     if !(in_check
         || best_move.is_noisy()
         || (bound == Bound::Upper && best_score >= eval)
