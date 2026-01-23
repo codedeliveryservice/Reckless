@@ -1,6 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -49,6 +50,8 @@ impl NodeType for NonPV {
 }
 
 pub fn start(td: &mut ThreadData, report: Report) {
+    println!("my_parameter = {}", my_parameter());
+
     td.completed_depth = 0;
     td.stopped = false;
 

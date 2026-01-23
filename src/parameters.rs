@@ -32,3 +32,7 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 my_parameter: 42;
+);
