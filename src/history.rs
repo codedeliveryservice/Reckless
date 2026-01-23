@@ -219,7 +219,6 @@ impl ContinuationHistory {
             (&*td.stack[ply - 1].conthist)[piece][to] as i32
                 + (&*td.stack[ply - 2].conthist)[piece][to] as i32
                 + (&*td.stack[ply - 4].conthist)[piece][to] as i32
-                + (&*td.stack[ply - 6].conthist)[piece][to] as i32
         };
 
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
