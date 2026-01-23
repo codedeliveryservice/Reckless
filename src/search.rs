@@ -662,10 +662,8 @@ fn search<NODE: NodeType>(
             return (score * singular_depth + beta) / (singular_depth + 1);
         }
         // Negative Extensions
-        else if tt_score >= beta {
-            extension = -2;
-        } else if cut_node {
-            extension = -2;
+        else {
+            extension = -2 * cut_node as i32 - (tt_score >= beta) as i32;
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
