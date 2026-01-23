@@ -110,6 +110,7 @@ pub struct Network {
     threat_stack: Box<[ThreatAccumulator]>,
     cache: AccumulatorCache,
     nnz_table: Box<[SparseEntry]>,
+    matrix: Box<[[i32; L1_SIZE / 2]]>,
 }
 
 impl Network {
@@ -536,13 +537,26 @@ impl Network {
         None
     }
 
-    fn output_transformer(&self, board: &Board) -> i32 {
+    fn output_transformer(&mut self, board: &Board) -> i32 {
         let bucket = OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
 
         unsafe {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
+
+            crate::misc::dbg_stats(nnz_count as i32, 0);
+
+            for i in 0..L1_SIZE / 2 {
+                if ft_out[i] != 0 {
+                    let row = &mut self.matrix[i];
+                    for j in 0..L1_SIZE / 2 {
+                        if ft_out[j] != 0 {
+                            row[j] += 1;
+                        }
+                    }
+                }
+            }
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
             let l2_out = forward::propagate_l2(l1_out, bucket);
@@ -576,6 +590,7 @@ impl Default for Network {
             threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
+            matrix: vec![[0; L1_SIZE / 2]; L1_SIZE / 2].into_boxed_slice(),
         }
     }
 }
@@ -632,5 +647,16 @@ impl<T> std::ops::Deref for Aligned<T> {
 impl<T> std::ops::DerefMut for Aligned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
+    }
+}
+
+impl Drop for Network {
+    fn drop(&mut self) {
+        use std::{fs::File, io::Write};
+
+        if self.matrix[0][0] != 0 {
+            let mut file = File::create("../cosmo-tools/permuter/correlations.json").unwrap();
+            write!(file, "{:?}", self.matrix).unwrap();
+        }
     }
 }
