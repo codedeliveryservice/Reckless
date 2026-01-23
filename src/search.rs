@@ -824,6 +824,10 @@ fn search<NODE: NodeType>(
                 reduction -= 1195;
             }
 
+            if depth + 4 + 2 * tt_pv as i32 <= tt_depth && tt_move.is_quiet() && mv.is_noisy() {
+                reduction += 1024;
+            }
+
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
