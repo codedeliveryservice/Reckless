@@ -695,7 +695,7 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
-                + 1024
+                + td.conthist(ply, 4, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -1330,7 +1330,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
 }
 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
-    for offset in [1, 2, 4, 6] {
+    for offset in [1, 2, 4] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_some() {
             td.continuation_history.update(td, ply, entry.conthist, piece, sq, bonus);
