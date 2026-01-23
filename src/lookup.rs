@@ -172,7 +172,7 @@ pub fn queen_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
     rook_attacks(square, occupancies) | bishop_attacks(square, occupancies)
 }
 
-#[cfg(target_feature = "avx512vl")]
+#[cfg(target_feature = "avx512f")]
 pub fn slider_attacks_setwise(bishops: Bitboard, rooks: Bitboard, queens: Bitboard, occupancies: Bitboard) -> Bitboard {
     use crate::types::{File, Rank};
     use std::arch::x86_64::*;
