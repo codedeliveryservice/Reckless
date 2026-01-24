@@ -728,8 +728,12 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value =
-                eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
+            let noisy_futility_value = eval
+                + 71 * depth
+                + 69 * history / 1024
+                + 69 * td.conthist(ply, 4, mv) / 1024
+                + 81 * td.board.piece_on(mv.to()).value() / 1024
+                + 25;
 
             if !in_check
                 && depth < 12
