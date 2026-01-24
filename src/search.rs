@@ -480,12 +480,6 @@ fn search<NODE: NodeType>(
         depth -= 1;
     }
 
-    let potential_singularity = depth >= 5 + tt_pv as i32
-        && tt_depth >= depth - 3
-        && tt_bound != Bound::Upper
-        && is_valid(tt_score)
-        && !is_decisive(tt_score);
-
     let mut improvement = 0;
 
     if is_valid(td.stack[ply - 2].eval) && !in_check {
@@ -520,7 +514,6 @@ fn search<NODE: NodeType>(
     if cut_node
         && !in_check
         && !excluded
-        && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
         && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
@@ -629,7 +622,15 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
 
-    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+    if !NODE::ROOT
+        && !excluded
+        && depth >= 5 + tt_pv as i32
+        && tt_depth >= depth - 3
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && ply < 2 * td.root_depth as isize
+    {
         debug_assert!(is_valid(tt_score));
 
         let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
