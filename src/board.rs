@@ -470,12 +470,26 @@ impl Board {
             threats |= knight_attacks(square);
         }
 
-        for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
-            threats |= bishop_attacks(square, occupancies);
+        #[cfg(target_feature = "avx512f")]
+        {
+            use crate::lookup::slider_attacks_setwise;
+            threats |= slider_attacks_setwise(
+                self.their(PieceType::Bishop),
+                self.their(PieceType::Rook),
+                self.their(PieceType::Queen),
+                occupancies,
+            );
         }
 
-        for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
-            threats |= rook_attacks(square, occupancies);
+        #[cfg(not(target_feature = "avx512f"))]
+        {
+            for square in self.their(PieceType::Bishop) | self.their(PieceType::Queen) {
+                threats |= bishop_attacks(square, occupancies);
+            }
+
+            for square in self.their(PieceType::Rook) | self.their(PieceType::Queen) {
+                threats |= rook_attacks(square, occupancies);
+            }
         }
 
         self.state.threats = threats | king_attacks(self.their(PieceType::King).lsb());
