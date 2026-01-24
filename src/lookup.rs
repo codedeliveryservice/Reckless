@@ -177,39 +177,63 @@ pub fn slider_attacks_setwise(bishops: Bitboard, rooks: Bitboard, queens: Bitboa
     use crate::types::{File, Rank};
     use std::arch::x86_64::*;
     unsafe {
-        let mut attacks = _mm512_setzero_si512();
-
-        let mut attackers = _mm512_mask_blend_epi64(
+        let attackers = _mm512_mask_blend_epi64(
             0x0F,
             _mm512_set1_epi64((rooks | queens).0 as i64),
             _mm512_set1_epi64((bishops | queens).0 as i64),
         );
-        let not_occupancies = _mm512_set1_epi64(!occupancies.0 as i64);
 
-        let rotates = _mm512_set_epi64(-8, -1, 1, 8, -9, -7, 7, 9);
+        let rotates1 = _mm512_set_epi64(-8, -1, 1, 8, -9, -7, 7, 9);
+        let rotates2 = _mm512_add_epi64(rotates1, rotates1);
+        let rotates4 = _mm512_add_epi64(rotates2, rotates2);
+
         let masks = _mm512_set_epi64(
-            !Bitboard::rank(Rank::R1).0 as i64,
-            !Bitboard::file(File::A).0 as i64,
-            !Bitboard::file(File::H).0 as i64,
             !Bitboard::rank(Rank::R8).0 as i64,
-            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::A)).0 as i64,
-            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::H)).0 as i64,
-            (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::A)).0 as i64,
+            !Bitboard::file(File::H).0 as i64,
+            !Bitboard::file(File::A).0 as i64,
+            !Bitboard::rank(Rank::R1).0 as i64,
             (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::H)).0 as i64,
+            (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::A)).0 as i64,
+            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::H)).0 as i64,
+            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::A)).0 as i64,
         );
 
-        for _ in 0..7 {
-            attackers = _mm512_and_si512(attackers, masks);
-            attackers = _mm512_rolv_epi64(attackers, rotates);
-            attacks = _mm512_or_si512(attacks, attackers);
-            attackers = _mm512_and_si512(attackers, not_occupancies);
-        }
+        // Koggle-Stone algorithm
+        let generate = attackers;
+        let propagate = _mm512_and_si512(_mm512_set1_epi64(!occupancies.0 as i64), masks);
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates1)));
+        let propagate = _mm512_and_si512(propagate, _mm512_rolv_epi64(propagate, rotates1));
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates2)));
+        let propagate = _mm512_and_si512(propagate, _mm512_rolv_epi64(propagate, rotates2));
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates4)));
+        let attacks = _mm512_and_si512(_mm512_rolv_epi64(generate, rotates1), masks);
 
         // Fold attacks
-        let attacks = _mm256_or_si256(_mm512_castsi512_si256(attacks), _mm512_extracti64x4_epi64::<1>(attacks));
-        let attacks = _mm_or_si128(_mm256_castsi256_si128(attacks), _mm256_extracti128_si256::<1>(attacks));
-        let attacks = _mm_extract_epi64::<0>(attacks) | _mm_extract_epi64::<1>(attacks);
-        Bitboard(attacks as u64)
+        match () {
+            #[cfg(all(target_feature = "avx512bw", target_feature = "avx512vbmi", target_feature = "gfni"))]
+            _ => {
+                let attacks = _mm512_gf2p8affine_epi64_epi8(
+                    _mm512_set1_epi64(0x8040201008040201u64 as i64),
+                    _mm512_permutexvar_epi8(
+                        _mm512_set_epi8(
+                            7, 15, 23, 31, 39, 47, 55, 63, 6, 14, 22, 30, 38, 46, 54, 62, 5, 13, 21, 29, 37, 45, 53,
+                            61, 4, 12, 20, 28, 36, 44, 52, 60, 3, 11, 19, 27, 35, 43, 51, 59, 2, 10, 18, 26, 34, 42,
+                            50, 58, 1, 9, 17, 25, 33, 41, 49, 57, 0, 8, 16, 24, 32, 40, 48, 56,
+                        ),
+                        attacks,
+                    ),
+                    0,
+                );
+                Bitboard(_mm512_test_epi8_mask(attacks, attacks))
+            }
+            #[allow(unreachable_patterns)]
+            _ => {
+                let attacks = _mm256_or_si256(_mm512_castsi512_si256(attacks), _mm512_extracti64x4_epi64::<1>(attacks));
+                let attacks = _mm_or_si128(_mm256_castsi256_si128(attacks), _mm256_extracti128_si256::<1>(attacks));
+                let attacks = _mm_extract_epi64::<0>(attacks) | _mm_extract_epi64::<1>(attacks);
+                Bitboard(attacks as u64)
+            }
+        }
     }
 }
 
