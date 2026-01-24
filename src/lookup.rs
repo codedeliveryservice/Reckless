@@ -177,33 +177,35 @@ pub fn slider_attacks_setwise(bishops: Bitboard, rooks: Bitboard, queens: Bitboa
     use crate::types::{File, Rank};
     use std::arch::x86_64::*;
     unsafe {
-        let mut attacks = _mm512_setzero_si512();
-
-        let mut attackers = _mm512_mask_blend_epi64(
+        let attackers = _mm512_mask_blend_epi64(
             0x0F,
             _mm512_set1_epi64((rooks | queens).0 as i64),
             _mm512_set1_epi64((bishops | queens).0 as i64),
         );
-        let not_occupancies = _mm512_set1_epi64(!occupancies.0 as i64);
 
-        let rotates = _mm512_set_epi64(-8, -1, 1, 8, -9, -7, 7, 9);
+        let rotates1 = _mm512_set_epi64(-8, -1, 1, 8, -9, -7, 7, 9);
+        let rotates2 = _mm512_add_epi64(rotates1, rotates1);
+        let rotates4 = _mm512_add_epi64(rotates2, rotates2);
+
         let masks = _mm512_set_epi64(
-            !Bitboard::rank(Rank::R1).0 as i64,
-            !Bitboard::file(File::A).0 as i64,
-            !Bitboard::file(File::H).0 as i64,
             !Bitboard::rank(Rank::R8).0 as i64,
-            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::A)).0 as i64,
-            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::H)).0 as i64,
-            (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::A)).0 as i64,
+            !Bitboard::file(File::H).0 as i64,
+            !Bitboard::file(File::A).0 as i64,
+            !Bitboard::rank(Rank::R1).0 as i64,
             (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::H)).0 as i64,
+            (!Bitboard::rank(Rank::R8) & !Bitboard::file(File::A)).0 as i64,
+            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::H)).0 as i64,
+            (!Bitboard::rank(Rank::R1) & !Bitboard::file(File::A)).0 as i64,
         );
 
-        for _ in 0..7 {
-            attackers = _mm512_and_si512(attackers, masks);
-            attackers = _mm512_rolv_epi64(attackers, rotates);
-            attacks = _mm512_or_si512(attacks, attackers);
-            attackers = _mm512_and_si512(attackers, not_occupancies);
-        }
+        let generate = attackers;
+        let propagate = _mm512_and_si512(_mm512_set1_epi64(!occupancies.0 as i64), masks);
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates1)));
+        let propagate = _mm512_and_si512(propagate, _mm512_rolv_epi64(propagate, rotates1));
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates2)));
+        let propagate = _mm512_and_si512(propagate, _mm512_rolv_epi64(propagate, rotates2));
+        let generate = _mm512_or_si512(generate, _mm512_and_si512(propagate, _mm512_rolv_epi64(generate, rotates4)));
+        let attacks = _mm512_and_si512(_mm512_rolv_epi64(generate, rotates1), masks);
 
         // Fold attacks
         let attacks = _mm256_or_si256(_mm512_castsi512_si256(attacks), _mm512_extracti64x4_epi64::<1>(attacks));
