@@ -1,5 +1,6 @@
 # Reckless – Chess Engine in Rust
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Reckless CI](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 [![Reckless PGO](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?logo=github)](https://github.com/codedeliveryservice/Reckless/releases/latest)
@@ -140,3 +141,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 - Members of the [Stockfish Discord server](https://discord.gg/GWDRS3kU6R)
 - [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page)
 - [CCRL](https://www.computerchess.org.uk/ccrl/) and all chess engine testers out there
+
+## License
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
