@@ -26,7 +26,7 @@ macro_rules! assert_perft {
 fn perft(board: &mut Board, depth: usize) -> u32 {
     let mut nodes = 0;
     for entry in board.generate_all_moves().iter() {
-        let mv = entry.mv;
+        let mv = entry.mv();
 
         if board.is_legal(mv) {
             board.make_move(mv, &mut NullBoardObserver {});
