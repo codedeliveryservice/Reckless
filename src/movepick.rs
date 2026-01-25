@@ -1,7 +1,7 @@
 use crate::{
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
+    types::{ArrayVec, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -147,12 +147,12 @@ impl MovePicker {
 
     fn find_best_score_index(&self) -> usize {
         let mut best_index = 0;
-        let mut best_score = i32::MIN;
+        let mut best = i64::MIN;
 
-        for (index, entry) in self.list.iter().enumerate() {
-            if entry.score() >= best_score {
+        for (index, &MoveEntry(entry)) in self.list.iter().enumerate() {
+            if entry >= best {
                 best_index = index;
-                best_score = entry.score();
+                best = entry;
             }
         }
 
