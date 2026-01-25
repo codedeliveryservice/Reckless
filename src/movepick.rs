@@ -1,7 +1,7 @@
 use crate::{
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
+    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -145,7 +145,10 @@ impl MovePicker {
         None
     }
 
+    #[cfg(not(target_feature = "avx2"))]
     fn find_best_score_index(&self) -> usize {
+        use crate::types::MoveEntry;
+
         let mut best_index = 0;
         let mut best = i64::MIN;
 
@@ -157,6 +160,38 @@ impl MovePicker {
         }
 
         best_index
+    }
+
+    #[cfg(target_feature = "avx2")]
+    fn find_best_score_index(&self) -> usize {
+        use std::arch::x86_64::*;
+        unsafe {
+            let invalid = _mm256_set1_epi64x(i64::MIN);
+            let max_index = _mm256_set1_epi64x(self.list.len() as i64 - 1);
+            let step = _mm256_set1_epi64x(4);
+
+            let mut best_index = _mm256_set1_epi64x(0);
+            let mut best = invalid;
+            let mut curr_index = _mm256_set_epi64x(3, 2, 1, 0);
+
+            for i in (0..self.list.len()).step_by(4) {
+                // SAFETY: This will never read beyond the end of the list, because MAX_MOVES is a multiple of 4.
+                let curr = _mm256_loadu_si256(self.list.as_ptr().add(i).cast());
+                let curr = _mm256_blendv_epi8(curr, invalid, _mm256_cmpgt_epi64(curr_index, max_index));
+
+                let mask = _mm256_cmpgt_epi64(curr, best);
+
+                best = _mm256_blendv_epi8(best, curr, mask);
+                best_index = _mm256_blendv_epi8(best_index, curr_index, mask);
+
+                curr_index = _mm256_add_epi64(curr_index, step);
+            }
+
+            let best = std::mem::transmute::<__m256i, [i64; 4]>(best);
+            let best_index = std::mem::transmute::<__m256i, [i64; 4]>(best_index);
+
+            *best.iter().zip(best_index.iter()).max_by_key(|(c, _)| *c).unwrap().1 as usize
+        }
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {

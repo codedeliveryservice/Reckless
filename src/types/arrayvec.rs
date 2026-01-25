@@ -81,6 +81,10 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
     {
         self.len += op(self.data.get_unchecked_mut(self.len).as_mut_ptr());
     }
+
+    pub unsafe fn as_ptr(&self) -> *const MaybeUninit<T> {
+        self.data.as_ptr()
+    }
 }
 
 impl<const N: usize> ArrayVec<MoveEntry, N> {

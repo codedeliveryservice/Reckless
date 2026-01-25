@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::{mem::MaybeUninit, ops::Index};
 
 use super::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveKind, Square};
 
@@ -139,6 +139,10 @@ impl MoveList {
 
     pub fn remove(&mut self, index: usize) -> MoveEntry {
         self.inner.swap_remove(index)
+    }
+
+    pub unsafe fn as_ptr(&self) -> *const MaybeUninit<MoveEntry> {
+        self.inner.as_ptr()
     }
 }
 
