@@ -1006,7 +1006,7 @@ fn search<NODE: NodeType>(
                 td.board.piece_on(best_move.to()).piece_type(),
                 noisy_bonus,
             );
-        } else {
+        } else if !(move_count == 1 && best_move == tt_move && best_score >= beta + 150) {
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, quiet_bonus);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
 
