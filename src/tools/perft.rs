@@ -20,7 +20,7 @@ pub fn perft(depth: usize, board: &mut Board) {
     for entry in board.generate_all_moves().iter() {
         let now = Instant::now();
 
-        let mv = entry.mv;
+        let mv = entry.mv();
         if !board.is_legal(mv) {
             continue;
         }
@@ -55,7 +55,7 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
     let mut nodes = 0;
 
     for entry in board.generate_all_moves().iter() {
-        let mv = entry.mv;
+        let mv = entry.mv();
         if !board.is_legal(mv) {
             continue;
         }

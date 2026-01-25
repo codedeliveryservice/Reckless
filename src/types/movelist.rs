@@ -3,10 +3,25 @@ use std::ops::Index;
 use super::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveKind, Square};
 
 #[derive(Copy, Clone)]
-#[repr(C)]
-pub struct MoveEntry {
-    pub mv: Move,
-    pub score: i32,
+#[repr(transparent)]
+pub struct MoveEntry(pub i64);
+
+impl MoveEntry {
+    pub const fn new(mv: Move, score: i32) -> MoveEntry {
+        MoveEntry(((score as i64) << 32) | mv.0 as i64)
+    }
+
+    pub const fn mv(self) -> Move {
+        Move(self.0 as u16)
+    }
+
+    pub const fn score(self) -> i32 {
+        (self.0 >> 32) as i32
+    }
+
+    pub fn set_score(&mut self, score: i32) {
+        *self = Self::new(self.mv(), score);
+    }
 }
 
 pub struct MoveList {
@@ -27,7 +42,7 @@ impl MoveList {
     }
 
     pub fn push(&mut self, from: Square, to: Square, kind: MoveKind) {
-        self.inner.push(MoveEntry { mv: Move::new(from, to, kind), score: 0 });
+        self.inner.push(MoveEntry::new(Move::new(from, to, kind), 0));
     }
 
     #[cfg(not(all(target_feature = "avx512vl", target_feature = "avx512vbmi")))]

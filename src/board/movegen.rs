@@ -27,7 +27,7 @@ impl super::Board {
     pub fn has_legal_moves(&self) -> bool {
         let mut list = MoveList::new();
         self.append_all_moves(&mut list);
-        list.iter().any(|entry| self.is_legal(entry.mv))
+        list.iter().any(|entry| self.is_legal(entry.mv()))
     }
 
     pub fn generate_all_moves(&self) -> MoveList {

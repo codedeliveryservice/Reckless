@@ -80,13 +80,13 @@ impl MovePicker {
             while !self.list.is_empty() {
                 let index = self.find_best_score_index();
                 let entry = &self.list.remove(index);
-                if entry.mv == self.tt_move {
+                if entry.mv() == self.tt_move {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 46 + 109);
-                if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score() / 46 + 109);
+                if !td.board.see(entry.mv(), threshold) {
+                    self.bad_noisy.push(entry.mv());
                     continue;
                 }
 
@@ -94,7 +94,7 @@ impl MovePicker {
                     self.score_noisy(td);
                 }
 
-                return Some(entry.mv);
+                return Some(entry.mv());
             }
 
             self.stage = Stage::GenerateQuiet;
@@ -115,7 +115,7 @@ impl MovePicker {
                 while !self.list.is_empty() {
                     let index = self.find_best_score_index();
                     let entry = &self.list.remove(index);
-                    if entry.mv == self.tt_move {
+                    if entry.mv() == self.tt_move {
                         continue;
                     }
 
@@ -123,7 +123,7 @@ impl MovePicker {
                         self.score_quiet(td, ply);
                     }
 
-                    return Some(entry.mv);
+                    return Some(entry.mv());
                 }
             }
 
@@ -150,9 +150,9 @@ impl MovePicker {
         let mut best_score = i32::MIN;
 
         for (index, entry) in self.list.iter().enumerate() {
-            if entry.score >= best_score {
+            if entry.score() >= best_score {
                 best_index = index;
-                best_score = entry.score;
+                best_score = entry.score();
             }
         }
 
@@ -163,18 +163,19 @@ impl MovePicker {
         let threats = td.board.threats();
 
         for entry in self.list.iter_mut() {
-            let mv = entry.mv;
+            let mv = entry.mv();
 
             if mv == self.tt_move {
-                entry.score = i32::MIN;
+                entry.set_score(i32::MIN);
                 continue;
             }
 
             let captured =
-                if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
+                if entry.mv().is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
-            entry.score =
-                16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+            entry.set_score(
+                16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured),
+            );
         }
     }
 
@@ -183,19 +184,21 @@ impl MovePicker {
         let side = td.board.side_to_move();
 
         for entry in self.list.iter_mut() {
-            let mv = entry.mv;
+            let mv = entry.mv();
 
             if mv == self.tt_move {
-                entry.score = i32::MIN;
+                entry.set_score(i32::MIN);
                 continue;
             }
 
-            entry.score = (994 * td.quiet_history.get(threats, side, mv)
-                + 1049 * td.conthist(ply, 1, mv)
-                + 990 * td.conthist(ply, 2, mv)
-                + 969 * td.conthist(ply, 4, mv)
-                + 1088 * td.conthist(ply, 6, mv))
-                / 1024;
+            entry.set_score(
+                (994 * td.quiet_history.get(threats, side, mv)
+                    + 1049 * td.conthist(ply, 1, mv)
+                    + 990 * td.conthist(ply, 2, mv)
+                    + 969 * td.conthist(ply, 4, mv)
+                    + 1088 * td.conthist(ply, 6, mv))
+                    / 1024,
+            );
         }
     }
 }

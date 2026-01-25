@@ -59,8 +59,8 @@ pub fn start(td: &mut ThreadData, report: Report) {
         .board
         .generate_all_moves()
         .iter()
-        .filter(|v| td.board.is_legal(v.mv))
-        .map(|v| RootMove { mv: v.mv, ..Default::default() })
+        .filter(|v| td.board.is_legal(v.mv()))
+        .map(|v| RootMove { mv: v.mv(), ..Default::default() })
         .collect();
 
     td.root_in_tb = false;
