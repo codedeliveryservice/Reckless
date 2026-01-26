@@ -424,6 +424,7 @@ fn search<NODE: NodeType>(
     if !in_check
         && !excluded
         && is_valid(tt_score)
+        && tt_depth > TtDepth::SOME
         && match tt_bound {
             Bound::Upper => tt_score < eval,
             Bound::Lower => tt_score > eval,
@@ -437,6 +438,7 @@ fn search<NODE: NodeType>(
     if in_check
         && !is_decisive(tt_score)
         && is_valid(tt_score)
+        && tt_depth > TtDepth::SOME
         && match tt_bound {
             Bound::Upper => tt_score <= alpha,
             Bound::Lower => tt_score >= beta,
