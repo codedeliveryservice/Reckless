@@ -530,7 +530,8 @@ fn search<NODE: NodeType>(
         && !(tt_bound == Bound::Lower
             && tt_move.is_some()
             && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+            && (td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value()
+                || td.board.see(tt_move, PieceType::Pawn.value())))
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
