@@ -516,6 +516,8 @@ fn search<NODE: NodeType>(
         return beta + (estimated_score - beta) / 3;
     }
 
+    let mut probcut_beta = beta + 269 - 72 * improving as i32;
+
     // Null Move Pruning (NMP)
     if cut_node
         && !in_check
@@ -530,7 +532,8 @@ fn search<NODE: NodeType>(
         && !(tt_bound == Bound::Lower
             && tt_move.is_some()
             && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+            && (td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value()
+                || td.board.see(tt_move, probcut_beta - eval)))
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
@@ -571,7 +574,6 @@ fn search<NODE: NodeType>(
     }
 
     // ProbCut
-    let mut probcut_beta = beta + 269 - 72 * improving as i32;
 
     if cut_node
         && !is_decisive(beta)
