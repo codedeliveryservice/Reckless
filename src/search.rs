@@ -512,6 +512,10 @@ fn search<NODE: NodeType>(
                 + 32 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
+        && !(tt_bound == Bound::Lower
+            && tt_move.is_some()
+            && tt_move.is_capture()
+            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
         return beta + (estimated_score - beta) / 3;
     }
