@@ -481,7 +481,7 @@ fn search<NODE: NodeType>(
     }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
-        && tt_depth >= depth - 3
+        && tt_depth >= depth - 4
         && tt_bound != Bound::Upper
         && is_valid(tt_score)
         && !is_decisive(tt_score);
@@ -643,7 +643,7 @@ fn search<NODE: NodeType>(
             return Score::ZERO;
         }
 
-        if score < singular_beta {
+        if score < singular_beta && tt_depth >= depth - 3 {
             let double_margin =
                 -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
@@ -656,16 +656,17 @@ fn search<NODE: NodeType>(
             if extension > 1 && depth < 14 {
                 depth += 1;
             }
-        }
-        // Multi-Cut
-        else if score >= beta && !is_decisive(score) {
-            return (score * singular_depth + beta) / (singular_depth + 1);
-        }
-        // Negative Extensions
-        else if tt_score >= beta {
-            extension = -2;
-        } else if cut_node {
-            extension = -2;
+        } else if score >= singular_beta {
+            // Multi-Cut
+            if score >= beta && !is_decisive(score) {
+                return (score * singular_depth + beta) / (singular_depth + 1);
+            }
+            // Negative Extensions
+            else if tt_score >= beta {
+                extension = -2;
+            } else if cut_node {
+                extension = -2;
+            }
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
