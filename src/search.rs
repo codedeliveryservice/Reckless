@@ -998,7 +998,7 @@ fn search<NODE: NodeType>(
         let cont_bonus = (108 * depth).min(977) - 67 - 52 * cut_node as i32;
         let cont_malus = (352 * depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
 
-        if !(best_move.is_some() && move_count == 1 && best_move == tt_move && best_score >= beta + 75) {
+        if !(move_count == 1 && best_move == tt_move && (best_score >= beta + 50 || depth < 2)) {
             if best_move.is_noisy() {
                 td.noisy_history.update(
                     td.board.threats(),
