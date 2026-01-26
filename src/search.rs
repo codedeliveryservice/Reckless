@@ -989,14 +989,32 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
-        let noisy_malus = (164 * depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
+        fn affine<const N: usize>(features: &[i32; N], weights: &[i32; N], depth_clamp: i32) -> i32 {
+            (features[0] * weights[0]).min(depth_clamp)
+                + features[1..].iter().zip(&weights[1..]).map(|(f, w)| f * w).sum::<i32>()
+        }
 
-        let quiet_bonus = (172 * depth).min(1459) - 78 - 54 * cut_node as i32;
-        let quiet_malus = (144 * depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
+        let features = &[
+            depth,
+            quiet_moves.len() as i32,
+            noisy_moves.len() as i32,
+            (best_move == tt_move) as i32,
+            (move_count == 1) as i32,
+            improving as i32,
+            in_check as i32,
+            cut_node as i32,
+            beta - alpha,
+            1,
+        ];
 
-        let cont_bonus = (108 * depth).min(977) - 67 - 52 * cut_node as i32;
-        let cont_malus = (352 * depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
+        let noisy_bonus = affine(features, &[106, 0, 0, 0, 0, 0, 0, -80, 0, -54], 808).max(0);
+        let noisy_malus = affine(features, &[164, 0, -23, 0, 0, 0, 0, 0, 0, -52], 1329).max(0);
+
+        let quiet_bonus = affine(features, &[172, 0, 0, 0, 0, 0, 0, -54, 0, -78], 1459).max(0);
+        let quiet_malus = affine(features, &[144, -39, 0, 0, 0, 0, 0, 0, 0, -45], 1064).max(0);
+
+        let cont_bonus = affine(features, &[108, 0, 0, 0, 0, 0, 0, -52, 0, -67], 977).max(0);
+        let cont_malus = affine(features, &[352, -19, 0, 0, 0, 0, 0, 0, 0, -47], 868).max(0);
 
         if best_move.is_noisy() {
             td.noisy_history.update(
