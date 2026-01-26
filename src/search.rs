@@ -669,6 +669,16 @@ fn search<NODE: NodeType>(
         }
     } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
         extension = 1;
+    } else if !NODE::ROOT
+        && !excluded
+        && depth >= 5 + tt_pv as i32
+        && tt_depth == depth - 4
+        && tt_bound != Bound::Upper
+        && is_valid(tt_score)
+        && !is_decisive(tt_score)
+        && ply < 2 * td.root_depth as isize
+    {
+        extension = 1;
     }
 
     let mut best_move = Move::NULL;
