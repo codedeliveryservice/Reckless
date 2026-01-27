@@ -750,7 +750,13 @@ fn search<NODE: NodeType>(
                 (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
             };
 
-            if !td.board.see(mv, threshold) {
+            let material_lead =
+                td.board.material_of(td.board.side_to_move()) - td.board.material_of(!td.board.side_to_move());
+            let moving_piece = td.board.piece_on(mv.from());
+            let moving_value = moving_piece.piece_type().value();
+            let sac_is_affordable = material_lead >= moving_value;
+
+            if !sac_is_affordable && !td.board.see(mv, threshold) {
                 continue;
             }
         }

@@ -69,7 +69,7 @@ impl Board {
 
             self.update_hash(captured, to);
 
-            self.state.material -= captured.value();
+            self.state.material[!stm] -= captured.value();
             self.state.captured = Some(captured);
             self.state.recapture_square = to;
         } else if !mv.is_castling() {
@@ -94,7 +94,7 @@ impl Board {
 
                 self.update_hash(captured, to ^ 8);
 
-                self.state.material -= captured.value();
+                self.state.material[!stm] -= captured.value();
             }
             MoveKind::Castling => {
                 let (rook_from, rook_to) = self.get_castling_rook(to);
@@ -127,7 +127,7 @@ impl Board {
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
 
-                self.state.material += promotion.value() - PieceType::Pawn.value();
+                self.state.material[stm] += promotion.value() - PieceType::Pawn.value();
             }
             _ => (),
         }

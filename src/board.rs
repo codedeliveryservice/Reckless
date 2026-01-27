@@ -27,7 +27,7 @@ struct InternalState {
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
-    material: i32,
+    material: [i32; Color::NUM],
     plies_from_null: i32,
     repetition: i32,
     captured: Option<Piece>,
@@ -125,8 +125,12 @@ impl Board {
         self.state.halfmove_clock
     }
 
-    pub const fn material(&self) -> i32 {
-        self.state.material
+    pub const fn material_of(&self, color: Color) -> i32 {
+        self.state.material[color as usize]
+    }
+
+    pub fn material(&self) -> i32 {
+        self.material_of(Color::White) + self.material_of(Color::Black)
     }
 
     pub const fn in_check(&self) -> bool {
