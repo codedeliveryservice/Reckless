@@ -14,6 +14,15 @@ impl super::Board {
             return true;
         }
 
+        let material_lead = self.material_of(self.side_to_move()) - self.material_of(!self.side_to_move());
+        let moving_piece = self.piece_on(mv.from());
+        let moving_value = moving_piece.piece_type().value();
+        let sac_is_affordable = material_lead >= moving_value;
+
+        if sac_is_affordable {
+            return true;
+        }
+
         // In the best case, we win a piece, but still end up with a negative balance
         let mut balance = self.move_value(mv) - threshold;
         if balance < 0 {
