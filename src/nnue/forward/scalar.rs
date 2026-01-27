@@ -17,7 +17,7 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
             let left = (pst_input[i] + threat_input[i]).clamp(0, FT_QUANT as i16);
             let right = (pst_input[i + L1_SIZE / 2] + threat_input[i + L1_SIZE / 2]).clamp(0, FT_QUANT as i16);
 
-            output[i + flip * L1_SIZE / 2] = ((left as i32 * right as i32) >> FT_SHIFT) as u8;
+            output[i + flip * L1_SIZE / 2] = ((left as i32 * (right as i32) * (right as i32)) >> FT_SHIFT) as u8;
         }
     }
 

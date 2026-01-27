@@ -62,15 +62,15 @@ const L1_SIZE: usize = 512;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
-const FT_QUANT: i32 = 255;
+const FT_QUANT: i32 = 127;
 const L1_QUANT: i32 = 64;
 
 #[cfg(target_feature = "avx512f")]
-const FT_SHIFT: u32 = 9;
+const FT_SHIFT: u32 = 14;
 #[cfg(not(target_feature = "avx512f"))]
-const FT_SHIFT: i32 = 9;
+const FT_SHIFT: i32 = 14;
 
-const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
 #[rustfmt::skip]
 const INPUT_BUCKETS_LAYOUT: [usize; 64] = [
