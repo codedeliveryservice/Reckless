@@ -1,6 +1,7 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, LHS_FT_QUANT, PARAMETERS, RHS_FT_QUANT,
+        SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
         simd,
     },
@@ -11,7 +12,9 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
     let mut output = Aligned::new([0; L1_SIZE]);
 
     let zero = simd::splat_i16(0);
-    let one = simd::splat_i16(FT_QUANT as i16);
+
+    let lhs_one = simd::splat_i16(LHS_FT_QUANT as i16);
+    let rhs_one = simd::splat_i16(RHS_FT_QUANT as i16);
 
     for flip in [0, 1] {
         let pst_input = &pst.values[stm as usize ^ flip];
@@ -30,11 +33,11 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let threat_rhs1 = *threat_input.as_ptr().add(i + L1_SIZE / 2).cast();
             let threat_rhs2 = *threat_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
-            let lhs1_clipped = simd::clamp_i16(simd::add_i16(lhs1, threat_lhs1), zero, one);
-            let lhs2_clipped = simd::clamp_i16(simd::add_i16(lhs2, threat_lhs2), zero, one);
+            let lhs1_clipped = simd::clamp_i16(simd::add_i16(lhs1, threat_lhs1), zero, lhs_one);
+            let lhs2_clipped = simd::clamp_i16(simd::add_i16(lhs2, threat_lhs2), zero, lhs_one);
 
-            let rhs1_clipped = simd::clamp_i16(simd::add_i16(rhs1, threat_rhs1), zero, one);
-            let rhs2_clipped = simd::clamp_i16(simd::add_i16(rhs2, threat_rhs2), zero, one);
+            let rhs1_clipped = simd::clamp_i16(simd::add_i16(rhs1, threat_rhs1), zero, rhs_one);
+            let rhs2_clipped = simd::clamp_i16(simd::add_i16(rhs2, threat_rhs2), zero, rhs_one);
 
             let rhs1_squared = simd::mul_low_i16(rhs1_clipped, rhs1_clipped);
             let rhs2_squared = simd::mul_low_i16(rhs2_clipped, rhs2_clipped);
