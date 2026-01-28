@@ -32,6 +32,10 @@ pub unsafe fn shift_left_i16<const SHIFT: i32>(a: int16x8_t) -> int16x8_t {
 }
 
 pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
+    vmulq_s16(a, b)
+}
+
+pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
     let low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
     let high = vmull_s16(vget_high_s16(a), vget_high_s16(b));
 

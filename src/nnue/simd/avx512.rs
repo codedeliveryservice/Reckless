@@ -31,6 +31,10 @@ pub unsafe fn shift_left_i16<const SHIFT: u32>(a: __m512i) -> __m512i {
     _mm512_slli_epi16::<SHIFT>(a)
 }
 
+pub unsafe fn mul_low_i16(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_mullo_epi16(a, b)
+}
+
 pub unsafe fn mul_high_i16(a: __m512i, b: __m512i) -> __m512i {
     _mm512_mulhi_epi16(a, b)
 }

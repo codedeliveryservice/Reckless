@@ -32,6 +32,10 @@ pub unsafe fn shift_left_i16<const SHIFT: i32>(a: __m256i) -> __m256i {
     _mm256_slli_epi16::<SHIFT>(a)
 }
 
+pub unsafe fn mul_low_i16(a: __m256i, b: __m256i) -> __m256i {
+    _mm256_mullo_epi16(a, b)
+}
+
 pub unsafe fn mul_high_i16(a: __m256i, b: __m256i) -> __m256i {
     _mm256_mulhi_epi16(a, b)
 }
