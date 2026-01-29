@@ -781,7 +781,7 @@ fn search<NODE: NodeType>(
                 reduction += 1922;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1402;
+                reduction += 1311;
                 reduction -= 109 * history / 1024;
             }
 
@@ -793,10 +793,6 @@ fn search<NODE: NodeType>(
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if mv.is_noisy() && mv.to() == td.board.recapture_square() {
-                reduction -= 910;
             }
 
             if !tt_pv && cut_node {
