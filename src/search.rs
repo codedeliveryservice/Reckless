@@ -462,8 +462,8 @@ fn search<NODE: NodeType>(
         && !excluded
         && td.stack[ply - 1].mv.is_quiet()
         && is_valid(td.stack[ply - 1].eval)
-        && estimated_score == eval
-        && td.stack[ply - 1].eval == td.stack[ply - 1].estimated_score
+        && (estimated_score - eval).abs() < 64
+        && (td.stack[ply - 1].eval - td.stack[ply - 1].estimated_score).abs() < 64
     {
         let value = 819 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-124, 312);
