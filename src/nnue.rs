@@ -546,7 +546,7 @@ impl Network {
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
             let l2_out = forward::propagate_l2(l1_out, bucket);
-            let l3_out = forward::propagate_l3(l2_out, bucket);
+            let l3_out = forward::propagate_l3(l1_out, l2_out, bucket);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -601,16 +601,16 @@ struct Parameters {
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
     l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
-    l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[f32; L3_SIZE]; 2 * L2_SIZE]; OUTPUT_BUCKETS]>,
     l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
-    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; L3_SIZE + 2 * L2_SIZE]; OUTPUT_BUCKETS]>,
     l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
 static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
 
 #[repr(align(64))]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 struct Aligned<T> {
     data: T,
 }
