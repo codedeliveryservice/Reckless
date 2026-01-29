@@ -50,6 +50,12 @@ fn main() {
 
             tools::rescore(input, output);
         }
+        Some("deduplicate") => {
+            let input = std::env::args().nth(2).unwrap();
+            let output = std::env::args().nth(3).unwrap();
+
+            tools::deduplicate(input, output);
+        }
         Some("scale") => {
             let input = std::env::args().nth(2).unwrap();
             tools::scale(std::path::Path::new(&input));
