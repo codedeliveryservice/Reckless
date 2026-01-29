@@ -1219,24 +1219,24 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
+        if !is_loss(best_score) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
             }
 
-            if !NODE::PV && move_count >= 3 && !td.board.is_direct_check(mv) {
+            if !NODE::PV && move_count >= 3 && mv.to() != td.board.recapture_square() && !td.board.is_direct_check(mv) {
                 break;
             }
 
             let futility_score = best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104;
 
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
+            if !in_check && futility_score <= alpha && mv.to() != td.board.recapture_square() && !td.board.see(mv, 1) {
                 continue;
             }
-        }
 
-        if !is_loss(best_score) && !td.board.see(mv, -81) {
-            continue;
+            if !td.board.see(mv, -81) {
+                continue;
+            }
         }
 
         make_move(td, ply, mv);
