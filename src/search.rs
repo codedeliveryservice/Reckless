@@ -448,6 +448,8 @@ fn search<NODE: NodeType>(
     }
 
     td.stack[ply].eval = eval;
+    td.stack[ply].estimated_score = estimated_score;
+
     td.stack[ply].tt_move = tt_move;
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
@@ -460,7 +462,8 @@ fn search<NODE: NodeType>(
         && !excluded
         && td.stack[ply - 1].mv.is_quiet()
         && is_valid(td.stack[ply - 1].eval)
-        && (estimated_score - eval).abs() < 64
+        && estimated_score == eval
+        && td.stack[ply - 1].eval == td.stack[ply - 1].estimated_score
     {
         let value = 819 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-124, 312);
