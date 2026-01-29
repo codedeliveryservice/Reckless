@@ -8,10 +8,10 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pgn_lexer::parser::{PGNTokenIterator, Token};
 use shakmaty::{fen::Fen, san::San, CastlingMode, Chess, Position};
 
-use crate::{board::Board, nnue::Network, tools::BinpackWriter, types::Color};
+use crate::{board::Board, nnue::Network, tools::BinpackWriter};
 
-pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool) {
-    println!("Converting PGNs from '{input}' to '{output}' using {threads} threads [adversarial={adversarial}]");
+pub fn convert_pgns(input: &str, output: &str, threads: usize) {
+    println!("Converting PGNs from '{input}' to '{output}' using {threads} threads [adversarial=full]");
 
     let mut handlers = Vec::new();
 
@@ -50,7 +50,7 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
             let mut nnue = Network::default();
 
             for file_name in chunk {
-                convert_pgn(&file_name, adversarial, &mut writer, &mut nnue);
+                convert_pgn(&file_name, &mut writer, &mut nnue);
                 progress.lock().unwrap().inc(1);
             }
         });
@@ -64,7 +64,7 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
     std::process::exit(0);
 }
 
-pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWriter, nnue: &mut Network) {
+pub fn convert_pgn(file_name: &str, writer: &mut BinpackWriter, nnue: &mut Network) {
     let file = File::open(file_name).unwrap();
     let uncompressed = bzip2::read::BzDecoder::new(file);
     let bytes = BufReader::new(uncompressed).bytes().flatten().collect::<Vec<_>>();
@@ -77,27 +77,10 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
     let mut internal_board = Board::default();
     let mut internal_entries = Vec::new();
 
-    let mut player = Color::White;
-    let mut mate_score_found = false;
     let mut skip_game = false;
 
-    internal_board.set_frc(true);
-
     while let Some(token) = parser.next() {
-        if matches!(token, Token::TagString(_) | Token::TagSymbol(_)) {
-            mate_score_found = false;
-        }
-
         match token {
-            Token::TagSymbol(bytes) if bytes == b"White" => {
-                let white_bytes = match parser.next() {
-                    Some(Token::TagString(v)) => v,
-                    _ => panic!(),
-                };
-
-                player =
-                    if String::from_utf8_lossy(white_bytes).contains("Reckless") { Color::White } else { Color::Black };
-            }
             Token::TagSymbol(bytes) if bytes == b"FEN" => {
                 let fen_bytes = match parser.next() {
                     Some(Token::TagString(v)) => v,
@@ -109,9 +92,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                 internal_board = start_board.clone();
                 internal_entries.clear();
 
-                internal_board.set_frc(true);
-
-                position = Fen::from_ascii(fen_bytes).unwrap().into_position(CastlingMode::Chess960).unwrap();
+                position = Fen::from_ascii(fen_bytes).unwrap().into_position(CastlingMode::Standard).unwrap();
             }
             Token::TagSymbol(bytes) if bytes == b"Termination" => {
                 let reason = match parser.next() {
@@ -139,31 +120,13 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
             _ => (),
         }
 
-        if mate_score_found {
-            continue;
-        }
-
         if let Token::Move(bytes) = token {
-            let commentary = match parser.next() {
-                Some(Token::Commentary(bytes)) => String::from_utf8_lossy(&bytes).to_string(),
-                _ => panic!(),
-            };
-
-            let score = match commentary.split_whitespace().next().and_then(|v| v.parse::<f32>().ok()) {
-                Some(v) if !adversarial || internal_board.side_to_move() == player => (100.0 * v) as i32,
-                Some(_) => {
-                    nnue.full_refresh(&internal_board);
-                    nnue.evaluate(&internal_board)
-                }
-                None => {
-                    mate_score_found = true;
-                    continue;
-                }
-            };
+            nnue.full_refresh(&internal_board);            
+            let score = nnue.evaluate(&internal_board);
 
             let san = San::from_ascii(bytes).unwrap();
             let mv = san.to_move(&position).unwrap();
-            let uci_move = mv.to_uci(CastlingMode::Chess960).to_string();
+            let uci_move = mv.to_uci(CastlingMode::Standard).to_string();
 
             let internal_move = internal_board
                 .generate_all_moves()
