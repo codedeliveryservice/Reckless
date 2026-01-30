@@ -581,10 +581,6 @@ fn search<NODE: NodeType>(
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
             if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
