@@ -989,7 +989,20 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_some() {
-        let noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
+        let mut noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
+
+        if best_score >= 0
+            && td.noisy_history.get(
+                td.board.threats(),
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                td.board.piece_on(best_move.to()).piece_type(),
+            ) < 0
+            && !td.board.see(best_move, 0)
+        {
+            noisy_bonus *= 5;
+        }
+
         let noisy_malus = (164 * depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
 
         let quiet_bonus = (172 * depth).min(1459) - 78 - 54 * cut_node as i32;
