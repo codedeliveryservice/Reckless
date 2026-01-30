@@ -57,14 +57,33 @@ impl super::Board {
             }
 
             let attacker = self.least_valuable_attacker(our_attackers);
+            let attacker_square = (self.pieces(attacker) & our_attackers).lsb();
 
             // The king cannot capture a protected piece; the side to move loses the exchange
             if attacker == PieceType::King && !(attackers & self.colors(!stm)).is_empty() {
                 break;
             }
 
+            // Check if moving this attacker would leave our king in check
+            if attacker != PieceType::King {
+                let king = self.king_square(stm);
+                let post_occupancies = occupancies & !attacker_square.to_bb();
+
+                let diagonal = (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen)) & self.colors(!stm);
+                if !(bishop_attacks(king, post_occupancies) & diagonal).is_empty() {
+                    attackers &= !attacker_square.to_bb();
+                    continue;
+                }
+
+                let orthogonal = (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen)) & self.colors(!stm);
+                if !(rook_attacks(king, post_occupancies) & orthogonal).is_empty() {
+                    attackers &= !attacker_square.to_bb();
+                    continue;
+                }
+            }
+
             // Make the capture
-            occupancies.clear((self.pieces(attacker) & our_attackers).lsb());
+            occupancies.clear(attacker_square);
             stm = !stm;
 
             // Assume our piece is going to be captured
