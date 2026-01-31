@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicI16, Ordering};
 
 use crate::{
     numa::NumaValue,
+    thread::ThreadData,
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
@@ -12,6 +13,11 @@ type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     let bonus = bonus.clamp(-MAX, MAX);
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+}
+
+fn apply_bonus_with_base<const MAX: i32>(entry: &mut i16, base: i32, bonus: i32) {
+    let bonus = bonus.clamp(-MAX, MAX);
+    *entry += (bonus - bonus.abs() * base / MAX) as i16;
 }
 
 struct QuietHistoryEntry {
@@ -205,9 +211,20 @@ impl ContinuationHistory {
         (unsafe { &*subtable_ptr }[piece][to]) as i32
     }
 
-    pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
+    pub fn update(
+        &self, td: &ThreadData, ply: isize, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square,
+        bonus: i32,
+    ) {
+        let base = unsafe {
+            (&*td.stack[ply - 1].conthist)[piece][to] as i32
+                + (&*td.stack[ply - 2].conthist)[piece][to] as i32
+                + (&*td.stack[ply - 3].conthist)[piece][to] as i32
+                + (&*td.stack[ply - 4].conthist)[piece][to] as i32
+                + (&*td.stack[ply - 6].conthist)[piece][to] as i32
+        };
+
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus_with_base::<{ Self::MAX_HISTORY }>(entry, base, bonus);
     }
 }
 
