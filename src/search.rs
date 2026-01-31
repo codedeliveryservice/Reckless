@@ -1010,15 +1010,8 @@ fn search<NODE: NodeType>(
             factor += 156 * (!in_check && best_score <= eval.min(raw_eval) - 96) as i32;
             factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
 
-            let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
-
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
-
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_some() {
-                let bonus = (156 * depth - 38).min(1169);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
-            }
+            let bonus = factor * (153 * depth - 34).min(2474) / 128;
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, bonus);
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
