@@ -572,20 +572,19 @@ fn search<NODE: NodeType>(
 
             let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-            let mut probcut_depth = (depth - 4 - ((score - probcut_beta - 50) / 295).clamp(0, 3)).max(0);
-            let og_probcut_depth = (depth - 4).max(0);
-            let raised_probcut_beta =
-                (probcut_beta + (og_probcut_depth - probcut_depth) * 282).clamp(-Score::INFINITE + 1, Score::INFINITE);
+            let base_depth = (depth - 4).max(0);
+            let mut probcut_depth = (base_depth - (score - probcut_beta) / 295).clamp(0, base_depth);
 
             if score >= probcut_beta && probcut_depth > 0 {
-                score =
-                    -search::<NonPV>(td, -raised_probcut_beta, -raised_probcut_beta + 1, probcut_depth, false, ply + 1);
+                let adjusted_beta = (probcut_beta + 282 * (base_depth - probcut_depth)).min(Score::INFINITE);
 
-                if score < raised_probcut_beta && probcut_beta < raised_probcut_beta {
-                    probcut_depth = og_probcut_depth;
+                score = -search::<NonPV>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, false, ply + 1);
+
+                if score < adjusted_beta && probcut_beta < adjusted_beta {
+                    probcut_depth = base_depth;
                     score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
                 } else {
-                    probcut_beta = raised_probcut_beta;
+                    probcut_beta = adjusted_beta;
                 }
             }
 
