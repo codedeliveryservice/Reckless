@@ -998,9 +998,7 @@ fn search<NODE: NodeType>(
             let bonus = (201 * depth - 86).min(1634);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
-    }
-
-    if !NODE::ROOT && bound == Bound::Upper {
+    } else if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
             let mut factor = 95;
@@ -1019,7 +1017,7 @@ fn search<NODE: NodeType>(
                 let bonus = (156 * depth - 38).min(1169);
                 td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
             }
-        } else if pcm_move.is_noisy() {
+        } else if !NODE::ROOT && pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
 
