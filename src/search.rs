@@ -808,7 +808,7 @@ fn search<NODE: NodeType>(
                 reduction += (438 - 279 * improvement / 128).min(1288);
             }
 
-            if td.board.in_check() || !td.board.has_non_pawns() {
+            if td.board.in_check() {
                 reduction -= 966;
             }
 
@@ -818,10 +818,6 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_score) && tt_score < alpha {
                 reduction += 600;
-            }
-
-            if depth == 2 {
-                reduction -= 1195;
             }
 
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
@@ -847,17 +843,14 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count > 1 {
             let mut reduction = 238 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction += 26 * move_count.ilog2() as i32;
-            reduction += 23 * depth.ilog2() as i32;
-
             reduction -= 57 * move_count;
             reduction -= 2513 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 1577;
+                reduction += 1427;
                 reduction -= 158 * history / 1024;
             } else {
-                reduction += 1248;
+                reduction += 1098;
                 reduction -= 65 * history / 1024;
             }
 
@@ -877,10 +870,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1452;
-            }
-
-            if depth == 2 {
-                reduction -= 1144;
             }
 
             if mv == tt_move {
