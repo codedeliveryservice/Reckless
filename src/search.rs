@@ -829,8 +829,8 @@ fn search<NODE: NodeType>(
 
             if score > alpha {
                 if !NODE::ROOT {
-                    new_depth += (score > best_score + 41 + 447 * depth / 128) as i32;
-                    new_depth -= (score < best_score + new_depth) as i32;
+                    new_depth += (score > best_score + 55) as i32;
+                    new_depth -= (score < best_score + 5) as i32;
                 }
 
                 if new_depth > reduced_depth {
