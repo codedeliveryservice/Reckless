@@ -1,6 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -476,7 +477,11 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && estimated_score < alpha - 299 - 252 * depth * depth && alpha < 2048 {
+    if !NODE::PV
+        && !in_check
+        && estimated_score < alpha + poly::<1>(depth, &[razoring1(), razoring2(), razoring3()])
+        && alpha < 2048
+    {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
@@ -486,9 +491,8 @@ fn search<NODE: NodeType>(
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
+            >= beta + poly::<128>(depth, &[rfp1(), rfp2(), rfp3(), rfp4()]) - 77 * improving as i32
                 + 519 * correction_value.abs() / 1024
-                + 32 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -502,7 +506,7 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
-        && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
+        && eval >= beta + poly::<1>(depth, &[nmp1(), nmp2(), nmp3()]) + 126 * tt_pv as i32 - 128 * improvement / 1024
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
@@ -513,7 +517,8 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5154 + 271 * depth + 535 * (estimated_score - beta).clamp(0, 1073) / 128) / 1024;
+        let r =
+            (poly::<1>(depth, &[nmp4(), nmp5(), nmp6()]) + 535 * (estimated_score - beta).clamp(0, 1073) / 128) / 1024;
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
@@ -689,13 +694,14 @@ fn search<NODE: NodeType>(
             skip_quiets |= !in_check
                 && move_count
                     >= if improving || eval >= beta + 20 {
-                        (3127 + 1075 * depth * depth) / 1024
+                        poly::<1024>(depth, &[lmp1(), lmp2(), lmp3()])
                     } else {
-                        (1320 + 311 * depth * depth) / 1024
+                        poly::<1024>(depth, &[lmp4(), lmp5(), lmp6()])
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= alpha) as i32 - 114;
+            let futility_value =
+                eval + poly::<1>(depth, &[fp1(), fp2(), fp3()]) + 63 * history / 1024 + 88 * (eval >= alpha) as i32;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
@@ -706,8 +712,10 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value =
-                eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
+            let noisy_futility_value = eval
+                + poly::<1>(depth, &[bnfp1(), bnfp2(), bnfp3()])
+                + 69 * history / 1024
+                + 81 * td.board.piece_on(mv.to()).value() / 1024;
 
             if !in_check
                 && depth < 12
@@ -723,9 +731,9 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                (-16 * depth * depth + 52 * depth - 21 * history / 1024 + 22).min(0)
+                (poly::<1>(depth, &[see1(), see2(), see3()]) - 21 * history / 1024).min(0)
             } else {
-                (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
+                (poly::<1>(depth, &[see4(), see5(), see6()]) - 32 * history / 1024).min(0)
             };
 
             if !td.board.see(mv, threshold) {
@@ -1331,4 +1339,8 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+fn poly<const Q: i32>(x: i32, weights: &[i32]) -> i32 {
+    weights.iter().fold(0, |acc, &w| acc * x + w) / Q
 }
