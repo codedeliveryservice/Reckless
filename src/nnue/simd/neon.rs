@@ -15,6 +15,10 @@ pub unsafe fn zeroed() -> int32x4_t {
     vdupq_n_s32(0)
 }
 
+pub unsafe fn splat_i8(a: i8) -> int8x16_t {
+    vdupq_n_s8(a)
+}
+
 pub unsafe fn splat_i16(a: i16) -> int16x8_t {
     vdupq_n_s16(a)
 }
@@ -41,14 +45,18 @@ pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
     vcombine_s16(low_hi, high_hi)
 }
 
+pub unsafe fn max_i8(a: int8x16_t, b: int8x16_t) -> int8x16_t {
+    vmaxq_s8(a, b)
+}
+
 pub unsafe fn convert_i8_i16(a: int8x8_t) -> int16x8_t {
     vmovl_s8(a)
 }
 
-pub unsafe fn packus(a: int16x8_t, b: int16x8_t) -> int8x16_t {
-    let a_u8 = vqmovun_s16(a);
-    let b_u8 = vqmovun_s16(b);
-    vreinterpretq_s8_u8(vcombine_u8(a_u8, b_u8))
+pub unsafe fn packs(a: int16x8_t, b: int16x8_t) -> int8x16_t {
+    let a_s8 = vqmovn_s16(a);
+    let b_s8 = vqmovn_s16(b);
+    vcombine_s8(a_s8, b_s8)
 }
 
 pub unsafe fn permute(a: int8x16_t) -> int8x16_t {

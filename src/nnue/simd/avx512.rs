@@ -15,6 +15,10 @@ pub unsafe fn zeroed() -> __m512i {
     _mm512_setzero_si512()
 }
 
+pub unsafe fn splat_i8(a: i8) -> __m512i {
+    _mm512_set1_epi8(a)
+}
+
 pub unsafe fn splat_i16(a: i16) -> __m512i {
     _mm512_set1_epi16(a)
 }
@@ -35,12 +39,16 @@ pub unsafe fn mul_high_i16(a: __m512i, b: __m512i) -> __m512i {
     _mm512_mulhi_epi16(a, b)
 }
 
+pub unsafe fn max_i8(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_max_epi8(a, b)
+}
+
 pub unsafe fn convert_i8_i16(a: __m256i) -> __m512i {
     _mm512_cvtepi8_epi16(a)
 }
 
-pub unsafe fn packus(a: __m512i, b: __m512i) -> __m512i {
-    _mm512_packus_epi16(a, b)
+pub unsafe fn packs(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_packs_epi16(a, b)
 }
 
 pub unsafe fn permute(a: __m512i) -> __m512i {

@@ -16,6 +16,10 @@ pub unsafe fn zeroed() -> __m256i {
     _mm256_setzero_si256()
 }
 
+pub unsafe fn splat_i8(a: i8) -> __m256i {
+    _mm256_set1_epi8(a)
+}
+
 pub unsafe fn splat_i16(a: i16) -> __m256i {
     _mm256_set1_epi16(a)
 }
@@ -36,12 +40,16 @@ pub unsafe fn mul_high_i16(a: __m256i, b: __m256i) -> __m256i {
     _mm256_mulhi_epi16(a, b)
 }
 
+pub unsafe fn max_i8(a: __m256i, b: __m256i) -> __m256i {
+    _mm256_max_epi8(a, b)
+}
+
 pub unsafe fn convert_i8_i16(a: __m128i) -> __m256i {
     _mm256_cvtepi8_epi16(a)
 }
 
-pub unsafe fn packus(a: __m256i, b: __m256i) -> __m256i {
-    _mm256_packus_epi16(a, b)
+pub unsafe fn packs(a: __m256i, b: __m256i) -> __m256i {
+    _mm256_packs_epi16(a, b)
 }
 
 pub unsafe fn permute(a: __m256i) -> __m256i {

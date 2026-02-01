@@ -14,10 +14,12 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
         let threat_input = &threat.values[stm as usize ^ flip];
 
         for i in 0..L1_SIZE / 2 {
-            let left = (pst_input[i] + threat_input[i]).clamp(0, FT_QUANT as i16);
-            let right = (pst_input[i + L1_SIZE / 2] + threat_input[i + L1_SIZE / 2]).clamp(0, FT_QUANT as i16);
+            let left = pst_input[i] + threat_input[i];
+            let right = (pst_input[i + L1_SIZE / 2] + threat_input[i + L1_SIZE / 2])
+                .clamp(0, (FT_QUANT << FT_ACT_SHIFT) as i16);
 
-            output[i + flip * L1_SIZE / 2] = ((left as i32 * right as i32) >> FT_SHIFT) as u8;
+            output[i + flip * L1_SIZE / 2] =
+                ((left as i32 * right as i32) >> (FT_SHIFT + FT_ACT_SHIFT)).clamp(0, FT_QUANT) as u8;
         }
     }
 

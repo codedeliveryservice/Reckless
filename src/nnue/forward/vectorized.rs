@@ -1,6 +1,7 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_ACT_SHIFT, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS,
+        SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
         simd,
     },
@@ -10,8 +11,9 @@ use crate::{
 pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color) -> Aligned<[u8; L1_SIZE]> {
     let mut output = Aligned::new([0; L1_SIZE]);
 
-    let zero = simd::splat_i16(0);
-    let one = simd::splat_i16(FT_QUANT as i16);
+    let zero_i16 = simd::splat_i16(0);
+    let zero_i8 = simd::splat_i8(0);
+    let act = simd::splat_i16((FT_QUANT << FT_ACT_SHIFT) as i16);
 
     for flip in [0, 1] {
         let pst_input = &pst.values[stm as usize ^ flip];
@@ -30,19 +32,19 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let threat_rhs1 = *threat_input.as_ptr().add(i + L1_SIZE / 2).cast();
             let threat_rhs2 = *threat_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
-            let lhs1_clipped = simd::clamp_i16(simd::add_i16(lhs1, threat_lhs1), zero, one);
-            let lhs2_clipped = simd::clamp_i16(simd::add_i16(lhs2, threat_lhs2), zero, one);
+            let lhs1_clipped = simd::add_i16(lhs1, threat_lhs1);
+            let lhs2_clipped = simd::add_i16(lhs2, threat_lhs2);
 
-            let rhs1_clipped = simd::min_i16(simd::add_i16(rhs1, threat_rhs1), one);
-            let rhs2_clipped = simd::min_i16(simd::add_i16(rhs2, threat_rhs2), one);
+            let rhs1_clipped = simd::clamp_i16(simd::add_i16(rhs1, threat_rhs1), zero_i16, act);
+            let rhs2_clipped = simd::clamp_i16(simd::add_i16(rhs2, threat_rhs2), zero_i16, act);
 
-            let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
-            let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
+            let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT - FT_ACT_SHIFT }>(lhs1_clipped);
+            let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT - FT_ACT_SHIFT }>(lhs2_clipped);
 
             let product1 = simd::mul_high_i16(shifted1, rhs1_clipped);
             let product2 = simd::mul_high_i16(shifted2, rhs2_clipped);
 
-            let packed = simd::packus(product1, product2);
+            let packed = simd::max_i8(simd::packs(product1, product2), zero_i8);
             let unpacked = simd::permute(packed);
 
             *output.as_mut_ptr().add(i + flip * L1_SIZE / 2).cast() = unpacked;
