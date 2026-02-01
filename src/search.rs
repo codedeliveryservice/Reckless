@@ -497,6 +497,7 @@ fn search<NODE: NodeType>(
 
     // Null Move Pruning (NMP)
     if cut_node
+        && td.stack[ply - 1].mv.is_some()
         && !in_check
         && !excluded
         && !potential_singularity
