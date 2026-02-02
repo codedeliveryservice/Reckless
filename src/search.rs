@@ -1,6 +1,7 @@
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -476,7 +477,11 @@ fn search<NODE: NodeType>(
     let improving = improvement > 0;
 
     // Razoring
-    if !NODE::PV && !in_check && estimated_score < alpha - 299 - 252 * depth * depth && alpha < 2048 {
+    if !NODE::PV
+        && !in_check
+        && estimated_score < alpha - [raz1(), raz2(), raz3(), raz4(), raz5(), raz6(), raz7(), raz8()][(depth as usize).min(7) - 1]
+        && alpha < 2048
+    {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
 
@@ -486,9 +491,11 @@ fn search<NODE: NodeType>(
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
+            >= beta
+                + [rfp1(), rfp2(), rfp3(), rfp4(), rfp5(), rfp6(), rfp7(), rfp8(), rfp9(), rfp10(), rfp11(), rfp12(), rfp13(), rfp14(), rfp15()]
+                    [(depth as usize).min(15) - 1]
+                - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
-                + 32 * (depth == 1) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -502,7 +509,15 @@ fn search<NODE: NodeType>(
         && !potential_singularity
         && estimated_score >= beta
         && estimated_score >= eval
-        && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
+        && eval
+            >= beta
+                + [
+                    nmp1(), nmp2(), nmp3(), nmp4(), nmp5(), nmp6(), nmp7(), nmp8(), nmp9(), nmp10(),
+                    nmp11(), nmp12(), nmp13(), nmp14(), nmp15(), nmp16(), nmp17(), nmp18(), nmp19(), nmp20(),
+                    nmp21(), nmp22(), nmp23(), nmp24(), nmp25(), nmp26(), nmp27(), nmp28(), nmp29(), nmp30(), nmp31(),
+                ][(depth as usize).min(31) - 1]
+                + 126 * tt_pv as i32
+                - 128 * improvement / 1024
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
         && !is_loss(beta)
@@ -695,7 +710,10 @@ fn search<NODE: NodeType>(
                     };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= alpha) as i32 - 114;
+            let futility_value = eval
+                + [fp1(), fp2(), fp3(), fp4(), fp5(), fp6(), fp7(), fp8(), fp9(), fp10(), fp11(), fp12(), fp13()][(depth as usize).min(13) - 1]
+                + 63 * history / 1024
+                + 88 * (eval >= alpha) as i32;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
@@ -706,8 +724,10 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value =
-                eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
+            let noisy_futility_value = eval
+                + [bnfp1(), bnfp2(), bnfp3(), bnfp4(), bnfp5(), bnfp6(), bnfp7(), bnfp8(), bnfp9(), bnfp10(), bnfp11()][(depth as usize).min(11) - 1]
+                + 69 * history / 1024
+                + 81 * td.board.piece_on(mv.to()).value() / 1024;
 
             if !in_check
                 && depth < 12
@@ -723,9 +743,15 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                (-16 * depth * depth + 52 * depth - 21 * history / 1024 + 22).min(0)
+                ([see_quiet1(), see_quiet2(), see_quiet3(), see_quiet4(), see_quiet5(), see_quiet6(), see_quiet7(), see_quiet8(), see_quiet9(), see_quiet10(), see_quiet11(), see_quiet12(), see_quiet13(), see_quiet14(), see_quiet15(), see_quiet16()]
+                    [(depth as usize).min(16) - 1]
+                    - 21 * history / 1024)
+                    .min(0)
             } else {
-                (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
+                ([see_noisy1(), see_noisy2(), see_noisy3(), see_noisy4(), see_noisy5(), see_noisy6(), see_noisy7(), see_noisy8(), see_noisy9(), see_noisy10(), see_noisy11(), see_noisy12(), see_noisy13(), see_noisy14(), see_noisy15(), see_noisy16()]
+                    [(depth as usize).min(16) - 1]
+                    - 32 * history / 1024)
+                    .min(0)
             };
 
             if !td.board.see(mv, threshold) {
