@@ -67,6 +67,10 @@ pub unsafe fn splat_f32(a: f32) -> float32x4_t {
     vdupq_n_f32(a)
 }
 
+pub unsafe fn mul_f32(a: float32x4_t, b: float32x4_t) -> float32x4_t {
+    vfmulq_f32(a, b)
+}
+
 pub unsafe fn mul_add_f32(a: float32x4_t, b: float32x4_t, c: float32x4_t) -> float32x4_t {
     vfmaq_f32(c, a, b)
 }

@@ -1,6 +1,7 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_INV_K, L1_OFFSET, L1_SIZE, L2_INV_K, L2_OFFSET, L2_SIZE,
+        L3_SIZE, PARAMETERS, SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
     },
     types::Color,
@@ -53,7 +54,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i]).clamp(0.0, 1.0);
+        output[i] = pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i];
+        output[i] = output[i] * (output[i].mul_add(L1_INV_K, L1_OFFSET)).clamp(0.0, 1.0);
     }
 
     output
@@ -70,7 +72,7 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[
 
     for i in 0..L3_SIZE {
         output[i] += PARAMETERS.l2_biases[bucket][i];
-        output[i] = output[i].clamp(0.0, 1.0);
+        output[i] = output[i] * (output[i].mul_add(L2_INV_K, L2_OFFSET)).clamp(0.0, 1.0);
     }
     output
 }

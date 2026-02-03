@@ -1,6 +1,7 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_INV_K, L1_OFFSET, L1_SIZE, L2_INV_K, L2_OFFSET, L2_SIZE,
+        L3_SIZE, PARAMETERS, SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
         simd,
     },
@@ -96,12 +97,15 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
+    let inv_k = simd::splat_f32(L1_INV_K);
+    let offset = simd::splat_f32(L1_OFFSET);
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = *PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
+        *output.as_mut_ptr().add(i).cast() =
+            simd::mul_f32(vector, simd::clamp_f32(simd::mul_add_f32(vector, inv_k, offset), zero, one));
     }
 
     output
@@ -123,10 +127,12 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
+    let inv_k = simd::splat_f32(L2_INV_K);
+    let offset = simd::splat_f32(L2_OFFSET);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+        *vector = simd::mul_f32(*vector, simd::clamp_f32(simd::mul_add_f32(*vector, inv_k, offset), zero, one));
     }
 
     output
