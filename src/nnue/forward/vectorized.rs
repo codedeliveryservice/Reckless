@@ -189,33 +189,23 @@ pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (A
     let mut indexes = Aligned::new([0; L1_SIZE / 4]);
     let mut count = 0;
 
-    let increment = _mm512_set1_epi16(64);
-    let mut base01 = _mm512_set_epi16(
+    let increment = _mm512_set1_epi16(32);
+    let mut base = _mm512_set_epi16(
         31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2,
         1, 0,
     );
-    let mut base23 = _mm512_add_epi16(base01, _mm512_set1_epi16(32));
 
-    for i in (0..L1_SIZE).step_by(8 * simd::I16_LANES) {
+    for i in (0..L1_SIZE).step_by(4 * simd::I16_LANES) {
         let mask0 = simd::nnz_bitmask(*ft_out.as_ptr().add(i).cast());
         let mask1 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 2 * simd::I16_LANES).cast());
-        let mask2 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 4 * simd::I16_LANES).cast());
-        let mask3 = simd::nnz_bitmask(*ft_out.as_ptr().add(i + 6 * simd::I16_LANES).cast());
-        let mask01 = _mm512_kunpackw(mask1 as u32, mask0 as u32);
-        let mask23 = _mm512_kunpackw(mask3 as u32, mask2 as u32);
-        let compressed01 = _mm512_maskz_compress_epi16(mask01, base01);
-        let compressed23 = _mm512_maskz_compress_epi16(mask23, base23);
+        let mask = _mm512_kunpackw(mask1 as u32, mask0 as u32);
+        let compressed = _mm512_maskz_compress_epi16(mask, base);
 
         let store = indexes.as_mut_ptr().add(count).cast();
-        _mm512_storeu_si512(store, compressed01);
-        count += mask01.count_ones() as usize;
+        _mm512_storeu_si512(store, compressed);
+        count += mask.count_ones() as usize;
 
-        let store = indexes.as_mut_ptr().add(count).cast();
-        _mm512_storeu_si512(store, compressed23);
-        count += mask23.count_ones() as usize;
-
-        base01 = _mm512_add_epi16(base01, increment);
-        base23 = _mm512_add_epi16(base23, increment);
+        base = _mm512_add_epi16(base, increment);
     }
 
     (indexes, count)
