@@ -557,7 +557,7 @@ fn search<NODE: NodeType>(
         && (!is_valid(tt_score) || tt_score >= probcut_beta && !is_decisive(tt_score))
         && !tt_move.is_quiet()
     {
-        let mut move_picker = MovePicker::new_probcut(if in_check { 0 } else { probcut_beta - eval });
+        let mut move_picker = MovePicker::new_probcut(if in_check { -100 } else { probcut_beta - eval });
 
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
