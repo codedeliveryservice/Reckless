@@ -442,22 +442,22 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 1
-    {
-        depth += 1;
-    }
+    // if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 1
+    // {
+    //     depth += 1;
+    // }
 
-    if !NODE::ROOT
-        && !tt_pv
-        && !in_check
-        && !excluded
-        && depth >= 2
-        && td.stack[ply - 1].reduction >= 756
-        && is_valid(td.stack[ply - 1].eval)
-        && eval + td.stack[ply - 1].eval > 59
-    {
-        depth -= 1;
-    }
+    // if !NODE::ROOT
+    //     && !tt_pv
+    //     && !in_check
+    //     && !excluded
+    //     && depth >= 2
+    //     && td.stack[ply - 1].reduction >= 756
+    //     && is_valid(td.stack[ply - 1].eval)
+    //     && eval + td.stack[ply - 1].eval > 59
+    // {
+    //     depth -= 1;
+    // }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
         && tt_depth >= depth - 3
