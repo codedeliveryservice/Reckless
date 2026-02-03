@@ -685,8 +685,10 @@ fn search<NODE: NodeType>(
         };
 
         if !NODE::ROOT && !is_loss(best_score) {
+            let is_direct_check = td.board.is_direct_check(mv);
+
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
+            skip_quiets |= !is_direct_check
                 && move_count
                     >= if improving || eval >= beta + 20 {
                         (3127 + 1075 * depth * depth) / 1024
@@ -697,7 +699,7 @@ fn search<NODE: NodeType>(
             // Futility Pruning (FP)
             let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= alpha) as i32 - 114;
 
-            if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
+            if !in_check && !is_direct_check && is_quiet && depth < 14 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score <= futility_value {
                     best_score = futility_value;
                 }
@@ -710,10 +712,10 @@ fn search<NODE: NodeType>(
                 eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
 
             if !in_check
+                && !is_direct_check
                 && depth < 12
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
-                && !td.board.is_direct_check(mv)
             {
                 if !is_decisive(best_score) && best_score <= noisy_futility_value {
                     best_score = noisy_futility_value;
