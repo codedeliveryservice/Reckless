@@ -559,6 +559,9 @@ fn search<NODE: NodeType>(
     {
         let mut move_picker = MovePicker::new_probcut(probcut_beta - eval);
 
+        let mut best_move = Move::NULL;
+        let mut best_score = -Score::INFINITE;
+
         while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
             if move_picker.stage() == Stage::BadNoisy {
                 break;
@@ -601,6 +604,15 @@ fn search<NODE: NodeType>(
                     return score - (probcut_beta - beta);
                 }
             }
+
+            if score > best_score {
+                best_score = score;
+                best_move = mv;
+            }
+        }
+
+        if tt_move.is_null() && best_move.is_some() {
+            tt_move = best_move;
         }
     }
 
