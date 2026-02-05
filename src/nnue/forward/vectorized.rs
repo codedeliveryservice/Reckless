@@ -130,9 +130,15 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
     let inv_k = simd::splat_f32(L2_INV_K);
     let offset = simd::splat_f32(L2_OFFSET);
 
-    for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
-        let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::mul_f32(*vector, simd::clamp_f32(simd::mul_add_f32(*vector, inv_k, offset), zero, one));
+    for i in (0..L3_SIZE / 2).step_by(simd::F32_LANES) {
+        let vector_i = output.as_mut_ptr().add(i).cast();
+        let vector_j = output.as_mut_ptr().add(i + L3_SIZE / 2).cast();
+
+        let swish_i = simd::mul_f32(*vector_i, simd::clamp_f32(simd::mul_add_f32(*vector_i, inv_k, offset), zero, one));
+        let swish_j = simd::mul_f32(*vector_j, simd::clamp_f32(simd::mul_add_f32(*vector_j, inv_k, offset), zero, one));
+
+        *vector_i = simd::mul_f32(*vector_i, swish_j);
+        *vector_j = simd::mul_f32(*vector_j, swish_i);
     }
 
     output

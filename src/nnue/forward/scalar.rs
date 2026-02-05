@@ -70,9 +70,15 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[
         }
     }
 
-    for i in 0..L3_SIZE {
+    for i in 0..(L3_SIZE / 2) {
         output[i] += PARAMETERS.l2_biases[bucket][i];
-        output[i] = output[i] * (output[i].mul_add(L2_INV_K, L2_OFFSET)).clamp(0.0, 1.0);
+        output[i + L3_SIZE / 2] += PARAMETERS.l2_biases[bucket][i + L3_SIZE / 2];
+
+        let swish_i = output[i] * (output[i].mul_add(L2_INV_K, L2_OFFSET)).clamp(0.0, 1.0);
+        let swish_j = output[i + L3_SIZE / 2] * (output[i + L3_SIZE / 2].mul_add(L2_INV_K, L2_OFFSET)).clamp(0.0, 1.0);
+
+        output[i] *= swish_j;
+        output[i + L3_SIZE / 2] *= swish_i;
     }
     output
 }
