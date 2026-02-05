@@ -323,7 +323,11 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            if tt_move.is_quiet()
+                && tt_score >= beta
+                && td.stack[ply - 1].move_count < 4
+                && td.stack[ply - 1].mv != td.stack[ply - 1].tt_move
+            {
                 let quiet_bonus = (185 * depth - 81).min(1806);
                 let cont_bonus = (108 * depth - 56).min(1365);
 
@@ -985,7 +989,11 @@ fn search<NODE: NodeType>(
             td.noisy_history.update(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
         }
 
-        if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
+        if !NODE::ROOT
+            && td.stack[ply - 1].mv.is_quiet()
+            && td.stack[ply - 1].move_count < 2
+            && td.stack[ply - 1].mv != td.stack[ply - 1].tt_move
+        {
             let malus = (86 * depth - 60).min(771);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
         }
