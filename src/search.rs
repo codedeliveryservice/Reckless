@@ -323,7 +323,7 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].history >= 1206 {
                 let quiet_bonus = (185 * depth - 81).min(1806);
                 let cont_bonus = (108 * depth - 56).min(1365);
 
@@ -520,6 +520,8 @@ fn search<NODE: NodeType>(
         td.stack[ply].piece = Piece::None;
         td.stack[ply].mv = Move::NULL;
 
+        td.stack[ply].history = 0;
+
         td.board.make_null_move();
 
         let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
@@ -567,6 +569,15 @@ fn search<NODE: NodeType>(
             if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
                 continue;
             }
+
+            td.stack[ply].history = if mv.is_quiet() {
+                td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
+                    + td.conthist(ply, 1, mv)
+                    + td.conthist(ply, 2, mv)
+            } else {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
+            };
 
             make_move(td, ply, mv);
 
@@ -683,6 +694,8 @@ fn search<NODE: NodeType>(
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
+
+        td.stack[ply].history = history;
 
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
