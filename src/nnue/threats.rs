@@ -34,14 +34,14 @@ pub fn initialize() {
     #[rustfmt::skip]
     const PIECE_INTERACTION_MAP: [[i32; 6]; 6] = [
         [0,  1, -1,  2, -1, -1],
-        [0,  1,  2,  3,  4,  5],
-        [0,  1,  2,  3, -1,  4],
-        [0,  1,  2,  3, -1,  4],
-        [0,  1,  2,  3,  4,  5],
+        [0,  1,  2,  3,  4, -1],
+        [0,  1,  2,  3, -1, -1],
+        [0,  1,  2,  3, -1, -1],
+        [0,  1,  2,  3,  4, -1],
         [0,  1,  2,  3, -1, -1],
     ];
 
-    const PIECE_TARGET_COUNT: [i32; 6] = [6, 12, 10, 10, 12, 8];
+    const PIECE_TARGET_COUNT: [i32; 6] = [6, 10, 8, 8, 10, 8];
 
     let mut offset = 0;
     let mut piece_offset = [0; Piece::NUM];
