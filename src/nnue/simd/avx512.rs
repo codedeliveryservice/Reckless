@@ -59,6 +59,14 @@ pub unsafe fn splat_f32(a: f32) -> __m512 {
     _mm512_set1_ps(a)
 }
 
+pub unsafe fn sub_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_sub_ps(a, b)
+}
+
+pub unsafe fn mul_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_mul_ps(a, b)
+}
+
 pub unsafe fn mul_add_f32(a: __m512, b: __m512, c: __m512) -> __m512 {
     _mm512_fmadd_ps(a, b, c)
 }
@@ -67,8 +75,8 @@ pub unsafe fn convert_to_f32(a: __m512i) -> __m512 {
     _mm512_cvtepi32_ps(a)
 }
 
-pub unsafe fn clamp_f32(x: __m512, min: __m512, max: __m512) -> __m512 {
-    _mm512_max_ps(_mm512_min_ps(x, max), min)
+pub unsafe fn max_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_max_ps(a, b)
 }
 
 pub unsafe fn dpbusd(i32s: __m512i, u8s: __m512i, i8s: __m512i) -> __m512i {
