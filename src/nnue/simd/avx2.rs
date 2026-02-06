@@ -60,6 +60,14 @@ pub unsafe fn splat_f32(a: f32) -> __m256 {
     _mm256_set1_ps(a)
 }
 
+pub unsafe fn sub_f32(a: __m256, b: __m256) -> __m256 {
+    _mm256_sub_ps(a, b)
+}
+
+pub unsafe fn mul_f32(a: __m256, b: __m256) -> __m256 {
+    _mm256_mul_ps(a, b)
+}
+
 pub unsafe fn mul_add_f32(a: __m256, b: __m256, c: __m256) -> __m256 {
     _mm256_fmadd_ps(a, b, c)
 }
@@ -68,8 +76,8 @@ pub unsafe fn convert_to_f32(a: __m256i) -> __m256 {
     _mm256_cvtepi32_ps(a)
 }
 
-pub unsafe fn clamp_f32(x: __m256, min: __m256, max: __m256) -> __m256 {
-    _mm256_max_ps(_mm256_min_ps(x, max), min)
+pub unsafe fn max_f32(a: __m256, b: __m256) -> __m256 {
+    _mm256_max_ps(a, b)
 }
 
 pub unsafe fn dpbusd(i32s: __m256i, u8s: __m256i, i8s: __m256i) -> __m256i {

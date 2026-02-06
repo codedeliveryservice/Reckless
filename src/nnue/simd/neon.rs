@@ -67,6 +67,14 @@ pub unsafe fn splat_f32(a: f32) -> float32x4_t {
     vdupq_n_f32(a)
 }
 
+pub unsafe fn sub_f32(a: float32x4_t, b: float32x4_t) -> float32x4_t {
+    vsubq_f32(a, b)
+}
+
+pub unsafe fn mul_f32(a: float32x4_t, b: float32x4_t) -> float32x4_t {
+    vmulq_f32(a, b)
+}
+
 pub unsafe fn mul_add_f32(a: float32x4_t, b: float32x4_t, c: float32x4_t) -> float32x4_t {
     vfmaq_f32(c, a, b)
 }
@@ -75,8 +83,8 @@ pub unsafe fn convert_to_f32(a: int32x4_t) -> float32x4_t {
     vcvtq_f32_s32(a)
 }
 
-pub unsafe fn clamp_f32(x: float32x4_t, min: float32x4_t, max: float32x4_t) -> float32x4_t {
-    vmaxq_f32(vminq_f32(x, max), min)
+pub unsafe fn max_f32(a: float32x4_t, b: float32x4_t) -> float32x4_t {
+    vmaxq_f32(a, b)
 }
 
 unsafe fn dot_bytes(u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {

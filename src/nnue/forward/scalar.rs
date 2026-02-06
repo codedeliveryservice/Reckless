@@ -24,7 +24,7 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; 2 * L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = [0i32; L2_SIZE];
@@ -50,34 +50,41 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0.0; 2 * L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i]).clamp(0.0, 1.0);
+        let value = pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i];
+
+        output[i] = value.max(0.0) * value.max(0.0);
+        output[L2_SIZE + i] = (-value).max(0.0) * (-value).max(0.0);
     }
 
     output
 }
 
-pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = Aligned::new([0.0; L3_SIZE]);
+pub fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -> Aligned<[f32; 2 * L3_SIZE]> {
+    let mut pre_activations = Aligned::new([0.0; L3_SIZE]);
 
-    for i in 0..L2_SIZE {
+    for i in 0..2 * L2_SIZE {
         for j in 0..L3_SIZE {
-            output[j] += PARAMETERS.l2_weights[bucket][i][j] * l1_out[i];
+            pre_activations[j] += PARAMETERS.l2_weights[bucket][i][j] * l1_out[i];
         }
     }
 
+    let mut output = Aligned::new([0.0; 2 * L3_SIZE]);
+
     for i in 0..L3_SIZE {
-        output[i] += PARAMETERS.l2_biases[bucket][i];
-        output[i] = output[i].clamp(0.0, 1.0);
+        let value = pre_activations[i] + PARAMETERS.l2_biases[bucket][i];
+
+        output[i] = value.max(0.0) * value.max(0.0);
+        output[L3_SIZE + i] = (-value).max(0.0) * (-value).max(0.0);
     }
     output
 }
 
-pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
+pub fn propagate_l3(l2_out: Aligned<[f32; 2 * L3_SIZE]>, bucket: usize) -> f32 {
     let mut output = 0.0;
-    for i in 0..L3_SIZE {
+    for i in 0..2 * L3_SIZE {
         output = PARAMETERS.l3_weights[bucket][i].mul_add(l2_out[i], output);
     }
     output + PARAMETERS.l3_biases[bucket]
