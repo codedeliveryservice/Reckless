@@ -208,7 +208,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
         }
 
         let multiplier = || {
-            let nodes_factor = 2.15 - 1.5 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
+            let nodes_factor = 2.25 - 1.65 * (td.root_moves[0].nodes as f32 / td.nodes() as f32);
 
             let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
 
