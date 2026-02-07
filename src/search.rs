@@ -733,7 +733,8 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
+        let mut new_depth =
+            if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0 && depth < 14) as i32 - 1 };
 
         let mut score = Score::ZERO;
 
