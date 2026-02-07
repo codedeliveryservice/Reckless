@@ -623,17 +623,13 @@ fn search<NODE: NodeType>(
 
         if score < singular_beta {
             let double_margin =
-                -4 + 256 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+                200 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
-                48 + 288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
+                288 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128 + 32;
 
             extension = 1;
             extension += (score < singular_beta - double_margin) as i32;
             extension += (score < singular_beta - triple_margin) as i32;
-
-            if extension > 1 && depth < 14 {
-                depth += 1;
-            }
         }
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
@@ -737,7 +733,8 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
+
         let mut score = Score::ZERO;
 
         // Internal Iterative Reductions (IIR)
