@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
+    types::{Color, MAX_PLY, Move, Piece, PieceType, Score, Square},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -53,7 +53,7 @@ mod simd {
     pub use scalar::*;
 }
 
-const NETWORK_SCALE: i32 = 380;
+const NETWORK_SCALE: i32 = 265;
 
 const INPUT_BUCKETS: usize = 10;
 const OUTPUT_BUCKETS: usize = 8;
@@ -553,7 +553,7 @@ impl Network {
             let l2_out = forward::propagate_l2(l1_out, bucket);
             let l3_out = forward::propagate_l3(l2_out, bucket);
 
-            (l3_out * NETWORK_SCALE as f32) as i32
+            ((l3_out * NETWORK_SCALE as f32) as i32).clamp(-Score::TB_WIN_IN_MAX + 1, Score::TB_WIN_IN_MAX - 1)
         }
     }
 }
