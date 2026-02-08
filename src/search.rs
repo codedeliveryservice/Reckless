@@ -233,11 +233,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     td.shared.status.set(Status::STOPPED);
                 }
             }
+        } else if soft_stop_voted {
+            soft_stop_voted = false;
+            td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
+        }
 
-            if td.shared.status.get() == Status::STOPPED {
-                td.stopped = true;
-                break;
-            }
+        if td.shared.status.get() == Status::STOPPED {
+            td.stopped = true;
+            break;
         }
     }
 
