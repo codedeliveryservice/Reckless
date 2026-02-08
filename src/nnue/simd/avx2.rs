@@ -64,10 +64,6 @@ pub unsafe fn sub_f32(a: __m256, b: __m256) -> __m256 {
     _mm256_sub_ps(a, b)
 }
 
-pub unsafe fn mul_f32(a: __m256, b: __m256) -> __m256 {
-    _mm256_mul_ps(a, b)
-}
-
 pub unsafe fn mul_add_f32(a: __m256, b: __m256, c: __m256) -> __m256 {
     _mm256_fmadd_ps(a, b, c)
 }

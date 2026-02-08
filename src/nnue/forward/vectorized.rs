@@ -101,11 +101,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
         let biases = *PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
 
-        let pos = simd::max_f32(vector, zero);
-        let neg = simd::max_f32(simd::sub_f32(zero, vector), zero);
-
-        *output.as_mut_ptr().add(i).cast() = simd::mul_f32(pos, pos);
-        *output.as_mut_ptr().add(i + L2_SIZE).cast() = simd::mul_f32(neg, neg);
+        *output.as_mut_ptr().add(i).cast() = simd::max_f32(vector, zero);
+        *output.as_mut_ptr().add(i + L2_SIZE).cast() = simd::max_f32(simd::sub_f32(zero, vector), zero);
     }
 
     output
@@ -132,11 +129,8 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = pre_activations.as_ptr().add(i).cast();
 
-        let pos = simd::max_f32(*vector, zero);
-        let neg = simd::max_f32(simd::sub_f32(zero, *vector), zero);
-
-        *output.as_mut_ptr().add(i).cast() = simd::mul_f32(pos, pos);
-        *output.as_mut_ptr().add(i + L3_SIZE).cast() = simd::mul_f32(neg, neg);
+        *output.as_mut_ptr().add(i).cast() = simd::max_f32(*vector, zero);
+        *output.as_mut_ptr().add(i + L3_SIZE).cast() = simd::max_f32(simd::sub_f32(zero, *vector), zero);
     }
 
     output

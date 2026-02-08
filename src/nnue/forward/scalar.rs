@@ -55,8 +55,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     for i in 0..L2_SIZE {
         let value = pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i];
 
-        output[i] = value.max(0.0) * value.max(0.0);
-        output[L2_SIZE + i] = (-value).max(0.0) * (-value).max(0.0);
+        output[i] = value.max(0.0);
+        output[L2_SIZE + i] = (-value).max(0.0);
     }
 
     output
@@ -76,8 +76,8 @@ pub fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -> Align
     for i in 0..L3_SIZE {
         let value = pre_activations[i] + PARAMETERS.l2_biases[bucket][i];
 
-        output[i] = value.max(0.0) * value.max(0.0);
-        output[L3_SIZE + i] = (-value).max(0.0) * (-value).max(0.0);
+        output[i] = value.max(0.0);
+        output[L3_SIZE + i] = (-value).max(0.0);
     }
     output
 }
