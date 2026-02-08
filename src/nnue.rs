@@ -596,7 +596,7 @@ impl BoardObserver for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 66864]>,
+    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 79856]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
