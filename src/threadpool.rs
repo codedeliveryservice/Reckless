@@ -2,6 +2,7 @@ use std::{
     ops::Index,
     sync::{
         Arc, Condvar, Mutex,
+        atomic::Ordering,
         mpsc::{Receiver, SyncSender},
     },
     thread::Scope,
@@ -10,7 +11,7 @@ use std::{
 use crate::{
     search::{self, Report},
     thread::{SharedContext, Status, ThreadData},
-    time::{Limits, TimeManager},
+    time::TimeManager,
 };
 
 pub struct ThreadPool {
@@ -73,31 +74,36 @@ impl ThreadPool {
 
         shared.nodes.reset();
         shared.tb_hits.reset();
+        shared.soft_stop_votes.store(0, Ordering::Release);
         shared.status.set(Status::RUNNING);
 
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();
 
+            let thread_count = self.vector.len();
+
             let (t1, rest) = self.vector.split_first_mut().unwrap();
             let (w1, rest_workers) = self.workers.split_first().unwrap();
 
+            let tm = time_manager.clone();
             handlers.push(scope.spawn_into(
-                || {
-                    t1.time_manager = time_manager;
+                move || {
+                    t1.time_manager = tm;
 
-                    search::start(t1, report);
+                    search::start(t1, report, thread_count);
                     shared.status.set(Status::STOPPED);
                 },
                 w1,
             ));
 
             for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
+                let tm = time_manager.clone();
                 handlers.push(scope.spawn_into(
                     move || {
                         t.id = index + 1;
-                        t.time_manager = TimeManager::new(Limits::Infinite, 0, 0);
+                        t.time_manager = tm;
 
-                        search::start(t, Report::None);
+                        search::start(t, Report::None, thread_count);
                     },
                     w,
                 ));

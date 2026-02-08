@@ -14,6 +14,7 @@ pub enum Limits {
 
 const TIME_OVERHEAD_MS: u64 = 15;
 
+#[derive(Clone)]
 pub struct TimeManager {
     limits: Limits,
     start_time: Instant,

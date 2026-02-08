@@ -1,7 +1,9 @@
+use std::sync::atomic::Ordering;
+
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    thread::{RootMove, ThreadData},
+    thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
@@ -48,9 +50,10 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn start(td: &mut ThreadData, report: Report) {
+pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
     td.stopped = false;
+    let mut soft_stop_voted = false;
 
     td.pv_table.clear(0);
     td.nnue.full_refresh(&td.board);
@@ -222,7 +225,19 @@ pub fn start(td: &mut ThreadData, report: Report) {
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
-            break;
+            if !soft_stop_voted {
+                soft_stop_voted = true;
+
+                let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
+                if votes >= thread_count / 2 {
+                    td.shared.status.set(Status::STOPPED);
+                }
+            }
+
+            if td.shared.status.get() == Status::STOPPED {
+                td.stopped = true;
+                break;
+            }
         }
     }
 
