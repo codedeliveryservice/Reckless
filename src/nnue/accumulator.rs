@@ -317,6 +317,16 @@ impl ThreatAccumulator {
             let mirrored = king.file() >= 4;
 
             let index = threat_index(piece, from, attacked, to, mirrored, pov);
+
+            #[cfg(target_arch = "x86_64")]
+            unsafe {
+                use std::arch::x86_64::{_MM_HINT_T2, _mm_prefetch};
+
+                if index >= 0 {
+                    _mm_prefetch(PARAMETERS.ft_threat_weights[index as usize].as_ptr().cast(), _MM_HINT_T2);
+                }
+            }
+
             if add {
                 adds.maybe_push(index >= 0, index as usize);
             } else {
