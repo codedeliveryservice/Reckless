@@ -733,8 +733,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
-
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
         let mut score = Score::ZERO;
 
         // Internal Iterative Reductions (IIR)
@@ -765,6 +764,10 @@ fn search<NODE: NodeType>(
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if extension > 0 {
+                reduction -= 512 * extension;
             }
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
@@ -829,6 +832,10 @@ fn search<NODE: NodeType>(
             if tt_pv {
                 reduction -= 897;
                 reduction -= 1127 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if extension > 0 {
+                reduction -= 512 * extension;
             }
 
             if !tt_pv && cut_node {
