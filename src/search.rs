@@ -53,7 +53,6 @@ impl NodeType for NonPV {
 pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
     td.stopped = false;
-    let mut soft_stop_voted = false;
 
     td.pv_table.clear(0);
     td.nnue.full_refresh(&td.board);
@@ -82,6 +81,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
+    let mut soft_stop_voted = false;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -229,7 +229,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 soft_stop_voted = true;
 
                 let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
-                if votes >= thread_count / 2 {
+                let majority = (thread_count * 65 + 99) / 100;
+                if votes >= majority {
                     td.shared.status.set(Status::STOPPED);
                 }
             }
