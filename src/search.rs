@@ -766,7 +766,7 @@ fn search<NODE: NodeType>(
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if extension > 1 {
+            if extension > 0 && depth < 14 {
                 reduction -= 1024;
             }
 
