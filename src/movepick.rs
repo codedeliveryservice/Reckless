@@ -190,12 +190,12 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = (994 * td.quiet_history.get(threats, side, mv)
-                + 1049 * td.conthist(ply, 1, mv)
-                + 990 * td.conthist(ply, 2, mv)
-                + 969 * td.conthist(ply, 4, mv)
-                + 1088 * td.conthist(ply, 6, mv))
-                / 1024;
+            entry.score = td.quiet_history.get(threats, side, mv)
+                + td.conthist(ply, 1, mv)
+                + td.conthist(ply, 2, mv)
+                + td.conthist(ply, 3, mv)
+                + td.conthist(ply, 4, mv)
+                + td.conthist(ply, 6, mv);
         }
     }
 }
