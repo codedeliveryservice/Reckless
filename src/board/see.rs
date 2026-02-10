@@ -88,7 +88,7 @@ impl super::Board {
         stm != self.side_to_move()
     }
 
-    fn move_value(&self, mv: Move) -> i32 {
+    pub fn move_value(&self, mv: Move) -> i32 {
         if mv.is_en_passant() {
             return PieceType::Pawn.value();
         }
