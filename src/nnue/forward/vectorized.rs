@@ -98,7 +98,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     let one = simd::splat_f32(1.0);
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
-    let swish_bias = simd::splat_f32(3.0);
+    let swish_bias = simd::splat_f32(0.5);
     let swish_scale = simd::splat_f32(1.0 / 6.0);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
