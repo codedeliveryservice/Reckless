@@ -52,7 +52,7 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; 2 * L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
@@ -92,25 +92,35 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0.0; 2 * L2_SIZE]);
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
+    let swish_bias = simd::splat_f32(3.0);
+    let swish_scale = simd::splat_f32(1.0 / 6.0);
+
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = *PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
+
+        let crelu = simd::clamp_f32(vector, zero, one);
+
+        let inner = simd::mul_add_f32(vector, swish_scale, swish_bias);
+        let hardswish = simd::mul_f32(vector, simd::clamp_f32(inner, zero, one));
+
+        *output.as_mut_ptr().add(i).cast() = crelu;
+        *output.as_mut_ptr().add(i + L2_SIZE).cast() = hardswish;
     }
 
     output
 }
 
-pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
+pub unsafe fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
     let mut output = Aligned::new(PARAMETERS.l2_biases[bucket]);
 
-    for i in 0..L2_SIZE {
+    for i in 0..2 * L2_SIZE {
         let input = simd::splat_f32(l1_out[i]);
         let weights = PARAMETERS.l2_weights[bucket][i].as_ptr();
 
