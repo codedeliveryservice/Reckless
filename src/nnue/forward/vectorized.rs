@@ -98,7 +98,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     let one = simd::splat_f32(1.0);
     let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
 
-    let swish_bias = simd::splat_f32(3.0);
+    let swish_bias = simd::splat_f32(0.5);
     let swish_scale = simd::splat_f32(1.0 / 6.0);
 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
@@ -135,14 +135,16 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; 2 * L2_SIZE]>, bucket: usize) -
 
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
-    let half = simd::splat_f32(0.5);
+
+    let swish_bias = simd::splat_f32(0.5);
+    let swish_scale = simd::splat_f32(1.0 / 6.0);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
         let vector = pre_activations.as_mut_ptr().add(i).cast();
 
         let crelu = simd::clamp_f32(*vector, zero, one);
 
-        let inner = simd::mul_add_f32(*vector, half, half);
+        let inner = simd::mul_add_f32(*vector, swish_scale, swish_bias);
         let hardswish = simd::mul_f32(*vector, simd::clamp_f32(inner, zero, one));
 
         *output.as_mut_ptr().add(i).cast() = crelu;
