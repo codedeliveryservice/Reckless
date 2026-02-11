@@ -603,7 +603,7 @@ struct Parameters {
     l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
     l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
     l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
-    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[f32; 2 * L3_SIZE]; OUTPUT_BUCKETS]>,
     l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 

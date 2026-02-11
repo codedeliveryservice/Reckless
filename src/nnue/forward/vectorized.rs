@@ -107,8 +107,8 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     output
 }
 
-pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = Aligned::new(PARAMETERS.l2_biases[bucket]);
+pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; 2 * L3_SIZE]> {
+    let mut pre_activations = Aligned::new(PARAMETERS.l2_biases[bucket]);
 
     for i in 0..L2_SIZE {
         let input = simd::splat_f32(l1_out[i]);
@@ -116,23 +116,30 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
 
         for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
             let weights = *weights.add(j).cast();
-            let vector = output.as_mut_ptr().add(j).cast();
+            let vector = pre_activations.as_mut_ptr().add(j).cast();
             *vector = simd::mul_add_f32(weights, input, *vector);
         }
     }
 
+    let mut output = Aligned::new([0.0; 2 * L3_SIZE]);
+
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
+    let half = simd::splat_f32(0.5);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
-        let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+        let vector = pre_activations.as_mut_ptr().add(i).cast();
+        let crelu = simd::clamp_f32(*vector, zero, one);
+        let identity = simd::mul_f32(*vector, half);
+
+        *output.as_mut_ptr().add(i).cast() = crelu;
+        *output.as_mut_ptr().add(i + L3_SIZE).cast() = identity;
     }
 
     output
 }
 
-pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
+pub unsafe fn propagate_l3(l2_out: Aligned<[f32; 2 * L3_SIZE]>, bucket: usize) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
     let input = l2_out.as_ptr();
@@ -141,7 +148,7 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f3
     let mut output = [simd::zero_f32(); LANES];
 
     for (lane, result) in output.iter_mut().enumerate() {
-        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
+        for i in (0..2 * L3_SIZE).step_by(LANES * simd::F32_LANES) {
             let a = *weights.add(i + lane * simd::F32_LANES).cast();
             let b = *input.add(i + lane * simd::F32_LANES).cast();
 
