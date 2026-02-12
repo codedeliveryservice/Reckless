@@ -179,6 +179,7 @@ impl MovePicker {
     }
 
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
+        let in_check = td.board.in_check();
         let threats = td.board.threats();
         let side = td.board.side_to_move();
 
@@ -190,12 +191,16 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = (994 * td.quiet_history.get(threats, side, mv)
-                + 1049 * td.conthist(ply, 1, mv)
-                + 990 * td.conthist(ply, 2, mv)
-                + 969 * td.conthist(ply, 4, mv)
-                + 1088 * td.conthist(ply, 6, mv))
-                / 1024;
+            entry.score = 994 * td.quiet_history.get(threats, side, mv) + 1049 * td.conthist(ply, 1, mv);
+
+            if !in_check {
+                entry.score += 1049 * td.conthist(ply, 1, mv)
+                    + 990 * td.conthist(ply, 2, mv)
+                    + 969 * td.conthist(ply, 4, mv)
+                    + 1088 * td.conthist(ply, 6, mv);
+            }
+
+            entry.score /= 1024;
         }
     }
 }
