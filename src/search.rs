@@ -1,7 +1,9 @@
+use std::sync::atomic::Ordering;
+
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    thread::{RootMove, ThreadData},
+    thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
@@ -48,7 +50,7 @@ impl NodeType for NonPV {
     const ROOT: bool = false;
 }
 
-pub fn start(td: &mut ThreadData, report: Report) {
+pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
     td.stopped = false;
 
@@ -79,6 +81,7 @@ pub fn start(td: &mut ThreadData, report: Report) {
     let mut eval_stability = 0;
     let mut pv_stability = 0;
     let mut best_move_changes = 0;
+    let mut soft_stop_voted = false;
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
@@ -222,6 +225,22 @@ pub fn start(td: &mut ThreadData, report: Report) {
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
+            if !soft_stop_voted {
+                soft_stop_voted = true;
+
+                let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
+                let majority = (thread_count * 65).div_ceil(100);
+                if votes >= majority {
+                    td.shared.status.set(Status::STOPPED);
+                }
+            }
+        } else if soft_stop_voted {
+            soft_stop_voted = false;
+            td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
+        }
+
+        if td.shared.status.get() == Status::STOPPED {
+            td.stopped = true;
             break;
         }
     }
