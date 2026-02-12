@@ -229,7 +229,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 soft_stop_voted = true;
 
                 let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
-                let majority = (thread_count * 65 + 99) / 100;
+                let majority = (thread_count * 65).div_ceil(100);
                 if votes >= majority {
                     td.shared.status.set(Status::STOPPED);
                 }
