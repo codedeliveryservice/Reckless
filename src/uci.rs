@@ -187,11 +187,15 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
     threads.execute_searches(time_manager, settings.report, shared);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let vote_value = |td: &ThreadData| {
+        td.completed_depth as f64
+            * (td.root_moves[0].score - min_score + 10) as f64
+            * (1.0 / (td.best_move_changes as f64 + 1.0))
+    };
 
-    let mut votes: HashMap<&Move, i32> = HashMap::new();
+    let mut votes: HashMap<Move, f64> = HashMap::new();
     for result in threads.iter() {
-        *votes.entry(&result.root_moves[0].mv).or_default() += vote_value(result);
+        *votes.entry(result.root_moves[0].mv).or_default() += vote_value(result);
     }
 
     let mut best = 0;
