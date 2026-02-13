@@ -187,7 +187,10 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
     threads.execute_searches(time_manager, settings.report, shared);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let min_depth = threads.iter().map(|v| v.completed_depth).min().unwrap_or(1);
+    let vote_value = |td: &ThreadData| {
+        (td.root_moves[0].score - min_score + 10) * (td.completed_depth as i32 - min_depth as i32 + 1)
+    };
 
     let mut votes: HashMap<&Move, i32> = HashMap::new();
     for result in threads.iter() {
