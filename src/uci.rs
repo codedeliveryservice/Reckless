@@ -186,8 +186,14 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
     threads.main_thread().multi_pv = settings.multi_pv;
     threads.execute_searches(time_manager, settings.report, shared);
 
-    let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let scores = threads.iter().map(|td| td.root_moves[0].score).collect::<Vec<_>>();
+    let mean = scores.iter().copied().sum::<i32>() as f64 / scores.len() as f64;
+    let stddev = (scores.iter().map(|&v| (v as f64 - mean).powi(2)).sum::<f64>() / scores.len() as f64).sqrt();
+
+    let vote_value = |td: &ThreadData| {
+        let z = if stddev > 0.0 { (td.root_moves[0].score as f64 - mean) / stddev } else { 0.0 };
+        ((z + 2.0) * td.completed_depth as f64).round() as i32
+    };
 
     let mut votes: HashMap<&Move, i32> = HashMap::new();
     for result in threads.iter() {
