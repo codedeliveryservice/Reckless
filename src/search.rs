@@ -1267,23 +1267,20 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
     let corrhist = td.corrhist();
 
-    (1033 * corrhist.pawn.get(stm, td.board.pawn_key())
-        + 959 * corrhist.minor.get(stm, td.board.minor_key())
-        + 1044 * corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
-        + 1044 * corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
-        + 1001
-            * td.continuation_corrhist.get(
-                td.stack[ply - 2].contcorrhist,
-                td.stack[ply - 1].piece,
-                td.stack[ply - 1].mv.to(),
-            )
-        + 1014
-            * td.continuation_corrhist.get(
-                td.stack[ply - 4].contcorrhist,
-                td.stack[ply - 1].piece,
-                td.stack[ply - 1].mv.to(),
-            ))
-        / 1024
+    (corrhist.pawn.get(stm, td.board.pawn_key())
+        + corrhist.minor.get(stm, td.board.minor_key())
+        + corrhist.non_pawn[Color::White].get(stm, td.board.non_pawn_key(Color::White))
+        + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
+        + td.continuation_corrhist.get(
+            td.stack[ply - 2].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        )
+        + td.continuation_corrhist.get(
+            td.stack[ply - 4].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        ))
         / 77
 }
 
