@@ -854,7 +854,7 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1450;
-                reduction += 2000 * tt_move.is_null() as i32;
+                reduction += 2600 * tt_move.is_null() as i32;
             }
 
             if !improving {
