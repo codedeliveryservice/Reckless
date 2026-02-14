@@ -1013,6 +1013,24 @@ fn search<NODE: NodeType>(
             let bonus = (201 * depth - 86).min(1634);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
+    } else if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+        let noisy_malus = (164 * tt_depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
+        let quiet_malus = (144 * tt_depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
+        let cont_malus = (352 * tt_depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
+
+        if tt_move.is_noisy() {
+            let captured = td.board.piece_on(tt_move.to()).piece_type();
+            td.noisy_history.update(
+                td.board.threats(),
+                td.board.moved_piece(tt_move),
+                tt_move.to(),
+                captured,
+                -noisy_malus,
+            );
+        } else {
+            td.quiet_history.update(td.board.threats(), td.board.side_to_move(), tt_move, -quiet_malus);
+            update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), -cont_malus);
+        }
     }
 
     if !NODE::ROOT && bound == Bound::Upper {
