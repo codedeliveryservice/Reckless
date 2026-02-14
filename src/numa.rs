@@ -151,7 +151,7 @@ mod api {
     }
 
     #[link(name = "numa")]
-    extern "C" {
+    unsafe extern "C" {
         pub fn numa_available() -> c_int;
         pub fn numa_max_node() -> c_int;
         pub fn numa_node_of_cpu(cpu: c_int) -> c_int;
