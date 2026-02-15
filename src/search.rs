@@ -1145,48 +1145,54 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let raw_eval;
-    let mut best_score;
+    let eval;
 
     // Evaluation
     if in_check {
         raw_eval = Score::NONE;
-        best_score = -Score::INFINITE;
+        eval = -Score::INFINITE;
     } else {
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
         };
-        best_score = correct_eval(td, raw_eval, eval_correction(td, ply));
+        eval = correct_eval(td, raw_eval, eval_correction(td, ply));
+    }
 
-        if is_valid(tt_score)
-            && (!NODE::PV || !is_decisive(tt_score))
-            && match tt_bound {
-                Bound::Upper => tt_score < best_score,
-                Bound::Lower => tt_score > best_score,
-                _ => true,
-            }
-        {
-            best_score = tt_score;
+    // Prefer the TT entry to tighten the evaluation when its bound aligns with
+    // the current alpha-beta window; otherwise, retain the unbounded evaluation
+    let mut estimated_score = eval;
+
+    if !in_check
+        && is_valid(tt_score)
+        && (!NODE::PV || !is_decisive(tt_score))
+        && match tt_bound {
+            Bound::Upper => tt_score < eval,
+            Bound::Lower => tt_score > eval,
+            _ => true,
         }
+    {
+        estimated_score = tt_score;
     }
 
     // Stand Pat
-    if best_score >= beta {
-        if !is_decisive(best_score) && !is_decisive(beta) {
-            best_score = beta + (best_score - beta) / 3;
+    if estimated_score >= beta {
+        if !is_decisive(estimated_score) && !is_decisive(beta) {
+            estimated_score = beta + (estimated_score - beta) / 3;
         }
 
         if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, estimated_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
         }
 
-        return best_score;
+        return estimated_score;
     }
 
-    if best_score > alpha {
-        alpha = best_score;
+    if estimated_score > alpha {
+        alpha = estimated_score;
     }
 
+    let mut best_score = estimated_score;
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
@@ -1213,7 +1219,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         if !is_loss(best_score)
             && mv.to() != td.board.recapture_square()
             && !in_check
-            && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
+            && eval + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
             && !td.board.see(mv, 1)
         {
             continue;
