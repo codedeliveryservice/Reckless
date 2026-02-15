@@ -1220,7 +1220,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         // QS SEE Pruning (QSSEE)
-        if !is_loss(best_score) && !td.board.see(mv, -81) {
+        if !is_loss(best_score) && !td.board.see(mv, 0) {
             continue;
         }
 
