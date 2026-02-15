@@ -1215,6 +1215,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             && !in_check
             && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
             && !td.board.see(mv, 1)
+            && !td.board.is_direct_check(mv)
         {
             continue;
         }
