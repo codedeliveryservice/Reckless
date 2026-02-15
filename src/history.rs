@@ -144,7 +144,7 @@ impl CorrectionHistory {
 
     pub fn clear(&self) {
         for entries in self.entries.iter() {
-            for entry in entries.iter() {
+            for entry in entries {
                 entry.store(0, Ordering::Relaxed);
             }
         }

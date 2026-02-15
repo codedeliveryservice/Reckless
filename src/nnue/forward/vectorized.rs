@@ -18,11 +18,11 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
         let threat_input = &threat.values[stm as usize ^ flip];
 
         for i in (0..L1_SIZE / 2).step_by(2 * simd::I16_LANES) {
-            let lhs1 = *pst_input.as_ptr().add(i).cast();
-            let lhs2 = *pst_input.as_ptr().add(i + simd::I16_LANES).cast();
+            let pst_lhs1 = *pst_input.as_ptr().add(i).cast();
+            let pst_lhs2 = *pst_input.as_ptr().add(i + simd::I16_LANES).cast();
 
-            let rhs1 = *pst_input.as_ptr().add(i + L1_SIZE / 2).cast();
-            let rhs2 = *pst_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
+            let pst_rhs1 = *pst_input.as_ptr().add(i + L1_SIZE / 2).cast();
+            let pst_rhs2 = *pst_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
             let threat_lhs1 = *threat_input.as_ptr().add(i).cast();
             let threat_lhs2 = *threat_input.as_ptr().add(i + simd::I16_LANES).cast();
@@ -30,11 +30,11 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let threat_rhs1 = *threat_input.as_ptr().add(i + L1_SIZE / 2).cast();
             let threat_rhs2 = *threat_input.as_ptr().add(i + L1_SIZE / 2 + simd::I16_LANES).cast();
 
-            let lhs1_clipped = simd::clamp_i16(simd::add_i16(lhs1, threat_lhs1), zero, one);
-            let lhs2_clipped = simd::clamp_i16(simd::add_i16(lhs2, threat_lhs2), zero, one);
+            let lhs1_clipped = simd::clamp_i16(simd::add_i16(pst_lhs1, threat_lhs1), zero, one);
+            let lhs2_clipped = simd::clamp_i16(simd::add_i16(pst_lhs2, threat_lhs2), zero, one);
 
-            let rhs1_clipped = simd::min_i16(simd::add_i16(rhs1, threat_rhs1), one);
-            let rhs2_clipped = simd::min_i16(simd::add_i16(rhs2, threat_rhs2), one);
+            let rhs1_clipped = simd::min_i16(simd::add_i16(pst_rhs1, threat_rhs1), one);
+            let rhs2_clipped = simd::min_i16(simd::add_i16(pst_rhs2, threat_rhs2), one);
 
             let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
             let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs2_clipped);

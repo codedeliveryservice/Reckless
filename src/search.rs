@@ -135,7 +135,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 // Root Search
                 let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
-                td.root_moves[td.pv_index..td.pv_end].sort_by(|a, b| b.score.cmp(&a.score));
+                td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
 
                 if td.stopped {
                     break;
@@ -164,7 +164,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     }
                 }
 
-                td.root_moves[td.pv_start..=td.pv_index].sort_by(|a, b| b.score.cmp(&a.score));
+                td.root_moves[td.pv_start..=td.pv_index].sort_by_key(|rm| std::cmp::Reverse(rm.score));
 
                 if report == Report::Full && td.shared.nodes.aggregate() > 10_000_000 {
                     td.print_uci_info(depth);
@@ -1112,9 +1112,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
-    let mut tt_pv = NODE::PV;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
+    let mut tt_pv = NODE::PV;
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
@@ -1141,11 +1141,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    let mut best_score = -Score::INFINITE;
-    let mut raw_eval = Score::NONE;
+    let raw_eval;
+    let mut best_score;
 
     // Evaluation
-    if !in_check {
+    if in_check {
+        raw_eval = Score::NONE;
+        best_score = -Score::INFINITE;
+    } else {
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
@@ -1162,32 +1165,23 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         {
             best_score = tt_score;
         }
+    }
 
-        if best_score >= beta {
-            if !is_decisive(best_score) && !is_decisive(beta) {
-                best_score = beta + (best_score - beta) / 3;
-            }
-
-            if entry.is_none() {
-                td.shared.tt.write(
-                    hash,
-                    TtDepth::SOME,
-                    raw_eval,
-                    best_score,
-                    Bound::Lower,
-                    Move::NULL,
-                    ply,
-                    tt_pv,
-                    false,
-                );
-            }
-
-            return best_score;
+    // Stand Pat
+    if best_score >= beta {
+        if !is_decisive(best_score) && !is_decisive(beta) {
+            best_score = beta + (best_score - beta) / 3;
         }
 
-        if best_score > alpha {
-            alpha = best_score;
+        if entry.is_none() {
+            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
         }
+
+        return best_score;
+    }
+
+    if best_score > alpha {
+        alpha = best_score;
     }
 
     let mut best_move = Move::NULL;
@@ -1202,18 +1196,27 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        if !is_loss(best_score) && mv.to() != td.board.recapture_square() {
-            if !NODE::PV && move_count >= 3 && !td.board.is_direct_check(mv) {
-                break;
-            }
-
-            let futility_score = best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104;
-
-            if !in_check && futility_score <= alpha && !td.board.see(mv, 1) {
-                continue;
-            }
+        // QS Late Move Pruning (QSLMP)
+        if !is_loss(best_score)
+            && mv.to() != td.board.recapture_square()
+            && !NODE::PV
+            && move_count >= 3
+            && !td.board.is_direct_check(mv)
+        {
+            break;
         }
 
+        // QS Futility Pruning (QSFP)
+        if !is_loss(best_score)
+            && mv.to() != td.board.recapture_square()
+            && !in_check
+            && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
+            && !td.board.see(mv, 1)
+        {
+            continue;
+        }
+
+        // QS SEE Pruning (QSSEE)
         if !is_loss(best_score) && !td.board.see(mv, -81) {
             continue;
         }
