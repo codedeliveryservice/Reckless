@@ -101,12 +101,12 @@ impl MovePicker {
         }
 
         if self.stage == Stage::GenerateQuiet {
-            if !skip_quiets {
+            if skip_quiets {
+                self.stage = Stage::BadNoisy;
+            } else {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
                 self.score_quiet(td, ply);
-            } else {
-                self.stage = Stage::BadNoisy;
             }
         }
 

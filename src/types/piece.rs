@@ -27,19 +27,19 @@ pub enum Piece {
 impl Piece {
     pub const NUM: usize = 12;
 
-    pub const ALL: [Piece; Self::NUM] = [
-        Piece::WhitePawn,
-        Piece::BlackPawn,
-        Piece::WhiteKnight,
-        Piece::BlackKnight,
-        Piece::WhiteBishop,
-        Piece::BlackBishop,
-        Piece::WhiteRook,
-        Piece::BlackRook,
-        Piece::WhiteQueen,
-        Piece::BlackQueen,
-        Piece::WhiteKing,
-        Piece::BlackKing,
+    pub const ALL: [Self; Self::NUM] = [
+        Self::WhitePawn,
+        Self::BlackPawn,
+        Self::WhiteKnight,
+        Self::BlackKnight,
+        Self::WhiteBishop,
+        Self::BlackBishop,
+        Self::WhiteRook,
+        Self::BlackRook,
+        Self::WhiteQueen,
+        Self::BlackQueen,
+        Self::WhiteKing,
+        Self::BlackKing,
     ];
 
     pub const fn value(self) -> i32 {
@@ -78,21 +78,22 @@ impl TryInto<char> for Piece {
     type Error = ();
 
     fn try_into(self) -> Result<char, Self::Error> {
-        if let Piece::None = self { Err(()) } else { Ok("PpNnBbRrQqKk".chars().nth(self as usize).unwrap()) }
-    }
-}
-
-impl<T> Index<Piece> for [T] {
-    type Output = T;
-
-    fn index(&self, index: Piece) -> &Self::Output {
-        unsafe { self.get_unchecked(index as usize) }
-    }
-}
-
-impl<T> IndexMut<Piece> for [T] {
-    fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
-        unsafe { self.get_unchecked_mut(index as usize) }
+        let c = match self {
+            Self::WhitePawn => 'P',
+            Self::BlackPawn => 'p',
+            Self::WhiteKnight => 'N',
+            Self::BlackKnight => 'n',
+            Self::WhiteBishop => 'B',
+            Self::BlackBishop => 'b',
+            Self::WhiteRook => 'R',
+            Self::BlackRook => 'r',
+            Self::WhiteQueen => 'Q',
+            Self::BlackQueen => 'q',
+            Self::WhiteKing => 'K',
+            Self::BlackKing => 'k',
+            Self::None => return Err(()),
+        };
+        Ok(c)
     }
 }
 
@@ -114,6 +115,20 @@ impl Display for Piece {
             Self::None => panic!(),
         };
         write!(f, "{piece}")
+    }
+}
+
+impl<T> Index<Piece> for [T] {
+    type Output = T;
+
+    fn index(&self, index: Piece) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> IndexMut<Piece> for [T] {
+    fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 

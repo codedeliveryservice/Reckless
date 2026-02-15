@@ -122,7 +122,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
                     rm.tb_rank = c_rootmoves.moves[i].tbRank;
                 }
             }
-            root_moves.sort_by(|a, b| b.tb_rank.cmp(&a.tb_rank));
+            root_moves.sort_by_key(|rm| std::cmp::Reverse(rm.tb_rank));
         };
 
         let dtz_success = tb_probe_root_dtz(

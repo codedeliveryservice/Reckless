@@ -70,7 +70,7 @@ impl TryFrom<&str> for Square {
     }
 }
 
-impl Add<Square> for Square {
+impl Add<Self> for Square {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
