@@ -1210,12 +1210,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         // QS Futility Pruning (QSFP)
+        let futility_value = best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104;
+
         if !is_loss(best_score)
             && mv.to() != td.board.recapture_square()
             && !in_check
-            && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
+            && futility_value <= alpha
             && !td.board.see(mv, 1)
         {
+            if !is_decisive(best_score) && best_score <= futility_value {
+                best_score = futility_value;
+            }
             continue;
         }
 
