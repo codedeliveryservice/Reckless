@@ -759,7 +759,7 @@ fn search<NODE: NodeType>(
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
-        if depth >= 2 && move_count >= 2 {
+        if depth >= 1 + NODE::PV as i32 && move_count >= 2 {
             let mut reduction = 250 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 65 * move_count;
@@ -813,7 +813,12 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
-            let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
+            if depth == 1 {
+                reduction -= 3072;
+            }
+
+            let reduced_depth =
+                (new_depth - reduction / 1024).clamp(NODE::PV as i32, new_depth + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
