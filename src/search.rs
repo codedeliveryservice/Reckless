@@ -1199,29 +1199,25 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         move_count += 1;
 
-        // QS Late Move Pruning (QSLMP)
-        if !is_loss(best_score)
-            && mv.to() != td.board.recapture_square()
-            && !NODE::PV
-            && move_count >= 3
-            && !td.board.is_direct_check(mv)
-        {
-            break;
-        }
+        if !is_loss(best_score) {
+            // QS Late Move Pruning (QSLMP)
+            if !NODE::PV && mv.to() != td.board.recapture_square() && move_count >= 3 && !td.board.is_direct_check(mv) {
+                break;
+            }
 
-        // QS Futility Pruning (QSFP)
-        if !is_loss(best_score)
-            && mv.to() != td.board.recapture_square()
-            && !in_check
-            && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
-            && !td.board.see(mv, 1)
-        {
-            continue;
-        }
+            // QS Futility Pruning (QSFP)
+            if !in_check
+                && mv.to() != td.board.recapture_square()
+                && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
+                && !td.board.see(mv, 1)
+            {
+                continue;
+            }
 
-        // QS SEE Pruning (QSSEE)
-        if !is_loss(best_score) && !td.board.see(mv, -81) {
-            continue;
+            // QS SEE Pruning (QSSEE)
+            if !td.board.see(mv, -81) {
+                continue;
+            }
         }
 
         make_move(td, ply, mv);
