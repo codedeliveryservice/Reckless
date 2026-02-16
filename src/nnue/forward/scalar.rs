@@ -24,7 +24,9 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(
+    ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize,
+) -> (Aligned<[f32; L2_SIZE]>, Aligned<[f32; L2_SIZE]>) {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = [0i32; L2_SIZE];
@@ -50,13 +52,17 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
         }
     }
 
+    let mut identity = Aligned::new([0.0; L2_SIZE]);
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i]).clamp(0.0, 1.0);
+        let value = pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i];
+
+        identity[i] = value;
+        output[i] = value.clamp(0.0, 1.0);
     }
 
-    output
+    (identity, output)
 }
 
 pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
@@ -72,14 +78,21 @@ pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[
         output[i] += PARAMETERS.l2_biases[bucket][i];
         output[i] = output[i].clamp(0.0, 1.0);
     }
+
     output
 }
 
-pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
+pub fn propagate_l3(l1_identity: Aligned<[f32; L2_SIZE]>, l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
     let mut output = 0.0;
-    for i in 0..L3_SIZE {
-        output = PARAMETERS.l3_weights[bucket][i].mul_add(l2_out[i], output);
+
+    for i in 0..L2_SIZE {
+        output = PARAMETERS.l3_weights[bucket][i].mul_add(l1_identity[i], output);
     }
+
+    for i in 0..L3_SIZE {
+        output = PARAMETERS.l3_weights[bucket][i].mul_add(l2_out[L2_SIZE + i], output);
+    }
+
     output + PARAMETERS.l3_biases[bucket]
 }
 

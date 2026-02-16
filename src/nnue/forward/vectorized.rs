@@ -52,7 +52,9 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(
+    ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize,
+) -> (Aligned<[f32; L2_SIZE]>, Aligned<[f32; L2_SIZE]>) {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
@@ -92,6 +94,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
         }
     }
 
+    let mut identity = Aligned::new([0.0; L2_SIZE]);
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     let zero = simd::zero_f32();
@@ -101,10 +104,12 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
         let biases = *PARAMETERS.l1_biases[bucket].as_ptr().add(i).cast();
         let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
+
+        *identity.as_mut_ptr().add(i).cast() = vector;
         *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
     }
 
-    output
+    (identity, output)
 }
 
 pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
@@ -132,18 +137,24 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
     output
 }
 
-pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
+pub unsafe fn propagate_l3(l1_identity: Aligned<[f32; L2_SIZE]>, l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
     const LANES: usize = 16 / simd::F32_LANES;
 
-    let input = l2_out.as_ptr();
     let weights = PARAMETERS.l3_weights[bucket].as_ptr();
 
     let mut output = [simd::zero_f32(); LANES];
 
     for (lane, result) in output.iter_mut().enumerate() {
-        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
+        for i in (0..L2_SIZE).step_by(LANES * simd::F32_LANES) {
             let a = *weights.add(i + lane * simd::F32_LANES).cast();
-            let b = *input.add(i + lane * simd::F32_LANES).cast();
+            let b = *l1_identity.as_ptr().add(i + lane * simd::F32_LANES).cast();
+
+            *result = simd::mul_add_f32(a, b, *result);
+        }
+
+        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
+            let a = *weights.add(L2_SIZE + i + lane * simd::F32_LANES).cast();
+            let b = *l2_out.as_ptr().add(i + lane * simd::F32_LANES).cast();
 
             *result = simd::mul_add_f32(a, b, *result);
         }
