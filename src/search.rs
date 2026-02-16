@@ -780,10 +780,6 @@ fn search<NODE: NodeType>(
                 reduction -= 109 * history / 1024;
             }
 
-            if cut_node && tt_move.is_null() {
-                reduction += 1024;
-            }
-
             if NODE::PV {
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
@@ -800,7 +796,7 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1762;
-                reduction += 1092 * tt_move.is_null() as i32;
+                reduction += 2116 * tt_move.is_null() as i32;
             }
 
             if !improving {
@@ -860,10 +856,6 @@ fn search<NODE: NodeType>(
                 reduction -= 65 * history / 1024;
             }
 
-            if cut_node && tt_move.is_null() {
-                reduction += 1024;
-            }
-
             if tt_pv {
                 reduction -= 897;
                 reduction -= 1127 * (is_valid(tt_score) && tt_depth >= depth) as i32;
@@ -871,7 +863,7 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1450;
-                reduction += 1176 * tt_move.is_null() as i32;
+                reduction += 2200 * tt_move.is_null() as i32;
             }
 
             if !improving {
