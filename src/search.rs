@@ -1021,11 +1021,10 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let pcm_move = td.stack[ply - 1].mv;
         if pcm_move.is_quiet() {
-            let mut factor = 95;
+            let mut factor = 103;
             factor += 156 * (depth > 5) as i32;
             factor += 215 * (td.stack[ply - 1].move_count > 8) as i32;
             factor += 113 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
-            factor += 156 * (!in_check && best_score <= eval.min(raw_eval) - 96) as i32;
             factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
 
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
