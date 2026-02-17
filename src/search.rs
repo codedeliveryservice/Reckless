@@ -75,6 +75,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
+    let mut score_history = vec![td.previous_best_score; 4];
+
     let mut average = vec![Score::NONE; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
@@ -217,7 +219,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend = (0.4
+                + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32
+                + 0.05 * (score_history[0] - td.root_moves[0].score) as f32)
+                .clamp(0.75, 1.5);
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
@@ -238,6 +243,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             soft_stop_voted = false;
             td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
         }
+
+        score_history.remove(0);
+        score_history.push(td.root_moves[0].score);
 
         if td.shared.status.get() == Status::STOPPED {
             td.stopped = true;
