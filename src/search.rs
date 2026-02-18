@@ -3,7 +3,6 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -212,16 +211,16 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         let multiplier = || {
-            let nodes_factor = (nodes_a() - nodes_b() * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(nodes_min());
+            let nodes_factor = (2.6668 - 2.2786 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.5078);
 
-            let pv_stability = (pv_a() - pv_b() * pv_stability as f32).max(pv_min());
+            let pv_stability = (1.4344 - 0.0542 * pv_stability as f32).max(0.8589);
 
-            let eval_stability = (eval_a() - eval_b() * eval_stability as f32).max(eval_min());
+            let eval_stability = (1.2660 - 0.0439 * eval_stability as f32).max(0.8714);
 
-            let score_trend = (score_a() + score_b() * (td.previous_best_score - td.root_moves[0].score) as f32)
-                .clamp(score_clamp_min(), score_clamp_max());
+            let score_trend =
+                (0.9087 + 0.0532 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.6932, 1.2663);
 
-            let best_move_stability = best_base() + best_move_changes as f32 / best_div();
+            let best_move_stability = 1.0565 + best_move_changes as f32 / 4.0254;
 
             nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
         };
