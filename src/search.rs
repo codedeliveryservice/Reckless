@@ -813,6 +813,10 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
+            if !NODE::PV {
+                reduction += (td.stack[ply - 1].reduction % 1024) / 4;
+            }
+
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
@@ -867,6 +871,10 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1452;
+            }
+
+            if !NODE::PV {
+                reduction += (td.stack[ply - 1].reduction % 1024) / 4;
             }
 
             if mv == tt_move {
