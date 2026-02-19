@@ -158,13 +158,12 @@ impl Network {
     fn push_threats_single(
         &mut self, board: &Board, occupancies: crate::types::Bitboard, piece: Piece, square: Square, add: bool,
     ) {
-        use crate::lookup::{
-            attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks,
-        };
+        use crate::lookup::{attacks, bishop_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks};
 
         let deltas = &mut self.threat_stack[self.index].delta;
+        let non_king_occupancies = occupancies & !board.pieces(PieceType::King);
 
-        let attacked = attacks(piece, square, occupancies) & occupancies;
+        let attacked = attacks(piece, square, occupancies) & non_king_occupancies;
         for to in attacked {
             deltas.push(ThreatDelta::new(piece, square, board.piece_on(to), to, add));
         }
@@ -178,7 +177,7 @@ impl Network {
 
         for from in (diagonal | orthogonal) & occupancies {
             let sliding_piece = board.piece_on(from);
-            let threatened = ray_pass(from, square) & occupancies & queen_attacks;
+            let threatened = ray_pass(from, square) & non_king_occupancies & queen_attacks;
 
             if let Some(to) = threatened.into_iter().next() {
                 deltas.push(ThreatDelta::new(sliding_piece, from, board.piece_on(to), to, !add));
@@ -191,9 +190,8 @@ impl Network {
         let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
 
         let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
-        let kings = board.pieces(PieceType::King) & king_attacks(square);
 
-        for from in (black_pawns | white_pawns | knights | kings) & occupancies {
+        for from in (black_pawns | white_pawns | knights) & occupancies {
             deltas.push(ThreatDelta::new(board.piece_on(from), from, piece, square, add));
         }
     }
@@ -205,17 +203,18 @@ impl Network {
         target_feature = "avx512vbmi"
     )))]
     pub fn push_threats_on_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, square: Square) {
-        use crate::lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks};
-
-        let deltas = &mut self.threat_stack[self.index].delta;
+        use crate::lookup::{attacks, bishop_attacks, knight_attacks, pawn_attacks, rook_attacks};
 
         let occupancies = board.occupancies();
 
-        let attacked = attacks(old_piece, square, occupancies) & occupancies;
+        let deltas = &mut self.threat_stack[self.index].delta;
+        let non_king_occupancies = occupancies & !board.pieces(PieceType::King);
+
+        let attacked = attacks(old_piece, square, occupancies) & non_king_occupancies;
         for to in attacked {
             deltas.push(ThreatDelta::new(old_piece, square, board.piece_on(to), to, false));
         }
-        let attacked = attacks(new_piece, square, occupancies) & occupancies;
+        let attacked = attacks(new_piece, square, occupancies) & non_king_occupancies;
         for to in attacked {
             deltas.push(ThreatDelta::new(new_piece, square, board.piece_on(to), to, true));
         }
@@ -230,9 +229,8 @@ impl Network {
         let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
 
         let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
-        let kings = board.pieces(PieceType::King) & king_attacks(square);
 
-        for from in black_pawns | white_pawns | knights | kings | diagonal | orthogonal {
+        for from in black_pawns | white_pawns | knights | diagonal | orthogonal {
             deltas.push(ThreatDelta::new(board.piece_on(from), from, old_piece, square, false));
             deltas.push(ThreatDelta::new(board.piece_on(from), from, new_piece, square, true));
         }
@@ -596,7 +594,7 @@ impl BoardObserver for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 66864]>,
+    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 60144]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,

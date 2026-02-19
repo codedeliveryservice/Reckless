@@ -33,15 +33,15 @@ static mut ATTACK_INDEX_LOOKUP: [[[u8; 64]; 64]; 12] = [[[0; 64]; 64]; 12];
 pub fn initialize() {
     #[rustfmt::skip]
     const PIECE_INTERACTION_MAP: [[i32; 6]; 6] = [
-        [0,  1, -1,  2, -1, -1],
-        [0,  1,  2,  3,  4, -1],
-        [0,  1,  2,  3, -1, -1],
-        [0,  1,  2,  3, -1, -1],
-        [0,  1,  2,  3,  4, -1],
-        [0,  1,  2,  3, -1, -1],
+        [ 0,  1, -1,  2, -1, -1],
+        [ 0,  1,  2,  3,  4, -1],
+        [ 0,  1,  2,  3, -1, -1],
+        [ 0,  1,  2,  3, -1, -1],
+        [ 0,  1,  2,  3,  4, -1],
+        [-1, -1, -1, -1, -1, -1],
     ];
 
-    const PIECE_TARGET_COUNT: [i32; 6] = [6, 10, 8, 8, 10, 8];
+    const PIECE_TARGET_COUNT: [i32; 6] = [6, 10, 8, 8, 10, 0];
 
     let mut offset = 0;
     let mut piece_offset = [0; Piece::NUM];
