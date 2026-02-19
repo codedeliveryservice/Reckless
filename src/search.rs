@@ -211,15 +211,16 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         let multiplier = || {
-            let nodes_factor = (2.7168 - 2.2669 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.5630_f32);
+            let nodes_factor = (2.8329 - 2.2694 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.4826);
 
-            let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
+            let pv_stability = (1.4993 - 0.0560 * pv_stability as f32).max(0.8355);
 
-            let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
+            let eval_stability = (1.2284 - 0.0405 * eval_stability as f32).max(0.8569);
 
-            let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
+            let score_trend =
+                (0.8937 + 0.0526 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.6488, 1.1985);
 
-            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+            let best_move_stability = 1.0351 + best_move_changes as f32 / 3.9113;
 
             nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
         };
