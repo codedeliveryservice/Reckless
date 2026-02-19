@@ -813,6 +813,10 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+                reduction += 128;
+            }
+
             let reduced_depth = (new_depth - reduction / 1024).clamp(1, new_depth + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
@@ -871,6 +875,10 @@ fn search<NODE: NodeType>(
 
             if mv == tt_move {
                 reduction -= 3316;
+            }
+
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+                reduction += 128;
             }
 
             let reduced_depth = new_depth - (reduction >= 3072) as i32 - (reduction >= 5687 && new_depth >= 3) as i32;
