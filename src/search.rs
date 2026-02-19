@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -704,12 +705,13 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
-                && move_count
-                    >= if improving || eval >= beta + 20 {
-                        (3127 + 1075 * depth * depth) / 1024
-                    } else {
-                        (1320 + 311 * depth * depth) / 1024
-                    };
+                && move_count >= {
+                    let adjust = improvement.clamp(-v1(), v2());
+                    let factor0 = v3() + v4() * adjust / 16;
+                    let factor1 = v5() + v6() * adjust / 16;
+
+                    (factor0 + factor1 * depth * depth) / 1024
+                };
 
             // Futility Pruning (FP)
             let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= alpha) as i32 - 114;
