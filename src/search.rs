@@ -466,7 +466,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && depth >= 2
-        && td.stack[ply - 1].reduction > 0
+        && td.stack[ply - 1].reduction != 0
         && is_valid(td.stack[ply - 1].eval)
         && eval + td.stack[ply - 1].eval > 59
     {
