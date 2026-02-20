@@ -1203,7 +1203,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         if !is_loss(best_score) {
             // QS Late Move Pruning (QSLMP)
-            if !NODE::PV && mv.to() != td.board.recapture_square() && move_count >= 3 && !td.board.is_direct_check(mv) {
+            if !NODE::PV
+                && move_count >= 3 + (mv.to() != td.board.recapture_square() || !td.board.is_direct_check(mv)) as i32
+            {
                 break;
             }
 
