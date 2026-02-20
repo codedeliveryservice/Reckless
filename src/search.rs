@@ -94,9 +94,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let mut alpha = -Score::INFINITE;
         let mut beta = Score::INFINITE;
 
-        let mut delta = 13;
-        let mut reduction = 0;
-
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
         }
@@ -117,9 +114,12 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 }
             }
 
+            let mut delta = 13;
+            let mut reduction = 0;
+
             // Aspiration Windows
             if depth >= 2 {
-                delta = 13 + average[td.pv_index] * average[td.pv_index] / 23660;
+                delta += average[td.pv_index] * average[td.pv_index] / 23660;
 
                 alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
                 beta = (average[td.pv_index] + delta).min(Score::INFINITE);
