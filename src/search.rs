@@ -91,11 +91,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         td.root_depth = depth;
         td.best_move_changes = 0;
 
-        let mut alpha = -Score::INFINITE;
-        let mut beta = Score::INFINITE;
-
         let mut delta = 13;
-        let mut reduction;
 
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
@@ -117,7 +113,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 }
             }
 
-            reduction = 0;
+            let mut alpha = -Score::INFINITE;
+            let mut beta = Score::INFINITE;
+
+            let mut reduction = 0;
 
             // Aspiration Windows
             if depth >= 2 {
