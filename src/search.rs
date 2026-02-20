@@ -119,7 +119,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             // Aspiration Windows
             if depth >= 2 {
-                delta += average[td.pv_index] * average[td.pv_index] / 23660;
+                delta = 13 + average[td.pv_index] * average[td.pv_index] / 23660;
 
                 alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
                 beta = (average[td.pv_index] + delta).min(Score::INFINITE);
