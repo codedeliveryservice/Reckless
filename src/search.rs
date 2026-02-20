@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -500,7 +501,7 @@ fn search<NODE: NodeType>(
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1125 * depth * depth / 128 + 26 * depth - improvement.clamp(0, 500) / 5
+            >= beta + 1125 * depth * depth / 128 + 26 * depth - dbg_stats(v1() * improvement.clamp(v2(), v3()) / 128, 0)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
         && !is_loss(beta)

@@ -6,7 +6,7 @@ build = "build/build.rs"
 publish = false
 
 [features]
-default = ["syzygy"]
+default = ["syzygy", "spsa"]
 syzygy = []
 numa = []
 spsa = []
