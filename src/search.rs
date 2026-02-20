@@ -706,8 +706,8 @@ fn search<NODE: NodeType>(
             skip_quiets |= !in_check
                 && move_count >= {
                     let adjust = improvement.clamp(-100, 218);
-                    let factor0 = 2398 + 149 * adjust / 16;
-                    let factor1 = 678 + 71 * adjust / 16;
+                    let factor0 = 2515 + 130 * adjust / 16;
+                    let factor1 = 946 + 79 * adjust / 16;
 
                     (factor0 + factor1 * depth * depth) / 1024
                 };
