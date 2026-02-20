@@ -705,9 +705,9 @@ fn search<NODE: NodeType>(
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count >= {
-                    let adjust = improvement.clamp(-116, 219);
-                    let factor0 = 2216 + 138 * adjust / 16;
-                    let factor1 = 794 + 70 * adjust / 16;
+                    let adjust = improvement.clamp(-100, 218);
+                    let factor0 = 2398 + 149 * adjust / 16;
+                    let factor1 = 678 + 71 * adjust / 16;
 
                     (factor0 + factor1 * depth * depth) / 1024
                 };
