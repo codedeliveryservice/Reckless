@@ -75,7 +75,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
-    let mut average = vec![Score::NONE; td.multi_pv];
+    let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -91,18 +91,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         td.root_depth = depth;
         td.best_move_changes = 0;
 
-        let mut alpha = -Score::INFINITE;
-        let mut beta = Score::INFINITE;
-
-        let mut delta = 13;
-        let mut reduction = 0;
+        td.pv_start = 0;
+        td.pv_end = 0;
 
         for rm in &mut td.root_moves {
             rm.previous_score = rm.score;
         }
 
-        td.pv_start = 0;
-        td.pv_end = 0;
+        let mut delta = 13;
+        let mut reduction = 0;
 
         for index in 0..td.multi_pv {
             td.pv_index = index;
@@ -118,15 +115,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            if depth >= 2 {
-                delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta += average[td.pv_index] * average[td.pv_index] / 23660;
 
-                alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
-                beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+            let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
+            let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
-                td.optimism[td.board.side_to_move()] = 169 * average[td.pv_index] / (average[td.pv_index].abs() + 187);
-                td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
-            }
+            td.optimism[td.board.side_to_move()] = 169 * average[td.pv_index] / (average[td.pv_index].abs() + 187);
+            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
                 td.stack = Default::default();
