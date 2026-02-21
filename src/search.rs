@@ -547,7 +547,7 @@ fn search<NODE: NodeType>(
 
         if score >= beta && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
-                return score;
+                return (score * depth + beta) / (depth + 1);
             }
 
             td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
@@ -559,7 +559,7 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
-                return score;
+                return (score * depth + beta) / (depth + 1);
             }
         }
     }
