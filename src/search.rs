@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -700,9 +701,9 @@ fn search<NODE: NodeType>(
             // Late Move Pruning (LMP)
             skip_quiets |= !in_check
                 && move_count >= {
-                    let adjust = improvement.clamp(-100, 218);
-                    let factor0 = 2515 + 130 * adjust / 16;
-                    let factor1 = 946 + 79 * adjust / 16;
+                    let adjust = improvement.max(eval - beta - v1()).clamp(-v2(), v3());
+                    let factor0 = v4() + v5() * adjust / 16;
+                    let factor1 = v6() + v7() * adjust / 16;
 
                     (factor0 + factor1 * depth * depth) / 1024
                 };
