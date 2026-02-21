@@ -32,6 +32,11 @@ fn main() {
     lookup::initialize();
     nnue::initialize();
 
+    if std::env::args().any(|v| v.contains("genfens")) {
+        tools::genfens();
+        return;
+    }
+
     let buffer: std::collections::VecDeque<String> = std::env::args().skip(1).collect();
 
     uci::message_loop(buffer);
