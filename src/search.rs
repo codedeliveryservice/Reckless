@@ -529,6 +529,7 @@ fn search<NODE: NodeType>(
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
         let r = (5154 + 271 * depth + 535 * (estimated_score - beta).clamp(0, 1073) / 128) / 1024;
+        let new_depth = (depth - r).max(0);
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
@@ -537,7 +538,7 @@ fn search<NODE: NodeType>(
 
         td.board.make_null_move();
 
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+        let score = -search::<NonPV>(td, -beta, -beta + 1, new_depth, false, ply + 1);
 
         td.board.undo_null_move();
 
@@ -550,8 +551,8 @@ fn search<NODE: NodeType>(
                 return score;
             }
 
-            td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+            td.nmp_min_ply = ply as i32 + 3 * new_depth / 4;
+            let verified_score = search::<NonPV>(td, beta - 1, beta, new_depth, false, ply);
             td.nmp_min_ply = 0;
 
             if td.stopped {
@@ -559,6 +560,17 @@ fn search<NODE: NodeType>(
             }
 
             if verified_score >= beta {
+                td.shared.tt.write(
+                    hash,
+                    new_depth,
+                    raw_eval,
+                    verified_score,
+                    Bound::Lower,
+                    Move::NULL,
+                    ply,
+                    tt_pv,
+                    false,
+                );
                 return score;
             }
         }
