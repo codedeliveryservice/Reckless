@@ -11,7 +11,7 @@ use crate::{
     search::{self, Report},
     thread::{SharedContext, Status, ThreadData},
     time::{Limits, TimeManager},
-    types::{Move, normalize_to_cp},
+    types::{Move, is_decisive, normalize_to_cp},
 };
 
 const RANDOM_PLIES: &[usize] = &[4, 5];
@@ -19,6 +19,9 @@ const RANDOM_PLIES: &[usize] = &[4, 5];
 const VALIDATION_ABS_MIN_CP: i32 = 25;
 const VALIDATION_ABS_MAX_CP: i32 = 150;
 const VALIDATION_LIMITS: Limits = Limits::Nodes(40_000);
+
+const OPENING_SEARCH_LIMITS: Limits = Limits::Nodes(4_000);
+const OPENING_MULTIPV_LINES: usize = 4;
 
 pub fn genfens() {
     let args = std::env::args().nth(1).unwrap();
@@ -37,7 +40,7 @@ pub fn genfens() {
     let mut generated = 0;
 
     while generated < count {
-        td.board = generate_random_opening(&mut rng, &lines);
+        generate_random_opening(&mut rng, &lines, &mut td);
 
         let score = normalize_to_cp(validation_score(&mut td), &td.board);
         if score.abs() < VALIDATION_ABS_MIN_CP || score.abs() > VALIDATION_ABS_MAX_CP {
@@ -49,30 +52,49 @@ pub fn genfens() {
     }
 }
 
-fn generate_random_opening(rng: &mut StdRng, book: &[String]) -> Board {
+fn generate_random_opening(rng: &mut StdRng, book: &[String], td: &mut ThreadData) {
     let index = rng.random_range(0..book.len());
-    let mut board = Board::from_fen(&book[index]).unwrap();
+    td.board = Board::from_fen(&book[index]).unwrap();
 
     let plies = RANDOM_PLIES[rng.random_range(0..RANDOM_PLIES.len())];
     for _ in 0..plies {
-        let moves = generate_legal_moves(&mut board);
-        if moves.is_empty() {
-            return generate_random_opening(rng, book);
-        }
+        let Some(mv) = choose_move(rng, td) else {
+            return generate_random_opening(rng, book, td);
+        };
 
-        let index = rng.random_range(0..moves.len());
-        board.make_move(moves[index], &mut NullBoardObserver {});
-        board.advance_fullmove_counter();
+        td.board.make_move(mv, &mut NullBoardObserver {});
+        td.board.advance_fullmove_counter();
     }
 
-    if generate_legal_moves(&mut board).is_empty() {
-        return generate_random_opening(rng, book);
+    if generate_legal_moves(&mut td.board).is_empty() {
+        return generate_random_opening(rng, book, td);
     }
-    board
 }
 
 fn generate_legal_moves(board: &mut Board) -> Vec<Move> {
     board.generate_all_moves().iter().filter(|&v| board.is_legal(v.mv)).map(|v| v.mv).collect()
+}
+
+fn choose_move(rng: &mut StdRng, td: &mut ThreadData) -> Option<Move> {
+    if generate_legal_moves(&mut td.board).is_empty() {
+        return None;
+    }
+
+    td.time_manager = TimeManager::new(OPENING_SEARCH_LIMITS, 0, 0);
+
+    td.multi_pv = OPENING_MULTIPV_LINES;
+    td.shared.nodes.reset();
+    td.shared.status.set(Status::RUNNING);
+
+    search::start(td, Report::None, 1);
+
+    let candidates = td.root_moves.iter().filter(|rm| !is_decisive(rm.score)).map(|rm| rm.mv).collect::<Vec<_>>();
+    if candidates.is_empty() {
+        return None;
+    }
+
+    let index = rng.random_range(0..candidates.len());
+    Some(candidates[index])
 }
 
 fn validation_score(td: &mut ThreadData) -> i32 {
