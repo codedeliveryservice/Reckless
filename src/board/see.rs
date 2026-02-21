@@ -20,12 +20,12 @@ impl super::Board {
             return false;
         }
 
-        // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= self.piece_on(mv.from()).value();
-
+        // In the worst case, we lose the capturing piece, but still end up with a non-negative balance
+        let mut moving_value = self.piece_on(mv.from()).value();
         if let Some(promotion) = mv.promotion_piece() {
-            balance -= promotion.value();
+            moving_value = promotion.value();
         }
+        balance -= moving_value;
 
         if balance >= 0 {
             return true;
