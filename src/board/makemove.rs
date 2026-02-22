@@ -142,7 +142,7 @@ impl Board {
 
         self.state.repetition = 0;
 
-        let end = self.state.halfmove_clock.min(self.state.plies_from_null as u8);
+        let end = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
 
         if end >= 4 {
             let mut idx = self.state_stack.len() as isize - 4;
