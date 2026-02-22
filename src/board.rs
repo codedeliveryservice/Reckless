@@ -28,7 +28,7 @@ struct InternalState {
     castling: Castling,
     halfmove_clock: u8,
     material: i32,
-    plies_from_null: i32,
+    plies_from_null: usize,
     repetition: i32,
     captured: Option<Piece>,
     recapture_square: Square,
@@ -249,7 +249,7 @@ impl Board {
     ///
     /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
-        let hm = (self.state.halfmove_clock as usize).min(self.state.plies_from_null as usize);
+        let hm = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
         if hm < 3 {
             return false;
         }
