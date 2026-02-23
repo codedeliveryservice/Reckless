@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufReader};
 
-use crate::tools::BinpackReader;
+use crate::{board::NullBoardObserver, tools::BinpackReader};
 
 const SNAPSHOT_PLY: usize = 48;
 
@@ -23,7 +23,7 @@ pub fn duplicates(inputs: &[String]) {
                     break;
                 }
 
-                board.make_move(mv, |_, _, _, _| ());
+                board.make_move(mv, &mut NullBoardObserver {});
             }
 
             board.update_hash_keys();

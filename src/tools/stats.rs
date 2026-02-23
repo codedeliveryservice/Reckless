@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    board::Board,
+    board::{Board, NullBoardObserver},
     tools::BinpackReader,
     types::{Color, Move},
 };
@@ -50,7 +50,7 @@ pub fn stats(inputs: &[String]) {
                 let ply = board.fullmove_number() * 2 + index;
 
                 if !filter(&board, mv, score) {
-                    board.make_move(mv, |_, _, _, _| ());
+                    board.make_move(mv, &mut NullBoardObserver {});
                     continue;
                 }
 
@@ -60,7 +60,7 @@ pub fn stats(inputs: &[String]) {
                 }
 
                 *statistics.scores.entry(score).or_insert(0) += 1;
-                *statistics.pieces.entry(board.occupancies().len() as u8).or_insert(0) += 1;
+                *statistics.pieces.entry(board.occupancies().popcount() as u8).or_insert(0) += 1;
 
                 let king_square = match board.side_to_move() {
                     Color::White => board.king_square(Color::White),
@@ -68,7 +68,7 @@ pub fn stats(inputs: &[String]) {
                 };
                 *statistics.king_positions.entry(king_square as u8).or_insert(0) += 1;
 
-                board.make_move(mv, |_, _, _, _| ());
+                board.make_move(mv, &mut NullBoardObserver {});
             }
 
             *statistics.lengths.entry(entries.len() as u16).or_insert(0) += 1;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::{fs::File, io::BufReader, io::BufWriter, path::Path};
 
-use crate::board::Board;
+use crate::board::{Board, NullBoardObserver};
 use crate::thread::{SharedContext, ThreadData};
 use crate::tools::BinpackReader;
 use crate::tools::BinpackWriter;
@@ -47,7 +47,7 @@ pub fn rescore(input: String, output: String) {
 
             rescored_entries.push((mv, clamped));
 
-            td.board.make_move(mv, |_, _, _, _| ());
+            td.board.make_move(mv, &mut NullBoardObserver {});
         }
 
         writer.write(&position.to_board(), position.result, &rescored_entries);

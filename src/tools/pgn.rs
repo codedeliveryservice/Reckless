@@ -6,9 +6,14 @@ use std::{
 
 use indicatif::{ProgressBar, ProgressStyle};
 use pgn_lexer::parser::{PGNTokenIterator, Token};
-use shakmaty::{fen::Fen, san::San, CastlingMode, Chess, Position};
+use shakmaty::{CastlingMode, Chess, Position, fen::Fen, san::San};
 
-use crate::{board::Board, nnue::Network, tools::BinpackWriter, types::Color};
+use crate::{
+    board::{Board, NullBoardObserver},
+    nnue::Network,
+    tools::BinpackWriter,
+    types::Color,
+};
 
 pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool) {
     println!("Converting PGNs from '{input}' to '{output}' using {threads} threads [adversarial={adversarial}]");
@@ -128,7 +133,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                     b"1-0" => 2,
                     b"1/2-1/2" => 1,
                     b"0-1" => 0,
-                    _ => panic!("Unexpected result: {:?}", String::from_utf8_lossy(&bytes)),
+                    _ => panic!("Unexpected result: {:?}", String::from_utf8_lossy(bytes)),
                 };
 
                 if !skip_game {
@@ -145,7 +150,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
 
         if let Token::Move(bytes) = token {
             let commentary = match parser.next() {
-                Some(Token::Commentary(bytes)) => String::from_utf8_lossy(&bytes).to_string(),
+                Some(Token::Commentary(bytes)) => String::from_utf8_lossy(bytes).to_string(),
                 _ => panic!(),
             };
 
@@ -173,7 +178,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                 .unwrap();
 
             internal_entries.push((internal_move, score.try_into().unwrap()));
-            internal_board.make_move(internal_move, |_, _, _, _| ());
+            internal_board.make_move(internal_move, &mut NullBoardObserver {});
             position.play_unchecked(&mv);
         }
     }
