@@ -117,8 +117,7 @@ pub fn push_threats_on_change(accum: &mut ThreatAccumulator, board: &Board, piec
     let attackers = attackers_along_rays(rays) & closest;
     let sliders = sliders_along_rays(rays) & closest;
 
-    splat_threats(accum, true, pboard, perm, attacked, piece, square, add);
-    splat_threats(accum, false, pboard, perm, attackers, piece, square, add);
+    splat_threats(accum, pboard, perm, attacked, attackers, piece, square, add);
 
     let victim = (closest & 0xFEFEFEFEFEFEFEFE).rotate_right(32);
     let xray_valid = ray_fill(victim) & ray_fill(sliders);
@@ -142,18 +141,27 @@ pub fn push_threats_on_move(accum: &mut ThreatAccumulator, board: &Board, piece:
     let src_sliders = sliders_along_rays(src_rays) & src_closest;
     let dst_sliders = sliders_along_rays(dst_rays) & dst_closest;
 
-    splat_threats(accum, true, src_pboard, src_perm, src_attacked, piece, src, false);
-    splat_threats(accum, false, src_pboard, src_perm, src_attackers, piece, src, false);
-    splat_threats(accum, true, dst_pboard, dst_perm, dst_attacked, piece, dst, true);
-    splat_threats(accum, false, dst_pboard, dst_perm, dst_attackers, piece, dst, true);
+    splat_threats(accum, src_pboard, src_perm, src_attacked, src_attackers, piece, src, false);
+    splat_threats(accum, dst_pboard, dst_perm, dst_attacked, dst_attackers, piece, dst, true);
 
     let src_victim = (src_closest & 0xFEFEFEFEFEFEFEFE).rotate_right(32);
     let dst_victim = (dst_closest & 0xFEFEFEFEFEFEFEFE).rotate_right(32);
     let src_xray_valid = ray_fill(src_victim) & ray_fill(src_sliders);
     let dst_xray_valid = ray_fill(dst_victim) & ray_fill(dst_sliders);
 
-    splat_xray_threats(accum, src_pboard, src_perm, src_sliders & src_xray_valid, src_victim & src_xray_valid, true);
-    splat_xray_threats(accum, dst_pboard, dst_perm, dst_sliders & dst_xray_valid, dst_victim & dst_xray_valid, false);
+    splat_xray_threats2(
+        accum,
+        src_pboard,
+        src_perm,
+        src_sliders & src_xray_valid,
+        src_victim & src_xray_valid,
+        true,
+        dst_pboard,
+        dst_perm,
+        dst_sliders & dst_xray_valid,
+        dst_victim & dst_xray_valid,
+        false,
+    );
 }
 
 pub fn push_threats_on_mutate(
@@ -169,8 +177,6 @@ pub fn push_threats_on_mutate(
     let new_attacked = attacking_along_rays(new_piece, closest);
     let attackers = attackers_along_rays(rays) & closest;
 
-    splat_threats(accum, true, pboard, perm, old_attacked, old_piece, square, false);
-    splat_threats(accum, false, pboard, perm, attackers, old_piece, square, false);
-    splat_threats(accum, true, pboard, perm, new_attacked, new_piece, square, true);
-    splat_threats(accum, false, pboard, perm, attackers, new_piece, square, true);
+    splat_threats(accum, pboard, perm, old_attacked, attackers, old_piece, square, false);
+    splat_threats(accum, pboard, perm, new_attacked, attackers, new_piece, square, true);
 }

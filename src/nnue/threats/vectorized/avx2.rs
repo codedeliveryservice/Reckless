@@ -120,24 +120,22 @@ pub fn sliders_along_rays(rays: [__m256i; 2]) -> u64 {
 
 #[allow(clippy::too_many_arguments)]
 pub fn splat_threats(
-    accum: &mut ThreatAccumulator, is_to: bool, pboard: [__m256i; 2], perm: [__m256i; 2], mut bitray: u64, p2: Piece,
-    sq2: Square, add: bool,
+    accum: &mut ThreatAccumulator, pboard: [__m256i; 2], perm: [__m256i; 2], mut attacked: u64, mut attackers: u64,
+    focus_piece: Piece, focus_sq: Square, add: bool,
 ) {
-    let p1s = unsafe { std::mem::transmute::<[__m256i; 2], [Piece; 64]>(pboard) };
-    let sq1s = unsafe { std::mem::transmute::<[__m256i; 2], [Square; 64]>(perm) };
+    let pieces = unsafe { std::mem::transmute::<[__m256i; 2], [Piece; 64]>(pboard) };
+    let squares = unsafe { std::mem::transmute::<[__m256i; 2], [Square; 64]>(perm) };
 
-    if is_to {
-        while bitray != 0 {
-            let i = bitray.trailing_zeros() as usize;
-            accum.delta.push(ThreatDelta::new(p2, sq2, p1s[i], sq1s[i], add));
-            bitray &= bitray - 1;
-        }
-    } else {
-        while bitray != 0 {
-            let i = bitray.trailing_zeros() as usize;
-            accum.delta.push(ThreatDelta::new(p1s[i], sq1s[i], p2, sq2, add));
-            bitray &= bitray - 1;
-        }
+    while attacked != 0 {
+        let i = attacked.trailing_zeros() as usize;
+        accum.delta.push(ThreatDelta::new(focus_piece, focus_sq, pieces[i], squares[i], add));
+        attacked &= attacked - 1;
+    }
+
+    while attackers != 0 {
+        let i = attackers.trailing_zeros() as usize;
+        accum.delta.push(ThreatDelta::new(pieces[i], squares[i], focus_piece, focus_sq, add));
+        attackers &= attackers - 1;
     }
 }
 
@@ -164,4 +162,13 @@ pub fn splat_xray_threats(
         sliders &= sliders - 1;
         victims &= victims - 1;
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn splat_xray_threats2(
+    accum: &mut ThreatAccumulator, pboard_a: [__m256i; 2], perm_a: [__m256i; 2], sliders_a: u64, victims_a: u64,
+    add_a: bool, pboard_b: [__m256i; 2], perm_b: [__m256i; 2], sliders_b: u64, victims_b: u64, add_b: bool,
+) {
+    splat_xray_threats(accum, pboard_a, perm_a, sliders_a, victims_a, add_a);
+    splat_xray_threats(accum, pboard_b, perm_b, sliders_b, victims_b, add_b);
 }
