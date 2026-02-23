@@ -105,7 +105,7 @@ pub fn attackers_along_rays(rays: [__m256i; 2]) -> u64 {
 }
 
 pub fn attacking_along_rays(piece: Piece, occupied: u64) -> u64 {
-    RAY_ATTACKS_MASK[piece as usize] & occupied
+    unsafe { *RAY_ATTACKS_MASK.get_unchecked(piece as usize) & occupied }
 }
 
 pub fn sliders_along_rays(rays: [__m256i; 2]) -> u64 {
@@ -128,13 +128,19 @@ pub fn splat_threats(
 
     while attacked != 0 {
         let i = attacked.trailing_zeros() as usize;
-        accum.delta.push(ThreatDelta::new(focus_piece, focus_sq, pieces[i], squares[i], add));
+        // SAFETY: i is always less than 64
+        let piece = unsafe { pieces.get_unchecked(i) };
+        let square = unsafe { squares.get_unchecked(i) };
+        accum.delta.push(ThreatDelta::new(focus_piece, focus_sq, *piece, *square, add));
         attacked &= attacked - 1;
     }
 
     while attackers != 0 {
         let i = attackers.trailing_zeros() as usize;
-        accum.delta.push(ThreatDelta::new(pieces[i], squares[i], focus_piece, focus_sq, add));
+        // SAFETY: i is always less than 64
+        let piece = unsafe { pieces.get_unchecked(i) };
+        let square = unsafe { squares.get_unchecked(i) };
+        accum.delta.push(ThreatDelta::new(*piece, *square, focus_piece, focus_sq, add));
         attackers &= attackers - 1;
     }
 }
@@ -152,12 +158,14 @@ pub fn splat_xray_threats(
         let slider = sliders.trailing_zeros() as usize;
         let victim = victims.trailing_zeros() as usize;
 
-        let attacker = pieces[slider];
-        let attacker_sq = squares[slider];
-        let attacked = pieces[(victim + 32) % 64];
-        let attacked_sq = squares[(victim + 32) % 64];
+        // SAFETY: slider is always less than 64
+        let attacker = unsafe { pieces.get_unchecked(slider) };
+        let attacker_sq = unsafe { squares.get_unchecked(slider) };
+        // SAFETY: victim is always less than 64
+        let attacked = unsafe { pieces.get_unchecked((victim + 32) % 64) };
+        let attacked_sq = unsafe { squares.get_unchecked((victim + 32) % 64) };
 
-        accum.delta.push(ThreatDelta::new(attacker, attacker_sq, attacked, attacked_sq, add));
+        accum.delta.push(ThreatDelta::new(*attacker, *attacker_sq, *attacked, *attacked_sq, add));
 
         sliders &= sliders - 1;
         victims &= victims - 1;
