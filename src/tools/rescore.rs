@@ -28,6 +28,10 @@ pub fn rescore(input: String, output: String) {
     let mut original_stats = Stats::default();
     let mut rescored_stats = Stats::default();
 
+    let mut mse = 0.0;
+    let mut mae = 0.0;
+    let mut count = 0;
+
     while let Some((position, entries)) = reader.next() {
         let mut rescored_entries = Vec::new();
 
@@ -43,6 +47,11 @@ pub fn rescore(input: String, output: String) {
             if filter(&td.board, mv, score) {
                 original_stats.update(score);
                 rescored_stats.update(clamped);
+
+                let error = (clamped as f64) - (score as f64);
+                mse += error * error;
+                mae += error.abs();
+                count += 1;
             }
 
             rescored_entries.push((mv, clamped));
@@ -60,6 +69,8 @@ pub fn rescore(input: String, output: String) {
 
     println!("Games processed: {games}");
     println!("Out of bounds evaluations: {out_of_bounds}");
+    println!("Mean Squared Error: {:.6}", mse / count as f64);
+    println!("Mean Absolute Error: {:.6}", mae / count as f64);
     println!();
 
     println!("Original scores statistics:\n{original_stats}");
