@@ -3,6 +3,15 @@ use crate::{
     types::{Bitboard, Color, Piece, PieceType, Square},
 };
 
+#[cfg(target_feature = "avx2")]
+mod vectorized;
+#[cfg(target_feature = "avx2")]
+pub use vectorized::*;
+#[cfg(not(target_feature = "avx2"))]
+mod scalar;
+#[cfg(not(target_feature = "avx2"))]
+pub use scalar::*;
+
 #[derive(Copy, Clone)]
 struct PiecePair {
     // Bit layout:
