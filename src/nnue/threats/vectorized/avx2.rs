@@ -50,12 +50,12 @@ pub fn exclude_square(board: [__m256i; 2], sq: Square) -> [__m256i; 2] {
     unsafe {
         let iota = [
             _mm256_set_epi8(
-                63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
-                37, 36, 35, 34, 33, 32,
-            ),
-            _mm256_set_epi8(
                 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,
                 4, 3, 2, 1, 0,
+            ),
+            _mm256_set_epi8(
+                63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
+                37, 36, 35, 34, 33, 32,
             ),
         ];
         let none = _mm256_set1_epi8(Piece::None as i8);
@@ -129,13 +129,13 @@ pub fn splat_threats(
     if is_to {
         while bitray != 0 {
             let i = bitray.trailing_zeros() as usize;
-            accum.delta.push(ThreatDelta::new(p1s[i], sq1s[i], p2, sq2, add));
+            accum.delta.push(ThreatDelta::new(p2, sq2, p1s[i], sq1s[i], add));
             bitray &= bitray - 1;
         }
     } else {
         while bitray != 0 {
             let i = bitray.trailing_zeros() as usize;
-            accum.delta.push(ThreatDelta::new(p2, sq2, p1s[i], sq1s[i], add));
+            accum.delta.push(ThreatDelta::new(p1s[i], sq1s[i], p2, sq2, add));
             bitray &= bitray - 1;
         }
     }
