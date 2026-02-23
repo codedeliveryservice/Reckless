@@ -113,13 +113,15 @@ impl Network {
 
         self.index += 1;
 
-        self.pst_stack[self.index].accurate = [false; 2];
-        self.pst_stack[self.index].delta.mv = mv;
-        self.pst_stack[self.index].delta.piece = board.piece_on(mv.from());
-        self.pst_stack[self.index].delta.captured = board.piece_on(mv.to());
+        let pst = self.pst_stack.uget_mut(self.index);
+        pst.accurate = [false; 2];
+        pst.delta.mv = mv;
+        pst.delta.piece = board.piece_on(mv.from());
+        pst.delta.captured = board.piece_on(mv.to());
 
-        self.threat_stack[self.index].accurate = [false; 2];
-        self.threat_stack[self.index].delta.clear();
+        let threat = self.threat_stack.uget_mut(self.index);
+        threat.accurate = [false; 2];
+        threat.delta.clear();
     }
 
     pub fn pop(&mut self) {
@@ -127,30 +129,33 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache);
-        self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache);
+        let pst = self.pst_stack.uget_mut(self.index);
+        let threat = self.threat_stack.uget_mut(self.index);
 
-        self.threat_stack[self.index].refresh(board, Color::White);
-        self.threat_stack[self.index].refresh(board, Color::Black);
+        pst.refresh(board, Color::White, &mut self.cache);
+        pst.refresh(board, Color::Black, &mut self.cache);
+
+        threat.refresh(board, Color::White);
+        threat.refresh(board, Color::Black);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
-        debug_assert!(self.pst_stack[0].accurate == [true; 2]);
-        debug_assert!(self.threat_stack[0].accurate == [true; 2]);
+        debug_assert!(self.pst_stack.uget(0).accurate == [true; 2]);
+        debug_assert!(self.threat_stack.uget(0).accurate == [true; 2]);
 
         for pov in [Color::White, Color::Black] {
-            if self.pst_stack[self.index].accurate[pov] && self.threat_stack[self.index].accurate[pov] {
+            if self.pst_stack.uget(self.index).accurate[pov] && self.threat_stack.uget(self.index).accurate[pov] {
                 continue;
             }
 
             match self.can_update_pst(pov) {
                 Some(index) => self.update_pst_accumulator(index, board, pov),
-                None => self.pst_stack[self.index].refresh(board, pov, &mut self.cache),
+                None => self.pst_stack.uget_mut(self.index).refresh(board, pov, &mut self.cache),
             }
 
             match self.can_update_threats(pov) {
                 Some(index) => self.update_threat_accumulator(index, board, pov),
-                None => self.threat_stack[self.index].refresh(board, pov),
+                None => self.threat_stack.uget_mut(self.index).refresh(board, pov),
             }
         }
 
@@ -162,7 +167,7 @@ impl Network {
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.pst_stack.split_at_mut(i + 1) {
-                current.update(&prev[i], board, king, pov);
+                current.update(prev.uget(i), board, king, pov);
             }
         }
     }
@@ -172,18 +177,18 @@ impl Network {
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
-                unsafe { current.update(&prev[i], king, pov) };
+                unsafe { current.update(prev.uget(i), king, pov) };
             }
         }
     }
 
     fn can_update_pst(&self, pov: Color) -> Option<usize> {
         for i in (0..=self.index).rev() {
-            if self.pst_stack[i].accurate[pov] {
+            if self.pst_stack.uget(i).accurate[pov] {
                 return Some(i);
             }
 
-            let delta = &self.pst_stack[i].delta;
+            let delta = &self.pst_stack.uget(i).delta;
 
             let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
             let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
@@ -201,11 +206,11 @@ impl Network {
 
     fn can_update_threats(&self, pov: Color) -> Option<usize> {
         for i in (0..=self.index).rev() {
-            if self.threat_stack[i].accurate[pov] {
+            if self.threat_stack.uget(i).accurate[pov] {
                 return Some(i);
             }
 
-            let delta = &self.pst_stack[i].delta;
+            let delta = &self.pst_stack.uget(i).delta;
 
             let from = delta.mv.from();
             let to = delta.mv.to();
@@ -225,8 +230,11 @@ impl Network {
         let bucket = OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
 
         unsafe {
-            let ft_out =
-                forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
+            let ft_out = forward::activate_ft(
+                self.pst_stack.uget(self.index),
+                self.threat_stack.uget(self.index),
+                board.side_to_move(),
+            );
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
             let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
@@ -317,5 +325,26 @@ impl<T> std::ops::Deref for Aligned<T> {
 impl<T> std::ops::DerefMut for Aligned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
+    }
+}
+
+trait UncheckedIndex {
+    type Item;
+
+    fn uget(&self, idx: usize) -> &Self::Item;
+    fn uget_mut(&mut self, idx: usize) -> &mut Self::Item;
+}
+
+impl<T> UncheckedIndex for [T] {
+    type Item = T;
+
+    fn uget(&self, idx: usize) -> &T {
+        debug_assert!(idx < MAX_PLY);
+        unsafe { self.get_unchecked(idx) }
+    }
+
+    fn uget_mut(&mut self, idx: usize) -> &mut T {
+        debug_assert!(idx < MAX_PLY);
+        unsafe { self.get_unchecked_mut(idx) }
     }
 }
