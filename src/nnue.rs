@@ -14,7 +14,7 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{ThreatAccumulator, ThreatDelta},
-    types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
+    types::{Color, Move, Piece, PieceType, Square},
 };
 
 use accumulator::{AccumulatorCache, PstAccumulator};
@@ -442,6 +442,8 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
+        self.index = 0;
+
         self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache);
         self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache);
 
@@ -572,8 +574,8 @@ impl Default for Network {
 
         Self {
             index: 0,
-            pst_stack: vec![PstAccumulator::new(); MAX_PLY].into_boxed_slice(),
-            threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
+            pst_stack: vec![PstAccumulator::new(); 4096].into_boxed_slice(),
+            threat_stack: vec![ThreatAccumulator::new(); 4096].into_boxed_slice(),
             cache: AccumulatorCache::default(),
             nnz_table: nnz_table.into_boxed_slice(),
         }

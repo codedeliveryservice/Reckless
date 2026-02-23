@@ -1,11 +1,16 @@
-use std::sync::Arc;
-use std::{fs::File, io::BufReader, io::BufWriter, path::Path};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::Path,
+    sync::Arc,
+};
 
-use crate::board::{Board, NullBoardObserver};
-use crate::thread::{SharedContext, ThreadData};
-use crate::tools::BinpackReader;
-use crate::tools::BinpackWriter;
-use crate::types::Move;
+use crate::{
+    board::Board,
+    thread::{SharedContext, ThreadData},
+    tools::{BinpackReader, BinpackWriter},
+    types::Move,
+};
 
 pub fn rescore(input: String, output: String) {
     assert!(input != output, "Rescoring in-place is not supported");
@@ -36,9 +41,9 @@ pub fn rescore(input: String, output: String) {
         let mut rescored_entries = Vec::new();
 
         td.board = position.to_board();
+        td.nnue.full_refresh(&td.board);
 
         for &(mv, score) in entries.iter() {
-            td.nnue.full_refresh(&td.board);
             let raw = td.nnue.evaluate(&td.board);
             let clamped = raw.clamp(-16384, 16384) as i16;
 
@@ -56,7 +61,8 @@ pub fn rescore(input: String, output: String) {
 
             rescored_entries.push((mv, clamped));
 
-            td.board.make_move(mv, &mut NullBoardObserver {});
+            td.nnue.push(mv, &td.board);
+            td.board.make_move(mv, &mut td.nnue);
         }
 
         writer.write(&position.to_board(), position.result, &rescored_entries);
