@@ -503,6 +503,7 @@ fn search<NODE: NodeType>(
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
+                - 64 * td.board.threats().is_empty() as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
