@@ -823,7 +823,7 @@ fn search<NODE: NodeType>(
                 reduction += 128;
             }
 
-            let lmr_extension = reduction < -3072 && move_count <= 3;
+            let lmr_extension = reduction < -3072 || NODE::PV;
 
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(1, new_depth + 1 + lmr_extension as i32) + 2 * NODE::PV as i32;
