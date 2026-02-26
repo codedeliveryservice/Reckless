@@ -785,7 +785,7 @@ fn search<NODE: NodeType>(
             }
 
             if NODE::PV {
-                reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
+                reduction -= 1435 + 421 * (beta - alpha) / td.root_delta;
             }
 
             if tt_pv {
@@ -826,7 +826,7 @@ fn search<NODE: NodeType>(
             let lmr_extension = reduction < -3072 && move_count <= 3;
 
             let reduced_depth =
-                (new_depth - reduction / 1024).clamp(1, new_depth + 1 + lmr_extension as i32) + 2 * NODE::PV as i32;
+                (new_depth - reduction / 1024).clamp(1, new_depth + 1 + lmr_extension as i32) + NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
