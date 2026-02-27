@@ -1,4 +1,4 @@
-export RUSTFLAGS := -Ctarget-cpu=native
+export RUSTFLAGS := -Ctarget-cpu=x86-64-v3
 
 EXE := reckless
 TARGET_TUPLE := $(shell rustc --print host-tuple)
@@ -21,7 +21,7 @@ else
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release -- -C target-cpu=x86-64-v3 --emit link=$(NAME)
 
 pgo:
 	cargo pgo instrument
