@@ -451,7 +451,7 @@ fn search<NODE: NodeType>(
 
     td.stack[ply].eval = eval;
     td.stack[ply].tt_move = tt_move;
-    td.stack[ply].tt_pv = tt_pv;
+    td.stack[ply].set_tt_pv(tt_pv);
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
@@ -542,7 +542,7 @@ fn search<NODE: NodeType>(
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
-        td.stack[ply].piece = Piece::None;
+        td.stack[ply].set_piece(Piece::None);
         td.stack[ply].mv = Move::NULL;
 
         td.board.make_null_move();
@@ -714,7 +714,7 @@ fn search<NODE: NodeType>(
                     let factor0 = 2515 + 130 * adjust / 16;
                     let factor1 = 946 + 79 * adjust / 16;
 
-                    (factor0 + factor1 * depth * depth) / 1024
+                    ((factor0 + factor1 * depth * depth) / 1024).min(255) as u8
                 };
 
             // Futility Pruning (FP)
@@ -768,7 +768,7 @@ fn search<NODE: NodeType>(
         if depth >= 2 && move_count >= 2 {
             let mut reduction = 250 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction -= 65 * move_count;
+            reduction -= 65 * move_count as i32;
             reduction -= 3183 * correction_value.abs() / 1024;
             reduction += 1300 * alpha_raises;
 
@@ -815,7 +815,7 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if !NODE::PV && td.stack[ply - 1].reduction as i32 > reduction + 512 {
                 reduction += 128;
             }
 
@@ -824,7 +824,7 @@ fn search<NODE: NodeType>(
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(1, new_depth + 1 + lmr_extension as i32) + 2 * NODE::PV as i32;
 
-            td.stack[ply].reduction = reduction;
+            td.stack[ply].reduction = reduction.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
             td.stack[ply].reduction = 0;
             current_search_count += 1;
@@ -845,7 +845,7 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count > 1 {
             let mut reduction = 238 * (move_count.ilog2() * depth.ilog2()) as i32;
 
-            reduction -= 57 * move_count;
+            reduction -= 57 * move_count as i32;
             reduction -= 2513 * correction_value.abs() / 1024;
 
             if is_quiet {
@@ -878,7 +878,7 @@ fn search<NODE: NodeType>(
                 reduction -= 3316;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if !NODE::PV && td.stack[ply - 1].reduction as i32 > reduction + 512 {
                 reduction += 128;
             }
 
@@ -1016,12 +1016,12 @@ fn search<NODE: NodeType>(
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
             let malus = (86 * depth - 60).min(771);
-            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece(), td.stack[ply - 1].mv.to(), -malus);
         }
 
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
             let bonus = (201 * depth - 86).min(1634);
-            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+            update_continuation_histories(td, ply, td.stack[ply].piece(), best_move.to(), bonus);
         }
     }
 
@@ -1042,7 +1042,7 @@ fn search<NODE: NodeType>(
             let entry = &td.stack[ply - 2];
             if entry.mv.is_some() {
                 let bonus = (156 * depth - 38).min(1169);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
+                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece(), pcm_move.to(), bonus);
             }
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
@@ -1058,7 +1058,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
+    tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].is_tt_pv();
 
     if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         best_score = (best_score * depth + beta) / (depth + 1);
@@ -1284,12 +1284,12 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         + corrhist.non_pawn[Color::Black].get(stm, td.board.non_pawn_key(Color::Black))
         + td.continuation_corrhist.get(
             td.stack[ply - 2].contcorrhist,
-            td.stack[ply - 1].piece,
+            td.stack[ply - 1].piece(),
             td.stack[ply - 1].mv.to(),
         )
         + td.continuation_corrhist.get(
             td.stack[ply - 4].contcorrhist,
-            td.stack[ply - 1].piece,
+            td.stack[ply - 1].piece(),
             td.stack[ply - 1].mv.to(),
         ))
         / 77
@@ -1309,7 +1309,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
-            td.stack[ply - 1].piece,
+            td.stack[ply - 1].piece(),
             td.stack[ply - 1].mv.to(),
             bonus,
         );
@@ -1318,7 +1318,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
-            td.stack[ply - 1].piece,
+            td.stack[ply - 1].piece(),
             td.stack[ply - 1].mv.to(),
             bonus,
         );
@@ -1336,7 +1336,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
 
 fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].mv = mv;
-    td.stack[ply].piece = td.board.moved_piece(mv);
+    td.stack[ply].set_piece(td.board.moved_piece(mv));
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
     td.stack[ply].contcorrhist =
