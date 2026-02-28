@@ -224,17 +224,17 @@ impl MovePicker {
             if threatened.contains(mv.from()) {
                 let pt = td.board.piece_on(mv.from()).piece_type();
                 if pt == PieceType::Queen {
-                    entry.score += 20000;
+                    entry.score += 25275;
                 } else if pt == PieceType::Rook {
-                    entry.score += 10000;
+                    entry.score += 8944;
                 } else if pt != PieceType::Pawn {
-                    entry.score += 4000;
+                    entry.score += 4686;
                 }
             }
 
             // Bonus for checking moves
             if td.board.checking_squares(td.board.moved_piece(mv).piece_type()).contains(mv.to()) {
-                entry.score += 10000;
+                entry.score += 12064;
             }
         }
     }
