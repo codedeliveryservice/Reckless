@@ -46,6 +46,10 @@ impl Castling {
         self.raw
     }
 
+    pub const fn is_any_allowed(self) -> bool {
+        self.raw != 0
+    }
+
     pub const fn is_allowed(self, kind: CastlingKind) -> bool {
         (self.raw & kind as u8) != 0
     }

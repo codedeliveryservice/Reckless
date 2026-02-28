@@ -70,7 +70,7 @@ impl super::Board {
         self.collect_for::<T, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
         self.collect_for::<T, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
 
-        if T::KIND == Kind::Quiet {
+        if T::KIND == Kind::Quiet && self.castling().is_any_allowed() {
             self.collect_castling(list);
         }
     }
