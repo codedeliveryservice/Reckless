@@ -16,7 +16,7 @@ use crate::{
 
 const RANDOM_PLIES: &[usize] = &[4, 5];
 
-const VALIDATION_ABS_MIN_CP: i32 = 25;
+const VALIDATION_ABS_MIN_CP: i32 = 60;
 const VALIDATION_ABS_MAX_CP: i32 = 150;
 const VALIDATION_LIMITS: Limits = Limits::Nodes(40_000);
 
