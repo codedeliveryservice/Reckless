@@ -1214,6 +1214,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
             // QS Futility Pruning (QSFP)
             if !in_check
+                && !td.board.is_direct_check(mv)
                 && mv.to() != td.board.recapture_square()
                 && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
                 && !td.board.see(mv, 1)
