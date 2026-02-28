@@ -1,5 +1,6 @@
 use crate::{
     lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
+    parameters::*,
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveList, PieceType},
@@ -224,17 +225,17 @@ impl MovePicker {
             if threatened.contains(mv.from()) {
                 let pt = td.board.piece_on(mv.from()).piece_type();
                 if pt == PieceType::Queen {
-                    entry.score += 20000;
+                    entry.score += v1();
                 } else if pt == PieceType::Rook {
-                    entry.score += 10000;
+                    entry.score += v2();
                 } else if pt != PieceType::Pawn {
-                    entry.score += 4000;
+                    entry.score += v3();
                 }
             }
 
             // Bonus for checking moves
             if td.board.checking_squares(td.board.moved_piece(mv).piece_type()).contains(mv.to()) {
-                entry.score += 10000;
+                entry.score += v4();
             }
         }
     }
