@@ -181,7 +181,7 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
 fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let board = &threads.main_thread().board;
     let limits = parse_limits(board.side_to_move(), tokens);
-    let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    let time_manager = TimeManager::new(limits, settings.move_overhead);
 
     threads.main_thread().multi_pv = settings.multi_pv;
     threads.execute_searches(time_manager, settings.report, shared);

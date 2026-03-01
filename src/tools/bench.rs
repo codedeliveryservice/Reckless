@@ -95,7 +95,7 @@ pub fn bench<const PRETTY: bool>(args: &[&str]) {
         let now = Instant::now();
 
         let board = Board::from_fen(position).unwrap();
-        let time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+        let time_manager = TimeManager::new(Limits::Depth(depth), 0);
 
         for td in &mut pool.vector {
             td.board = board.clone();
