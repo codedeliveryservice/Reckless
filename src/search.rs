@@ -697,10 +697,11 @@ fn search<NODE: NodeType>(
 
         let is_quiet = mv.is_quiet();
 
-        let history = if is_quiet {
+        let conthist1 = td.conthist(ply, 1, mv);
+        let conthist2 = td.conthist(ply, 2, mv);
+
+        let mainhist = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
-                + td.conthist(ply, 1, mv)
-                + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
             td.noisy_history.get(td.board.threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -718,7 +719,13 @@ fn search<NODE: NodeType>(
                 };
 
             // Futility Pruning (FP)
-            let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= alpha) as i32 - 114;
+            let futility_value = eval
+                + 88 * depth
+                + 63 * mainhist / 1024
+                + 63 * conthist1 / 1024
+                + 63 * conthist2 / 1024
+                + 88 * (eval >= alpha) as i32
+                - 114;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
@@ -730,7 +737,7 @@ fn search<NODE: NodeType>(
 
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value =
-                eval + 71 * depth + 69 * history / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
+                eval + 71 * depth + 69 * mainhist / 1024 + 81 * td.board.piece_on(mv.to()).value() / 1024 + 25;
 
             if !in_check
                 && depth < 12
@@ -746,9 +753,14 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                (-16 * depth * depth + 52 * depth - 21 * history / 1024 + 22).min(0)
+                (-16 * depth * depth + 52 * depth
+                    - 21 * mainhist / 1024
+                    - 21 * conthist1 / 1024
+                    - 21 * conthist2 / 1024
+                    + 22)
+                    .min(0)
             } else {
-                (-8 * depth * depth - 36 * depth - 32 * history / 1024 + 11).min(0)
+                (-8 * depth * depth - 36 * depth - 32 * mainhist / 1024 + 11).min(0)
             };
 
             if !td.board.see(mv, threshold) {
@@ -774,10 +786,12 @@ fn search<NODE: NodeType>(
 
             if is_quiet {
                 reduction += 1972;
-                reduction -= 154 * history / 1024;
+                reduction -= 154 * mainhist / 1024;
+                reduction -= 154 * conthist1 / 1024;
+                reduction -= 154 * conthist2 / 1024;
             } else {
                 reduction += 1452;
-                reduction -= 109 * history / 1024;
+                reduction -= 109 * mainhist / 1024;
             }
 
             if NODE::PV {
@@ -850,10 +864,12 @@ fn search<NODE: NodeType>(
 
             if is_quiet {
                 reduction += 1427;
-                reduction -= 158 * history / 1024;
+                reduction -= 158 * mainhist / 1024;
+                reduction -= 158 * conthist1 / 1024;
+                reduction -= 158 * conthist2 / 1024;
             } else {
                 reduction += 1098;
-                reduction -= 65 * history / 1024;
+                reduction -= 65 * mainhist / 1024;
             }
 
             if tt_pv {
