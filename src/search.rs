@@ -699,6 +699,7 @@ fn search<NODE: NodeType>(
 
         let conthist1 = td.conthist(ply, 1, mv);
         let conthist2 = td.conthist(ply, 2, mv);
+        let conthist4 = td.conthist(ply, 4, mv);
 
         let mainhist = if is_quiet {
             td.quiet_history.get(td.board.threats(), td.board.side_to_move(), mv)
@@ -724,8 +725,9 @@ fn search<NODE: NodeType>(
                 + 63 * mainhist / 1024
                 + 63 * conthist1 / 1024
                 + 63 * conthist2 / 1024
+                + 32 * conthist4 / 1024
                 + 88 * (eval >= alpha) as i32
-                - 114;
+                - 125;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score <= futility_value {
@@ -757,7 +759,8 @@ fn search<NODE: NodeType>(
                     - 21 * mainhist / 1024
                     - 21 * conthist1 / 1024
                     - 21 * conthist2 / 1024
-                    + 22)
+                    - 14 * conthist4 / 1024
+                    + 19)
                     .min(0)
             } else {
                 (-8 * depth * depth - 36 * depth - 32 * mainhist / 1024 + 11).min(0)
@@ -785,10 +788,11 @@ fn search<NODE: NodeType>(
             reduction += 1300 * alpha_raises;
 
             if is_quiet {
-                reduction += 1972;
+                reduction += 2012;
                 reduction -= 154 * mainhist / 1024;
                 reduction -= 154 * conthist1 / 1024;
                 reduction -= 154 * conthist2 / 1024;
+                reduction -= 78 * conthist4 / 1024;
             } else {
                 reduction += 1452;
                 reduction -= 109 * mainhist / 1024;
@@ -863,10 +867,11 @@ fn search<NODE: NodeType>(
             reduction -= 2513 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 1427;
+                reduction += 1470;
                 reduction -= 158 * mainhist / 1024;
                 reduction -= 158 * conthist1 / 1024;
                 reduction -= 158 * conthist2 / 1024;
+                reduction -= 79 * conthist4 / 1024;
             } else {
                 reduction += 1098;
                 reduction -= 65 * mainhist / 1024;
