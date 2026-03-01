@@ -1046,7 +1046,7 @@ fn search<NODE: NodeType>(
             }
         } else if pcm_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
-            let bonus = 60;
+            let bonus = (30 * depth - 15).min(400);
 
             td.noisy_history.update(
                 td.board.prior_threats(),
