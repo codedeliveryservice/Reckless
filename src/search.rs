@@ -1003,6 +1003,11 @@ fn search<NODE: NodeType>(
             td.quiet_history.update(td.board.threats(), td.board.side_to_move(), best_move, quiet_bonus);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
 
+            if current_search_count > 1 {
+                let bonus = (201 * depth - 86).min(1634);
+                update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+            }
+
             for &mv in quiet_moves.iter() {
                 td.quiet_history.update(td.board.threats(), td.board.side_to_move(), mv, -quiet_malus);
                 update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
@@ -1017,11 +1022,6 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
             let malus = (86 * depth - 60).min(771);
             update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, td.stack[ply - 1].mv.to(), -malus);
-        }
-
-        if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
-            let bonus = (201 * depth - 86).min(1634);
-            update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
     }
 
