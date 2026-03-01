@@ -141,7 +141,7 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
 }
 
 fn uci() {
-    println!("id name Reckless {}", env!("ENGINE_VERSION"));
+    println!("id name Reckless {}", env!("CARGO_PKG_VERSION"));
     println!("id author Arseniy Surkov, Shahin M. Shahin, and Styx");
     println!("option name Hash type spin default {DEFAULT_TT_SIZE} min 1 max 262144");
     println!("option name Threads type spin default 1 min 1 max {}", ThreadPool::available_threads());
