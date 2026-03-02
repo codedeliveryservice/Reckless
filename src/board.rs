@@ -346,7 +346,8 @@ impl Board {
                 _ => unreachable!(),
             };
 
-            return !self.all_threats().contains(to) && !self.pinned(self.side_to_move).contains(self.castling_rooks[kind]);
+            return !self.all_threats().contains(to)
+                && !self.pinned(self.side_to_move).contains(self.castling_rooks[kind]);
         }
 
         if self.piece_on(from).piece_type() == PieceType::King {
@@ -505,11 +506,11 @@ impl Board {
         self.state.piece_threats[PieceType::King] = king_attacks(self.their(PieceType::King).lsb());
 
         self.state.all_threats = self.state.piece_threats[PieceType::Pawn]
-                               | self.state.piece_threats[PieceType::Knight]
-                               | self.state.piece_threats[PieceType::Bishop]
-                               | self.state.piece_threats[PieceType::Rook]
-                               | self.state.piece_threats[PieceType::Queen]
-                               | self.state.piece_threats[PieceType::King];
+            | self.state.piece_threats[PieceType::Knight]
+            | self.state.piece_threats[PieceType::Bishop]
+            | self.state.piece_threats[PieceType::Rook]
+            | self.state.piece_threats[PieceType::Queen]
+            | self.state.piece_threats[PieceType::King];
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
