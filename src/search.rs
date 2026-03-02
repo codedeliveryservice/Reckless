@@ -146,13 +146,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         beta = (3 * alpha + beta) / 4;
                         alpha = (score - delta_lower).max(-Score::INFINITE);
                         reduction = 0;
-                        delta_lower += 27 * delta_lower / 128;
+                        delta_lower += delta_lower / 4;
+                        delta_upper += delta_upper / 8;
                     }
                     s if s >= beta => {
                         alpha = (beta - delta_upper).max(alpha);
                         beta = (score + delta_upper).min(Score::INFINITE);
                         reduction += 1;
-                        delta_upper += 63 * delta_upper / 128;
+                        delta_lower += delta_lower / 8;
+                        delta_upper += delta_upper / 2;
                     }
                     _ => {
                         average[td.pv_index] = if average[td.pv_index] == Score::NONE {
