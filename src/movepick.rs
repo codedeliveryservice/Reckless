@@ -1,5 +1,4 @@
 use crate::{
-    //lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
