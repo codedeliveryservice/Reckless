@@ -1152,18 +1152,21 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let raw_eval;
+    let eval;
     let mut best_score;
 
     // Evaluation
     if in_check {
         raw_eval = Score::NONE;
+        eval = Score::NONE;
         best_score = -Score::INFINITE;
     } else {
         raw_eval = match &entry {
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
         };
-        best_score = correct_eval(td, raw_eval, eval_correction(td, ply));
+        eval = correct_eval(td, raw_eval, eval_correction(td, ply));
+        best_score = eval;
 
         if is_valid(tt_score)
             && (!NODE::PV || !is_decisive(tt_score))
@@ -1212,17 +1215,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 break;
             }
 
-            // QS Futility Pruning (QSFP)
-            if !in_check
-                && mv.to() != td.board.recapture_square()
-                && best_score + 42 * td.board.piece_on(mv.to()).piece_type().value() / 128 + 104 <= alpha
-                && !td.board.see(mv, 1)
-            {
-                continue;
-            }
-
-            // QS SEE Pruning (QSSEE)
-            if !td.board.see(mv, -81) {
+            if !td.board.see(mv, (alpha - eval) / 8 - 100) {
                 continue;
             }
         }
