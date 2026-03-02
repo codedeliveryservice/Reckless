@@ -115,7 +115,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta += td.root_moves[td.pv_index].mean_squared_score / 300;
 
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
@@ -928,6 +928,7 @@ fn search<NODE: NodeType>(
                 }
 
                 root_move.score = score;
+                root_move.mean_squared_score = (score * score + root_move.mean_squared_score) / 2;
                 root_move.sel_depth = td.sel_depth;
                 root_move.pv.commit_full_root_pv(&td.pv_table, 1);
 
