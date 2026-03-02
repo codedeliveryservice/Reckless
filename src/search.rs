@@ -98,7 +98,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             rm.previous_score = rm.score;
         }
 
-        let mut delta = 13;
+        let mut delta_lower = 13;
+        let mut delta_upper = 13;
         let mut reduction = 0;
 
         for index in 0..td.multi_pv {
@@ -115,10 +116,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta_lower += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta_upper += average[td.pv_index] * average[td.pv_index] / 23660;
 
-            let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
-            let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+            let mut alpha = (average[td.pv_index] - delta_lower).max(-Score::INFINITE);
+            let mut beta = (average[td.pv_index] + delta_upper).min(Score::INFINITE);
 
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
@@ -142,15 +144,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 match score {
                     s if s <= alpha => {
                         beta = (3 * alpha + beta) / 4;
-                        alpha = (score - delta).max(-Score::INFINITE);
+                        alpha = (score - delta_lower).max(-Score::INFINITE);
                         reduction = 0;
-                        delta += 27 * delta / 128;
+                        delta_lower += 27 * delta_lower / 128;
                     }
                     s if s >= beta => {
-                        alpha = (beta - delta).max(alpha);
-                        beta = (score + delta).min(Score::INFINITE);
+                        alpha = (beta - delta_upper).max(alpha);
+                        beta = (score + delta_upper).min(Score::INFINITE);
                         reduction += 1;
-                        delta += 63 * delta / 128;
+                        delta_upper += 63 * delta_upper / 128;
                     }
                     _ => {
                         average[td.pv_index] = if average[td.pv_index] == Score::NONE {
