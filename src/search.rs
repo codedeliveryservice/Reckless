@@ -115,7 +115,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += td.root_moves[td.pv_index].mean_squared_score / 300;
+            delta += td.root_moves[td.pv_index].mean_squared_score / 9000;
 
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
