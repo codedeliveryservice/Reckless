@@ -244,8 +244,8 @@ impl Board {
 
     /// Checks for a material draw
     pub fn draw_by_material(&self) -> bool {
-
-        if (self.pieces(PieceType::Pawn) | self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen)) != Bitboard(0) {
+        if (self.pieces(PieceType::Pawn) | self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen)) != Bitboard(0)
+        {
             return false;
         }
 
@@ -282,9 +282,7 @@ impl Board {
 
     /// Checks if the position is a known draw by material, fifty-move or repetition.
     pub fn is_draw(&self, ply: isize) -> bool {
-           self.draw_by_material()
-        || self.draw_by_fifty_move_rule()
-        || self.draw_by_repetition(ply as i32)
+        self.draw_by_material() || self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
     }
 
     /// Checks if the current position has a move that leads to a draw by repetition.

@@ -160,11 +160,9 @@ impl MovePicker {
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
-
         let threats = td.board.all_threats();
 
         if td.board.checkers().is_empty() {
-
             for entry in self.list.iter_mut() {
                 let mv = entry.mv;
 
@@ -179,8 +177,8 @@ impl MovePicker {
                 entry.score =
                     16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
             }
-        } else { //in check
-
+        } else {
+            //in check
             for entry in self.list.iter_mut() {
                 let mv = entry.mv;
 
