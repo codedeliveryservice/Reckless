@@ -267,7 +267,7 @@ impl Board {
             return false;
         }
 
-        (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).is_empty()
+        (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).popcount() != 1
     }
 
     /// Checks if the position has repeated once earlier but strictly
