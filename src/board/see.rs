@@ -41,8 +41,8 @@ impl super::Board {
         let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
 
-        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
-        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
+        let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
+        let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
 
         let king_rays =
             [ray_pass(self.king_square(Color::White), mv.to()), ray_pass(self.king_square(Color::Black), mv.to())];

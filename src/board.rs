@@ -156,6 +156,10 @@ impl Board {
         self.pieces[piece_type]
     }
 
+    pub fn pieces2(&self, piece_type1: PieceType, piece_type2: PieceType) -> Bitboard {
+        self.pieces[piece_type1] | self.pieces[piece_type2]
+    }
+
     pub const fn colors_bbs(&self) -> [Bitboard; Color::NUM] {
         self.colors
     }
@@ -307,12 +311,12 @@ impl Board {
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
-            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
-            | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
-            | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
-            | knight_attacks(square) & self.pieces(PieceType::Knight)
-            | king_attacks(square) & self.pieces(PieceType::King)
+        (rook_attacks(square, occupancies) & self.pieces2(PieceType::Rook, PieceType::Queen))
+            | (bishop_attacks(square, occupancies) & self.pieces2(PieceType::Bishop, PieceType::Queen))
+            | (pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black))
+            | (pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White))
+            | (knight_attacks(square) & self.pieces(PieceType::Knight))
+            | (king_attacks(square) & self.pieces(PieceType::King))
     }
 
     /// Checks if the given move is legal in the current position.
@@ -525,8 +529,8 @@ impl Board {
         self.state.checkers |= pawn_attacks(our_king, self.side_to_move) & self.their(PieceType::Pawn);
         self.state.checkers |= knight_attacks(our_king) & self.their(PieceType::Knight);
 
-        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
-        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
+        let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
+        let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
 
         for color in [Color::White, Color::Black] {
             let king = self.king_square(color);

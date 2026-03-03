@@ -30,8 +30,8 @@ fn push_threats_single(
     let bishop_attacks = bishop_attacks(square, occupancies);
     let queen_attacks = rook_attacks | bishop_attacks;
 
-    let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
-    let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
+    let diagonal = board.pieces2(PieceType::Bishop, PieceType::Queen) & bishop_attacks;
+    let orthogonal = board.pieces2(PieceType::Rook, PieceType::Queen) & rook_attacks;
 
     for from in (diagonal | orthogonal) & occupancies {
         let sliding_piece = board.piece_on(from);
@@ -74,8 +74,8 @@ pub fn push_threats_on_mutate(
     let rook_attacks = rook_attacks(square, occupancies);
     let bishop_attacks = bishop_attacks(square, occupancies);
 
-    let diagonal = (board.pieces(PieceType::Bishop) | board.pieces(PieceType::Queen)) & bishop_attacks;
-    let orthogonal = (board.pieces(PieceType::Rook) | board.pieces(PieceType::Queen)) & rook_attacks;
+    let diagonal = board.pieces2(PieceType::Bishop, PieceType::Queen) & bishop_attacks;
+    let orthogonal = board.pieces2(PieceType::Rook, PieceType::Queen) & rook_attacks;
 
     let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
     let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
