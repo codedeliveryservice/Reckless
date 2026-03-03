@@ -76,6 +76,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
+    let mut mss = vec![td.previous_best_score.pow(2); td.multi_pv];
+
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -115,7 +117,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            delta += mss[td.pv_index] / 23660;
 
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
@@ -153,11 +155,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         delta += 63 * delta / 128;
                     }
                     _ => {
-                        average[td.pv_index] = if average[td.pv_index] == Score::NONE {
-                            score
-                        } else {
-                            (average[td.pv_index] + score) / 2
-                        };
+                        average[td.pv_index] = (average[td.pv_index] + score) / 2;
+                        mss[td.pv_index] = (mss[td.pv_index] + score.pow(2)) / 2;
 
                         td.shared.best_stats[td.pv_index].fetch_max(
                             ((depth as u32) << 16) | (average[td.pv_index] + 32768) as u32,
