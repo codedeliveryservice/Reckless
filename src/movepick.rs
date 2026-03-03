@@ -1,8 +1,7 @@
 use crate::{
-    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveList, PieceType},
+    types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -161,7 +160,7 @@ impl MovePicker {
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
-        let threats = td.board.threats();
+        let threats = td.board.all_threats();
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
@@ -180,26 +179,16 @@ impl MovePicker {
     }
 
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
-        let threats = td.board.threats();
+        let threats = td.board.all_threats();
+
         let side = td.board.side_to_move();
-        let occ = td.board.occupancies();
 
-        let pawn_threats = pawn_attacks_setwise(td.board.their(PieceType::Pawn), !side);
+        let pawn_threats = td.board.piece_threats(PieceType::Pawn);
 
-        let mut minor_threats = Bitboard(0);
-        for square in td.board.their(PieceType::Knight) {
-            minor_threats |= knight_attacks(square);
-        }
-        for square in td.board.their(PieceType::Bishop) {
-            minor_threats |= bishop_attacks(square, occ ^ td.board.our(PieceType::Queen));
-        }
-        minor_threats |= pawn_threats;
+        let minor_threats =
+            pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
 
-        let mut rook_threats = Bitboard(0);
-        for square in td.board.their(PieceType::Rook) {
-            rook_threats |= rook_attacks(square, occ ^ td.board.our(PieceType::Queen));
-        }
-        rook_threats |= minor_threats;
+        let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
 
         let threatened = (td.board.our(PieceType::Queen) & rook_threats)
             | (td.board.our(PieceType::Rook) & minor_threats)
