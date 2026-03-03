@@ -254,6 +254,7 @@ impl Board {
             return piece_count < 4;
         }
 
+        // Here on, there are exactly 2 non-king minors
         if (self.our(PieceType::Bishop) | self.our(PieceType::Knight)).popcount() == 1 {
             return true;
         }
