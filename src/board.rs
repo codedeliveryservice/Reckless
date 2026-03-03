@@ -242,9 +242,31 @@ impl Board {
         }
     }
 
-    /// Checks if the position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self, ply: isize) -> bool {
-        self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
+    /// Checks for a material draw
+    pub fn draw_by_material(&self) -> bool {
+
+        if (self.pieces(PieceType::Pawn) | self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen)) != Bitboard(0) {
+            return false;
+        }
+
+        let piece_count = self.occupancies().popcount();
+        if piece_count != 4 {
+            return piece_count < 4;
+        }
+
+        if (self.our(PieceType::Bishop) | self.our(PieceType::Knight)).popcount() == 1 {
+            return true;
+        }
+
+        if self.pieces(PieceType::Bishop).is_empty() {
+            return true;
+        }
+
+        if self.pieces(PieceType::Knight) != Bitboard(0) {
+            return false;
+        }
+
+        (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).is_empty()
     }
 
     /// Checks if the position has repeated once earlier but strictly
@@ -255,6 +277,13 @@ impl Board {
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
         self.state.halfmove_clock >= 100 && (!self.in_check() || self.has_legal_moves())
+    }
+
+    /// Checks if the position is a known draw by material, fifty-move or repetition.
+    pub fn is_draw(&self, ply: isize) -> bool {
+           self.draw_by_material()
+        || self.draw_by_fifty_move_rule()
+        || self.draw_by_repetition(ply as i32)
     }
 
     /// Checks if the current position has a move that leads to a draw by repetition.
