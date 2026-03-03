@@ -120,10 +120,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
-            let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
-                + average[td.pv_index])
-                / 2;
-            td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
+            let shared_average =
+                (td.shared.shared_average[td.pv_index].load(Ordering::Relaxed) + average[td.pv_index]) / 2;
+
+            td.optimism[td.board.side_to_move()] = 169 * shared_average / (shared_average.abs() + 187);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
@@ -153,17 +153,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         delta += 63 * delta / 128;
                     }
                     _ => {
-                        average[td.pv_index] = if average[td.pv_index] == Score::NONE {
-                            score
-                        } else {
-                            (average[td.pv_index] + score) / 2
-                        };
-
-                        td.shared.best_stats[td.pv_index].fetch_max(
-                            ((depth as u32) << 16) | (average[td.pv_index] + 32768) as u32,
-                            Ordering::AcqRel,
+                        average[td.pv_index] = (average[td.pv_index] + score) / 2;
+                        td.shared.shared_average[td.pv_index].store(
+                            (td.shared.shared_average[td.pv_index].load(Ordering::Relaxed) + average[td.pv_index]) / 2,
+                            Ordering::Relaxed,
                         );
-
                         break;
                     }
                 }

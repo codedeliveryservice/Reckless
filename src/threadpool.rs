@@ -76,9 +76,6 @@ impl ThreadPool {
         shared.tb_hits.reset();
         shared.soft_stop_votes.store(0, Ordering::Release);
         shared.status.set(Status::RUNNING);
-        shared.best_stats.iter().for_each(|x| {
-            x.store((self.main_thread().previous_best_score + 32768) as u32, Ordering::Release);
-        });
 
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();
