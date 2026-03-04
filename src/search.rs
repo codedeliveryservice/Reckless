@@ -540,7 +540,7 @@ fn search<NODE: NodeType>(
 
         let mut reduction = 5154;
         reduction += 271 * depth;
-        reduction += (128 * improvement / 128).clamp(-100, 350);
+        reduction += (160 * improvement / 128).clamp(-100, 480);
         reduction += (535 * (estimated_score - beta) / 128).clamp(0, 4484);
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
