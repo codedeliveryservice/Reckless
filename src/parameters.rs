@@ -32,3 +32,9 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 v1: 50;
+    i32 v2: 100;
+    i32 v3: 25;
+);

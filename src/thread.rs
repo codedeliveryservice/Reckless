@@ -139,7 +139,7 @@ pub struct ThreadData {
     pub quiet_history: QuietHistory,
     pub continuation_history: ContinuationHistory,
     pub continuation_corrhist: ContinuationCorrectionHistory,
-    pub best_move_changes: usize,
+    pub best_move_changes: i32,
     pub optimism: [i32; 2],
     pub stopped: bool,
     pub root_depth: i32,
