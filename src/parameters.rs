@@ -32,7 +32,3 @@ macro_rules! define {
         }
     };
 }
-
-define!(
-    i32 v1: 23660;
-);
