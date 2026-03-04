@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::v1,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -117,7 +118,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += mss[td.pv_index] / 23660;
+            delta += mss[td.pv_index] / v1();
 
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
