@@ -75,7 +75,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
-    let mut average = vec![td.previous_best_score; td.multi_pv];
+    let mut local_average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
@@ -115,15 +115,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
 
             // Aspiration Windows
-            delta += average[td.pv_index] * average[td.pv_index] / 23660;
+            let shared_average = td.shared.average[td.pv_index].load(Ordering::Acquire) / thread_count as i32;
 
-            let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
-            let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+            delta += shared_average * shared_average / 23660;
 
-            let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
-                + average[td.pv_index])
-                / 2;
-            td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
+            let mut alpha = (shared_average - delta).max(-Score::INFINITE);
+            let mut beta = (shared_average + delta).min(Score::INFINITE);
+
+            td.optimism[td.board.side_to_move()] = 169 * shared_average / (shared_average.abs() + 187);
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
@@ -153,17 +152,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         delta += 63 * delta / 128;
                     }
                     _ => {
-                        average[td.pv_index] = if average[td.pv_index] == Score::NONE {
-                            score
-                        } else {
-                            (average[td.pv_index] + score) / 2
-                        };
-
-                        td.shared.best_stats[td.pv_index].fetch_max(
-                            ((depth as u32) << 16) | (average[td.pv_index] + 32768) as u32,
-                            Ordering::AcqRel,
-                        );
-
+                        let previous = local_average[td.pv_index];
+                        local_average[td.pv_index] = (score + local_average[td.pv_index]) / 2;
+                        td.shared.average[td.pv_index]
+                            .fetch_add(local_average[td.pv_index] - previous, Ordering::AcqRel);
                         break;
                     }
                 }
@@ -187,7 +179,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.print_uci_info(depth);
         }
 
-        if (td.root_moves[0].score - average[td.pv_index]).abs() < 12 {
+        if (td.root_moves[0].score - local_average[td.pv_index]).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
