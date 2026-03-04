@@ -538,7 +538,10 @@ fn search<NODE: NodeType>(
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5154 + 271 * depth + 535 * (estimated_score - beta).clamp(0, 1073) / 128) / 1024;
+        let mut reduction = 5154;
+        reduction += 271 * depth;
+        reduction += (128 * improvement / 128).clamp(-100, 350);
+        reduction += (535 * (estimated_score - beta) / 128).clamp(0, 4484);
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
@@ -547,7 +550,8 @@ fn search<NODE: NodeType>(
 
         td.board.make_null_move();
 
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+        let reduced_depth = depth - reduction / 1024;
+        let score = -search::<NonPV>(td, -beta, -beta + 1, reduced_depth, false, ply + 1);
 
         td.board.undo_null_move();
 
@@ -560,8 +564,8 @@ fn search<NODE: NodeType>(
                 return score;
             }
 
-            td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+            td.nmp_min_ply = ply as i32 + 3 * (depth - reduction) / 4;
+            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - reduction, false, ply);
             td.nmp_min_ply = 0;
 
             if td.stopped {
