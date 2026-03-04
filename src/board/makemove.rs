@@ -1,18 +1,16 @@
 use super::{Board, BoardObserver};
-use crate::types::{Bitboard, Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
 
 impl Board {
     pub fn make_null_move(&mut self) {
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
-        self.state.key ^= ZOBRIST.side;
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.key ^= ZOBRIST.side ^ ZOBRIST.castling[self.state.castling];
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
         self.state.recapture_square = Square::None;
-        self.state.checkers = Bitboard::default();
 
         self.update_threats();
         self.update_king_threats();
@@ -41,8 +39,7 @@ impl Board {
 
         self.state_stack.push(self.state);
 
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
-        self.state.key ^= ZOBRIST.side;
+        self.state.key ^= ZOBRIST.castling[self.state.castling] ^ ZOBRIST.side;
 
         if self.state.en_passant != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
