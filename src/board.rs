@@ -156,6 +156,10 @@ impl Board {
         self.pieces[piece_type]
     }
 
+    pub fn pieces2(&self, piece_type1: PieceType, piece_type2: PieceType) -> Bitboard {
+        self.pieces[piece_type1] | self.pieces[piece_type2]
+    }
+
     pub const fn colors_bbs(&self) -> [Bitboard; Color::NUM] {
         self.colors
     }
@@ -243,9 +247,32 @@ impl Board {
         }
     }
 
-    /// Checks if the position is a known draw by the fifty-move rule or repetition.
-    pub fn is_draw(&self, ply: isize) -> bool {
-        self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
+    /// Checks for a material draw
+    pub fn draw_by_material(&self) -> bool {
+        if (self.pieces(PieceType::Pawn) | self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen)) != Bitboard(0)
+        {
+            return false;
+        }
+
+        let piece_count = self.occupancies().popcount();
+        if piece_count != 4 {
+            return piece_count < 4;
+        }
+
+        // Here on, there are exactly 2 non-king minors
+        if (self.our(PieceType::Bishop) | self.our(PieceType::Knight)).popcount() == 1 {
+            return true;
+        }
+
+        if self.pieces(PieceType::Bishop).is_empty() {
+            return true;
+        }
+
+        if self.pieces(PieceType::Knight) != Bitboard(0) {
+            return false;
+        }
+
+        (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).popcount() != 1
     }
 
     /// Checks if the position has repeated once earlier but strictly
@@ -256,6 +283,11 @@ impl Board {
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
         self.state.halfmove_clock >= 100 && (!self.in_check() || self.has_legal_moves())
+    }
+
+    /// Checks if the position is a known draw by material, fifty-move or repetition.
+    pub fn is_draw(&self, ply: isize) -> bool {
+        self.draw_by_material() || self.draw_by_fifty_move_rule() || self.draw_by_repetition(ply as i32)
     }
 
     /// Checks if the current position has a move that leads to a draw by repetition.
@@ -308,12 +340,12 @@ impl Board {
     }
 
     pub fn attackers_to(&self, square: Square, occupancies: Bitboard) -> Bitboard {
-        rook_attacks(square, occupancies) & (self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen))
-            | bishop_attacks(square, occupancies) & (self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen))
-            | pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black)
-            | pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White)
-            | knight_attacks(square) & self.pieces(PieceType::Knight)
-            | king_attacks(square) & self.pieces(PieceType::King)
+        (rook_attacks(square, occupancies) & self.pieces2(PieceType::Rook, PieceType::Queen))
+            | (bishop_attacks(square, occupancies) & self.pieces2(PieceType::Bishop, PieceType::Queen))
+            | (pawn_attacks(square, Color::White) & self.of(PieceType::Pawn, Color::Black))
+            | (pawn_attacks(square, Color::Black) & self.of(PieceType::Pawn, Color::White))
+            | (knight_attacks(square) & self.pieces(PieceType::Knight))
+            | (king_attacks(square) & self.pieces(PieceType::King))
     }
 
     /// Checks if the given move is legal in the current position.
@@ -526,8 +558,8 @@ impl Board {
         self.state.checkers |= pawn_attacks(our_king, self.side_to_move) & self.their(PieceType::Pawn);
         self.state.checkers |= knight_attacks(our_king) & self.their(PieceType::Knight);
 
-        let diagonal = self.pieces(PieceType::Bishop) | self.pieces(PieceType::Queen);
-        let orthogonal = self.pieces(PieceType::Rook) | self.pieces(PieceType::Queen);
+        let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
+        let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
 
         for color in [Color::White, Color::Black] {
             let king = self.king_square(color);
