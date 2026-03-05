@@ -223,7 +223,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let best_move_stability = (110 + 22 * best_move_changes) as f32 / 100.0 as f32;
+            let best_move_stability = 1.1 + 0.22 * best_move_changes as f32;
 
             nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
         };
