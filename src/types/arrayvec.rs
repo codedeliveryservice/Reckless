@@ -35,6 +35,15 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         self.len += 1;
     }
 
+    pub fn safe_push(&mut self, value: T) {
+        if self.len == N {
+            return;
+        }
+
+        unsafe { self.data[self.len].as_mut_ptr().write(value) };
+        self.len += 1;
+    }
+
     pub fn maybe_push(&mut self, mask: bool, value: T) {
         debug_assert!(self.len < N);
 

@@ -674,6 +674,7 @@ fn search<NODE: NodeType>(
     let mut bound = Bound::Upper;
 
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
+    let mut alpha_raising_quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
     let mut move_count = 0;
@@ -964,12 +965,14 @@ fn search<NODE: NodeType>(
             }
         }
 
-        if mv != best_move && move_count < 32 {
-            if is_quiet {
-                quiet_moves.push(mv);
+        if is_quiet {
+            if mv == best_move {
+                alpha_raising_quiet_moves.safe_push(mv);
             } else {
-                noisy_moves.push(mv);
+                quiet_moves.safe_push(mv);
             }
+        } else {
+            noisy_moves.safe_push(mv);
         }
     }
 
@@ -1022,6 +1025,11 @@ fn search<NODE: NodeType>(
         if current_search_count > 1 && best_move.is_quiet() && best_score >= beta {
             let bonus = (201 * depth - 86).min(1634);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
+        }
+
+        let alpha_bonus = (40 * depth).min(600);
+        for &mv in alpha_raising_quiet_moves.iter() {
+            td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), mv, alpha_bonus);
         }
     }
 
