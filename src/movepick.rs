@@ -165,12 +165,6 @@ impl MovePicker {
         if td.board.checkers().is_empty() {
             for entry in self.list.iter_mut() {
                 let mv = entry.mv;
-
-                if mv == self.tt_move {
-                    entry.score = i32::MIN;
-                    continue;
-                }
-
                 let captured =
                     if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
@@ -181,12 +175,6 @@ impl MovePicker {
             //in check
             for entry in self.list.iter_mut() {
                 let mv = entry.mv;
-
-                if mv == self.tt_move {
-                    entry.score = i32::MIN;
-                    continue;
-                }
-
                 let pt = td.board.piece_on(mv.from()).piece_type();
 
                 entry.score = 10000 - 1000 * pt as i32;
