@@ -205,7 +205,7 @@ impl Board {
     }
 
     pub fn has_non_pawns(&self) -> bool {
-        self.our(PieceType::Pawn) | self.our(PieceType::King) != self.us()
+        (self.pieces(PieceType::Pawn) | self.pieces(PieceType::King)) != self.occupancies()
     }
 
     pub fn advance_fullmove_counter(&mut self) {
