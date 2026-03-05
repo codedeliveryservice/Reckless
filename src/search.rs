@@ -678,6 +678,7 @@ fn search<NODE: NodeType>(
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut quiet_move_scores = ArrayVec::<i32, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
+    let mut noisy_move_scores = ArrayVec::<i32, 32>::new();
 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move);
@@ -973,6 +974,7 @@ fn search<NODE: NodeType>(
                 quiet_move_scores.push(score);
             } else {
                 noisy_moves.push(mv);
+                noisy_move_scores.push(score);
             }
         }
     }
@@ -1017,15 +1019,17 @@ fn search<NODE: NodeType>(
             }
         }
 
-        for &mv in noisy_moves.iter() {
+        for (i, &mv) in noisy_moves.iter().enumerate() {
             if mv != best_move {
+                let factor = if noisy_move_scores[i] >= original_alpha { 2 } else { 1 };
+
                 let captured = td.board.piece_on(mv.to()).piece_type();
                 td.noisy_history.update(
                     td.board.all_threats(),
                     td.board.moved_piece(mv),
                     mv.to(),
                     captured,
-                    -noisy_malus,
+                    -noisy_malus / factor,
                 );
             }
         }
