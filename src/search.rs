@@ -3,7 +3,6 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -86,7 +85,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
-        best_move_changes = v1() * best_move_changes / 100;
+        best_move_changes = 37 * best_move_changes / 100;
 
         td.sel_depth = 0;
         td.root_depth = depth;
@@ -224,7 +223,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let best_move_stability = (v2() + v3() * best_move_changes) as f32 / 100.0 as f32;
+            let best_move_stability = (110 + 22 * best_move_changes) as f32 / 100.0 as f32;
 
             nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
         };
