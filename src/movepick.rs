@@ -232,8 +232,6 @@ impl MovePicker {
                     entry.score += 20000;
                 } else if pt == PieceType::Rook {
                     entry.score += 10000;
-                } else if pt != PieceType::Pawn {
-                    entry.score += 4000;
                 }
             }
 
