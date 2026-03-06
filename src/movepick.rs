@@ -218,10 +218,8 @@ impl MovePicker {
             if threatened.contains(mv.from()) {
                 if pt == PieceType::Queen {
                     entry.score += 20000;
-                } else if pt == PieceType::Rook {
-                    entry.score += 10000;
                 } else if pt != PieceType::Pawn {
-                    entry.score += 4000;
+                    entry.score += 8000;
                 }
             }
 
