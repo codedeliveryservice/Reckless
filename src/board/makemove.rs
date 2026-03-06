@@ -102,13 +102,11 @@ impl Board {
                 observer.on_piece_change(self, rook, rook_from, false);
 
                 self.remove_piece(piece, from);
-                observer.on_piece_change(self, piece, from, false);
+                self.add_piece(piece, to);
+                observer.on_piece_move(self, piece, from, to);
 
                 self.add_piece(rook, rook_to);
                 observer.on_piece_change(self, rook, rook_to, true);
-
-                self.add_piece(piece, to);
-                observer.on_piece_change(self, piece, to, true);
 
                 self.update_hash(rook, rook_from);
                 self.update_hash(rook, rook_to);
