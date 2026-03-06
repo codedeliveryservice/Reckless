@@ -546,6 +546,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].mv = Move::NULL;
 
         td.board.make_null_move();
+        td.shared.tt.prefetch(td.board.hash());
 
         let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
 
@@ -1242,6 +1243,20 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 }
 
                 if score >= beta {
+                    let bonus = if best_move.is_noisy() { 106 } else { 172 };
+
+                    if best_move.is_noisy() {
+                        td.noisy_history.update(
+                            td.board.all_threats(),
+                            td.board.moved_piece(best_move),
+                            best_move.to(),
+                            td.board.piece_on(best_move.to()).piece_type(),
+                            bonus,
+                        );
+                    } else {
+                        td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, bonus);
+                    }
+
                     break;
                 }
 
