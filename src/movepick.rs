@@ -208,7 +208,7 @@ impl MovePicker {
                 continue;
             }
 
-            entry.score = td.quiet_history.get(threats, side, mv)
+            entry.score = td.quiet_history.get(threats, side, mv) / (1 + td.board.captured_piece().is_some() as i32)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
