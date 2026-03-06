@@ -546,6 +546,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].mv = Move::NULL;
 
         td.board.make_null_move();
+        td.shared.tt.prefetch(td.board.hash());
 
         let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
 
