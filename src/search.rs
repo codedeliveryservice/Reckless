@@ -710,7 +710,6 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             if !td.board.is_direct_check(mv)
-                && is_quiet
                 && move_count >= {
                     let adjust = improvement.clamp(-100, 218);
                     let factor0 = 3539 + 130 * adjust / 16;
