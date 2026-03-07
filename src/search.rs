@@ -1255,6 +1255,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                         );
                     } else {
                         td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, bonus);
+                        update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), bonus);
                     }
 
                     break;
