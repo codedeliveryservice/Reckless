@@ -1,7 +1,10 @@
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Read},
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -20,6 +23,8 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
 
     let mut handlers = Vec::new();
 
+    let total_games = Arc::new(AtomicUsize::new(0));
+
     std::fs::create_dir(output).unwrap();
 
     let mut files = std::fs::read_dir(input)
@@ -30,6 +35,8 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
 
     files.sort_by_key(|f| std::fs::metadata(f).unwrap().len());
     files.reverse();
+
+    println!("Found {} files to convert", files.len());
 
     let bar = ProgressBar::new(files.len() as u64).with_style(
         ProgressStyle::with_template("{spinner:.green} [{bar:40}] {pos}/{len} ({eta}) {percent}%")
@@ -48,6 +55,7 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
         let chunk = chunk.to_vec();
         let output = output.to_string();
         let progress = progress.clone();
+        let total_games = total_games.clone();
 
         let handler = std::thread::spawn(move || {
             let buf = BufWriter::new(File::create(format!("{output}/chunk_{index}.rbinpack")).unwrap());
@@ -55,7 +63,8 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
             let mut nnue = Network::default();
 
             for file_name in chunk {
-                convert_pgn(&file_name, adversarial, &mut writer, &mut nnue);
+                let games = convert_pgn(&file_name, adversarial, &mut writer, &mut nnue);
+                total_games.fetch_add(games, Ordering::SeqCst);
                 progress.lock().unwrap().inc(1);
             }
         });
@@ -66,10 +75,12 @@ pub fn convert_pgns(input: &str, output: &str, threads: usize, adversarial: bool
         handler.join().unwrap();
     }
 
+    println!("Conversion completed. Total games converted: {}", total_games.load(Ordering::SeqCst));
+
     std::process::exit(0);
 }
 
-pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWriter, nnue: &mut Network) {
+pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWriter, nnue: &mut Network) -> usize {
     let file = File::open(file_name).unwrap();
     let uncompressed = bzip2::read::BzDecoder::new(file);
     let bytes = BufReader::new(uncompressed).bytes().flatten().collect::<Vec<_>>();
@@ -82,6 +93,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
     let mut internal_board = Board::default();
     let mut internal_entries = Vec::new();
 
+    let mut games = 0;
     let mut player = Color::White;
     let mut mate_score_found = false;
     let mut skip_game = false;
@@ -138,6 +150,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
 
                 if !skip_game {
                     writer.write(&start_board, result, &internal_entries);
+                    games += 1;
                 }
                 skip_game = false;
             }
@@ -182,4 +195,5 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
             position.play_unchecked(&mv);
         }
     }
+    games
 }
