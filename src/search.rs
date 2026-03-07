@@ -516,7 +516,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        return beta + (estimated_score - beta) / 3;
+        return (2 * beta + estimated_score) / 3;
     }
 
     // Null Move Pruning (NMP)
@@ -623,9 +623,7 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
-                if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
-                }
+                return if !is_decisive(score) { (2 * score + beta) / 3 } else { score };
             }
         }
     }
@@ -659,7 +657,7 @@ fn search<NODE: NodeType>(
         }
         // Multi-Cut
         else if score >= beta && !is_decisive(score) {
-            return (score * singular_depth + beta) / (singular_depth + 1);
+            return (2 * score + beta) / 3;
         }
         // Negative Extensions
         else if tt_score >= beta {
@@ -1184,7 +1182,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     // Stand Pat
     if best_score >= beta {
         if !is_decisive(best_score) && !is_decisive(beta) {
-            best_score = beta + (best_score - beta) / 3;
+            best_score = (2 * beta + best_score) / 3;
         }
 
         if entry.is_none() {
