@@ -623,9 +623,7 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
-                if !is_decisive(score) {
-                    return score - (probcut_beta - beta);
-                }
+                return if !is_decisive(score) { (2 * score + beta) / 3 } else { score };
             }
         }
     }
