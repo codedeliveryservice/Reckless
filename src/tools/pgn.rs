@@ -96,7 +96,6 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
     let mut games = 0;
     let mut player = Color::White;
     let mut mate_score_found = false;
-    let mut skip_game = false;
 
     internal_board.set_frc(true);
 
@@ -130,16 +129,6 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
 
                 position = Fen::from_ascii(fen_bytes).unwrap().into_position(CastlingMode::Chess960).unwrap();
             }
-            Token::TagSymbol(bytes) if bytes == b"Termination" => {
-                let reason = match parser.next() {
-                    Some(Token::TagString(v)) => String::from_utf8_lossy(v).to_string(),
-                    _ => panic!(),
-                };
-
-                if reason == "abandoned" {
-                    skip_game = true;
-                }
-            }
             Token::Result(bytes) => {
                 let result = match bytes {
                     b"1-0" => 2,
@@ -148,11 +137,8 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                     _ => panic!("Unexpected result: {:?}", String::from_utf8_lossy(bytes)),
                 };
 
-                if !skip_game {
-                    writer.write(&start_board, result, &internal_entries);
-                    games += 1;
-                }
-                skip_game = false;
+                writer.write(&start_board, result, &internal_entries);
+                games += 1;
             }
             _ => (),
         }
