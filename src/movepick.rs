@@ -177,7 +177,7 @@ impl MovePicker {
                 let mv = entry.mv;
                 let pt = td.board.piece_on(mv.from()).piece_type();
 
-                entry.score = 10000 - 1000 * pt as i32;
+                entry.score = 10000 - pt.value();
             }
         }
     }
