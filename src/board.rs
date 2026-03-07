@@ -355,7 +355,7 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
 
-        let king = self.our(PieceType::King).lsb();
+        let king = self.king_square(self.side_to_move());
 
         if mv.is_en_passant() {
             let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
@@ -507,8 +507,9 @@ impl Board {
         //
         // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let occupancies = self.occupancies() ^ self.our(PieceType::King);
+        let stm = self.side_to_move();
 
-        let mut threats = pawn_attacks_setwise(self.their(PieceType::Pawn), !self.side_to_move);
+        let mut threats = pawn_attacks_setwise(self.their(PieceType::Pawn), !stm);
         self.state.piece_threats[PieceType::Pawn] = threats;
 
         threats = Bitboard(0);
@@ -535,7 +536,7 @@ impl Board {
         }
         self.state.piece_threats[PieceType::Queen] = threats;
 
-        self.state.piece_threats[PieceType::King] = king_attacks(self.their(PieceType::King).lsb());
+        self.state.piece_threats[PieceType::King] = king_attacks(self.king_square(!stm));
 
         self.state.all_threats = self.state.piece_threats[PieceType::Pawn]
             | self.state.piece_threats[PieceType::Knight]
