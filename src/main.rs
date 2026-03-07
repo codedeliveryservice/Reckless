@@ -61,6 +61,10 @@ fn main() {
             let input = std::env::args().nth(2).unwrap();
             tools::scale(std::path::Path::new(&input));
         }
+        Some("games") => {
+            let input = std::env::args().nth(2).unwrap();
+            tools::count_games(&input);
+        }
         _ => uci::message_loop(buffer),
     }
 }
