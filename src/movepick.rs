@@ -217,7 +217,7 @@ impl MovePicker {
 
             // bonus for escaping capture
             if threatened.contains(mv.from()) {
-                entry.score += [v1(), v2(), v3(), v4(), v5()][pt];
+                entry.score += [0, v1(), v1(), v2(), v3()][pt];
             }
 
             // Bonus for checking moves
