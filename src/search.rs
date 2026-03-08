@@ -774,10 +774,10 @@ fn search<NODE: NodeType>(
             reduction += 1300 * alpha_raises;
 
             if is_quiet {
-                reduction += 1972;
+                reduction += 2239;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1452;
+                reduction += 1719;
                 reduction -= 109 * history / 1024;
             }
 
@@ -810,10 +810,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1604;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha {
-                reduction += 600;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
