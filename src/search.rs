@@ -516,7 +516,7 @@ fn search<NODE: NodeType>(
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
-        return beta + (estimated_score - beta) / 3;
+        return (3 * beta + estimated_score) / 4;
     }
 
     // Null Move Pruning (NMP)
@@ -1184,7 +1184,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     // Stand Pat
     if best_score >= beta {
         if !is_decisive(best_score) && !is_decisive(beta) {
-            best_score = beta + (best_score - beta) / 3;
+            best_score = (3 * beta + best_score) / 4;
         }
 
         if entry.is_none() {
