@@ -1,4 +1,5 @@
 use crate::{
+    parameters::*,
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, MAX_MOVES, Move, MoveList, PieceType},
@@ -216,13 +217,7 @@ impl MovePicker {
 
             // bonus for escaping capture
             if threatened.contains(mv.from()) {
-                if pt == PieceType::Queen {
-                    entry.score += 20000;
-                } else if pt == PieceType::Rook {
-                    entry.score += 14000;
-                } else if pt != PieceType::Pawn {
-                    entry.score += 8000;
-                }
+                entry.score += [v1(), v2(), v3(), v4(), v5()][pt];
             }
 
             // Bonus for checking moves
