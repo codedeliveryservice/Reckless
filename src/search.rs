@@ -761,7 +761,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
+        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth - 1 };
 
         let mut score = Score::ZERO;
 
@@ -816,11 +816,15 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
+            if extension > 0 {
+                reduction -= 2048;
+            }
+
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
                 reduction += 128;
             }
 
-            let lmr_extension = reduction < -3072 && move_count <= 3;
+            let lmr_extension = reduction < -3072 || extension > 0;
 
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(1, new_depth + 1 + lmr_extension as i32) + 2 * NODE::PV as i32;
