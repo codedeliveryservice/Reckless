@@ -817,7 +817,7 @@ fn search<NODE: NodeType>(
             }
 
             if extension > 0 {
-                reduction -= 2048;
+                reduction -= 1024;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
