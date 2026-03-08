@@ -465,6 +465,17 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
+    if dbg_hit( !NODE::ROOT
+        && !excluded
+        && depth >= 2
+        && td.stack[ply - 1].reduction >= 2000
+        && is_valid(tt_score)
+        && tt_score >= beta
+        && tt_bound == Bound::Lower,0)
+    {
+        depth += 1;
+    }
+
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 0
     {
         depth += 1;
