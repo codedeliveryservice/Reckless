@@ -704,7 +704,7 @@ fn search<NODE: NodeType>(
                 + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(in_check, td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
         if !NODE::ROOT && !is_loss(best_score) {
@@ -994,6 +994,7 @@ fn search<NODE: NodeType>(
 
         if best_move.is_noisy() {
             td.noisy_history.update(
+                in_check,
                 td.board.all_threats(),
                 td.board.moved_piece(best_move),
                 best_move.to(),
@@ -1012,7 +1013,14 @@ fn search<NODE: NodeType>(
 
         for &mv in noisy_moves.iter() {
             let captured = td.board.piece_on(mv.to()).piece_type();
-            td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
+            td.noisy_history.update(
+                in_check,
+                td.board.all_threats(),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured,
+                -noisy_malus,
+            );
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
@@ -1050,6 +1058,7 @@ fn search<NODE: NodeType>(
             let bonus = 60;
 
             td.noisy_history.update(
+                td.stack[ply - 1].in_check,
                 td.board.prior_threats(),
                 td.board.piece_on(pcm_move.to()),
                 pcm_move.to(),
@@ -1247,6 +1256,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
                     if best_move.is_noisy() {
                         td.noisy_history.update(
+                            in_check,
                             td.board.all_threats(),
                             td.board.moved_piece(best_move),
                             best_move.to(),
@@ -1345,6 +1355,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
 
 fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
     td.stack[ply].mv = mv;
+    td.stack[ply].in_check = td.board.in_check();
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
         td.continuation_history.subtable_ptr(td.board.in_check(), mv.is_noisy(), td.board.moved_piece(mv), mv.to());
