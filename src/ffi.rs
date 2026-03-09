@@ -25,30 +25,48 @@ pub extern "C" fn reckless_poplsb(bitboard: *mut u64) -> u64 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_pawn_attacks(square: u32, color: bool) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     pawn_attacks(Square::new(square as u8), if color { Color::White } else { Color::Black }).0
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_knight_attacks(square: u32) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     knight_attacks(Square::new(square as u8)).0
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_bishop_attacks(square: u32, occupancies: u64) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     bishop_attacks(Square::new(square as u8), Bitboard(occupancies)).0
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_rook_attacks(square: u32, occupancies: u64) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     rook_attacks(Square::new(square as u8), Bitboard(occupancies)).0
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_queen_attacks(square: u32, occupancies: u64) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     queen_attacks(Square::new(square as u8), Bitboard(occupancies)).0
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn reckless_king_attacks(square: u32) -> u64 {
+    if square >= 64 {
+        return 0;
+    }
     king_attacks(Square::new(square as u8)).0
 }

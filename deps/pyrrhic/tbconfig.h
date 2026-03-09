@@ -30,7 +30,7 @@
 #define PYRRHIC_LSB(x)                   (reckless_lsb(x))
 #define PYRRHIC_POPLSB(x)                (reckless_poplsb(x))
 
-#define PYRRHIC_PAWN_ATTACKS(sq, c)      (reckless_pawn_attacks(sq, !c))
+#define PYRRHIC_PAWN_ATTACKS(sq, c)      (reckless_pawn_attacks(sq, c))
 #define PYRRHIC_KNIGHT_ATTACKS(sq)       (reckless_knight_attacks(sq))
 #define PYRRHIC_BISHOP_ATTACKS(sq, occ)  (reckless_bishop_attacks(sq, occ))
 #define PYRRHIC_ROOK_ATTACKS(sq, occ)    (reckless_rook_attacks(sq, occ))
