@@ -32,3 +32,21 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 quiet_fact_min: 1852;
+    i32 quiet_fact_max: 1852;
+    i32 quiet_bucket_min: 6324;
+    i32 quiet_bucket_max: 6324;
+
+    i32 noisy_fact_min: 4524;
+    i32 noisy_fact_max: 4524;
+    i32 noisy_bucket_min: 7826;
+    i32 noisy_bucket_max: 7826;
+
+    i32 contcorr_min: 16282;
+    i32 contcorr_max: 16282;
+
+    i32 cont_min: 15168;
+    i32 cont_max: 15168;
+);
