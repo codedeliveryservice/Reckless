@@ -14,13 +14,23 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+fn apply_bonus_asymmetric<const MIN: i32, const MAX: i32>(entry: &mut i16, bonus: i32) {
+    debug_assert!(MIN <= 0 && MAX >= 0);
+
+    let bonus = bonus.clamp(MIN, MAX);
+    let scale = if bonus >= 0 { MAX } else { -MIN };
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / scale) as i16;
+}
+
 struct QuietHistoryEntry {
     factorizer: i16,
     buckets: [[i16; 2]; 2],
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 1852;
+    const MIN_FACTORIZER: i32 = -1852;
+    const MAX_FACTORIZER: i32 = 3704;
+
     const MAX_BUCKET: i32 = 6324;
 
     pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
@@ -32,7 +42,7 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus_asymmetric::<{ Self::MIN_FACTORIZER }, { Self::MAX_FACTORIZER }>(entry, bonus);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
