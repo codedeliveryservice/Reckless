@@ -2,7 +2,6 @@ use std::sync::atomic::{AtomicI16, Ordering};
 
 use crate::{
     numa::NumaValue,
-    parameters::*,
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
@@ -10,11 +9,11 @@ type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
-fn apply_bonus_asymmetric(min: i32, max: i32, entry: &mut i16, bonus: i32) {
-    debug_assert!(min <= 0 && max >= 0);
+fn apply_bonus_asymmetric<const MIN: i32, const MAX: i32>(entry: &mut i16, bonus: i32) {
+    debug_assert!(MIN <= 0 && MAX >= 0);
 
-    let bonus = bonus.clamp(min, max);
-    let scale = if bonus >= 0 { max } else { -min };
+    let bonus = bonus.clamp(MIN, MAX);
+    let scale = if bonus >= 0 { MAX } else { -MIN };
     *entry += (bonus - bonus.abs() * (*entry) as i32 / scale) as i16;
 }
 
@@ -33,7 +32,7 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus_asymmetric(-quiet_fact_min(), quiet_fact_max(), entry, bonus);
+        apply_bonus_asymmetric::<-1875, 1864>(entry, bonus);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
@@ -41,7 +40,7 @@ impl QuietHistoryEntry {
         let to_threatened = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threatened][to_threatened];
-        apply_bonus_asymmetric(-quiet_bucket_min(), quiet_bucket_max(), entry, bonus);
+        apply_bonus_asymmetric::<-6321, 6341>(entry, bonus);
     }
 }
 
@@ -82,13 +81,13 @@ impl NoisyHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus_asymmetric(-noisy_fact_min(), noisy_fact_max(), entry, bonus);
+        apply_bonus_asymmetric::<-4691, 4488>(entry, bonus);
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
         let threatened = threats.contains(sq) as usize;
         let entry = &mut self.buckets[captured][threatened];
-        apply_bonus_asymmetric(-noisy_bucket_min(), noisy_bucket_max(), entry, bonus);
+        apply_bonus_asymmetric::<-7900, 7868>(entry, bonus);
     }
 }
 
@@ -173,7 +172,7 @@ impl ContinuationCorrectionHistory {
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus_asymmetric(-contcorr_min(), contcorr_max(), entry, bonus);
+        apply_bonus_asymmetric::<-16398, 16217>(entry, bonus);
     }
 }
 
@@ -201,7 +200,7 @@ impl ContinuationHistory {
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus_asymmetric(-cont_min(), cont_max(), entry, bonus);
+        apply_bonus_asymmetric::<-15133, 15048>(entry, bonus);
     }
 }
 
