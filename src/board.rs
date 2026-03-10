@@ -377,8 +377,7 @@ impl Board {
                 _ => unreachable!(),
             };
 
-            return !self.all_threats().contains(to)
-                && !self.pinned(stm).contains(self.castling_rooks[kind]);
+            return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
         }
 
         if king == from {
