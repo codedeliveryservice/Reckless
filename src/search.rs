@@ -895,7 +895,48 @@ fn search<NODE: NodeType>(
                 new_depth = new_depth.max(1);
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            let mut reduction = 238 * (move_count.ilog2() * depth.ilog2()) as i32;
+
+            reduction -= 57 * move_count;
+            reduction -= 2513 * correction_value.abs() / 1024;
+
+            if is_quiet {
+                reduction += 1427;
+                reduction -= 158 * history / 1024;
+            } else {
+                reduction += 1098;
+                reduction -= 65 * history / 1024;
+            }
+
+            if tt_pv {
+                reduction -= 500;
+                reduction -= 897 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if !tt_pv && cut_node {
+                reduction += 1450;
+                reduction += 2200 * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (454 - 254 * improvement / 128).min(1368);
+            }
+
+            if td.stack[ply + 1].cutoff_count > 2 {
+                reduction += 1452;
+            }
+
+            if mv == tt_move {
+                reduction -= 3316;
+            }
+
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+                reduction += 128;
+            }
+
+            let reduced_depth = new_depth - (reduction >= 3072) as i32;
+
+            score = -search::<PV>(td, -beta, -alpha, reduced_depth, false, ply + 1);
             current_search_count += 1;
         }
 
