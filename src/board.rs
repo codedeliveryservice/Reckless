@@ -354,8 +354,8 @@ impl Board {
     pub fn is_legal(&self, mv: Move) -> bool {
         let from = mv.from();
         let to = mv.to();
-
-        let king = self.king_square(self.side_to_move());
+        let stm = self.side_to_move();
+        let king = self.king_square(stm);
 
         if mv.is_en_passant() {
             let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
@@ -365,7 +365,6 @@ impl Board {
 
             let diagonal = bishop_attacks(king, occupancies) & diagonal;
             let orthogonal = rook_attacks(king, occupancies) & orthogonal;
-
             return (orthogonal | diagonal).is_empty();
         }
 
@@ -379,14 +378,14 @@ impl Board {
             };
 
             return !self.all_threats().contains(to)
-                && !self.pinned(self.side_to_move).contains(self.castling_rooks[kind]);
+                && !self.pinned(stm).contains(self.castling_rooks[kind]);
         }
 
-        if self.piece_on(from).piece_type() == PieceType::King {
+        if king == from {
             return !self.all_threats().contains(to);
         }
 
-        if self.pinned(self.side_to_move).contains(from) {
+        if self.pinned(stm).contains(from) {
             let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
             return self.checkers().is_empty() && along_pin;
         }
