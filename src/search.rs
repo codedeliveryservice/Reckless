@@ -642,6 +642,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].excluded = tt_move;
         let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
+        td.stack[ply].tt_pv = tt_pv;
 
         if td.stopped {
             return Score::ZERO;
