@@ -785,7 +785,7 @@ fn search<NODE: NodeType>(
                 reduction -= 411 + 421 * (beta - alpha) / td.root_delta;
             }
 
-            if tt_pv {
+            if tt_pv && !excluded {
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
