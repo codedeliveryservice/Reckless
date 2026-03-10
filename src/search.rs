@@ -934,7 +934,7 @@ fn search<NODE: NodeType>(
                 reduction += 128;
             }
 
-            let reduced_depth = new_depth - (reduction >= 3072) as i32;
+            let reduced_depth = new_depth - (reduction >= 2560) as i32;
 
             score = -search::<PV>(td, -beta, -alpha, reduced_depth, false, ply + 1);
             current_search_count += 1;
