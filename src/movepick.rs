@@ -203,11 +203,6 @@ impl MovePicker {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
 
-            if mv == self.tt_move {
-                entry.score = i32::MIN;
-                continue;
-            }
-
             entry.score = td.quiet_history.get(threats, side, mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
