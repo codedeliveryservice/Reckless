@@ -812,6 +812,10 @@ fn search<NODE: NodeType>(
                 reduction += 1604;
             }
 
+            if is_valid(tt_score) && tt_move.is_some() && tt_bound != Bound::Lower && tt_depth >= depth {
+                reduction += 512;
+            }
+
             if is_valid(tt_score) && tt_score < alpha {
                 reduction += 600;
             }
