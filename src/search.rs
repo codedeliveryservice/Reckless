@@ -901,10 +901,10 @@ fn search<NODE: NodeType>(
             reduction -= 2513 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 1427;
+                reduction += 1927;
                 reduction -= 158 * history / 1024;
             } else {
-                reduction += 1098;
+                reduction += 1598;
                 reduction -= 65 * history / 1024;
             }
 
