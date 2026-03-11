@@ -533,7 +533,6 @@ fn search<NODE: NodeType>(
         && estimated_score >= eval
         && eval >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
         && ply as i32 >= td.nmp_min_ply
-        && td.stack[ply - 1].mv.is_some()
         && td.board.has_non_pawns()
         && !is_loss(beta)
         && !(tt_bound == Bound::Lower
@@ -1128,12 +1127,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
 
+    let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
     // QS early TT cutoff
     if let Some(entry) = &entry {
+        tt_move = entry.mv;
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
@@ -1147,13 +1148,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
         {
             return tt_score;
-        }
-
-        if !NODE::PV && !td.reverse_qsearch && entry.mv.is_quiet() && tt_bound != Bound::Upper {
-            td.reverse_qsearch = true;
-            let score = search::<NonPV>(td, alpha, beta, 1, true, ply);
-            td.reverse_qsearch = false;
-            return score;
         }
     }
 
@@ -1208,7 +1202,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut move_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
-    while let Some(mv) = move_picker.next::<NODE>(td, !in_check || !is_loss(best_score), ply) {
+    let skip_quiets = |best_score| {
+        (!in_check || !is_loss(best_score)) && !(!NODE::PV && tt_move.is_quiet() && tt_bound != Bound::Upper)
+    };
+
+    while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets(best_score), ply) {
         if !td.board.is_legal(mv) {
             continue;
         }

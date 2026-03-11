@@ -154,7 +154,6 @@ pub struct ThreadData {
     pub pv_index: usize,
     pub pv_start: usize,
     pub pv_end: usize,
-    pub reverse_qsearch: bool,
 }
 
 impl ThreadData {
@@ -187,7 +186,6 @@ impl ThreadData {
             pv_index: 0,
             pv_start: 0,
             pv_end: 0,
-            reverse_qsearch: false,
         }
     }
 
