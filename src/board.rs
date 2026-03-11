@@ -1,6 +1,6 @@
 use crate::{
     lookup::{
-        between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
+        attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
         pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
@@ -411,11 +411,11 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
 
-        let piece = self.piece_on(from).piece_type();
+        let piece = self.piece_on(from);
         let captured = self.piece_on(to).piece_type();
 
         if mv.is_castling() {
-            if !self.us().contains(from) || piece != PieceType::King {
+            if self.king_square(self.side_to_move()) != from {
                 return false;
             }
 
@@ -432,11 +432,7 @@ impl Board {
                 && (self.castling_threat[kind] & self.all_threats()).is_empty();
         }
 
-        if piece == PieceType::None || !self.us().contains(from) || self.us().contains(to) {
-            return false;
-        }
-
-        if piece != PieceType::Pawn && (mv.is_double_push() || mv.is_promotion() || mv.is_en_passant()) {
+        if piece == Piece::None || !self.us().contains(from) || self.us().contains(to) {
             return false;
         }
 
@@ -448,7 +444,7 @@ impl Board {
             return false;
         }
 
-        if piece == PieceType::Pawn {
+        if piece.piece_type() == PieceType::Pawn {
             if mv.is_en_passant() {
                 return to == self.state.en_passant && pawn_attacks(from, self.side_to_move).contains(to);
             }
@@ -472,18 +468,13 @@ impl Board {
             }
 
             return from.shift(offset) == to && !self.occupancies().contains(to);
+        } else {
+            if mv.is_double_push() || mv.is_promotion() || mv.is_en_passant() {
+                return false;
+            }
         }
 
-        let attacks = match piece {
-            PieceType::Knight => knight_attacks(from),
-            PieceType::Bishop => bishop_attacks(from, self.occupancies()),
-            PieceType::Rook => rook_attacks(from, self.occupancies()),
-            PieceType::Queen => queen_attacks(from, self.occupancies()),
-            PieceType::King => king_attacks(from),
-            _ => unreachable!(),
-        };
-
-        attacks.contains(to)
+        attacks(piece, from, self.occupancies()).contains(to)
     }
 
     /// Quickly checks if the move *might* give check to the opponent's king.
