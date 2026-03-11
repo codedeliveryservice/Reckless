@@ -550,8 +550,8 @@ impl Board {
 
         self.state.pinned = [Bitboard::default(); 2];
         self.state.pinners = [Bitboard::default(); 2];
-        self.state.checkers  = (pawn_attacks(our_king, self.side_to_move()) & self.their(PieceType::Pawn))
-                             | (knight_attacks(our_king) & self.their(PieceType::Knight));
+        self.state.checkers = (pawn_attacks(our_king, self.side_to_move()) & self.their(PieceType::Pawn))
+            | (knight_attacks(our_king) & self.their(PieceType::Knight));
 
         let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
         let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
