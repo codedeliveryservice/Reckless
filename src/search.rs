@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -895,11 +896,52 @@ fn search<NODE: NodeType>(
 
         // Principal Variation Search (PVS)
         if NODE::PV && (move_count == 1 || score > alpha) {
-            if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
-                new_depth = new_depth.max(1);
+            let mut reduction = v1() * (move_count.ilog2() * depth.ilog2()) as i32;
+
+            reduction -= v2() * move_count;
+            reduction -= v3() * correction_value.abs() / 1024;
+
+            if is_quiet {
+                reduction += v4();
+                reduction -= v5() * history / 1024;
+            } else {
+                reduction += v6();
+                reduction -= v7() * history / 1024;
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            if tt_pv {
+                reduction -= v8();
+                reduction -= v9() * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if !tt_pv && cut_node {
+                reduction += v10();
+                reduction += v11() * tt_move.is_null() as i32;
+            }
+
+            if !improving {
+                reduction += (v12() - v13() * improvement / 128).min(v14());
+            }
+
+            if td.stack[ply + 1].cutoff_count > 2 {
+                reduction += v15();
+            }
+
+            if mv == tt_move {
+                reduction -= v16();
+            }
+
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + v17() {
+                reduction += v18();
+            }
+
+            let mut reduced_depth = new_depth - (reduction >= v19()) as i32;
+
+            if mv == tt_move && tt_depth > 1 && td.root_depth > 8 {
+                reduced_depth = reduced_depth.max(1);
+            }
+
+            score = -search::<PV>(td, -beta, -alpha, reduced_depth, false, ply + 1);
             current_search_count += 1;
         }
 
