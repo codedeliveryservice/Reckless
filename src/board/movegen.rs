@@ -58,7 +58,7 @@ impl super::Board {
 
         let occupancies = self.occupancies();
         let target = if self.in_check() {
-            between(self.king_square(self.side_to_move), self.checkers().lsb()) | self.checkers().lsb().to_bb()
+            between(self.king_square(self.side_to_move()), self.checkers().lsb()) | self.checkers().lsb().to_bb()
         } else {
             Bitboard::ALL
         };
@@ -90,7 +90,7 @@ impl super::Board {
     }
 
     fn collect_castling(&self, list: &mut MoveList) {
-        match self.side_to_move {
+        match self.side_to_move() {
             Color::White => {
                 self.collect_castling_kind(list, CastlingKind::WhiteKingside);
                 self.collect_castling_kind(list, CastlingKind::WhiteQueenside);
@@ -107,14 +107,14 @@ impl super::Board {
             && (self.castling_path[kind] & self.occupancies()).is_empty()
             && (self.castling_threat[kind] & self.all_threats()).is_empty()
         {
-            let king = self.king_square(self.side_to_move);
+            let king = self.king_square(self.side_to_move());
             list.push(king, kind.landing_square(), MoveKind::Castling);
         }
     }
 
     fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         let pawns = self.our(PieceType::Pawn);
-        let seventh_rank = match self.side_to_move {
+        let seventh_rank = match self.side_to_move() {
             Color::White => Bitboard::rank(Rank::R7),
             Color::Black => Bitboard::rank(Rank::R2),
         };
@@ -128,7 +128,7 @@ impl super::Board {
     }
 
     fn collect_pawn_pushes<T: MoveGenerator>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
-        let (up, third_rank) = match self.side_to_move {
+        let (up, third_rank) = match self.side_to_move() {
             Color::White => (8, Bitboard::rank(Rank::R3)),
             Color::Black => (-8, Bitboard::rank(Rank::R6)),
         };
@@ -156,7 +156,7 @@ impl super::Board {
     }
 
     fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
-        let (up_right, up_left) = match self.side_to_move {
+        let (up_right, up_left) = match self.side_to_move() {
             Color::White => (9, 7),
             Color::Black => (-7, -9),
         };
@@ -178,7 +178,7 @@ impl super::Board {
 
     fn collect_en_passant_moves(&self, list: &mut MoveList, pawns: Bitboard) {
         if self.state.en_passant != Square::None {
-            let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move);
+            let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move());
             for pawn in pawns {
                 list.push(pawn, self.state.en_passant, MoveKind::EnPassant);
             }

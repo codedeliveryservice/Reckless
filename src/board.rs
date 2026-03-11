@@ -77,7 +77,7 @@ impl Board {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
         // identical to the transposition table.
-        self.state.key ^ ZOBRIST.halfmove_clock[(self.state.halfmove_clock.saturating_sub(8) as usize / 8).min(15)]
+        self.state.key ^ ZOBRIST.halfmove_clock[(self.halfmove_clock().saturating_sub(8) as usize / 8).min(15)]
     }
 
     pub const fn pawn_key(&self) -> u64 {
@@ -177,11 +177,11 @@ impl Board {
     }
 
     pub fn us(&self) -> Bitboard {
-        self.colors(self.side_to_move)
+        self.colors(self.side_to_move())
     }
 
     pub fn them(&self) -> Bitboard {
-        self.colors(!self.side_to_move)
+        self.colors(!self.side_to_move())
     }
 
     pub fn our(&self, piece_type: PieceType) -> Bitboard {
@@ -209,7 +209,7 @@ impl Board {
     }
 
     pub fn advance_fullmove_counter(&mut self) {
-        if self.side_to_move == Color::Black {
+        if self.side_to_move() == Color::Black {
             self.fullmove_number += 1;
         }
     }
@@ -281,7 +281,7 @@ impl Board {
     }
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
-        self.state.halfmove_clock >= 100 && (!self.in_check() || self.has_legal_moves())
+        self.halfmove_clock() >= 100 && (!self.in_check() || self.has_legal_moves())
     }
 
     /// Checks if the position is a known draw by material, fifty-move or repetition.
@@ -450,22 +450,22 @@ impl Board {
 
         if piece == PieceType::Pawn {
             if mv.is_en_passant() {
-                return to == self.state.en_passant && pawn_attacks(from, self.side_to_move).contains(to);
+                return to == self.en_passant() && pawn_attacks(from, self.side_to_move()).contains(to);
             }
 
-            let offset = if self.side_to_move == Color::White { 8 } else { -8 };
-            let promotion_rank = if self.side_to_move == Color::White { 7 } else { 0 };
+            let offset = if self.side_to_move() == Color::White { 8 } else { -8 };
+            let promotion_rank = if self.side_to_move() == Color::White { 7 } else { 0 };
 
             if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
                 return false;
             }
 
             if mv.is_capture() {
-                return pawn_attacks(from, self.side_to_move).contains(to) && self.them().contains(to);
+                return pawn_attacks(from, self.side_to_move()).contains(to) && self.them().contains(to);
             }
 
             if mv.is_double_push() {
-                return from.rank() == (if self.side_to_move == Color::White { 1 } else { 6 })
+                return from.rank() == (if self.side_to_move() == Color::White { 1 } else { 6 })
                     && from.shift(2 * offset) == to
                     && !self.occupancies().contains(from.shift(offset))
                     && !self.occupancies().contains(to);
@@ -535,25 +535,23 @@ impl Board {
 
         self.state.piece_threats[PieceType::King] = king_attacks(self.king_square(!stm));
 
-        self.state.all_threats = self.state.piece_threats[PieceType::Pawn]
-            | self.state.piece_threats[PieceType::Knight]
-            | self.state.piece_threats[PieceType::Bishop]
-            | self.state.piece_threats[PieceType::Rook]
-            | self.state.piece_threats[PieceType::Queen]
-            | self.state.piece_threats[PieceType::King];
+        self.state.all_threats = self.piece_threats(PieceType::Pawn)
+            | self.piece_threats(PieceType::Knight)
+            | self.piece_threats(PieceType::Bishop)
+            | self.piece_threats(PieceType::Rook)
+            | self.piece_threats(PieceType::Queen)
+            | self.piece_threats(PieceType::King);
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
     /// and our pinned pieces that cannot move without leaving the king in check.
     pub fn update_king_threats(&mut self) {
-        let our_king = self.king_square(self.side_to_move);
+        let our_king = self.king_square(self.side_to_move());
 
         self.state.pinned = [Bitboard::default(); 2];
         self.state.pinners = [Bitboard::default(); 2];
-        self.state.checkers = Bitboard::default();
-
-        self.state.checkers |= pawn_attacks(our_king, self.side_to_move) & self.their(PieceType::Pawn);
-        self.state.checkers |= knight_attacks(our_king) & self.their(PieceType::Knight);
+        self.state.checkers = (pawn_attacks(our_king, self.side_to_move()) & self.their(PieceType::Pawn))
+            | (knight_attacks(our_king) & self.their(PieceType::Knight));
 
         let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
         let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
@@ -568,7 +566,7 @@ impl Board {
                 let blockers = between(king, square) & self.colors(color);
                 match blockers.popcount() {
                     0 => {
-                        debug_assert_eq!(color, self.side_to_move);
+                        debug_assert_eq!(color, self.side_to_move());
                         self.state.checkers.set(square);
                     }
                     1 => {
@@ -580,8 +578,8 @@ impl Board {
             }
         }
 
-        let their_king = self.king_square(!self.side_to_move);
-        self.state.checking_squares[PieceType::Pawn] = pawn_attacks(their_king, !self.side_to_move);
+        let their_king = self.king_square(!self.side_to_move());
+        self.state.checking_squares[PieceType::Pawn] = pawn_attacks(their_king, !self.side_to_move());
         self.state.checking_squares[PieceType::Knight] = knight_attacks(their_king);
         self.state.checking_squares[PieceType::Bishop] = bishop_attacks(their_king, self.occupancies());
         self.state.checking_squares[PieceType::Rook] = rook_attacks(their_king, self.occupancies());
@@ -603,11 +601,11 @@ impl Board {
             }
         }
 
-        if self.state.en_passant != Square::None {
-            self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
+        if self.en_passant() != Square::None {
+            self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
         }
 
-        if self.side_to_move == Color::White {
+        if self.side_to_move() == Color::White {
             self.state.key ^= ZOBRIST.side;
         }
 
