@@ -503,7 +503,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && estimated_score < alpha - 299 - 252 * depth * depth
         && alpha < 2048
-        && !tt_move.is_quiet()
+        && tt_move.is_null()
     {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
