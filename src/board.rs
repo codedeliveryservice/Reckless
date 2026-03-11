@@ -1,7 +1,7 @@
 use crate::{
     lookup::{
         between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
-        pawn_attacks_setwise, queen_attacks, rook_attacks,
+        pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
@@ -385,8 +385,7 @@ impl Board {
         }
 
         if self.pinned(stm).contains(from) {
-            let along_pin = between(king, from).contains(to) || between(king, to).contains(from);
-            return self.checkers().is_empty() && along_pin;
+            return self.checkers().is_empty() && ray_pass(king, from).contains(to);
         }
 
         if self.checkers().is_multiple() {
