@@ -816,7 +816,7 @@ fn search<NODE: NodeType>(
                 reduction += 600;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if td.stack[ply - 1].reduction > reduction + 512 {
                 reduction += 128;
             }
 
@@ -879,7 +879,7 @@ fn search<NODE: NodeType>(
                 reduction -= 3316;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if td.stack[ply - 1].reduction > reduction + 512 {
                 reduction += 128;
             }
 
