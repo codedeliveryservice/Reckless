@@ -1,7 +1,7 @@
 use crate::{
     lookup::{
-        attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks, pawn_attacks,
-        pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
+        attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
+        pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
     types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
