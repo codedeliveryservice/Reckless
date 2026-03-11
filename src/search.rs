@@ -465,8 +465,7 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 0
-    {
+    if !NODE::ROOT && !in_check && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 0 {
         depth += 1;
     }
 
