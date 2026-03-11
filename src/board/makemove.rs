@@ -22,7 +22,7 @@ impl Board {
     }
 
     pub fn undo_null_move(&mut self) {
-        self.side_to_move = !self.side_to_move;
+        self.side_to_move = !self.side_to_move();
         self.state = self.state_stack.pop().unwrap();
     }
 
@@ -41,7 +41,7 @@ impl Board {
 
         self.state.key ^= ZOBRIST.castling[self.state.castling] ^ ZOBRIST.side;
 
-        if self.state.en_passant != Square::None {
+        if self.en_passant() != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
             self.state.en_passant = Square::None;
         }
@@ -138,7 +138,7 @@ impl Board {
 
         self.state.repetition = 0;
 
-        let end = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
+        let end = self.state.plies_from_null.min(self.halfmove_clock() as usize);
 
         if end >= 4 {
             let mut idx = self.state_stack.len() as isize - 4;
