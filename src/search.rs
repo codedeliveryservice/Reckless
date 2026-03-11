@@ -1076,6 +1076,7 @@ fn search<NODE: NodeType>(
 
     if !(in_check
         || best_move.is_noisy()
+        || td.stack[ply - 1].mv.is_null()
         || (bound == Bound::Upper && best_score >= eval)
         || (bound == Bound::Lower && best_score <= eval))
     {
