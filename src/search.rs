@@ -1085,7 +1085,10 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= eval)
         || (bound == Bound::Lower && best_score <= eval))
     {
-        let diff = best_score - eval - td.stack[ply].correction_error / 2;
+        let mut diff = best_score - eval;
+        if diff.signum() != td.stack[ply].correction_error.signum() {
+            diff -= td.stack[ply].correction_error / 2;
+        }
 
         td.stack[ply].correction_error = diff;
         update_correction_histories(td, depth, diff, ply);
