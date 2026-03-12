@@ -342,43 +342,59 @@ impl ThreatAccumulator {
             let mut add_idx = 0;
             let mut sub_idx = 0;
 
+            // Group adds and subs for improved ILP
             while add_idx < adds.len() && sub_idx < subs.len() {
                 let add = adds[add_idx];
                 let sub = subs[sub_idx];
 
+                let mut block_add = [std::mem::zeroed(); REGISTERS];
+                let mut block_sub = [std::mem::zeroed(); REGISTERS];
                 let vadd = PARAMETERS.ft_threat_weights[add].as_ptr().add(offset);
                 let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr().add(offset);
-
-                for (i, register) in registers.iter_mut().enumerate() {
-                    let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
-                    let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                    *register = simd::sub_i16(simd::add_i16(*register, add_weights), sub_weights);
+                for i in 0..REGISTERS {
+                    block_add[i] = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
+                    block_sub[i] = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
                 }
-
+                // Grouped add/sub
+                for (i, register) in registers.iter_mut().enumerate() {
+                    let add_sum = block_add[i];
+                    let sub_sum = block_sub[i];
+                    *register = simd::add_i16(*register, add_sum);
+                    *register = simd::sub_i16(*register, sub_sum);
+                }
                 add_idx += 1;
                 sub_idx += 1;
             }
 
-            while add_idx < adds.len() {
-                let vadd = PARAMETERS.ft_threat_weights[adds[add_idx]].as_ptr().add(offset);
-
-                for (i, register) in registers.iter_mut().enumerate() {
-                    let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
-                    *register = simd::add_i16(*register, add_weights);
+            // If multiple adds/subs remain, group them
+            if add_idx < adds.len() {
+                let mut block_add = [std::mem::zeroed(); REGISTERS];
+                for idx in add_idx..adds.len() {
+                    let add = adds[idx];
+                    let vadd = PARAMETERS.ft_threat_weights[add].as_ptr().add(offset);
+                    for i in 0..REGISTERS {
+                        let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
+                        block_add[i] = simd::add_i16(block_add[i], add_weights);
+                    }
                 }
-
-                add_idx += 1;
+                for (i, register) in registers.iter_mut().enumerate() {
+                    *register = simd::add_i16(*register, block_add[i]);
+                }
             }
 
-            while sub_idx < subs.len() {
-                let vsub = PARAMETERS.ft_threat_weights[subs[sub_idx]].as_ptr().add(offset);
-
-                for (i, register) in registers.iter_mut().enumerate() {
-                    let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                    *register = simd::sub_i16(*register, sub_weights);
+            if sub_idx < subs.len() {
+                let mut block_sub = [std::mem::zeroed(); REGISTERS];
+                for idx in sub_idx..subs.len() {
+                    let sub = subs[idx];
+                    let vsub = PARAMETERS.ft_threat_weights[sub].as_ptr().add(offset);
+                    for i in 0..REGISTERS {
+                        let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
+                        block_sub[i] = simd::add_i16(block_sub[i], sub_weights);
+                    }
                 }
-
-                sub_idx += 1;
+                for (i, register) in registers.iter_mut().enumerate() {
+                    *register = simd::sub_i16(*register, block_sub[i]);
+                }
             }
 
             for (i, register) in registers.iter().enumerate() {
