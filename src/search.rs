@@ -491,9 +491,9 @@ fn search<NODE: NodeType>(
     let mut improvement = 0;
 
     if is_valid(td.stack[ply - 2].eval) && !in_check {
-        improvement = eval - td.stack[ply - 2].eval;
+        improvement = eval - td.stack[ply - 2].eval + jitter(td, -8, 8);
     } else if is_valid(td.stack[ply - 4].eval) && !in_check {
-        improvement = eval - td.stack[ply - 4].eval;
+        improvement = eval - td.stack[ply - 4].eval + jitter(td, -8, 8);
     }
 
     let improving = improvement > 0;
@@ -1367,4 +1367,11 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+fn jitter(td: &ThreadData, min: i32, max: i32) -> i32 {
+    debug_assert!(min <= max);
+
+    let span = max - min + 1;
+    min + (td.nodes() % span as u64) as i32
 }
