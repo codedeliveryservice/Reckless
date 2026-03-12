@@ -18,7 +18,7 @@ impl Score {
 }
 
 pub fn draw(td: &ThreadData) -> i32 {
-    (td.nodes() & 0x3) as i32 - 1
+    (td.nodes() % 5) as i32 - 2
 }
 
 pub const fn mated_in(ply: isize) -> i32 {
