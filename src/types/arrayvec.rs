@@ -42,15 +42,6 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         self.len += mask as usize;
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-
-        self.len -= 1;
-        unsafe { Some(std::ptr::read(self.data[self.len].as_ptr())) }
-    }
-
     pub fn clear(&mut self) {
         self.len = 0;
     }

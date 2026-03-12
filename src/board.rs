@@ -3,7 +3,7 @@ use crate::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
         pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
-    types::{ArrayVec, Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
+    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -47,7 +47,7 @@ pub struct Board {
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
     state: InternalState,
-    state_stack: Box<ArrayVec<InternalState, 2048>>,
+    state_stack: Vec<InternalState>,
     fullmove_number: usize,
     castling_rights: [u8; Square::NUM],
     castling_path: [Bitboard; 16],
@@ -634,7 +634,7 @@ impl Default for Board {
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
-            state_stack: Box::new(ArrayVec::new()),
+            state_stack: Vec::with_capacity(2048),
             fullmove_number: 0,
             castling_rights: [0b1111; Square::NUM],
             castling_path: [Bitboard::default(); 16],
