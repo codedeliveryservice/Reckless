@@ -455,6 +455,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
     td.stack[ply + 2].cutoff_count = 0;
+    td.stack[ply + 2].fail_low_count = 0;
 
     // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
@@ -818,6 +819,10 @@ fn search<NODE: NodeType>(
                 reduction += 1604;
             }
 
+            if td.stack[ply + 1].fail_low_count > 2 {
+                reduction -= 966;
+            }
+
             if is_valid(tt_score) && tt_score < alpha {
                 reduction += 600;
             }
@@ -1030,6 +1035,8 @@ fn search<NODE: NodeType>(
             let bonus = (201 * depth - 86).min(1634);
             update_continuation_histories(td, ply, td.stack[ply].piece, best_move.to(), bonus);
         }
+    } else {
+        td.stack[ply].fail_low_count += 1;
     }
 
     if !NODE::ROOT && bound == Bound::Upper {
