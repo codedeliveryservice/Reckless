@@ -207,7 +207,8 @@ impl MovePicker {
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
-                + td.conthist(ply, 6, mv);
+                + td.conthist(ply, 6, mv)
+                + jitter(td, -96, 96);
 
             // bonus for escaping capture
             if threatened.contains(mv.from()) {
@@ -230,4 +231,11 @@ impl MovePicker {
             }
         }
     }
+}
+
+fn jitter(td: &ThreadData, min: i32, max: i32) -> i32 {
+    debug_assert!(min <= max);
+
+    let span = max - min + 1;
+    min + (td.nodes() % span as u64) as i32
 }
