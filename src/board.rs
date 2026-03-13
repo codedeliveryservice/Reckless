@@ -368,35 +368,26 @@ impl Board {
             return (orthogonal | diagonal).is_empty();
         }
 
-        if mv.is_castling() {
-            let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingside,
-                Square::C1 => CastlingKind::WhiteQueenside,
-                Square::G8 => CastlingKind::BlackKingside,
-                Square::C8 => CastlingKind::BlackQueenside,
-                _ => unreachable!(),
-            };
-
-            return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
-        }
-
         if king == from {
+            if mv.is_castling() {
+                let kind = match to {
+                    Square::G1 => CastlingKind::WhiteKingside,
+                    Square::C1 => CastlingKind::WhiteQueenside,
+                    Square::G8 => CastlingKind::BlackKingside,
+                    Square::C8 => CastlingKind::BlackQueenside,
+                    _ => unreachable!(),
+                };
+                return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
+            }
             return !self.all_threats().contains(to);
         }
 
-        if self.pinned(stm).contains(from) {
-            return self.checkers().is_empty() && ray_pass(king, from).contains(to);
-        }
-
-        if self.checkers().is_multiple() {
-            return false;
-        }
-
         if self.checkers().is_empty() {
-            return true;
+            return !self.pinned(stm).contains(from) || ray_pass(king, from).contains(to);
+        } else {
+            return !self.checkers().is_multiple() && !self.pinned(stm).contains(from)
+                && (self.checkers() | between(king, self.checkers().lsb())).contains(to);
         }
-
-        (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
     /// Checks if a move is pseudo-legal in the current position.
