@@ -46,12 +46,12 @@ impl MovePicker {
         }
     }
 
-    pub const fn new_qsearch() -> Self {
+    pub const fn new_qsearch(tt_move: Move) -> Self {
         Self {
             list: MoveList::new(),
-            tt_move: Move::NULL,
+            tt_move: tt_move,
             threshold: None,
-            stage: Stage::GenerateNoisy,
+            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
