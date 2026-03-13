@@ -184,41 +184,23 @@ impl MovePicker {
 
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.all_threats();
+        let threats_by_lower = td.board.threats_by_lower();
 
         let side = td.board.side_to_move();
 
-        let pawn_threats = td.board.piece_threats(PieceType::Pawn);
-
-        let minor_threats =
-            pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
-
-        let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
-
-        let threatened = (td.board.our(PieceType::Queen) & rook_threats)
-            | (td.board.our(PieceType::Rook) & minor_threats)
-            | (td.board.our(PieceType::Knight) & pawn_threats)
-            | (td.board.our(PieceType::Bishop) & pawn_threats);
+        let minor_threats = td.board.piece_threats(PieceType::Pawn)
+            | td.board.piece_threats(PieceType::Knight)
+            | td.board.piece_threats(PieceType::Bishop);
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
 
-            entry.score = td.quiet_history.get(threats, side, mv)
+            entry.score = td.quiet_history.get(threats, threats_by_lower, side, mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv);
-
-            // bonus for escaping capture
-            if threatened.contains(mv.from()) {
-                if pt == PieceType::Queen {
-                    entry.score += 20000;
-                } else if pt == PieceType::Rook {
-                    entry.score += 14000;
-                } else if pt != PieceType::Pawn {
-                    entry.score += 8000;
-                }
-            }
 
             // Bonus for checking moves
             if td.board.checking_squares(td.board.moved_piece(mv).piece_type()).contains(mv.to()) {

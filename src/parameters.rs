@@ -32,3 +32,10 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 max_fact: 1852;
+    i32 max_bucket: 6324;
+    i32 bonus_mult: 172;
+    i32 malus_mult: 144;
+);

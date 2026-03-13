@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicI16, Ordering};
 
 use crate::{
     numa::NumaValue,
+    parameters::{max_bucket, max_fact},
     types::{Bitboard, Color, Move, Piece, PieceType, Square},
 };
 
@@ -14,17 +15,22 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+fn apply_bonus_with_max(max: i32, entry: &mut i16, bonus: i32) {
+    let bonus = bonus.clamp(-max, max);
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / max) as i16;
+}
+
 struct QuietHistoryEntry {
     factorizer: i16,
-    buckets: [[i16; 2]; 2],
+    buckets: [[i16; 2]; 3],
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 1852;
-    const MAX_BUCKET: i32 = 6324;
+    // const MAX_FACTORIZER: i32 = 1852;
+    // const MAX_BUCKET: i32 = 6324;
 
-    pub fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
-        let from_threatened = threats.contains(mv.from()) as usize;
+    pub fn bucket(&self, threats: Bitboard, threats_by_lower: Bitboard, mv: Move) -> i16 {
+        let from_threatened = threats.contains(mv.from()) as usize + threats_by_lower.contains(mv.from()) as usize;
         let to_threatened = threats.contains(mv.to()) as usize;
 
         self.buckets[from_threatened][to_threatened]
@@ -32,15 +38,17 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        // apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus_with_max(max_fact(), entry, bonus);
     }
 
-    pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
-        let from_threatened = threats.contains(mv.from()) as usize;
+    pub fn update_bucket(&mut self, threats: Bitboard, threats_by_lower: Bitboard, mv: Move, bonus: i32) {
+        let from_threatened = threats.contains(mv.from()) as usize + threats_by_lower.contains(mv.from()) as usize;
         let to_threatened = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threatened][to_threatened];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        // apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        apply_bonus_with_max(max_bucket(), entry, bonus);
     }
 }
 
@@ -49,16 +57,16 @@ pub struct QuietHistory {
 }
 
 impl QuietHistory {
-    pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
+    pub fn get(&self, threats: Bitboard, threats_by_lower: Bitboard, stm: Color, mv: Move) -> i32 {
         let entry = &self.entries[stm][mv.from()][mv.to()];
-        (entry.factorizer + entry.bucket(threats, mv)) as i32
+        (entry.factorizer + entry.bucket(threats, threats_by_lower, mv)) as i32
     }
 
-    pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
+    pub fn update(&mut self, threats: Bitboard, threats_by_lower: Bitboard, stm: Color, mv: Move, bonus: i32) {
         let entry = &mut self.entries[stm][mv.from()][mv.to()];
 
         entry.update_factorizer(bonus);
-        entry.update_bucket(threats, mv, bonus);
+        entry.update_bucket(threats, threats_by_lower, mv, bonus);
     }
 }
 

@@ -34,6 +34,7 @@ struct InternalState {
     recapture_square: Square,
     piece_threats: [Bitboard; PieceType::NUM],
     all_threats: Bitboard,
+    threats_by_lower: Bitboard,
     pinned: [Bitboard; Color::NUM],
     pinners: [Bitboard; Color::NUM],
     checkers: Bitboard,
@@ -112,12 +113,20 @@ impl Board {
         self.state.all_threats
     }
 
+    pub const fn threats_by_lower(&self) -> Bitboard {
+        self.state.threats_by_lower
+    }
+
     pub const fn piece_threats(&self, pt: PieceType) -> Bitboard {
         self.state.piece_threats[pt as usize]
     }
 
     pub fn prior_threats(&self) -> Bitboard {
         self.state_stack[self.state_stack.len() - 1].all_threats
+    }
+
+    pub fn prior_threats_by_lower(&self) -> Bitboard {
+        self.state_stack[self.state_stack.len() - 1].threats_by_lower
     }
 
     pub const fn captured_piece(&self) -> Option<Piece> {
@@ -522,6 +531,18 @@ impl Board {
             | self.piece_threats(PieceType::Rook)
             | self.piece_threats(PieceType::Queen)
             | self.piece_threats(PieceType::King);
+
+        let pawn_threats = self.piece_threats(PieceType::Pawn);
+
+        let minor_threats =
+            pawn_threats | self.piece_threats(PieceType::Knight) | self.piece_threats(PieceType::Bishop);
+
+        let rook_threats = minor_threats | self.piece_threats(PieceType::Rook);
+
+        self.state.threats_by_lower = (self.our(PieceType::Queen) & rook_threats)
+            | (self.our(PieceType::Rook) & minor_threats)
+            | (self.our(PieceType::Knight) & pawn_threats)
+            | (self.our(PieceType::Bishop) & pawn_threats);
     }
 
     /// Updates the checkers bitboard to mark opponent pieces currently threatening our king,
