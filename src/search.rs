@@ -793,8 +793,11 @@ fn search<NODE: NodeType>(
 
             if tt_pv {
                 reduction -= 371;
-                reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
-                reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+            }
+
+            if is_valid(tt_score) {
+                reduction -= 206 * (tt_depth >= depth) as i32;
+                reduction += 436 * (tt_score < alpha) as i32;
             }
 
             if mv.is_noisy() && mv.to() == td.board.recapture_square() {
@@ -816,10 +819,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1604;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha {
-                reduction += 600;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
