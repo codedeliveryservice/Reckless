@@ -387,7 +387,8 @@ impl Board {
             return !self.pinned(stm).contains(from) || ray_pass(king, from).contains(to);
         }
 
-        return !self.checkers().is_multiple() && !self.pinned(stm).contains(from)
+        return !self.checkers().is_multiple()
+            && !self.pinned(stm).contains(from)
             && (self.checkers() | between(king, self.checkers().lsb())).contains(to);
     }
 
