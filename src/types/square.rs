@@ -23,6 +23,8 @@ pub enum Square {
 
 impl Square {
     pub const NUM: usize = 64;
+    pub const LEFT: i8 = -1;
+    pub const RIGHT: i8 = 1;
 
     pub const fn new(value: u8) -> Self {
         debug_assert!(value < Self::NUM as u8);

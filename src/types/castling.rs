@@ -12,6 +12,9 @@ pub enum CastlingKind {
 }
 
 impl CastlingKind {
+    pub const KINGSIDE: [CastlingKind; 2] = [CastlingKind::WhiteKingside, CastlingKind::BlackKingside];
+    pub const QUEENSIDE: [CastlingKind; 2] = [CastlingKind::WhiteQueenside, CastlingKind::BlackQueenside];
+
     pub const fn landing_square(self) -> Square {
         match self {
             Self::WhiteKingside => Square::G1,
