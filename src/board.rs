@@ -92,6 +92,13 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
+    pub fn prior_pinned(&self, color: Color) -> Bitboard {
+        if !self.state_stack.is_empty() {
+            return self.state_stack[self.state_stack.len() - 1].pinned[color];
+        }
+        Bitboard(0)
+    }
+
     pub const fn pinned(&self, color: Color) -> Bitboard {
         self.state.pinned[color as usize]
     }
@@ -358,45 +365,31 @@ impl Board {
         let king = self.king_square(stm);
 
         if mv.is_en_passant() {
-            let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
-
-            let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-            let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
-
-            let diagonal = bishop_attacks(king, occupancies) & diagonal;
-            let orthogonal = rook_attacks(king, occupancies) & orthogonal;
-            return (orthogonal | diagonal).is_empty();
-        }
-
-        if mv.is_castling() {
-            let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingside,
-                Square::C1 => CastlingKind::WhiteQueenside,
-                Square::G8 => CastlingKind::BlackKingside,
-                Square::C8 => CastlingKind::BlackQueenside,
-                _ => unreachable!(),
-            };
-
-            return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
+            return (self.checkers() & !(to ^ 8).to_bb()).is_empty()
+                && (!self.prior_pinned(stm).contains(from) || ray_pass(king, from).contains(to));
         }
 
         if king == from {
+            if mv.is_castling() {
+                let kind = match to {
+                    Square::G1 => CastlingKind::WhiteKingside,
+                    Square::C1 => CastlingKind::WhiteQueenside,
+                    Square::G8 => CastlingKind::BlackKingside,
+                    Square::C8 => CastlingKind::BlackQueenside,
+                    _ => unreachable!(),
+                };
+                return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
+            }
             return !self.all_threats().contains(to);
         }
 
-        if self.pinned(stm).contains(from) {
-            return self.checkers().is_empty() && ray_pass(king, from).contains(to);
-        }
-
-        if self.checkers().is_multiple() {
-            return false;
-        }
-
         if self.checkers().is_empty() {
-            return true;
+            return !self.pinned(stm).contains(from) || ray_pass(king, from).contains(to);
         }
 
-        (self.checkers() | between(king, self.checkers().lsb())).contains(to)
+        !self.checkers().is_multiple()
+            && !self.pinned(stm).contains(from)
+            && (self.checkers() | between(king, self.checkers().lsb())).contains(to)
     }
 
     /// Checks if a move is pseudo-legal in the current position.
