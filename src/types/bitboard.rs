@@ -117,19 +117,17 @@ impl Not for Bitboard {
 
 impl std::fmt::Display for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut ascii = String::new();
-        ascii.push_str(" +---+---+---+---+---+---+---+---+\n");
+        writeln!(f, "+---+---+---+---+---+---+---+---+")?;
         for rank in (0..8).rev() {
-            ascii.push('|');
+            write!(f, "|")?;
             for file in 0..8 {
                 let square = Square::from_rank_file(rank, file);
                 let symbol = if self.contains(square) { 'X' } else { '.' };
-                ascii.push_str(&format!(" {symbol} |"));
+                write!(f, " {} |", symbol)?;
             }
-            ascii.push_str(&format!(" {}\n", rank + 1));
-            ascii.push_str(" +---+---+---+---+---+---+---+---+\n");
+            writeln!(f, " {}", rank + 1)?;
+            writeln!(f, "+---+---+---+---+---+---+---+---+")?;
         }
-        ascii.push_str("   a   b   c   d   e   f   g   h\n");
-        write!(f, "{}", ascii)
+        writeln!(f, "  a   b   c   d   e   f   g   h")
     }
 }

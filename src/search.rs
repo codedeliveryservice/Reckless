@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    stack::Stack,
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -127,7 +128,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
-                td.stack = Default::default();
+                td.stack = Stack::default();
                 td.root_delta = beta - alpha;
 
                 // Root Search
@@ -263,7 +264,7 @@ fn search<NODE: NodeType>(
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
     let in_check = td.board.in_check();
-    let excluded = td.stack[ply].excluded.is_some();
+    let excluded = td.stack[ply].excluded.is_present();
 
     if !NODE::ROOT && NODE::PV {
         td.pv_table.clear(ply as usize);
@@ -538,7 +539,7 @@ fn search<NODE: NodeType>(
         && td.board.has_non_pawns()
         && !is_loss(beta)
         && !(tt_bound == Bound::Lower
-            && tt_move.is_some()
+            && tt_move.is_present()
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
@@ -988,7 +989,7 @@ fn search<NODE: NodeType>(
         return if in_check { mated_in(ply) } else { draw(td) };
     }
 
-    if best_move.is_some() {
+    if best_move.is_present() {
         let noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
         let noisy_malus = (164 * depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
 
@@ -1033,32 +1034,32 @@ fn search<NODE: NodeType>(
     }
 
     if !NODE::ROOT && bound == Bound::Upper {
-        let pcm_move = td.stack[ply - 1].mv;
-        if pcm_move.is_quiet() {
-            let mut factor = 95;
-            factor += 156 * (depth > 5) as i32;
-            factor += 215 * (td.stack[ply - 1].move_count > 8) as i32;
-            factor += 113 * (pcm_move == td.stack[ply - 1].tt_move) as i32;
-            factor += 130 * (!in_check && best_score <= eval - 96) as i32;
-            factor += 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
+        let prior_move = td.stack[ply - 1].mv;
+        if prior_move.is_quiet() {
+            let factor = 95
+                + 156 * (depth > 5) as i32
+                + 215 * (td.stack[ply - 1].move_count > 8) as i32
+                + 113 * (prior_move == td.stack[ply - 1].tt_move) as i32
+                + 130 * (!in_check && best_score <= eval - 96) as i32
+                + 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
 
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), pcm_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), prior_move, scaled_bonus);
 
             let entry = &td.stack[ply - 2];
-            if entry.mv.is_some() {
+            if entry.mv.is_present() {
                 let bonus = (156 * depth - 38).min(1169);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, pcm_move.to(), bonus);
+                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, prior_move.to(), bonus);
             }
-        } else if pcm_move.is_noisy() {
+        } else if prior_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
 
             td.noisy_history.update(
                 td.board.prior_threats(),
-                td.board.piece_on(pcm_move.to()),
-                pcm_move.to(),
+                td.board.piece_on(prior_move.to()),
+                prior_move.to(),
                 captured,
                 bonus,
             );
@@ -1320,7 +1321,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
+    if td.stack[ply - 1].mv.is_present() && td.stack[ply - 2].mv.is_present() {
         td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1329,7 +1330,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
         );
     }
 
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
+    if td.stack[ply - 1].mv.is_present() && td.stack[ply - 4].mv.is_present() {
         td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1342,7 +1343,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
 fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
-        if entry.mv.is_some() {
+        if entry.mv.is_present() {
             td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
     }

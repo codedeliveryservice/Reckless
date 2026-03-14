@@ -6,13 +6,11 @@ pub use threats::initialize;
 use crate::{
     board::{Board, BoardObserver},
     nnue::{
-        accumulator::ThreatAccumulator,
+        accumulator::{AccumulatorCache, PstAccumulator, ThreatAccumulator},
         threats::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate},
     },
     types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
 };
-
-use accumulator::{AccumulatorCache, PstAccumulator};
 
 mod forward {
     #[cfg(any(target_feature = "avx2", target_feature = "neon"))]
@@ -109,7 +107,7 @@ pub struct Network {
 
 impl Network {
     pub fn push(&mut self, mv: Move, board: &Board) {
-        debug_assert!(mv.is_some());
+        debug_assert!(mv.is_present());
 
         self.index += 1;
 
@@ -185,8 +183,8 @@ impl Network {
 
             let delta = &self.pst_stack[i].delta;
 
-            let from = delta.mv.from() ^ (56 * (delta.piece.piece_color() as u8));
-            let to = delta.mv.to() ^ (56 * (delta.piece.piece_color() as u8));
+            let from = delta.mv.from().relative_to(delta.piece.piece_color());
+            let to = delta.mv.to().relative_to(delta.piece.piece_color());
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov

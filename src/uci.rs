@@ -277,7 +277,7 @@ fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) 
 fn make_uci_move(board: &mut Board, uci_move: &str) {
     let moves = board.generate_all_moves();
     if let Some(mv) = moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == uci_move) {
-        board.make_move(mv, &mut NullBoardObserver {});
+        board.make_move(mv, &mut NullBoardObserver);
         board.advance_fullmove_counter();
     }
 }

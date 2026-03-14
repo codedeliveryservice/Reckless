@@ -31,8 +31,9 @@ impl super::Board {
             return true;
         }
 
+        // Note: no need to set the "to" square
         let mut occupancies = self.occupancies();
-        occupancies.clear(mv.from()); //Note: No need to set "to" square.
+        occupancies.clear(mv.from());
 
         if mv.is_en_passant() {
             occupancies.clear(mv.to() ^ 8);
