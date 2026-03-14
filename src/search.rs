@@ -1320,7 +1320,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 2].mv.is_some() {
+    if td.stack[ply - 2].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 2].contcorrhist,
             td.stack[ply - 1].piece,
@@ -1329,7 +1329,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
         );
     }
 
-    if td.stack[ply - 1].mv.is_some() && td.stack[ply - 4].mv.is_some() {
+    if td.stack[ply - 4].mv.is_some() {
         td.continuation_corrhist.update(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
