@@ -92,6 +92,13 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
+    pub fn prior_pinned(&self, color: Color) -> Bitboard {
+        if !self.state_stack.is_empty() {
+            return self.state_stack[self.state_stack.len() - 1].pinned[color];
+        }
+        Bitboard(0)
+    }
+
     pub const fn pinned(&self, color: Color) -> Bitboard {
         self.state.pinned[color as usize]
     }
@@ -358,14 +365,8 @@ impl Board {
         let king = self.king_square(stm);
 
         if mv.is_en_passant() {
-            let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
-
-            let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-            let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
-
-            let diagonal = bishop_attacks(king, occupancies) & diagonal;
-            let orthogonal = rook_attacks(king, occupancies) & orthogonal;
-            return (orthogonal | diagonal).is_empty();
+            return (self.checkers() & !(to ^ 8).to_bb()).is_empty()
+                && (!self.prior_pinned(stm).contains(from) || ray_pass(king, from).contains(to));
         }
 
         if king == from {
@@ -384,10 +385,10 @@ impl Board {
 
         if self.checkers().is_empty() {
             return !self.pinned(stm).contains(from) || ray_pass(king, from).contains(to);
-        } else {
-            return !self.checkers().is_multiple() && !self.pinned(stm).contains(from)
-                && (self.checkers() | between(king, self.checkers().lsb())).contains(to);
         }
+
+        return !self.checkers().is_multiple() && !self.pinned(stm).contains(from)
+            && (self.checkers() | between(king, self.checkers().lsb())).contains(to);
     }
 
     /// Checks if a move is pseudo-legal in the current position.
