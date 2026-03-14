@@ -1222,7 +1222,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            if !td.board.see(mv, (alpha - eval) / 8 - 100) {
+            if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - 100) {
                 continue;
             }
         }
