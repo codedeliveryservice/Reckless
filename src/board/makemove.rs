@@ -135,6 +135,7 @@ impl Board {
 
         self.update_threats();
         self.update_king_threats();
+        self.update_en_passant();
 
         self.state.repetition = 0;
 
