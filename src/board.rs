@@ -596,11 +596,11 @@ impl Board {
         let king = self.king_square(stm);
         let pushed_pawn = self.en_passant() ^ 8;
 
-        if !(self.checkers() & !pushed_pawn.to_bb()).is_empty() {
+        if !((self.checkers() & !pushed_pawn.to_bb()).is_empty()) {
             return false;
         }
 
-        let attackers = pawn_attacks(self.en_passant(), stm) & self.our(PieceType::Pawn);
+        let attackers = pawn_attacks(self.en_passant(), !stm) & self.our(PieceType::Pawn);
 
         // Remove vertically pinned attackers
         let attackers = attackers & !(self.pinned(stm) & Bitboard::file(king.file()));
