@@ -66,6 +66,10 @@ impl Square {
     pub const fn to_bb(self) -> Bitboard {
         Bitboard(1 << (self as u8))
     }
+
+    pub fn is_kingside(self) -> bool {
+        self.file().is_kingside()
+    }
 }
 
 impl TryFrom<&str> for Square {

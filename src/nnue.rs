@@ -9,7 +9,7 @@ use crate::{
         accumulator::{AccumulatorCache, PstAccumulator, ThreatAccumulator},
         threats::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate},
     },
-    types::{Color, File, MAX_PLY, Move, Piece, PieceType, Square},
+    types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
 };
 
 mod forward {
@@ -188,8 +188,7 @@ impl Network {
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
-                && ((from.file() >= File::E) != (to.file() >= File::E)
-                    || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
+                && (from.is_kingside() != to.is_kingside() || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
             {
                 return None;
             }
@@ -211,7 +210,7 @@ impl Network {
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
-                && (from.file() >= File::E) != (to.file() >= File::E)
+                && from.is_kingside() != to.is_kingside()
             {
                 return None;
             }
