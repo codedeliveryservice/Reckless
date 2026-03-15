@@ -779,6 +779,9 @@ fn search<NODE: NodeType>(
             reduction -= 3183 * correction_value.abs() / 1024;
             reduction += 1300 * alpha_raises;
 
+            reduction += 600 * (is_valid(tt_score) && tt_score < alpha) as i32;
+            reduction += 300 * (is_valid(tt_score) && tt_depth < depth) as i32;
+
             if is_quiet {
                 reduction += 1972;
                 reduction -= 154 * history / 1024;
@@ -816,10 +819,6 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1604;
-            }
-
-            if is_valid(tt_score) && tt_score < alpha {
-                reduction += 600;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
