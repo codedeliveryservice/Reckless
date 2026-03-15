@@ -207,9 +207,9 @@ impl Board {
 
     pub fn to_ascii(&self) -> String {
         let mut ascii = String::new();
-        ascii.push_str(" +---+---+---+---+---+---+---+---+\n");
+        ascii.push_str("+---+---+---+---+---+---+---+---+\n");
         for rank in (0..8).rev() {
-            ascii.push_str(" |");
+            ascii.push('|');
             for file in 0..8 {
                 let square = Square::from_rank_file(rank, file);
                 let piece = self.piece_on(square);
@@ -217,9 +217,9 @@ impl Board {
                 ascii.push_str(&format!(" {symbol} |"));
             }
             ascii.push_str(&format!(" {}\n", rank + 1));
-            ascii.push_str(" +---+---+---+---+---+---+---+---+\n");
+            ascii.push_str("+---+---+---+---+---+---+---+---+\n");
         }
-        ascii.push_str("   a   b   c   d   e   f   g   h\n");
+        ascii.push_str("  a   b   c   d   e   f   g   h\n");
         ascii
     }
 }

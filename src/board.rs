@@ -458,10 +458,8 @@ impl Board {
             }
 
             return from.shift(offset) == to && !self.occupancies().contains(to);
-        } else {
-            if mv.is_double_push() || mv.is_promotion() || mv.is_en_passant() {
-                return false;
-            }
+        } else if mv.is_double_push() || mv.is_promotion() || mv.is_en_passant() {
+            return false;
         }
 
         attacks(piece, from, self.occupancies()).contains(to)
@@ -641,7 +639,7 @@ pub trait BoardObserver {
     fn on_piece_mutate(&mut self, board: &Board, old_piece: Piece, new_piece: Piece, sq: Square);
 }
 
-pub struct NullBoardObserver {}
+pub struct NullBoardObserver;
 
 impl BoardObserver for NullBoardObserver {
     fn on_piece_change(&mut self, _: &Board, _: Piece, _: Square, _: bool) {}

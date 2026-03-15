@@ -42,11 +42,11 @@ impl Move {
     }
 
     pub const fn from(self) -> Square {
-        Square::new((self.0 & 0b0000_0000_0011_1111) as u8)
+        Square::new((self.0 & 0b0011_1111) as u8)
     }
 
     pub const fn to(self) -> Square {
-        Square::new(((self.0 & 0b0000_1111_1100_0000) >> 6) as u8)
+        Square::new(((self.0 >> 6) & 0b0011_1111) as u8)
     }
 
     pub const fn encoded(self) -> usize {
@@ -57,7 +57,7 @@ impl Move {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
 
-    pub const fn is_some(self) -> bool {
+    pub const fn is_present(self) -> bool {
         !self.is_null()
     }
 
@@ -66,7 +66,7 @@ impl Move {
     }
 
     pub const fn is_quiet(self) -> bool {
-        self.is_some() && !self.is_noisy()
+        self.is_present() && !self.is_noisy()
     }
 
     pub const fn is_noisy(self) -> bool {

@@ -109,16 +109,12 @@ pub fn initialize() {
     }
 }
 
-pub fn threat_index(
-    piece: Piece, mut from: Square, attacked: Piece, mut to: Square, mirrored: bool, pov: Color,
-) -> isize {
-    let flip = (7 * (mirrored as u8)) ^ (56 * (pov as u8));
+pub fn threat_index(piece: Piece, from: Square, attacked: Piece, to: Square, mirrored: bool, pov: Color) -> isize {
+    let from = from.relative_to(pov) ^ (7 * (mirrored as u8));
+    let to = to.relative_to(pov) ^ (7 * (mirrored as u8));
 
-    from ^= flip;
-    to ^= flip;
-
-    let attacking = Piece::new(Color::new((piece.piece_color() as u8) ^ (pov as u8)), piece.piece_type());
-    let attacked = Piece::new(Color::new((attacked.piece_color() as u8) ^ (pov as u8)), attacked.piece_type());
+    let attacking = (piece as usize) ^ (pov as usize);
+    let attacked = (attacked as usize) ^ (pov as usize);
 
     unsafe {
         let pair = PIECE_PAIR_LOOKUP[attacking][attacked];

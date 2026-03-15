@@ -29,7 +29,7 @@ impl MovePicker {
             list: MoveList::new(),
             tt_move,
             threshold: None,
-            stage: if tt_move.is_some() { Stage::HashMove } else { Stage::GenerateNoisy },
+            stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }

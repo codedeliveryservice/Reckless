@@ -1,6 +1,7 @@
 use std::ops::{Add, BitXor, BitXorAssign, Div, Index, IndexMut};
 
 use super::Bitboard;
+use crate::types::Color;
 
 /// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
@@ -49,6 +50,17 @@ impl Square {
         debug_assert!(0 <= value && value < Self::NUM as i8);
 
         Self::new(value as u8)
+    }
+
+    pub const fn relative_to(self, color: Color) -> Self {
+        match color {
+            Color::White => self,
+            Color::Black => self.flip_rank(),
+        }
+    }
+
+    pub const fn flip_rank(self) -> Self {
+        Self::new(self as u8 ^ 56)
     }
 
     pub const fn to_bb(self) -> Bitboard {
