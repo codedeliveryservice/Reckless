@@ -365,8 +365,9 @@ impl Board {
         let king = self.king_square(stm);
 
         if mv.is_en_passant() {
+            let pinned = self.prior_pinned(stm) | self.pinned(stm);
             return (self.checkers() & !(to ^ 8).to_bb()).is_empty()
-                && (!self.prior_pinned(stm).contains(from) || ray_pass(king, from).contains(to));
+                && (!pinned.contains(from) || ray_pass(king, from).contains(to));
         }
 
         if king == from {
