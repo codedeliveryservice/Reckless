@@ -92,13 +92,6 @@ impl Board {
         self.state.non_pawn_keys[color as usize]
     }
 
-    pub fn prior_pinned(&self, color: Color) -> Bitboard {
-        if !self.state_stack.is_empty() {
-            return self.state_stack[self.state_stack.len() - 1].pinned[color];
-        }
-        Bitboard(0)
-    }
-
     pub const fn pinned(&self, color: Color) -> Bitboard {
         self.state.pinned[color as usize]
     }
