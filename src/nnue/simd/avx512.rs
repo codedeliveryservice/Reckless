@@ -72,16 +72,11 @@ pub unsafe fn clamp_f32(x: __m512, min: __m512, max: __m512) -> __m512 {
 }
 
 pub unsafe fn dpbusd(i32s: __m512i, u8s: __m512i, i8s: __m512i) -> __m512i {
-    let pairwise = _mm512_maddubs_epi16(u8s, i8s);
-    let widened = _mm512_madd_epi16(pairwise, _mm512_set1_epi16(1));
-    _mm512_add_epi32(i32s, widened)
+    _mm512_dpbusd_epi32(i32s, u8s, i8s)
 }
 
 pub unsafe fn double_dpbusd(i32s: __m512i, u8s1: __m512i, i8s1: __m512i, u8s2: __m512i, i8s2: __m512i) -> __m512i {
-    let pairwise1 = _mm512_maddubs_epi16(u8s1, i8s1);
-    let pairwise2 = _mm512_maddubs_epi16(u8s2, i8s2);
-    let widened = _mm512_madd_epi16(_mm512_add_epi16(pairwise1, pairwise2), _mm512_set1_epi16(1));
-    _mm512_add_epi32(i32s, widened)
+    _mm512_dpbusd_epi32(_mm512_dpbusd_epi32(i32s, u8s1, i8s1), u8s2, i8s2)
 }
 
 pub unsafe fn horizontal_sum(x: [__m512; 1]) -> f32 {
