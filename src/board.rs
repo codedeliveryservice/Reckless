@@ -365,8 +365,12 @@ impl Board {
         let king = self.king_square(stm);
 
         if mv.is_en_passant() {
-            return (self.checkers() & !(to ^ 8).to_bb()).is_empty()
-                && (!self.prior_pinned(stm).contains(from) || ray_pass(king, from).contains(to));
+            let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
+            let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
+            let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+            let diagonal = bishop_attacks(king, occupancies) & diagonal;
+            let orthogonal = rook_attacks(king, occupancies) & orthogonal;
+            return (orthogonal | diagonal).is_empty();
         }
 
         if king == from {
