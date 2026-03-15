@@ -6,12 +6,13 @@ use std::{
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Color {
-    White,
-    Black,
+    White = 0,
+    Black = 1,
 }
 
 impl Color {
     pub const NUM: usize = 2;
+    pub const UP: [i8; 2] = [8, -8];
 
     pub const fn new(value: u8) -> Self {
         debug_assert!(value < Self::NUM as u8);

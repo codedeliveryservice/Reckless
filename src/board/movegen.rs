@@ -1,6 +1,6 @@
 use crate::{
     lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
-    types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Rank, Square},
+    types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Square},
 };
 
 #[derive(Eq, PartialEq)]
@@ -90,16 +90,9 @@ impl super::Board {
     }
 
     fn collect_castling(&self, list: &mut MoveList) {
-        match self.side_to_move() {
-            Color::White => {
-                self.collect_castling_kind(list, CastlingKind::WhiteKingside);
-                self.collect_castling_kind(list, CastlingKind::WhiteQueenside);
-            }
-            Color::Black => {
-                self.collect_castling_kind(list, CastlingKind::BlackKingside);
-                self.collect_castling_kind(list, CastlingKind::BlackQueenside);
-            }
-        }
+        let stm = self.side_to_move();
+        self.collect_castling_kind(list, CastlingKind::KINGSIDE[stm]);
+        self.collect_castling_kind(list, CastlingKind::QUEENSIDE[stm]);
     }
 
     fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
@@ -114,10 +107,7 @@ impl super::Board {
 
     fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         let pawns = self.our(PieceType::Pawn);
-        let seventh_rank = match self.side_to_move() {
-            Color::White => Bitboard::rank(Rank::R7),
-            Color::Black => Bitboard::rank(Rank::R2),
-        };
+        let seventh_rank = Bitboard::SEVENTH_RANK[self.side_to_move()];
 
         self.collect_pawn_pushes::<T>(list, pawns, seventh_rank);
 
@@ -128,11 +118,9 @@ impl super::Board {
     }
 
     fn collect_pawn_pushes<T: MoveGenerator>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
-        let (up, third_rank) = match self.side_to_move() {
-            Color::White => (8, Bitboard::rank(Rank::R3)),
-            Color::Black => (-8, Bitboard::rank(Rank::R6)),
-        };
-
+        let stm = self.side_to_move();
+        let up = Color::UP[stm];
+        let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
 
         if T::KIND == Kind::Quiet {
@@ -156,11 +144,9 @@ impl super::Board {
     }
 
     fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
-        let (up_right, up_left) = match self.side_to_move() {
-            Color::White => (9, 7),
-            Color::Black => (-7, -9),
-        };
-
+        let stm = self.side_to_move();
+        let up_left = Color::UP[stm] + Square::LEFT;
+        let up_right = Color::UP[stm] + Square::RIGHT;
         let promotions = pawns & seventh_rank;
         let right = (promotions & !Bitboard::file(File::H)).shift(up_right) & self.them();
         let left = (promotions & !Bitboard::file(File::A)).shift(up_left) & self.them();
