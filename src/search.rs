@@ -3,7 +3,6 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::{bonus_mult, malus_mult},
     thread::{RootMove, Status, ThreadData},
     transposition::{Bound, TtDepth},
     types::{
@@ -1005,8 +1004,8 @@ fn search<NODE: NodeType>(
         let noisy_bonus = (106 * depth).min(808) - 54 - 80 * cut_node as i32;
         let noisy_malus = (164 * depth).min(1329) - 52 - 23 * noisy_moves.len() as i32;
 
-        let quiet_bonus = (bonus_mult() * depth).min(1459) - 78 - 54 * cut_node as i32;
-        let quiet_malus = (malus_mult() * depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
+        let quiet_bonus = (210 * depth).min(1459) - 78 - 54 * cut_node as i32;
+        let quiet_malus = (131 * depth).min(1064) - 45 - 39 * quiet_moves.len() as i32;
 
         let cont_bonus = (108 * depth).min(977) - 67 - 52 * cut_node as i32;
         let cont_malus = (352 * depth).min(868) - 47 - 19 * quiet_moves.len() as i32;
