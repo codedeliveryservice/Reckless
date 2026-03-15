@@ -3,7 +3,7 @@ use crate::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
         pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
-    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Square, ZOBRIST},
+    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Rank, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -440,7 +440,7 @@ impl Board {
             }
 
             let offset = if self.side_to_move() == Color::White { 8 } else { -8 };
-            let promotion_rank = if self.side_to_move() == Color::White { 7 } else { 0 };
+            let promotion_rank = if self.side_to_move() == Color::White { Rank::R8 } else { Rank::R1 };
 
             if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
                 return false;
@@ -451,7 +451,7 @@ impl Board {
             }
 
             if mv.is_double_push() {
-                return from.rank() == (if self.side_to_move() == Color::White { 1 } else { 6 })
+                return from.rank() == (if self.side_to_move() == Color::White { Rank::R2 } else { Rank::R7 })
                     && from.shift(2 * offset) == to
                     && !self.occupancies().contains(from.shift(offset))
                     && !self.occupancies().contains(to);

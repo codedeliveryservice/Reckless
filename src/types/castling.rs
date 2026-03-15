@@ -78,7 +78,7 @@ impl Castling {
                     Color::White => b'A',
                     Color::Black => b'a',
                 };
-                symbol = (rook.file() + base) as char;
+                symbol = (rook.file() as u8 + base) as char;
             }
             result.push(symbol);
         }
