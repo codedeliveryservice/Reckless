@@ -541,6 +541,11 @@ fn search<NODE: NodeType>(
             && tt_move.is_some()
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && !(tt_bound == Bound::Lower
+            && tt_move.is_some()
+            && td.board.is_pseudo_legal(tt_move)
+            && td.board.is_legal(tt_move)
+            && td.board.is_direct_check(tt_move))
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
