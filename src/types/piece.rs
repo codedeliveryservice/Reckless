@@ -161,6 +161,10 @@ impl PieceType {
             Self::None => 0,
         }
     }
+
+    pub fn is_slider(self) -> bool {
+        self == Self::Bishop || self == Self::Rook || self == Self::Queen
+    }
 }
 
 impl<T> Index<PieceType> for [T] {

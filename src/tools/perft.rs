@@ -47,6 +47,28 @@ pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
 }
 
+pub fn simple_perft(depth: usize, board: &mut Board) {
+    let mut nodes = 0;
+
+    for entry in board.generate_all_moves().iter() {
+        let mv = entry.mv;
+        if !board.is_legal(mv) {
+            continue;
+        }
+
+        board.make_move(mv, &mut NullBoardObserver);
+
+        let count = perft_internal(depth - 1, board);
+        nodes += count;
+
+        board.undo_move(mv);
+
+        println!("{}: {count}", mv.to_uci(board));
+    }
+
+    println!("total: {nodes}");
+}
+
 fn perft_internal(depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;

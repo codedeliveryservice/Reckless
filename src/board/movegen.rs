@@ -1,5 +1,7 @@
 use crate::{
-    lookup::{between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, rook_attacks},
+    lookup::{
+        between, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, queen_attacks, ray_pass, rook_attacks,
+    },
     types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Square},
 };
 
@@ -50,7 +52,7 @@ impl super::Board {
     }
 
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
-        self.collect_for::<T, _>(list, Bitboard::ALL, PieceType::King, king_attacks);
+        self.collect_unpinned::<T, _>(list, !self.all_threats(), self.our(PieceType::King), king_attacks);
 
         if self.checkers().is_multiple() {
             return;
@@ -63,28 +65,53 @@ impl super::Board {
             Bitboard::ALL
         };
 
-        self.collect_pawn_moves::<T>(list);
+        let pinned = self.pinned(self.side_to_move());
 
-        self.collect_for::<T, _>(list, target, PieceType::Knight, knight_attacks);
-        self.collect_for::<T, _>(list, target, PieceType::Bishop, |square| bishop_attacks(square, occupancies));
-        self.collect_for::<T, _>(list, target, PieceType::Rook, |square| rook_attacks(square, occupancies));
-        self.collect_for::<T, _>(list, target, PieceType::Queen, |square| queen_attacks(square, occupancies));
+        self.collect_pawn_moves::<T>(list, target, pinned);
+
+        let knights = self.our(PieceType::Knight);
+        let bishops = self.our(PieceType::Bishop);
+        let rooks = self.our(PieceType::Rook);
+        let queens = self.our(PieceType::Queen);
+
+        self.collect_unpinned::<T, _>(list, target, knights & !pinned, knight_attacks);
+        self.collect_unpinned::<T, _>(list, target, bishops & !pinned, |sq| bishop_attacks(sq, occupancies));
+        self.collect_unpinned::<T, _>(list, target, rooks & !pinned, |sq| rook_attacks(sq, occupancies));
+        self.collect_unpinned::<T, _>(list, target, queens & !pinned, |sq| queen_attacks(sq, occupancies));
+
+        self.collect_pinned::<T, _>(list, target, bishops & pinned, |sq| bishop_attacks(sq, occupancies));
+        self.collect_pinned::<T, _>(list, target, rooks & pinned, |sq| rook_attacks(sq, occupancies));
+        self.collect_pinned::<T, _>(list, target, queens & pinned, |sq| queen_attacks(sq, occupancies));
 
         if T::KIND == Kind::Quiet {
             self.collect_castling(list);
         }
     }
 
-    fn collect_for<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
-        &self, list: &mut MoveList, target: Bitboard, piece: PieceType, attacks: F,
+    fn collect_unpinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
+        &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
-        for from in self.our(piece) {
+        for from in bb {
             if T::KIND == Kind::Noisy {
                 list.push_setwise(from, attacks(from) & target & self.them(), MoveKind::Capture);
             }
-
             if T::KIND == Kind::Quiet {
                 list.push_setwise(from, attacks(from) & target & !self.occupancies(), MoveKind::Normal);
+            }
+        }
+    }
+
+    fn collect_pinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
+        &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
+    ) {
+        let king = self.king_square(self.side_to_move());
+        for from in bb {
+            let pin_mask = ray_pass(king, from);
+            if T::KIND == Kind::Noisy {
+                list.push_setwise(from, attacks(from) & target & self.them() & pin_mask, MoveKind::Capture);
+            }
+            if T::KIND == Kind::Quiet {
+                list.push_setwise(from, attacks(from) & target & !self.occupancies() & pin_mask, MoveKind::Normal);
             }
         }
     }
@@ -105,34 +132,40 @@ impl super::Board {
         }
     }
 
-    fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
+    fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard) {
         let pawns = self.our(PieceType::Pawn);
         let seventh_rank = Bitboard::SEVENTH_RANK[self.side_to_move()];
 
-        self.collect_pawn_pushes::<T>(list, pawns, seventh_rank);
+        self.collect_pawn_pushes::<T>(list, target, pinned, pawns, seventh_rank);
 
         if T::KIND == Kind::Noisy {
             self.collect_pawn_captures(list, pawns, seventh_rank);
-            self.collect_en_passant_moves(list, pawns);
         }
     }
 
-    fn collect_pawn_pushes<T: MoveGenerator>(&self, list: &mut MoveList, pawns: Bitboard, seventh_rank: Bitboard) {
+    fn movable_pawns(pinned: Bitboard, pawns: Bitboard, pin_mask: Bitboard) -> Bitboard {
+        (pawns & !pinned) | (pawns & pinned & pin_mask)
+    }
+
+    fn collect_pawn_pushes<T: MoveGenerator>(
+        &self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, pawns: Bitboard, seventh_rank: Bitboard,
+    ) {
         let stm = self.side_to_move();
         let up = Color::UP[stm];
         let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
+        let pawns = Self::movable_pawns(pinned, pawns, Bitboard::file(self.king_square(stm).file()));
 
         if T::KIND == Kind::Quiet {
             let non_promotions = pawns & !seventh_rank;
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
-            list.push_pawns_setwise(up, single_pushes, MoveKind::Normal);
-            list.push_pawns_setwise(up * 2, double_pushes, MoveKind::DoublePush);
+            list.push_pawns_setwise(up, single_pushes & target, MoveKind::Normal);
+            list.push_pawns_setwise(up * 2, double_pushes & target, MoveKind::DoublePush);
         }
 
-        let promotions = (pawns & seventh_rank).shift(up) & empty;
+        let promotions = (pawns & seventh_rank).shift(up) & empty & target;
         if T::KIND == Kind::Noisy {
             list.push_pawns_setwise(up, promotions, MoveKind::PromotionQ);
         }
@@ -160,9 +193,7 @@ impl super::Board {
 
         list.push_pawns_setwise(up_right, right_captures, MoveKind::Capture);
         list.push_pawns_setwise(up_left, left_captures, MoveKind::Capture);
-    }
 
-    fn collect_en_passant_moves(&self, list: &mut MoveList, pawns: Bitboard) {
         if self.state.en_passant != Square::None {
             let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move());
             for pawn in pawns {
