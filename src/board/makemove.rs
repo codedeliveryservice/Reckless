@@ -28,8 +28,7 @@ impl Board {
 
     /// Plays a move on the board and pushes the previous state onto the stack.
     ///
-    /// This method assumes the move has been validated as pseudo-legal and legal
-    /// per `Board::is_pseudo_legal` and `Board::is_legal`.
+    /// This method assumes the move has been validated as legal per `Board::is_legal`.
     pub fn make_move<T: BoardObserver>(&mut self, mv: Move, observer: &mut T) {
         let from = mv.from();
         let to = mv.to();
