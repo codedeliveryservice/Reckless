@@ -203,8 +203,10 @@ impl super::Board {
         list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
 
         if self.state.en_passant != Square::None {
-            let pawns = pawns & pawn_attacks(self.state.en_passant, !self.side_to_move());
-            for pawn in pawns {
+            let ep = self.state.en_passant.to_bb();
+            let right_attacker = right_pawns & ep.shift(-up_right);
+            let left_attacker = left_pawns & ep.shift(-up_left);
+            for pawn in right_attacker | left_attacker {
                 list.push(pawn, self.state.en_passant, MoveKind::EnPassant);
             }
         }
