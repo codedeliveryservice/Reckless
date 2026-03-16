@@ -120,7 +120,7 @@ impl PstAccumulator {
             let to_write = _mm256_xor_si256(_mm256_set1_epi16(base as i16), _mm256_cvtepu8_epi16(squares));
             features.unchecked_write(|data| {
                 _mm256_storeu_si256(data.cast(), to_write);
-                bb.count() as usize
+                bb.count()
             });
         }
     }
@@ -323,7 +323,7 @@ impl ThreatAccumulator {
     pub fn refresh(&mut self, board: &Board, pov: Color) {
         let king = board.king_square(pov);
 
-        self.values[pov] = [0; L1_SIZE];
+        let mut adds = ArrayVec::<usize, 8196>::new();
 
         for square in board.occupancies() {
             let piece = board.piece_on(square);
@@ -334,8 +334,52 @@ impl ThreatAccumulator {
                 let mirrored = king.is_kingside();
 
                 let index = threat_index(piece, square, attacked, target, mirrored, pov);
-                if index >= 0 {
-                    unsafe { add1(&mut self.values[pov], index as usize) }
+                adds.maybe_push(index >= 0, index as usize);
+            }
+        }
+
+        #[cfg(target_feature = "avx512f")]
+        const REGISTERS: usize = L1_SIZE / simd::I16_LANES;
+        #[cfg(not(target_feature = "avx512f"))]
+        const REGISTERS: usize = 8;
+
+        unsafe {
+            for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
+                let output = self.values[pov].as_mut_ptr().add(offset);
+
+                let mut registers: [_; REGISTERS] = std::mem::zeroed();
+
+                let mut add_idx = 0;
+
+                while add_idx + 1 < adds.len() {
+                    let add1 = adds[add_idx];
+                    let add2 = adds[add_idx + 1];
+
+                    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr().add(offset);
+                    let vadd2 = PARAMETERS.ft_threat_weights[add2].as_ptr().add(offset);
+
+                    for (i, register) in registers.iter_mut().enumerate() {
+                        let add1_weights = simd::convert_i8_i16(*vadd1.add(i * simd::I16_LANES).cast());
+                        let add2_weights = simd::convert_i8_i16(*vadd2.add(i * simd::I16_LANES).cast());
+                        *register = simd::add_i16(simd::add_i16(*register, add1_weights), add2_weights);
+                    }
+
+                    add_idx += 2;
+                }
+
+                while add_idx < adds.len() {
+                    let vadd = PARAMETERS.ft_threat_weights[adds[add_idx]].as_ptr().add(offset);
+
+                    for (i, register) in registers.iter_mut().enumerate() {
+                        let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
+                        *register = simd::add_i16(*register, add_weights);
+                    }
+
+                    add_idx += 1;
+                }
+
+                for (i, register) in registers.iter().enumerate() {
+                    *output.add(i * simd::I16_LANES).cast() = *register;
                 }
             }
         }
@@ -422,17 +466,5 @@ impl ThreatAccumulator {
         }
 
         self.accurate[pov] = true;
-    }
-}
-
-unsafe fn add1(output: &mut [i16], add1: usize) {
-    let vacc = output.as_mut_ptr();
-    let vadd1 = PARAMETERS.ft_threat_weights[add1].as_ptr();
-
-    for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
-        let mut v = *vacc.add(i).cast();
-        v = simd::add_i16(v, simd::convert_i8_i16(*vadd1.add(i).cast()));
-
-        *vacc.add(i).cast() = v;
     }
 }
