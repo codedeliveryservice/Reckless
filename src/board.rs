@@ -591,6 +591,62 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
 
+    fn is_en_passant_valid(&self) -> bool {
+        let stm = self.side_to_move();
+        let king = self.king_square(stm);
+        let pushed_pawn = self.en_passant() ^ 8;
+
+        if !((self.checkers() & !pushed_pawn.to_bb()).is_empty()) {
+            return false;
+        }
+
+        let attackers = pawn_attacks(self.en_passant(), !stm) & self.our(PieceType::Pawn);
+
+        // Remove vertically pinned attackers
+        let attackers = attackers & !(self.pinned(stm) & Bitboard::file(king.file()));
+
+        if attackers.is_empty() {
+            return false;
+        }
+
+        let pinned = attackers & self.pinned(stm);
+
+        if attackers.is_multiple() {
+            // If two candidates, a clearance pin is impossible. Detect case when both are diagonally pinned.
+            return attackers != pinned;
+        }
+
+        if !pinned.is_empty() {
+            // Pinned pawn can move along pin ray.
+            return ray_pass(king, pinned.lsb()).contains(self.en_passant());
+        }
+
+        if king.rank() != pushed_pawn.rank() {
+            // Clearance pin impossible
+            return true;
+        }
+
+        // Detect clearance pin
+        let occ = self.occupancies() ^ pushed_pawn.to_bb() ^ attackers;
+        let king_ray = rook_attacks(king, occ) & Bitboard::rank(king.rank());
+        (king_ray & (self.their(PieceType::Rook) | self.their(PieceType::Queen))).is_empty()
+    }
+
+    /// We verify is self.state.enpassant is valid, and remove it if it is not.
+    /// This must be called after pinners and checkers have been updated.
+    fn update_en_passant(&mut self) {
+        if self.en_passant() == Square::None {
+            return;
+        }
+
+        if self.is_en_passant_valid() {
+            return;
+        }
+
+        self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
+        self.state.en_passant = Square::None;
+    }
+
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
             Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingside], Square::F1),
