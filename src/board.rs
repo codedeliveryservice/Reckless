@@ -348,64 +348,36 @@ impl Board {
     }
 
     /// Checks if the given move is legal in the current position.
-    ///
-    /// This method assumes the move has been validated as pseudo-legal
-    /// per `Board::is_pseudo_legal`.
     pub fn is_legal(&self, mv: Move) -> bool {
-        let from = mv.from();
-        let to = mv.to();
-        let stm = self.side_to_move();
-        let king = self.king_square(stm);
-
-        if mv.is_en_passant() {
-            let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
-            let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
-            let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
-            let diagonal = bishop_attacks(king, occupancies) & diagonal;
-            let orthogonal = rook_attacks(king, occupancies) & orthogonal;
-            return (orthogonal | diagonal).is_empty();
-        }
-
-        if king == from {
-            if mv.is_castling() {
-                let kind = match to {
-                    Square::G1 => CastlingKind::WhiteKingside,
-                    Square::C1 => CastlingKind::WhiteQueenside,
-                    Square::G8 => CastlingKind::BlackKingside,
-                    Square::C8 => CastlingKind::BlackQueenside,
-                    _ => unreachable!(),
-                };
-                return !self.all_threats().contains(to) && !self.pinned(stm).contains(self.castling_rooks[kind]);
-            }
-            return !self.all_threats().contains(to);
-        }
-
-        if self.checkers().is_empty() {
-            return !self.pinned(stm).contains(from) || ray_pass(king, from).contains(to);
-        }
-
-        !self.checkers().is_multiple()
-            && !self.pinned(stm).contains(from)
-            && (self.checkers() | between(king, self.checkers().lsb())).contains(to)
-    }
-
-    /// Checks if a move is pseudo-legal in the current position.
-    ///
-    /// A pseudo-legal move follows the piece's movement rules but does not verify
-    /// whether the king is left in check, so it does not guarantee full legality.
-    pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         if mv.is_null() {
             return false;
         }
 
+        let stm = self.side_to_move();
+        let king = self.king_square(stm);
+
         let from = mv.from();
         let to = mv.to();
+
+        if !self.checkers().is_empty() && king != from {
+            if self.checkers().is_multiple() {
+                return false;
+            }
+
+            if !mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to) {
+                return false;
+            }
+        }
+
+        if self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to) {
+            return false;
+        }
 
         let piece = self.piece_on(from);
         let captured = self.piece_on(to).piece_type();
 
         if mv.is_castling() {
-            if self.king_square(self.side_to_move()) != from {
+            if king != from {
                 return false;
             }
 
@@ -419,7 +391,12 @@ impl Board {
 
             return self.castling().is_allowed(kind)
                 && (self.castling_path[kind] & self.occupancies()).is_empty()
-                && (self.castling_threat[kind] & self.all_threats()).is_empty();
+                && (self.castling_threat[kind] & self.all_threats()).is_empty()
+                && !self.pinned(stm).contains(self.castling_rooks[kind]);
+        }
+
+        if king == from && self.all_threats().contains(to) {
+            return false;
         }
 
         if piece == Piece::None || !self.us().contains(from) || self.us().contains(to) {
@@ -436,7 +413,14 @@ impl Board {
 
         if piece.piece_type() == PieceType::Pawn {
             if mv.is_en_passant() {
-                return to == self.en_passant() && pawn_attacks(from, self.side_to_move()).contains(to);
+                let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
+                let diagonal = self.their(PieceType::Bishop) | self.their(PieceType::Queen);
+                let orthogonal = self.their(PieceType::Rook) | self.their(PieceType::Queen);
+                let diagonal = bishop_attacks(king, occupancies) & diagonal;
+                let orthogonal = rook_attacks(king, occupancies) & orthogonal;
+                return to == self.en_passant()
+                    && pawn_attacks(from, self.side_to_move()).contains(to)
+                    && (orthogonal | diagonal).is_empty();
             }
 
             let offset = if self.side_to_move() == Color::White { 8 } else { -8 };
