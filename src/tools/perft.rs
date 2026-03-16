@@ -68,18 +68,17 @@ fn perft_internal(depth: usize, board: &mut Board) -> u64 {
         return 1;
     }
 
+    if depth == 1 {
+        return board.generate_all_moves().len() as u64;
+    }
+
     let mut nodes = 0;
 
     for entry in board.generate_all_moves().iter() {
         let mv = entry.mv;
-
-        if depth == 1 {
-            nodes += 1;
-        } else {
-            board.make_move(mv, &mut NullBoardObserver);
-            nodes += perft_internal(depth - 1, board);
-            board.undo_move(mv);
-        }
+        board.make_move(mv, &mut NullBoardObserver);
+        nodes += perft_internal(depth - 1, board);
+        board.undo_move(mv);
     }
 
     nodes
