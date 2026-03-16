@@ -21,9 +21,6 @@ pub fn perft(depth: usize, board: &mut Board) {
         let now = Instant::now();
 
         let mv = entry.mv;
-        if !board.is_legal(mv) {
-            continue;
-        }
 
         board.make_move(mv, &mut NullBoardObserver);
 
@@ -47,26 +44,41 @@ pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
 }
 
+pub fn simple_perft(depth: usize, board: &mut Board) {
+    let mut nodes = 0;
+
+    for entry in board.generate_all_moves().iter() {
+        let mv = entry.mv;
+
+        board.make_move(mv, &mut NullBoardObserver);
+
+        let count = perft_internal(depth - 1, board);
+        nodes += count;
+
+        board.undo_move(mv);
+
+        println!("{}: {count}", mv.to_uci(board));
+    }
+
+    println!("total: {nodes}");
+}
+
 fn perft_internal(depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;
+    }
+
+    if depth == 1 {
+        return board.generate_all_moves().len() as u64;
     }
 
     let mut nodes = 0;
 
     for entry in board.generate_all_moves().iter() {
         let mv = entry.mv;
-        if !board.is_legal(mv) {
-            continue;
-        }
-
-        if depth == 1 {
-            nodes += 1;
-        } else {
-            board.make_move(mv, &mut NullBoardObserver);
-            nodes += perft_internal(depth - 1, board);
-            board.undo_move(mv);
-        }
+        board.make_move(mv, &mut NullBoardObserver);
+        nodes += perft_internal(depth - 1, board);
+        board.undo_move(mv);
     }
 
     nodes
