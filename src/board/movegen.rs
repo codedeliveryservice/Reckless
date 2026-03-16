@@ -30,7 +30,7 @@ impl super::Board {
     pub fn has_legal_moves(&self) -> bool {
         let mut list = MoveList::new();
         self.append_all_moves(&mut list);
-        list.iter().any(|entry| self.is_legal(entry.mv))
+        !list.is_empty()
     }
 
     pub fn generate_all_moves(&self) -> MoveList {
@@ -204,8 +204,8 @@ impl super::Board {
 
         if self.state.en_passant != Square::None {
             let ep = self.state.en_passant.to_bb();
-            let right_attacker = right_pawns & ep.shift(-up_right);
-            let left_attacker = left_pawns & ep.shift(-up_left);
+            let right_attacker = right_pawns & !Bitboard::file(File::H) & ep.shift(-up_right);
+            let left_attacker = left_pawns & !Bitboard::file(File::A) & ep.shift(-up_left);
             for pawn in right_attacker | left_attacker {
                 list.push(pawn, self.state.en_passant, MoveKind::EnPassant);
             }

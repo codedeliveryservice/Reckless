@@ -58,13 +58,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.pv_table.clear(0);
     td.nnue.full_refresh(&td.board);
 
-    td.root_moves = td
-        .board
-        .generate_all_moves()
-        .iter()
-        .filter(|v| td.board.is_legal(v.mv))
-        .map(|v| RootMove { mv: v.mv, ..Default::default() })
-        .collect();
+    td.root_moves = td.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
 
     td.root_in_tb = false;
     td.stop_probing_tb = false;
@@ -597,7 +591,7 @@ fn search<NODE: NodeType>(
                 break;
             }
 
-            if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
+            if mv == td.stack[ply].excluded {
                 continue;
             }
 
@@ -691,7 +685,7 @@ fn search<NODE: NodeType>(
     let mut alpha_raises = 0;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
-        if mv == td.stack[ply].excluded || !td.board.is_legal(mv) {
+        if mv == td.stack[ply].excluded {
             continue;
         }
 
@@ -1209,10 +1203,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         |best_score| !((in_check && is_loss(best_score)) || (tt_move.is_quiet() && tt_bound != Bound::Upper));
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets(best_score), ply) {
-        if !td.board.is_legal(mv) {
-            continue;
-        }
-
         move_count += 1;
 
         if !is_loss(best_score) {
