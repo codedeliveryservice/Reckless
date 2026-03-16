@@ -188,7 +188,7 @@ impl Network {
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
-                && ((from.file() >= 4) != (to.file() >= 4) || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
+                && (from.is_kingside() != to.is_kingside() || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
             {
                 return None;
             }
@@ -210,7 +210,7 @@ impl Network {
 
             if delta.piece.piece_type() == PieceType::King
                 && delta.piece.piece_color() == pov
-                && (from.file() >= 4) != (to.file() >= 4)
+                && from.is_kingside() != to.is_kingside()
             {
                 return None;
             }

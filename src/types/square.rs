@@ -1,7 +1,7 @@
 use std::ops::{Add, BitXor, BitXorAssign, Div, Index, IndexMut};
 
 use super::Bitboard;
-use crate::types::Color;
+use crate::types::{Color, File, Rank};
 
 /// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
@@ -37,12 +37,12 @@ impl Square {
         Self::new((rank << 3) | file)
     }
 
-    pub const fn file(self) -> u8 {
-        self as u8 & 7
+    pub const fn file(self) -> File {
+        unsafe { std::mem::transmute(self as u8 & 7) }
     }
 
-    pub const fn rank(self) -> u8 {
-        self as u8 >> 3
+    pub const fn rank(self) -> Rank {
+        unsafe { std::mem::transmute(self as u8 >> 3) }
     }
 
     pub const fn shift(self, offset: i8) -> Self {
@@ -65,6 +65,10 @@ impl Square {
 
     pub const fn to_bb(self) -> Bitboard {
         Bitboard(1 << (self as u8))
+    }
+
+    pub fn is_kingside(self) -> bool {
+        self.file().is_kingside()
     }
 }
 

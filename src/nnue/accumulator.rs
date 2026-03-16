@@ -54,7 +54,7 @@ impl PstAccumulator {
     pub fn refresh(&mut self, board: &Board, pov: Color, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
 
-        let entry = &mut cache.entries[pov][(king.file() >= 4) as usize]
+        let entry = &mut cache.entries[pov][(king.is_kingside()) as usize]
             [INPUT_BUCKETS_LAYOUT[king as usize ^ (56 * pov as usize)]];
 
         let mut adds = ArrayVec::<_, 32>::new();
@@ -224,7 +224,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
 }
 
 fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> usize {
-    let flip = (7 * ((king.file() >= 4) as u8)) ^ (56 * (pov as u8));
+    let flip = (7 * ((king.is_kingside()) as u8)) ^ (56 * (pov as u8));
 
     INPUT_BUCKETS_LAYOUT[king ^ flip] * 768
         + 384 * (color != pov) as usize
@@ -296,7 +296,7 @@ impl ThreatAccumulator {
 
             for target in threats {
                 let attacked = board.piece_on(target);
-                let mirrored = king.file() >= 4;
+                let mirrored = king.is_kingside();
 
                 let index = threat_index(piece, square, attacked, target, mirrored, pov);
                 if index >= 0 {
@@ -314,7 +314,7 @@ impl ThreatAccumulator {
 
         for &td in self.delta.iter() {
             let (piece, from, attacked, to, add) = (td.piece(), td.from(), td.attacked(), td.to(), td.add());
-            let mirrored = king.file() >= 4;
+            let mirrored = king.is_kingside();
 
             let index = threat_index(piece, from, attacked, to, mirrored, pov);
             if add {
