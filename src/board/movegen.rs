@@ -124,9 +124,11 @@ impl super::Board {
     }
 
     fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
+        let stm = self.side_to_move();
         if self.castling().is_allowed(kind)
             && (self.castling_path[kind] & self.occupancies()).is_empty()
             && (self.castling_threat[kind] & self.all_threats()).is_empty()
+            && !self.pinned(stm).contains(self.castling_rooks[kind])
         {
             let king = self.king_square(self.side_to_move());
             list.push(king, kind.landing_square(), MoveKind::Castling);
@@ -166,14 +168,14 @@ impl super::Board {
             list.push_pawns_setwise(up * 2, double_pushes & target, MoveKind::DoublePush);
         }
 
-        let promotions = (pawns & seventh_rank).shift(up) & empty & target;
+        let promotions = (pawns & seventh_rank).shift(up) & empty;
         if T::KIND == Kind::Noisy {
-            list.push_pawns_setwise(up, promotions, MoveKind::PromotionQ);
+            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
         }
         if T::KIND == Kind::Quiet {
-            list.push_pawns_setwise(up, promotions, MoveKind::PromotionR);
-            list.push_pawns_setwise(up, promotions, MoveKind::PromotionB);
-            list.push_pawns_setwise(up, promotions, MoveKind::PromotionN);
+            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionR);
+            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionB);
+            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionN);
         }
     }
 
@@ -181,14 +183,12 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, pawns: Bitboard, seventh_rank: Bitboard,
     ) {
         let stm = self.side_to_move();
-        let up_left = Color::UP[stm] + Square::LEFT;
         let up_right = Color::UP[stm] + Square::RIGHT;
-
-        let left_pin_mask = relative_anti_diagonal(stm, self.king_square(stm));
+        let up_left = Color::UP[stm] + Square::LEFT;
         let right_pin_mask = relative_diagonal(stm, self.king_square(stm));
-
-        let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask);
+        let left_pin_mask = relative_anti_diagonal(stm, self.king_square(stm));
         let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask);
+        let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask);
 
         let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.them();
         let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.them();
