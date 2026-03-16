@@ -66,7 +66,7 @@ const FT_SHIFT: i32 = 9;
 const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
 
 #[rustfmt::skip]
-const INPUT_BUCKETS_LAYOUT: [usize; 64] = [
+const INPUT_BUCKETS_LAYOUT: [u8; 64] = [
     0, 1, 2, 3, 3, 2, 1, 0,
     4, 5, 6, 7, 7, 6, 5, 4,
     8, 8, 8, 8, 8, 8, 8, 8,
