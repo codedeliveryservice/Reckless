@@ -316,12 +316,88 @@ fn search<NODE: NodeType>(
 
     let hash = td.board.hash();
     let entry = td.shared.tt.read(hash, td.board.halfmove_clock(), ply);
-
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+
+    let correction_value = eval_correction(td, ply);
+
+    let raw_eval;
+    let mut eval;
+
+    // Evaluation
+    if in_check {
+        raw_eval = Score::NONE;
+        eval = Score::NONE;
+    } else if excluded {
+        raw_eval = Score::NONE;
+        eval = td.stack[ply].eval;
+    } else if let Some(entry) = &entry {
+        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
+        eval = correct_eval(td, raw_eval, correction_value);
+    } else {
+        raw_eval = td.nnue.evaluate(&td.board);
+        eval = correct_eval(td, raw_eval, correction_value);
+
+        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+    }
+
+    // Prefer the TT entry to tighten the evaluation when its bound aligns with
+    // the current alpha-beta window; otherwise, retain the unbounded evaluation
+    let mut estimated_score = eval;
+
+    if !in_check
+        && !excluded
+        && is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score < eval,
+            Bound::Lower => tt_score > eval,
+            _ => true,
+        }
+    {
+        estimated_score = tt_score;
+    }
+
+    // Use the bounded TT entry score for evaluation when in check
+    if in_check
+        && !is_decisive(tt_score)
+        && is_valid(tt_score)
+        && match tt_bound {
+            Bound::Upper => tt_score <= alpha,
+            Bound::Lower => tt_score >= beta,
+            _ => true,
+        }
+    {
+        estimated_score = tt_score;
+        eval = tt_score;
+    }
+
+    td.stack[ply].eval = eval;
+    td.stack[ply].tt_move = tt_move;
+    td.stack[ply].tt_pv = tt_pv;
+    td.stack[ply].reduction = 0;
+    td.stack[ply].move_count = 0;
+    td.stack[ply + 2].cutoff_count = 0;
+
+    // Hindsight reductions
+    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 0
+    {
+        depth += 1;
+    }
+
+    if !NODE::ROOT
+        && !tt_pv
+        && !in_check
+        && !excluded
+        && depth >= 2
+        && td.stack[ply - 1].reduction > 0
+        && is_valid(td.stack[ply - 1].eval)
+        && eval + td.stack[ply - 1].eval > 59
+    {
+        depth -= 1;
+    }
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -392,89 +468,12 @@ fn search<NODE: NodeType>(
         }
     }
 
-    let correction_value = eval_correction(td, ply);
-
-    let raw_eval;
-    let mut eval;
-
-    // Evaluation
-    if in_check {
-        raw_eval = Score::NONE;
-        eval = Score::NONE;
-    } else if excluded {
-        raw_eval = Score::NONE;
-        eval = td.stack[ply].eval;
-    } else if let Some(entry) = &entry {
-        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
-        eval = correct_eval(td, raw_eval, correction_value);
-    } else {
-        raw_eval = td.nnue.evaluate(&td.board);
-        eval = correct_eval(td, raw_eval, correction_value);
-
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
-    }
-
-    // Prefer the TT entry to tighten the evaluation when its bound aligns with
-    // the current alpha-beta window; otherwise, retain the unbounded evaluation
-    let mut estimated_score = eval;
-
-    if !in_check
-        && !excluded
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score < eval,
-            Bound::Lower => tt_score > eval,
-            _ => true,
-        }
-    {
-        estimated_score = tt_score;
-    }
-
-    // Use the bounded TT entry score for evaluation when in check
-    if in_check
-        && !is_decisive(tt_score)
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        }
-    {
-        estimated_score = tt_score;
-        eval = tt_score;
-    }
-
-    td.stack[ply].eval = eval;
-    td.stack[ply].tt_move = tt_move;
-    td.stack[ply].tt_pv = tt_pv;
-    td.stack[ply].reduction = 0;
-    td.stack[ply].move_count = 0;
-    td.stack[ply + 2].cutoff_count = 0;
-
     // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let value = 819 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-124, 312);
 
         td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
-    }
-
-    // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2247 && eval + td.stack[ply - 1].eval < 0
-    {
-        depth += 1;
-    }
-
-    if !NODE::ROOT
-        && !tt_pv
-        && !in_check
-        && !excluded
-        && depth >= 2
-        && td.stack[ply - 1].reduction > 0
-        && is_valid(td.stack[ply - 1].eval)
-        && eval + td.stack[ply - 1].eval > 59
-    {
-        depth -= 1;
     }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
