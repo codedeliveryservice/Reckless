@@ -33,6 +33,22 @@ pub fn generate_bishop_map() -> Vec<u64> {
     generate_sliding_map(BISHOP_MAP_SIZE, &BISHOP_MAGICS, &[(1, 1), (1, -1), (-1, 1), (-1, -1)])
 }
 
+pub fn generate_diagonal_table() -> Vec<u64> {
+    let mut map = vec![0; 64];
+    for square in 0..64 {
+        map[square as usize] = sliding_attacks(square, 0, &[(1, 1), (-1, -1)]);
+    }
+    map
+}
+
+pub fn generate_anti_diagonal_table() -> Vec<u64> {
+    let mut map = vec![0; 64];
+    for square in 0..64 {
+        map[square as usize] = sliding_attacks(square, 0, &[(1, -1), (-1, 1)]);
+    }
+    map
+}
+
 fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[(i8, i8)]) -> Vec<u64> {
     let mut map = vec![0; size];
 
