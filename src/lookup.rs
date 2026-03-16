@@ -106,9 +106,30 @@ pub fn between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN[a as usize][b as usize] }
 }
 
-#[allow(dead_code)]
 pub fn ray_pass(a: Square, b: Square) -> Bitboard {
     unsafe { RAY_PASS[a as usize][b as usize] }
+}
+
+pub fn diagonal(sq: Square) -> Bitboard {
+    unsafe { Bitboard(*DIAGONAL.get_unchecked(sq as usize)) }
+}
+
+pub fn anti_diagonal(sq: Square) -> Bitboard {
+    unsafe { Bitboard(*ANTI_DIAGONAL.get_unchecked(sq as usize)) }
+}
+
+pub fn relative_diagonal(color: Color, sq: Square) -> Bitboard {
+    match color {
+        Color::White => diagonal(sq),
+        Color::Black => anti_diagonal(sq),
+    }
+}
+
+pub fn relative_anti_diagonal(color: Color, sq: Square) -> Bitboard {
+    match color {
+        Color::White => anti_diagonal(sq),
+        Color::Black => diagonal(sq),
+    }
 }
 
 pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard {

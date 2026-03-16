@@ -65,7 +65,7 @@ impl MovePicker {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
 
-            if td.board.is_pseudo_legal(self.tt_move) {
+            if td.board.is_legal(self.tt_move) {
                 return Some(self.tt_move);
             }
         }

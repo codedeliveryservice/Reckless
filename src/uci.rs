@@ -88,6 +88,8 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             },
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
+            ["simpleperft", depth] => tools::simple_perft(depth.parse().unwrap(), &mut threads.main_thread().board),
+            ["simpleperft"] => eprintln!("Usage: simpleperft <depth>"),
 
             // Ignore empty lines
             [] => (),
