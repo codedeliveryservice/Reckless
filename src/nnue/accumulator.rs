@@ -28,6 +28,8 @@ impl Default for CacheEntry {
     }
 }
 
+pub type PstFeature = u16;
+
 #[derive(Clone)]
 pub struct PstDelta {
     pub mv: Move,
@@ -55,10 +57,10 @@ impl PstAccumulator {
         let king = board.king_square(pov);
 
         let entry = &mut cache.entries[pov][(king.is_kingside()) as usize]
-            [INPUT_BUCKETS_LAYOUT[king as usize ^ (56 * pov as usize)]];
+            [INPUT_BUCKETS_LAYOUT[king as usize ^ (56 * pov as usize)] as usize];
 
-        let mut adds = ArrayVec::<_, 32>::new();
-        let mut subs = ArrayVec::<_, 32>::new();
+        let mut adds = ArrayVec::<PstFeature, 64>::new();
+        let mut subs = ArrayVec::<PstFeature, 64>::new();
 
         for color in [Color::White, Color::Black] {
             for piece_type in [
@@ -73,13 +75,8 @@ impl PstAccumulator {
                 let to_add = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
-                for square in to_add {
-                    adds.push(pst_index(color, piece_type, square, king, pov));
-                }
-
-                for square in to_sub {
-                    subs.push(pst_index(color, piece_type, square, king, pov));
-                }
+                Self::push_features(&mut adds, color, piece_type, to_add, king, pov);
+                Self::push_features(&mut subs, color, piece_type, to_sub, king, pov);
             }
         }
 
@@ -90,6 +87,42 @@ impl PstAccumulator {
 
         self.values[pov] = *entry.values;
         self.accurate[pov] = true;
+    }
+
+    #[inline]
+    #[cfg(not(target_feature = "avx512vbmi2"))]
+    fn push_features(
+        features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
+        pov: Color,
+    ) {
+        for square in bb {
+            features.push(pst_index(color, piece_type, square, king, pov));
+        }
+    }
+
+    #[inline]
+    #[cfg(target_feature = "avx512vbmi2")]
+    fn push_features(
+        features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
+        pov: Color,
+    ) {
+        unsafe {
+            use std::arch::x86_64::*;
+
+            let base = pst_index(color, piece_type, Square::new(0), king, pov);
+
+            let iota = _mm512_set_epi8(
+                63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
+                37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
+                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+            );
+            let squares = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(bb.0, iota));
+            let to_write = _mm256_xor_si256(_mm256_set1_epi16(base as i16), _mm256_cvtepu8_epi16(squares));
+            features.unchecked_write(|data| {
+                _mm256_storeu_si256(data.cast(), to_write);
+                bb.count() as usize
+            });
+        }
     }
 
     pub fn update(&mut self, prev: &Self, board: &Board, king: Square, pov: Color) {
@@ -127,12 +160,12 @@ impl PstAccumulator {
         self.accurate[pov] = true;
     }
 
-    fn add1_sub1(&mut self, prev: &Self, add1: usize, sub1: usize, pov: Color) {
+    fn add1_sub1(&mut self, prev: &Self, add1: PstFeature, sub1: PstFeature, pov: Color) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1 as usize].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1 as usize].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -145,13 +178,13 @@ impl PstAccumulator {
         }
     }
 
-    fn add1_sub2(&mut self, prev: &Self, add1: usize, sub1: usize, sub2: usize, pov: Color) {
+    fn add1_sub2(&mut self, prev: &Self, add1: PstFeature, sub1: PstFeature, sub2: PstFeature, pov: Color) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
-        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_piece_weights[sub2].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1 as usize].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1 as usize].as_ptr();
+        let vsub2 = PARAMETERS.ft_piece_weights[sub2 as usize].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -165,14 +198,16 @@ impl PstAccumulator {
         }
     }
 
-    fn add2_sub2(&mut self, prev: &Self, add1: usize, add2: usize, sub1: usize, sub2: usize, pov: Color) {
+    fn add2_sub2(
+        &mut self, prev: &Self, add1: PstFeature, add2: PstFeature, sub1: PstFeature, sub2: PstFeature, pov: Color,
+    ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = PARAMETERS.ft_piece_weights[add1].as_ptr();
-        let vadd2 = PARAMETERS.ft_piece_weights[add2].as_ptr();
-        let vsub1 = PARAMETERS.ft_piece_weights[sub1].as_ptr();
-        let vsub2 = PARAMETERS.ft_piece_weights[sub2].as_ptr();
+        let vadd1 = PARAMETERS.ft_piece_weights[add1 as usize].as_ptr();
+        let vadd2 = PARAMETERS.ft_piece_weights[add2 as usize].as_ptr();
+        let vsub1 = PARAMETERS.ft_piece_weights[sub1 as usize].as_ptr();
+        let vsub2 = PARAMETERS.ft_piece_weights[sub2 as usize].as_ptr();
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
@@ -191,7 +226,7 @@ impl PstAccumulator {
 const REGISTERS: usize = 8;
 const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
 
-unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs: ArrayVec<usize, 32>) {
+unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<PstFeature, 64>, subs: ArrayVec<PstFeature, 64>) {
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
 
     for offset in (0..L1_SIZE).step_by(REGISTERS * simd::I16_LANES) {
@@ -202,7 +237,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for &add in adds.iter() {
-            let weights = PARAMETERS.ft_piece_weights[add].as_ptr().add(offset);
+            let weights = PARAMETERS.ft_piece_weights[add as usize].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::add_i16(*register, *weights.add(i * simd::I16_LANES).cast());
@@ -210,7 +245,7 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
         }
 
         for &sub in subs.iter() {
-            let weights = PARAMETERS.ft_piece_weights[sub].as_ptr().add(offset);
+            let weights = PARAMETERS.ft_piece_weights[sub as usize].as_ptr().add(offset);
 
             for (i, register) in registers.iter_mut().enumerate() {
                 *register = simd::sub_i16(*register, *weights.add(i * simd::I16_LANES).cast());
@@ -223,13 +258,13 @@ unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<usize, 32>, subs:
     }
 }
 
-fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> usize {
+fn pst_index(color: Color, piece: PieceType, square: Square, king: Square, pov: Color) -> PstFeature {
     let flip = (7 * ((king.is_kingside()) as u8)) ^ (56 * (pov as u8));
 
-    INPUT_BUCKETS_LAYOUT[king ^ flip] * 768
-        + 384 * (color != pov) as usize
-        + 64 * piece as usize
-        + (square ^ flip) as usize
+    INPUT_BUCKETS_LAYOUT[king ^ flip] as PstFeature * 768
+        + 384 * (color != pov) as PstFeature
+        + 64 * piece as PstFeature
+        + (square ^ flip) as PstFeature
 }
 
 #[derive(Copy, Clone)]
