@@ -710,7 +710,7 @@ fn search<NODE: NodeType>(
 
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
-            if move_count >= (3072 + 1536 * depth * depth) / 1024 {
+            if move_count >= (3072 + 384 * depth + 2 * improvement + 1536 * depth * depth) / 1024 {
                 skip_quiets = true;
                 continue;
             }
