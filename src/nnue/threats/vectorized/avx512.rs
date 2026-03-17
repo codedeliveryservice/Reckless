@@ -10,6 +10,11 @@ use crate::{
     types::{Piece, Square},
 };
 
+static RAY_ATTACKERS_MASK_VEC: Lazy<__m512i> =
+    Lazy::new(|| unsafe { _mm512_loadu_si512(RAY_ATTACKERS_MASK.as_ptr().cast()) });
+static RAY_SLIDERS_MASK_VEC: Lazy<__m512i> =
+    Lazy::new(|| unsafe { _mm512_loadu_si512(RAY_SLIDERS_MASK.as_ptr().cast()) });
+
 pub fn ray_permutation(focus: Square) -> (__m512i, u64) {
     unsafe {
         let perm = _mm512_loadu_si512(RAY_PERMUTATIONS.get_unchecked(focus as usize).as_ptr().cast());
@@ -44,10 +49,7 @@ pub fn board_to_rays(perm: __m512i, valid: u64, board: __m512i) -> (__m512i, __m
 }
 
 pub fn attackers_along_rays(rays: __m512i) -> u64 {
-    unsafe {
-        let mask = _mm512_loadu_si512(RAY_ATTACKERS_MASK.as_ptr().cast());
-        _mm512_test_epi8_mask(rays, mask)
-    }
+    unsafe { _mm512_test_epi8_mask(rays, *RAY_ATTACKERS_MASK_VEC) }
 }
 
 pub fn attacking_along_rays(piece: Piece, occupied: u64) -> u64 {
@@ -55,10 +57,7 @@ pub fn attacking_along_rays(piece: Piece, occupied: u64) -> u64 {
 }
 
 pub fn sliders_along_rays(rays: __m512i) -> u64 {
-    unsafe {
-        let mask = _mm512_loadu_si512(RAY_SLIDERS_MASK.as_ptr().cast());
-        _mm512_test_epi8_mask(rays, mask) & 0xFEFEFEFEFEFEFEFE
-    }
+    unsafe { _mm512_test_epi8_mask(rays, *RAY_SLIDERS_MASK_VEC) & 0xFEFEFEFEFEFEFEFE }
 }
 
 #[allow(clippy::too_many_arguments)]
