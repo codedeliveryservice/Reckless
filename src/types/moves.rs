@@ -102,14 +102,11 @@ impl Move {
         matches!(self.kind(), MoveKind::DoublePush)
     }
 
-    pub const fn promotion_piece(self) -> Option<PieceType> {
-        match self.kind() {
-            MoveKind::PromotionN | MoveKind::PromotionCaptureN => Some(PieceType::Knight),
-            MoveKind::PromotionB | MoveKind::PromotionCaptureB => Some(PieceType::Bishop),
-            MoveKind::PromotionR | MoveKind::PromotionCaptureR => Some(PieceType::Rook),
-            MoveKind::PromotionQ | MoveKind::PromotionCaptureQ => Some(PieceType::Queen),
-            _ => None,
+    pub fn promotion_piece(self) -> Option<PieceType> {
+        if self.is_promotion() {
+            return Some(PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize));
         }
+        None
     }
 
     pub fn to_uci(self, board: &Board) -> String {
