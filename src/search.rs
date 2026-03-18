@@ -515,6 +515,7 @@ fn search<NODE: NodeType>(
                 - 64 * ((td.board.all_threats() & td.board.us()).is_empty() && !td.board.in_check()) as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
+        && !tt_move.is_quiet()
     {
         return beta + (estimated_score - beta) / 3;
     }
