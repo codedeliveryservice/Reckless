@@ -90,11 +90,16 @@ impl TimeManager {
             return false;
         }
 
-        match self.limits {
+        let stop = match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
             _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
+        };
+
+        if stop {
+            td.shared.status.set(Status::STOPPED);
         }
+        stop
     }
 
     pub fn limits(&self) -> Limits {

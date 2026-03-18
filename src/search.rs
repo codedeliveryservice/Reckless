@@ -286,7 +286,6 @@ fn search<NODE: NodeType>(
 
     if td.time_manager.check_time(td) {
         td.stopped = true;
-        td.shared.status.set(Status::STOPPED);
         return Score::ZERO;
     }
 
@@ -1111,7 +1110,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     if td.time_manager.check_time(td) {
         td.stopped = true;
-        td.shared.status.set(Status::STOPPED);
         return Score::ZERO;
     }
 
