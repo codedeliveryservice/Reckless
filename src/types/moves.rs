@@ -104,7 +104,7 @@ impl Move {
 
     pub fn promotion_piece(self) -> Option<PieceType> {
         if self.is_promotion() {
-            return Some(PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize))
+            return Some(PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize));
         }
         None
     }
