@@ -536,6 +536,7 @@ fn search<NODE: NodeType>(
             && tt_move.is_present()
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && depth != 1
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
