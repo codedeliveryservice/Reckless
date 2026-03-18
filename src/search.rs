@@ -53,7 +53,6 @@ impl NodeType for NonPV {
 
 pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.completed_depth = 0;
-    td.stopped = false;
 
     td.pv_table.clear(0);
     td.nnue.full_refresh(&td.board);
@@ -130,7 +129,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
                 td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
 
-                if td.stopped {
+                if td.shared.status.get() == Status::STOPPED {
                     break;
                 }
 
@@ -171,13 +170,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
         }
 
-        if !td.stopped {
+        if td.shared.status.get() != Status::STOPPED {
             td.completed_depth = depth;
         }
 
         if report == Report::Full
-            && !(is_loss(td.root_moves[0].display_score) && td.stopped)
-            && (td.stopped || td.pv_index + 1 == td.multi_pv || td.shared.nodes.aggregate() > 10_000_000)
+            && !(is_loss(td.root_moves[0].display_score) && td.shared.status.get() == Status::STOPPED)
+            && (td.shared.status.get() == Status::STOPPED
+                || td.pv_index + 1 == td.multi_pv
+                || td.shared.nodes.aggregate() > 10_000_000)
         {
             td.print_uci_info(depth);
         }
@@ -196,7 +197,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
         best_move_changes += td.best_move_changes;
 
-        if td.root_moves[0].score != -Score::INFINITE && is_loss(td.root_moves[0].score) && td.stopped {
+        if td.root_moves[0].score != -Score::INFINITE
+            && is_loss(td.root_moves[0].score)
+            && td.shared.status.get() == Status::STOPPED
+        {
             if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
                 td.root_moves.remove(pos);
                 td.root_moves.insert(0, last_best_rootmove.clone());
@@ -205,7 +209,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             last_best_rootmove = td.root_moves[0].clone();
         }
 
-        if td.stopped {
+        if td.shared.status.get() == Status::STOPPED {
             break;
         }
 
@@ -239,7 +243,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         if td.shared.status.get() == Status::STOPPED {
-            td.stopped = true;
             break;
         }
     }
@@ -264,7 +267,7 @@ fn search<NODE: NodeType>(
         td.pv_table.clear(ply as usize);
     }
 
-    if td.stopped {
+    if td.shared.status.get() == Status::STOPPED {
         return Score::ZERO;
     }
 
@@ -284,8 +287,8 @@ fn search<NODE: NodeType>(
         td.sel_depth = td.sel_depth.max(ply as i32);
     }
 
-    if td.time_manager.check_time(td) {
-        td.stopped = true;
+    if td.id == 0 && td.time_manager.check_time(td) {
+        td.shared.status.set(Status::STOPPED);
         return Score::ZERO;
     }
 
@@ -553,7 +556,7 @@ fn search<NODE: NodeType>(
 
         td.board.undo_null_move();
 
-        if td.stopped {
+        if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
@@ -566,7 +569,7 @@ fn search<NODE: NodeType>(
             let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
             td.nmp_min_ply = 0;
 
-            if td.stopped {
+            if td.shared.status.get() == Status::STOPPED {
                 return Score::ZERO;
             }
 
@@ -617,7 +620,7 @@ fn search<NODE: NodeType>(
 
             undo_move(td, mv);
 
-            if td.stopped {
+            if td.shared.status.get() == Status::STOPPED {
                 return Score::ZERO;
             }
 
@@ -644,7 +647,7 @@ fn search<NODE: NodeType>(
         let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
-        if td.stopped {
+        if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
@@ -901,7 +904,7 @@ fn search<NODE: NodeType>(
 
         undo_move(td, mv);
 
-        if td.stopped {
+        if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
@@ -1108,8 +1111,8 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         td.sel_depth = td.sel_depth.max(ply as i32);
     }
 
-    if td.time_manager.check_time(td) {
-        td.stopped = true;
+    if td.id == 0 && td.time_manager.check_time(td) {
+        td.shared.status.set(Status::STOPPED);
         return Score::ZERO;
     }
 
@@ -1223,7 +1226,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         undo_move(td, mv);
 
-        if td.stopped {
+        if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
