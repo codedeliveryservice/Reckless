@@ -12,7 +12,6 @@ pub enum Color {
 
 impl Color {
     pub const NUM: usize = 2;
-    pub const UP: [i8; 2] = [8, -8];
 
     pub const fn new(value: u8) -> Self {
         debug_assert!(value < Self::NUM as u8);

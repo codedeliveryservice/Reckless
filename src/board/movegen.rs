@@ -3,7 +3,7 @@ use crate::{
         between, bishop_attacks, king_attacks, knight_attacks, queen_attacks, ray_pass, relative_anti_diagonal,
         relative_diagonal, rook_attacks,
     },
-    types::{Bitboard, CastlingKind, Color, File, MoveKind, MoveList, PieceType, Square},
+    types::{Bitboard, CastlingKind, File, MoveKind, MoveList, PieceType, Square},
 };
 
 #[derive(Eq, PartialEq)]
@@ -154,7 +154,7 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, pawns: Bitboard, seventh_rank: Bitboard,
     ) {
         let stm = self.side_to_move();
-        let up = Color::UP[stm];
+        let up = Square::UP[stm];
         let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
         let pawns = Self::movable_pawns(pinned, pawns, Bitboard::file(self.king_square(stm).file()));
@@ -183,8 +183,8 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, pawns: Bitboard, seventh_rank: Bitboard,
     ) {
         let stm = self.side_to_move();
-        let up_right = Color::UP[stm] + Square::RIGHT;
-        let up_left = Color::UP[stm] + Square::LEFT;
+        let up_right = Square::UP[stm] + Square::RIGHT;
+        let up_left = Square::UP[stm] + Square::LEFT;
         let right_pin_mask = relative_diagonal(stm, self.king_square(stm));
         let left_pin_mask = relative_anti_diagonal(stm, self.king_square(stm));
         let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask);
