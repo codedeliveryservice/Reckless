@@ -86,10 +86,14 @@ impl TimeManager {
             return true;
         }
 
+        if td.id != 0 {
+            return false;
+        }
+
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
-            _ => td.id == 0 && td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
+            _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
     }
 
