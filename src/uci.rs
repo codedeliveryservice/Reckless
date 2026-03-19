@@ -373,8 +373,8 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
         return Limits::Infinite;
     }
 
-    let main = main.unwrap_or_default().max(0) as u64;
-    let inc = inc.unwrap_or_default().max(0) as u64;
+    let main = main.unwrap_or_default();
+    let inc = inc.unwrap_or_default();
 
     match moves {
         Some(moves) => Limits::Cyclic(main, inc, moves),
