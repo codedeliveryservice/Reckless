@@ -349,20 +349,20 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
     for chunk in tokens.chunks(2) {
         if let [name, value] = *chunk {
-            let Ok(value) = value.parse() else {
+            let Ok(value) = value.parse::<u64>() else {
                 continue;
             };
 
             match name {
-                "depth" if value > 0 => return Limits::Depth(value),
-                "movetime" if value > 0 => return Limits::Time(value as u64),
-                "nodes" if value > 0 => return Limits::Nodes(value as u64),
+                "depth" if value > 0 => return Limits::Depth(value as i32),
+                "movetime" if value > 0 => return Limits::Time(value),
+                "nodes" if value > 0 => return Limits::Nodes(value),
 
                 "wtime" if Color::White == color => main = Some(value),
                 "btime" if Color::Black == color => main = Some(value),
                 "winc" if Color::White == color => inc = Some(value),
                 "binc" if Color::Black == color => inc = Some(value),
-                "movestogo" => moves = Some(value as u64),
+                "movestogo" => moves = Some(value),
 
                 _ => continue,
             }
@@ -373,8 +373,8 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
         return Limits::Infinite;
     }
 
-    let main = main.unwrap_or_default().max(0) as u64;
-    let inc = inc.unwrap_or_default().max(0) as u64;
+    let main = main.unwrap_or_default();
+    let inc = inc.unwrap_or_default();
 
     match moves {
         Some(moves) => Limits::Cyclic(main, inc, moves),
