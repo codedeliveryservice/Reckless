@@ -1,12 +1,8 @@
 use std::arch::x86_64::*;
 
+use super::{PIECE_TO_BIT_TABLE, RAY_ATTACKERS_MASK, RAY_ATTACKS_MASK, RAY_PERMUTATIONS, RAY_SLIDERS_MASK};
 use crate::{
-    nnue::{
-        accumulator::ThreatAccumulator,
-        threats::vectorized::{
-            PIECE_TO_BIT_TABLE, RAY_ATTACKERS_MASK, RAY_ATTACKS_MASK, RAY_PERMUTATIONS, RAY_SLIDERS_MASK,
-        },
-    },
+    nnue::accumulator::ThreatAccumulator,
     types::{Piece, Square},
 };
 

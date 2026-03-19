@@ -1,8 +1,7 @@
 use crate::{
     board::Board,
     lookup::{attacks, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_pass, rook_attacks},
-    nnue::ThreatAccumulator,
-    nnue::accumulator::ThreatDelta,
+    nnue::accumulator::threats::{ThreatAccumulator, ThreatDelta},
     types::{Bitboard, Color, Piece, PieceType, Square},
 };
 
