@@ -1,12 +1,11 @@
 mod accumulator;
-mod threats;
 
-pub use threats::initialize;
+pub use accumulator::threats::initialize;
 
 use crate::{
     board::{Board, BoardObserver},
-    nnue::{
-        accumulator::{AccumulatorCache, PstAccumulator, ThreatAccumulator},
+    nnue::accumulator::{
+        AccumulatorCache, PstAccumulator, ThreatAccumulator,
         threats::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate},
     },
     types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
