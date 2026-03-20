@@ -1,28 +1,32 @@
-# Reckless – Chess Engine in Rust
+<div align="center">
+  <img width="240" height="240" alt="Reckless" src="https://github.com/user-attachments/assets/545d3859-c813-49b4-ba0c-9d79d0da89ce" />
+  <h1>Reckless Chess Engine</h1>
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Reckless CI](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/rust.yml)
 [![Reckless PGO](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml/badge.svg)](https://github.com/codedeliveryservice/Reckless/actions/workflows/pgo.yml)
-[![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?logo=github)](https://github.com/codedeliveryservice/Reckless/releases/latest)
+[![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?logo=github&color=097BBC)](https://github.com/codedeliveryservice/Reckless/releases/latest)
 [![GitHub Release](https://img.shields.io/github/v/release/codedeliveryservice/Reckless?include_prereleases&label=pre-release&logo=github)](https://github.com/codedeliveryservice/Reckless/releases)
+</div>
 
-Reckless is a competitive chess engine, consistently performing among the top engines in major tournaments including [Chess.com Computer Chess Championship (CCC)][ccc] and [Top Chess Engine Championship (TCEC)][tcec].
+Reckless is an open source competitive chess engine, consistently performing among the top engines in major tournaments including [Chess.com Computer Chess Championship (CCC)][ccc] and [Top Chess Engine Championship (TCEC)][tcec].
 
 [ccc]: https://www.chess.com/computer-chess-championship
 [tcec]: https://tcec-chess.com
 
 ## Rating
 
-| Version                   | [CCRL Blitz][ccrl-404] | [CCRL 40/15][crrl-4015] | [CCRL FRC][ccrl-frc] | Release Date |
-| ------------------------- | ---------------------- | ----------------------- | -------------------- | ------------ |
-| [Reckless v0.8.0][v0.8.0] | 3765 +/- 14 [#2]       | 3609 +/- 11 [#3]        | 4077 +/- 13 [#3]     | Aug 29, 2025 |
-| [Reckless v0.7.0][v0.7.0] | 3500 +/- 12 [#68]      | 3422 +/- 12 [#72]       |                      | Aug 23, 2024 |
-| [Reckless v0.6.0][v0.6.0] | 3386 +/- 15 [#95]      | 3317 +/- 15 [#103]      |                      | Mar 22, 2024 |
-| [Reckless v0.5.0][v0.5.0] | 3240 +/- 17 [#133]     | 3211 +/- 17 [#140]      |                      | Feb 4, 2024  |
-| [Reckless v0.4.0][v0.4.0] | 2934 +/- 17 [#210]     | 2926 +/- 16 [#222]      |                      | Dec 13, 2023 |
-| [Reckless v0.3.0][v0.3.0] | 2616 +/- 19 [#297]     | 2617 +/- 19 [#321]      |                      | Nov 6, 2023  |
-| [Reckless v0.2.0][v0.2.0] | 2349 +/- 18 [#406]     |                         |                      | Oct 7, 2023  |
-| [Reckless v0.1.0][v0.1.0] | 2005 +/- 18 [#539]     |                         |                      | May 16, 2023 |
+| Version                   | [SPCC][spcc]    | [CCRL Blitz][ccrl-404] | [CCRL 40/15][ccrl-4015] | Release Date |
+| ------------------------- | --------------- | ---------------------- | ----------------------- | ------------ |
+| [Reckless v0.9.0][v0.9.0] | 3833 +/- 4 [#2] | 3767 +/- 13 [#2]       | 3612 +/- 19 [#2]        | Mar 1, 2026  |
+| [Reckless v0.8.0][v0.8.0] | 3777 +/- 4 [#4] | 3765 +/- 14 [#2]       | 3609 +/- 11 [#3]        | Aug 29, 2025 |
+| [Reckless v0.7.0][v0.7.0] |                 | 3500 +/- 12 [#68]      | 3422 +/- 12 [#72]       | Aug 23, 2024 |
+| [Reckless v0.6.0][v0.6.0] |                 | 3386 +/- 15 [#95]      | 3317 +/- 15 [#103]      | Mar 22, 2024 |
+| [Reckless v0.5.0][v0.5.0] |                 | 3240 +/- 17 [#133]     | 3211 +/- 17 [#140]      | Feb 4, 2024  |
+| [Reckless v0.4.0][v0.4.0] |                 | 2934 +/- 17 [#210]     | 2926 +/- 16 [#222]      | Dec 13, 2023 |
+| [Reckless v0.3.0][v0.3.0] |                 | 2616 +/- 19 [#297]     | 2617 +/- 19 [#321]      | Nov 6, 2023  |
+| [Reckless v0.2.0][v0.2.0] |                 | 2349 +/- 18 [#406]     |                         | Oct 7, 2023  |
+| [Reckless v0.1.0][v0.1.0] |                 | 2005 +/- 18 [#539]     |                         | May 16, 2023 |
 
 [v0.1.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.1.0
 [v0.2.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.2.0
@@ -32,9 +36,10 @@ Reckless is a competitive chess engine, consistently performing among the top en
 [v0.6.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.6.0
 [v0.7.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.7.0
 [v0.8.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.8.0
+[v0.9.0]: https://github.com/codedeliveryservice/Reckless/releases/tag/v0.9.0
 [ccrl-404]: https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on
-[crrl-4015]: https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on
-[ccrl-frc]: https://www.computerchess.org.uk/ccrl/404FRC/
+[ccrl-4015]: https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on
+[spcc]: https://www.sp-cc.de
 
 ## Getting started
 
