@@ -229,11 +229,11 @@ impl TranspositionTable {
     pub fn prefetch(&self, hash: u64) {
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            use std::arch::x86_64::{_MM_HINT_T1, _mm_prefetch};
+            use std::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
 
             let index = index(hash, self.len());
             let ptr = self.ptr().add(index).cast();
-            _mm_prefetch::<_MM_HINT_T1>(ptr);
+            _mm_prefetch::<_MM_HINT_T0>(ptr);
         }
 
         // No prefetching for non-x86_64 architectures
