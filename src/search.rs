@@ -528,8 +528,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && !potential_singularity
         && estimated_score >= beta
-        && estimated_score >= eval
-        && eval
+        && estimated_score
             >= beta - 9 * depth + 126 * tt_pv as i32 - 128 * improvement / 1024 + 286
                 - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
         && ply as i32 >= td.nmp_min_ply
