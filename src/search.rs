@@ -513,7 +513,7 @@ fn search<NODE: NodeType>(
         && in_check
         && is_valid(tt_score)
         && tt_bound == Bound::Lower
-        && tt_score >= beta + 1216 * depth * depth / 128 + 50 * depth + 32 * (depth == 1) as i32 + 25
+        && tt_score >= beta + 1216 * depth * depth / 128 + 50 * depth + 100
         && !is_loss(beta)
         && !is_win(tt_score)
     {
