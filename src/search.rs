@@ -398,7 +398,7 @@ fn search<NODE: NodeType>(
     let correction_value = eval_correction(td, ply);
 
     let raw_eval;
-    let mut eval;
+    let eval;
 
     // Evaluation
     if in_check {
@@ -431,20 +431,6 @@ fn search<NODE: NodeType>(
         }
     {
         estimated_score = tt_score;
-    }
-
-    // Use the bounded TT entry score for evaluation when in check
-    if in_check
-        && !is_decisive(tt_score)
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        }
-    {
-        estimated_score = tt_score;
-        eval = tt_score;
     }
 
     td.stack[ply].eval = eval;
@@ -509,17 +495,29 @@ fn search<NODE: NodeType>(
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
-        && is_valid(estimated_score)
+        && !in_check
         && estimated_score >= beta
         && estimated_score
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
                 + 32 * (depth == 1) as i32
-                - 64 * ((td.board.all_threats() & td.board.us()).is_empty() && !td.board.in_check()) as i32
+                - 64 * (td.board.all_threats() & td.board.us()).is_empty() as i32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
         return beta + (estimated_score - beta) / 3;
+    }
+
+    if !tt_pv
+        && !excluded
+        && in_check
+        && is_valid(tt_score)
+        && tt_bound == Bound::Lower
+        && tt_score >= beta + 1216 * depth * depth / 128 + 50 * depth + 32 * (depth == 1) as i32 + 25
+        && !is_loss(beta)
+        && !is_win(tt_score)
+    {
+        return beta + (tt_score - beta) / 3;
     }
 
     // Null Move Pruning (NMP)
