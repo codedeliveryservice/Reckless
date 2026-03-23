@@ -423,7 +423,7 @@ impl Board {
                     && (orthogonal | diagonal).is_empty();
             }
 
-            let offset = if self.side_to_move() == Color::White { 8 } else { -8 };
+            let offset = Square::UP[self.side_to_move()];
             let promotion_rank = if self.side_to_move() == Color::White { Rank::R8 } else { Rank::R1 };
 
             if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
