@@ -359,7 +359,7 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
 
-        if !self.checkers().is_empty() && king != from {
+        if self.in_check() && king != from {
             if self.checkers().is_multiple() {
                 return false;
             }
