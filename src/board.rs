@@ -209,9 +209,7 @@ impl Board {
     }
 
     pub fn advance_fullmove_counter(&mut self) {
-        if self.side_to_move() == Color::Black {
-            self.fullmove_number += 1;
-        }
+        self.fullmove_number += self.side_to_move() as usize;
     }
 
     pub fn set_frc(&mut self, frc: bool) {
