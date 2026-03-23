@@ -51,7 +51,7 @@ const INPUT_BUCKETS: usize = 10;
 const OUTPUT_BUCKETS: usize = 8;
 
 const L1_SIZE: usize = 768;
-const L2_SIZE: usize = 16;
+const L2_SIZE: usize = 32;
 const L3_SIZE: usize = 32;
 
 const FT_QUANT: i32 = 255;
@@ -278,7 +278,7 @@ impl BoardObserver for Network {
 
 #[repr(C)]
 struct Parameters {
-    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 66864]>,
+    ft_threat_weights: Aligned<[[i8; L1_SIZE]; 60144]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
