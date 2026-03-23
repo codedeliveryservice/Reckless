@@ -120,13 +120,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
             let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
 
-            let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
-                + average[td.pv_index])
-                / 2;
-            td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
-            td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
-
             loop {
+                let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
+                    + average[td.pv_index])
+                    / 2;
+
+                td.optimism[td.board.side_to_move()] = 169 * best_avg / (best_avg.abs() + 187);
+                td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
+
                 td.stack = Stack::default();
                 td.root_delta = beta - alpha;
 
