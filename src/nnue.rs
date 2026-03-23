@@ -76,18 +76,6 @@ const INPUT_BUCKETS_LAYOUT: [u8; 64] = [
     9, 9, 9, 9, 9, 9, 9, 9,
 ];
 
-#[rustfmt::skip]
-const OUTPUT_BUCKETS_LAYOUT: [usize; 33] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    1, 1, 1, 1,
-    2, 2, 2, 2,
-    3, 3, 3,
-    4, 4, 4,
-    5, 5, 5,
-    6, 6, 6,
-    7, 7, 7, 7,
-];
-
 #[repr(align(16))]
 #[derive(Clone, Copy)]
 struct SparseEntry {
@@ -219,7 +207,9 @@ impl Network {
     }
 
     fn output_transformer(&self, board: &Board) -> i32 {
-        let bucket = OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
+        let bucket = !board.pieces(PieceType::Bishop).is_empty() as usize
+            | (!board.pieces(PieceType::Rook).is_empty() as usize) << 1
+            | (!board.pieces(PieceType::Queen).is_empty() as usize) << 2;
 
         unsafe {
             let ft_out =
