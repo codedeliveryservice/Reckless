@@ -518,10 +518,9 @@ fn search<NODE: NodeType>(
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
-            >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
-                + 519 * correction_value.abs() / 1024
+            >= beta + 1125 * depth * depth / 128 + 26 * depth + 519 * correction_value.abs() / 1024
                 - 64 * ((td.board.all_threats() & td.board.us()).is_empty() && !td.board.in_check()) as i32
-                + 32
+                - 32
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
