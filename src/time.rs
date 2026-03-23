@@ -69,8 +69,7 @@ impl TimeManager {
 
     pub fn soft_limit(&self, td: &ThreadData, multiplier: impl Fn() -> f32) -> bool {
         match self.limits {
-            Limits::Infinite => false,
-            Limits::Depth(maximum) => td.completed_depth >= maximum,
+            Limits::Infinite | Limits::Depth(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()),

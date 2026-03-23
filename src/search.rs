@@ -5,6 +5,7 @@ use crate::{
     movepick::{MovePicker, Stage},
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
+    time::Limits,
     transposition::{Bound, TtDepth},
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
@@ -77,8 +78,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
+    let max_depth = match td.time_manager.limits() {
+        Limits::Depth(maximum) => maximum,
+        _ => (MAX_PLY - 1) as i32,
+    };
+
     // Iterative Deepening
-    for depth in 1..MAX_PLY as i32 {
+    for depth in 1..=max_depth {
         best_move_changes /= 2;
 
         td.sel_depth = 0;
