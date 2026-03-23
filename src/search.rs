@@ -458,6 +458,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
+    td.stack[ply].correction_error = 0;
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet move ordering using eval difference
@@ -1088,7 +1089,14 @@ fn search<NODE: NodeType>(
         || (bound == Bound::Upper && best_score >= eval)
         || (bound == Bound::Lower && best_score <= eval))
     {
-        update_correction_histories(td, depth, best_score - eval, ply);
+        let mut diff = best_score - eval;
+
+        if diff.signum() != td.stack[ply].correction_error.signum() && !is_decisive(best_score) && !is_decisive(eval) {
+            diff -= td.stack[ply].correction_error;
+        }
+
+        td.stack[ply].correction_error = diff;
+        update_correction_histories(td, depth, diff, ply);
     }
 
     debug_assert!(alpha < beta);
