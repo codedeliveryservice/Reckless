@@ -397,7 +397,7 @@ impl Board {
             return false;
         }
 
-        if piece == Piece::None || !self.us().contains(from) || self.us().contains(to) {
+        if !self.us().contains(from) || self.us().contains(to) {
             return false;
         }
 
