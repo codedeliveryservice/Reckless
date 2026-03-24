@@ -347,7 +347,6 @@ impl Board {
 
     /// Checks if the given move is legal in the current position.
     pub fn is_legal(&self, mv: Move) -> bool {
-
         let stm = self.side_to_move();
         let king = self.king_square(stm);
         let from = mv.from();
@@ -355,7 +354,8 @@ impl Board {
 
         if self.in_check() && king != from {
             if self.checkers().is_multiple()
-               || !(mv.is_en_passant() || (self.checkers() | between(king, self.checkers().lsb())).contains(to)) {
+                || !(mv.is_en_passant() || (self.checkers() | between(king, self.checkers().lsb())).contains(to))
+            {
                 return false;
             }
         }
@@ -368,7 +368,6 @@ impl Board {
         let captured = self.piece_on(to).piece_type();
 
         if mv.is_castling() {
-
             let kind = match to {
                 Square::G1 => CastlingKind::WhiteKingside,
                 Square::C1 => CastlingKind::WhiteQueenside,
@@ -385,10 +384,11 @@ impl Board {
         }
 
         if (king == from && self.all_threats().contains(to))
-          || !self.us().contains(from)
-          || self.us().contains(to)
-          || (captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King))
-          || (mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to)) {
+            || !self.us().contains(from)
+            || self.us().contains(to)
+            || (captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King))
+            || (mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to))
+        {
             return false;
         }
 
