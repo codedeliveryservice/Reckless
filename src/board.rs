@@ -347,22 +347,15 @@ impl Board {
 
     /// Checks if the given move is legal in the current position.
     pub fn is_legal(&self, mv: Move) -> bool {
-        if mv.is_null() {
-            return false;
-        }
 
         let stm = self.side_to_move();
         let king = self.king_square(stm);
-
         let from = mv.from();
         let to = mv.to();
 
         if self.in_check() && king != from {
-            if self.checkers().is_multiple() {
-                return false;
-            }
-
-            if !mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to) {
+            if self.checkers().is_multiple()
+               || !(mv.is_en_passant() || (self.checkers() | between(king, self.checkers().lsb())).contains(to)) {
                 return false;
             }
         }
@@ -375,9 +368,6 @@ impl Board {
         let captured = self.piece_on(to).piece_type();
 
         if mv.is_castling() {
-            if king != from {
-                return false;
-            }
 
             let kind = match to {
                 Square::G1 => CastlingKind::WhiteKingside,
@@ -387,25 +377,18 @@ impl Board {
                 _ => unreachable!(),
             };
 
-            return self.castling().is_allowed(kind)
+            return king == from
+                && self.castling().is_allowed(kind)
                 && (self.castling_path[kind] & self.occupancies()).is_empty()
                 && (self.castling_threat[kind] & self.all_threats()).is_empty()
                 && !self.pinned(stm).contains(self.castling_rooks[kind]);
         }
 
-        if king == from && self.all_threats().contains(to) {
-            return false;
-        }
-
-        if !self.us().contains(from) || self.us().contains(to) {
-            return false;
-        }
-
-        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
-            return false;
-        }
-
-        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
+        if (king == from && self.all_threats().contains(to))
+          || !self.us().contains(from)
+          || self.us().contains(to)
+          || (captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King))
+          || (mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to)) {
             return false;
         }
 
@@ -417,23 +400,23 @@ impl Board {
                 let diagonal = bishop_attacks(king, occupancies) & diagonal;
                 let orthogonal = rook_attacks(king, occupancies) & orthogonal;
                 return to == self.en_passant()
-                    && pawn_attacks(from, self.side_to_move()).contains(to)
+                    && pawn_attacks(from, stm).contains(to)
                     && (orthogonal | diagonal).is_empty();
             }
 
-            let offset = Square::UP[self.side_to_move()];
-            let promotion_rank = if self.side_to_move() == Color::White { Rank::R8 } else { Rank::R1 };
+            let offset = Square::UP[stm];
+            let promotion_rank = if stm == Color::White { Rank::R8 } else { Rank::R1 };
 
             if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
                 return false;
             }
 
             if mv.is_capture() {
-                return pawn_attacks(from, self.side_to_move()).contains(to) && self.them().contains(to);
+                return pawn_attacks(from, stm).contains(to) && self.them().contains(to);
             }
 
             if mv.is_double_push() {
-                return from.rank() == (if self.side_to_move() == Color::White { Rank::R2 } else { Rank::R7 })
+                return from.rank() == (if stm == Color::White { Rank::R2 } else { Rank::R7 })
                     && from.shift(2 * offset) == to
                     && !self.occupancies().contains(from.shift(offset))
                     && !self.occupancies().contains(to);
