@@ -6,7 +6,7 @@ use crate::{
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
     time::Limits,
-    transposition::{Bound, TtDepth},
+    transposition::Bound,
     types::{
         ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
         mate_in, mated_in,
@@ -420,7 +420,7 @@ fn search<NODE: NodeType>(
         raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
 
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        td.shared.tt.write(hash, 0, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -1192,7 +1192,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(hash, 0, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
         }
 
         return best_score;
@@ -1278,7 +1278,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
+    td.shared.tt.write(hash, 0, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);

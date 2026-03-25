@@ -21,7 +21,7 @@ pub use square::*;
 pub use zobrist::*;
 
 /// The maximum number of plies that can be searched.
-pub const MAX_PLY: usize = 128;
+pub const MAX_PLY: usize = 240;
 
 /// The maximum number of chess moves in any legal position is 218.
 /// For more details see https://lichess.org/@/Tobs40/blog/why-a-position-cant-have-more-than-218-moves/a5xdxeqs
