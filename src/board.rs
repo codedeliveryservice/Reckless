@@ -261,10 +261,6 @@ impl Board {
             return true;
         }
 
-        if self.pieces(PieceType::Bishop).is_empty() {
-            return true;
-        }
-
         if self.pieces(PieceType::Knight) != Bitboard(0) {
             return false;
         }
