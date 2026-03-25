@@ -500,7 +500,7 @@ fn search<NODE: NodeType>(
         improvement = eval - td.stack[ply - 4].eval;
     }
 
-    let improving = improvement > 0;
+    let mut improving = improvement > 0;
 
     // Razoring
     if !NODE::PV
@@ -582,6 +582,11 @@ fn search<NODE: NodeType>(
                 return score;
             }
         }
+    }
+
+    if !improving && eval >= beta {
+        improvement = eval - beta;
+        improving = true;
     }
 
     // ProbCut
