@@ -642,7 +642,7 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
 
-    if !NODE::ROOT && !excluded && potential_singularity && ply < 2 * td.root_depth as isize {
+    if !NODE::ROOT && !excluded && potential_singularity {
         debug_assert!(is_valid(tt_score));
 
         let singular_beta = tt_score - depth - depth * (tt_pv && !NODE::PV) as i32;
