@@ -87,7 +87,6 @@ pub enum TtDepth {}
 
 impl TtDepth {
     pub const NONE: i32 = 0;
-    pub const SOME: i32 = -1;
 
     fn from_tt(offset_depth: u8) -> i32 {
         offset_depth as i32 - 1
@@ -188,7 +187,7 @@ impl TranspositionTable {
         force: bool,
     ) {
         // Used for checking if an entry exists
-        debug_assert!(depth != TtDepth::NONE);
+        debug_assert!(TtDepth::to_tt(depth) != TtDepth::NONE as u8);
 
         let cluster = {
             let index = index(hash, self.len());
@@ -220,7 +219,11 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !force && key == entry.key && depth + 4 + 2 * tt_pv as i32 <= entry.depth() && entry.flags.age() == tt_age {
+        if !force
+            && key == entry.key
+            && depth + 4 - (depth == 0) as i32 + 2 * tt_pv as i32 <= entry.depth() as i32
+            && entry.flags.age() == tt_age
+        {
             return;
         }
 
