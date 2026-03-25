@@ -718,14 +718,13 @@ fn search<NODE: NodeType>(
 
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
-            skip_quiets |= !in_check
-                && move_count >= {
-                    let adjust = improvement.clamp(-100, 218);
-                    let factor0 = 2515 + 130 * adjust / 16;
-                    let factor1 = 946 + 79 * adjust / 16;
-
-                    (factor0 + factor1 * depth * depth) / 1024
-                };
+            if !in_check
+                && is_quiet
+                && move_count >= (3072 + 4 * improvement + 1536 * depth * depth + 64 * history / 1024) / 1024
+            {
+                skip_quiets = true;
+                continue;
+            }
 
             // Futility Pruning (FP)
             let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= beta) as i32 - 114;
