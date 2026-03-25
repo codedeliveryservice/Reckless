@@ -1,7 +1,7 @@
 use crate::{
     search::NodeType,
     thread::ThreadData,
-    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveList, PieceType},
+    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -78,8 +78,7 @@ impl MovePicker {
 
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
-                let index = self.find_best_score_index();
-                let entry = &self.list.remove(index);
+                let entry = self.get_best_entry();
                 if entry.mv == self.tt_move {
                     continue;
                 }
@@ -113,8 +112,7 @@ impl MovePicker {
         if self.stage == Stage::Quiet {
             if !skip_quiets {
                 while !self.list.is_empty() {
-                    let index = self.find_best_score_index();
-                    let entry = &self.list.remove(index);
+                    let entry = self.get_best_entry();
                     if entry.mv == self.tt_move {
                         continue;
                     }
@@ -140,7 +138,7 @@ impl MovePicker {
         None
     }
 
-    fn find_best_score_index(&self) -> usize {
+    fn get_best_entry(&mut self) -> MoveEntry {
         let mut best_index = 0;
         let mut best_score = i32::MIN;
 
@@ -150,8 +148,7 @@ impl MovePicker {
                 best_score = entry.score;
             }
         }
-
-        best_index
+        self.list.remove(best_index)
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
