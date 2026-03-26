@@ -291,7 +291,7 @@ impl Board {
     /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
         let hm = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
-        if hm < 3 {
+        if hm < 3 || ply > 20 {
             return false;
         }
 
