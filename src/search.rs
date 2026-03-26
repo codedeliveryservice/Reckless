@@ -78,8 +78,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
-    let max_depth = match td.time_manager.limits() {
-        Limits::Depth(maximum) => maximum,
+    let max_depth = match (td.id == 0, td.time_manager.limits()) {
+        (true, Limits::Depth(maximum)) => maximum,
         _ => (MAX_PLY - 1) as i32,
     };
 
