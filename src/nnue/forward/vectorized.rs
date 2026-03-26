@@ -152,7 +152,7 @@ pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f3
     simd::horizontal_sum(output) + PARAMETERS.l3_biases[bucket]
 }
 
-#[cfg(all(not(target_feature = "neon"), not(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))))]
+#[cfg(all(not(target_feature = "neon"), not(target_feature = "avx512vbmi2")))]
 pub unsafe fn find_nnz(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
 ) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
@@ -182,7 +182,7 @@ pub unsafe fn find_nnz(
     (indexes, count)
 }
 
-#[cfg(all(target_feature = "avx512vl", target_feature = "avx512vbmi"))]
+#[cfg(target_feature = "avx512vbmi2")]
 pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
     use std::arch::x86_64::*;
 
