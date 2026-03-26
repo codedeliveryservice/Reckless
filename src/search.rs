@@ -78,13 +78,15 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
-    let max_depth = match td.time_manager.limits() {
-        Limits::Depth(maximum) => maximum,
-        _ => (MAX_PLY - 1) as i32,
-    };
-
     // Iterative Deepening
-    for depth in 1..=max_depth {
+    for depth in 1..MAX_PLY as i32 {
+        if td.id == 0
+            && let Limits::Depth(maximum) = td.time_manager.limits()
+            && depth > maximum
+        {
+            td.shared.status.set(Status::STOPPED);
+            break;
+        }
         best_move_changes /= 2;
 
         td.sel_depth = 0;
