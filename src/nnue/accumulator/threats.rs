@@ -111,7 +111,7 @@ impl ThreatAccumulator {
                     for (i, register) in registers.iter_mut().enumerate() {
                         let add1_weights = simd::convert_i8_i16(*vadd1.add(i * simd::I16_LANES).cast());
                         let add2_weights = simd::convert_i8_i16(*vadd2.add(i * simd::I16_LANES).cast());
-                        *register = simd::add_i16(simd::add_i16(*register, add1_weights), add2_weights);
+                        *register = simd::add_i16(*register, simd::add_i16(add1_weights, add2_weights));
                     }
 
                     add_idx += 2;
@@ -181,7 +181,7 @@ impl ThreatAccumulator {
                 for (i, register) in registers.iter_mut().enumerate() {
                     let add_weights = simd::convert_i8_i16(*vadd.add(i * simd::I16_LANES).cast());
                     let sub_weights = simd::convert_i8_i16(*vsub.add(i * simd::I16_LANES).cast());
-                    *register = simd::sub_i16(simd::add_i16(*register, add_weights), sub_weights);
+                    *register = simd::add_i16(*register, simd::sub_i16(add_weights, sub_weights));
                 }
 
                 add_idx += 1;

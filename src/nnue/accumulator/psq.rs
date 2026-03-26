@@ -147,8 +147,7 @@ impl PstAccumulator {
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
                 let mut v = *vprev.add(i).cast();
-                v = simd::add_i16(v, *vadd1.add(i).cast());
-                v = simd::sub_i16(v, *vsub1.add(i).cast());
+                v = simd::add_i16(v, simd::sub_i16(*vadd1.add(i).cast(), *vsub1.add(i).cast()));
 
                 *vacc.add(i).cast() = v;
             }
@@ -167,8 +166,7 @@ impl PstAccumulator {
             unsafe {
                 let mut v = *vprev.add(i).cast();
                 v = simd::add_i16(v, *vadd1.add(i).cast());
-                v = simd::sub_i16(v, *vsub1.add(i).cast());
-                v = simd::sub_i16(v, *vsub2.add(i).cast());
+                v = simd::sub_i16(v, simd::add_i16(*vsub1.add(i).cast(), *vsub2.add(i).cast()));
 
                 *vacc.add(i).cast() = v;
             }
@@ -189,10 +187,8 @@ impl PstAccumulator {
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
             unsafe {
                 let mut v = *vprev.add(i).cast();
-                v = simd::add_i16(v, *vadd1.add(i).cast());
-                v = simd::add_i16(v, *vadd2.add(i).cast());
-                v = simd::sub_i16(v, *vsub1.add(i).cast());
-                v = simd::sub_i16(v, *vsub2.add(i).cast());
+                v = simd::add_i16(v, simd::add_i16(*vadd1.add(i).cast(), *vadd2.add(i).cast()));
+                v = simd::sub_i16(v, simd::add_i16(*vsub1.add(i).cast(), *vsub2.add(i).cast()));
 
                 *vacc.add(i).cast() = v;
             }
