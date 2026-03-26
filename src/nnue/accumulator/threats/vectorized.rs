@@ -4,14 +4,14 @@ use crate::{
     types::{Piece, Square},
 };
 
-#[cfg(target_feature = "avx512vbmi")]
+#[cfg(target_feature = "avx512vbmi2")]
 mod avx512;
-#[cfg(target_feature = "avx512vbmi")]
+#[cfg(target_feature = "avx512vbmi2")]
 use avx512::*;
 
-#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi")))]
+#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
 mod avx2;
-#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi")))]
+#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
 use avx2::*;
 
 const RAY_PERMUTATIONS: [[u8; 64]; 64] = {
