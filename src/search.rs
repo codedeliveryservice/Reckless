@@ -783,7 +783,7 @@ fn search<NODE: NodeType>(
 
             reduction -= 65 * move_count;
             reduction -= 3183 * correction_value.abs() / 1024;
-            reduction += 1300 * alpha_raises;
+            reduction += 1700 * (alpha_raises > 0) as i32;
 
             reduction += 600 * (is_valid(tt_score) && tt_score < alpha) as i32;
             reduction += 300 * (is_valid(tt_score) && tt_depth < depth) as i32;
