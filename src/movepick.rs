@@ -2,6 +2,7 @@ use crate::{
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
+    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, }
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -185,6 +186,21 @@ impl MovePicker {
         let threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
         let escape = [0, 8000, 8000, 14000, 20000, 0];
 
+        //offense
+        let mut n = Bitboard(0);
+        let mut b = Bitboard(0);
+        let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+        for square in (td.board.their(PieceType::Rook)) {
+            n |= knight_attacks(square);
+            b |= bishop_attacks(square, td.board.occupancies());
+        }
+        for square in (td.board.their(PieceType::Queen)) {
+            n |= knight_attacks(square);
+        }
+        let knight_offense = n & !threats; //rooks and queens, and safe.
+        let bishop_offense = b & !threats; //rooks and queens, and safe.
+        let offense = [pawn_offense, knight_offense, bishop_offense, Bitboard(0), Bitboard(0), Bitboard(0)];
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
@@ -203,6 +219,10 @@ impl MovePicker {
             // Malus for moving into danger
             else if threatened[pt].contains(mv.to()) {
                 entry.score -= 8000;
+            }
+            // offensive moves
+            else if offense[pt].contains(mv.to()) {
+                entry.score += 6000;
             }
         }
     }
