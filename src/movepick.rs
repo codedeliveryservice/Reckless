@@ -1,8 +1,8 @@
 use crate::{
+    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
-    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, }
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
