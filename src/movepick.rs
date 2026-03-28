@@ -186,20 +186,19 @@ impl MovePicker {
         let threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
         let escape = [0, 8000, 8000, 14000, 20000, 0];
 
-        //offense
+        // safe squares where we can attack an opponent piece
         let mut n = Bitboard(0);
         let mut b = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
-        for square in (td.board.their(PieceType::Rook)) {
+        for square in td.board.their(PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
         }
-        for square in (td.board.their(PieceType::Queen)) {
+        for square in td.board.their(PieceType::Queen) {
             n |= knight_attacks(square);
         }
-        let knight_offense = n & !threats; //rooks and queens, and safe.
-        let bishop_offense = b & !threats; //rooks and queens, and safe.
-        let offense = [pawn_offense, knight_offense, bishop_offense, Bitboard(0), Bitboard(0), Bitboard(0)];
+
+        let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), Bitboard(0), Bitboard(0)];
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
