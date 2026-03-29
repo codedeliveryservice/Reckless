@@ -69,12 +69,18 @@ pub enum Bound {
 #[derive(Clone)]
 #[repr(C)]
 pub struct InternalEntry {
-    key: u16,      // 2 bytes
-    mv: Move,      // 2 bytes
-    score: i16,    // 2 bytes
-    raw_eval: i16, // 2 bytes
-    depth: i8,     // 1 byte
-    flags: Flags,  // 1 byte
+    key: u16,         // 2 bytes
+    mv: Move,         // 2 bytes
+    score: i16,       // 2 bytes
+    raw_eval: i16,    // 2 bytes
+    offset_depth: u8, // 1 byte
+    flags: Flags,     // 1 byte
+}
+
+impl InternalEntry {
+    fn depth(&self) -> i32 {
+        TtDepth::from_tt(self.offset_depth)
+    }
 }
 
 pub enum TtDepth {}
@@ -82,6 +88,14 @@ pub enum TtDepth {}
 impl TtDepth {
     pub const NONE: i32 = 0;
     pub const SOME: i32 = -1;
+
+    fn from_tt(offset_depth: u8) -> i32 {
+        offset_depth as i32 - 1
+    }
+
+    fn to_tt(depth: i32) -> u8 {
+        (depth + 1).clamp(u8::MIN as i32, u8::MAX as i32) as u8
+    }
 }
 
 impl InternalEntry {
@@ -151,9 +165,9 @@ impl TranspositionTable {
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
-            if key == entry.key && entry.depth != TtDepth::NONE as i8 {
+            if key == entry.key && entry.depth() != TtDepth::NONE {
                 let hit = Entry {
-                    depth: entry.depth as i32,
+                    depth: entry.depth(),
                     score: score_from_tt(entry.score as i32, ply, halfmove_clock),
                     raw_eval: entry.raw_eval as i32,
                     bound: entry.flags.bound(),
@@ -188,12 +202,12 @@ impl TranspositionTable {
         let mut lowest_quality = i32::MAX;
 
         for candidate in &mut cluster.entries {
-            if candidate.key == key || candidate.depth as i32 == TtDepth::NONE {
+            if candidate.key == key || candidate.depth() == TtDepth::NONE {
                 replacement_slot = Some(candidate);
                 break;
             }
 
-            let quality = candidate.depth as i32 - 4 * candidate.relative_age(tt_age);
+            let quality = candidate.depth() - 4 * candidate.relative_age(tt_age);
             if quality < lowest_quality {
                 replacement_slot = Some(candidate);
                 lowest_quality = quality;
@@ -206,11 +220,7 @@ impl TranspositionTable {
             entry.mv = mv;
         }
 
-        if !force
-            && key == entry.key
-            && depth + 4 + 2 * tt_pv as i32 <= entry.depth as i32
-            && entry.flags.age() == tt_age
-        {
+        if !force && key == entry.key && depth + 4 + 2 * tt_pv as i32 <= entry.depth() && entry.flags.age() == tt_age {
             return;
         }
 
@@ -220,7 +230,7 @@ impl TranspositionTable {
         }
 
         entry.key = key;
-        entry.depth = depth as i8;
+        entry.offset_depth = TtDepth::to_tt(depth);
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
