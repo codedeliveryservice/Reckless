@@ -789,10 +789,10 @@ fn search<NODE: NodeType>(
             reduction += 300 * (is_valid(tt_score) && tt_depth < depth) as i32;
 
             if is_quiet {
-                reduction += 1972;
+                reduction += 1875;
                 reduction -= 154 * history / 1024;
             } else {
-                reduction += 1452;
+                reduction += 1355;
                 reduction -= 109 * history / 1024;
             }
 
@@ -804,10 +804,6 @@ fn search<NODE: NodeType>(
                 reduction -= 371;
                 reduction -= 656 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 824 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if mv.is_noisy() && mv.to() == td.board.recapture_square() {
-                reduction -= 910;
             }
 
             if !tt_pv && cut_node {
