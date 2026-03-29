@@ -517,6 +517,7 @@ fn search<NODE: NodeType>(
     // Reverse Futility Pruning (RFP)
     if !tt_pv
         && !excluded
+        && !potential_singularity
         && is_valid(estimated_score)
         && estimated_score >= beta
         && estimated_score
