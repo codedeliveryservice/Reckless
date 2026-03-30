@@ -202,12 +202,12 @@ impl super::Board {
         list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
         list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
 
-        if self.state.en_passant != Square::None {
-            let ep = self.state.en_passant.to_bb();
+        if self.en_passant() != Square::None {
+            let ep = self.en_passant().to_bb();
             let right_attacker = right_pawns & !Bitboard::file(File::H) & ep.shift(-up_right);
             let left_attacker = left_pawns & !Bitboard::file(File::A) & ep.shift(-up_left);
             for pawn in right_attacker | left_attacker {
-                list.push(pawn, self.state.en_passant, MoveKind::EnPassant);
+                list.push(pawn, self.en_passant(), MoveKind::EnPassant);
             }
         }
     }
