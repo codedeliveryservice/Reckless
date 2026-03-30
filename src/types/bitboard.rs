@@ -12,8 +12,8 @@ pub struct Bitboard(pub u64);
 impl Bitboard {
     pub const ALL: Self = Self(0xFFFFFFFFFFFFFFFF);
     pub const LIGHT_SQUARES: Self = Self(0x55AA55AA55AA55AA);
-    pub const SEVENTH_RANK: [Bitboard; 2] = [Bitboard::rank(Rank::R7), Bitboard::rank(Rank::R2)];
-    pub const THIRD_RANK: [Bitboard; 2] = [Bitboard::rank(Rank::R3), Bitboard::rank(Rank::R6)];
+    pub const SEVENTH_RANK: [Bitboard; 2] = [Self::rank(Rank::R7), Self::rank(Rank::R2)];
+    pub const THIRD_RANK: [Bitboard; 2] = [Self::rank(Rank::R3), Self::rank(Rank::R6)];
 
     /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {
@@ -123,7 +123,7 @@ impl std::fmt::Display for Bitboard {
             for file in 0..8 {
                 let square = Square::from_rank_file(rank, file);
                 let symbol = if self.contains(square) { 'X' } else { '.' };
-                write!(f, " {} |", symbol)?;
+                write!(f, " {symbol} |")?;
             }
             writeln!(f, " {}", rank + 1)?;
             writeln!(f, "+---+---+---+---+---+---+---+---+")?;

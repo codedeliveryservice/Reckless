@@ -735,7 +735,7 @@ fn search<NODE: NodeType>(
             let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= beta) as i32 - 114;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
-                if !is_decisive(best_score) && best_score <= futility_value {
+                if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
                 skip_quiets = true;
@@ -751,7 +751,7 @@ fn search<NODE: NodeType>(
                 && noisy_futility_value <= alpha
                 && !td.board.is_direct_check(mv)
             {
-                if !is_decisive(best_score) && best_score <= noisy_futility_value {
+                if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
                 break;
