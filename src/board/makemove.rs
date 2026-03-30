@@ -114,10 +114,8 @@ impl Board {
                 let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
 
                 self.remove_piece(piece, to);
-                observer.on_piece_change(self, piece, to, false);
-
                 self.add_piece(promotion, to);
-                observer.on_piece_change(self, promotion, to, true);
+                observer.on_piece_mutate(self, piece, promotion, to);
 
                 self.update_hash(piece, to);
                 self.update_hash(promotion, to);
