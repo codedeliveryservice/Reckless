@@ -53,7 +53,8 @@ impl super::Board {
     }
 
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
-        self.collect_unpinned::<T, _>(list, !self.all_threats(), self.our(PieceType::King), king_attacks);
+        let stm = self.side_to_move();
+        self.collect_unpinned::<T, _>(list, !self.all_threats(), self.side_pieces(stm, PieceType::King), king_attacks);
 
         if self.checkers().is_multiple() {
             return;
@@ -70,10 +71,10 @@ impl super::Board {
 
         self.collect_pawn_moves::<T>(list, target, pinned);
 
-        let knights = self.our(PieceType::Knight);
-        let bishops = self.our(PieceType::Bishop);
-        let rooks = self.our(PieceType::Rook);
-        let queens = self.our(PieceType::Queen);
+        let knights = self.side_pieces(stm, PieceType::Knight);
+        let bishops = self.side_pieces(stm, PieceType::Bishop);
+        let rooks = self.side_pieces(stm, PieceType::Rook);
+        let queens = self.side_pieces(stm, PieceType::Queen);
 
         self.collect_unpinned::<T, _>(list, target, knights & !pinned, knight_attacks);
         self.collect_unpinned::<T, _>(list, target, bishops & !pinned, |sq| bishop_attacks(sq, occupancies));
@@ -136,7 +137,7 @@ impl super::Board {
     }
 
     fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard) {
-        let pawns = self.our(PieceType::Pawn);
+        let pawns = self.side_pieces(self.side_to_move(), PieceType::Pawn);
         let seventh_rank = Bitboard::SEVENTH_RANK[self.side_to_move()];
 
         self.collect_pawn_pushes::<T>(list, target, pinned, pawns, seventh_rank);
