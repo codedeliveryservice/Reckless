@@ -172,10 +172,6 @@ impl Board {
         self.colors(Color::White) | self.colors(Color::Black)
     }
 
-    pub fn them(&self) -> Bitboard {
-        self.colors(!self.side_to_move())
-    }
-
     pub fn side_pieces(&self, side: Color, piece_type: PieceType) -> Bitboard {
         self.colors(side) & self.pieces(piece_type)
     }
@@ -388,7 +384,7 @@ impl Board {
             return false;
         }
 
-        if mv.is_capture() && !mv.is_en_passant() && !self.them().contains(to) {
+        if mv.is_capture() && !mv.is_en_passant() && !self.colors(!stm).contains(to) {
             return false;
         }
 
@@ -412,7 +408,7 @@ impl Board {
             }
 
             if mv.is_capture() {
-                return pawn_attacks(from, stm).contains(to) && self.them().contains(to);
+                return pawn_attacks(from, stm).contains(to) && self.colors(!stm).contains(to);
             }
 
             if mv.is_double_push() {

@@ -93,9 +93,10 @@ impl super::Board {
     fn collect_unpinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
+        let stm = self.side_to_move();
         for from in bb {
             if T::KIND == Kind::Noisy {
-                list.push_setwise(from, attacks(from) & target & self.them(), MoveKind::Capture);
+                list.push_setwise(from, attacks(from) & target & self.colors(!stm), MoveKind::Capture);
             }
             if T::KIND == Kind::Quiet {
                 list.push_setwise(from, attacks(from) & target & !self.occupancies(), MoveKind::Normal);
@@ -107,10 +108,11 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
         let king = self.king_square(self.side_to_move());
+        let stm = self.side_to_move();
         for from in bb {
             let pin_mask = ray_pass(king, from);
             if T::KIND == Kind::Noisy {
-                list.push_setwise(from, attacks(from) & target & self.them() & pin_mask, MoveKind::Capture);
+                list.push_setwise(from, attacks(from) & target & self.colors(!stm) & pin_mask, MoveKind::Capture);
             }
             if T::KIND == Kind::Quiet {
                 list.push_setwise(from, attacks(from) & target & !self.occupancies() & pin_mask, MoveKind::Normal);
@@ -191,14 +193,14 @@ impl super::Board {
         let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask);
         let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask);
 
-        let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
+        let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
 
         list.push_promotion_capture_setwise(up_right, right & target);
         list.push_promotion_capture_setwise(up_left, left & target);
 
-        let right_captures = (right_pawns & !seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left_captures = (left_pawns & !seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right_captures = (right_pawns & !seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
+        let left_captures = (left_pawns & !seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
 
         list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
         list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
