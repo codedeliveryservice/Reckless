@@ -172,10 +172,6 @@ impl Board {
         self.colors(Color::White) | self.colors(Color::Black)
     }
 
-    pub fn us(&self) -> Bitboard {
-        self.colors(self.side_to_move())
-    }
-
     pub fn them(&self) -> Bitboard {
         self.colors(!self.side_to_move())
     }
@@ -384,7 +380,7 @@ impl Board {
             return false;
         }
 
-        if !self.us().contains(from) || self.us().contains(to) {
+        if !self.colors(stm).contains(from) || self.colors(stm).contains(to) {
             return false;
         }
 

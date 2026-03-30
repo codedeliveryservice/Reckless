@@ -268,6 +268,7 @@ fn search<NODE: NodeType>(
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
+    let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_present();
 
@@ -356,7 +357,7 @@ fn search<NODE: NodeType>(
                 let quiet_bonus = (185 * depth - 81).min(1806);
                 let cont_bonus = (108 * depth - 56).min(1365);
 
-                td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), tt_move, quiet_bonus);
+                td.quiet_history.update(td.board.all_threats(), stm, tt_move, quiet_bonus);
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
             }
 
@@ -467,7 +468,7 @@ fn search<NODE: NodeType>(
         let value = 819 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-124, 312);
 
-        td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), td.stack[ply - 1].mv, bonus);
+        td.quiet_history.update(td.board.prior_threats(), !stm, td.stack[ply - 1].mv, bonus);
     }
 
     // Hindsight reductions
@@ -522,7 +523,7 @@ fn search<NODE: NodeType>(
         && estimated_score
             >= beta + 1125 * depth * depth / 128 + 26 * depth - (77 * improving as i32)
                 + 519 * correction_value.abs() / 1024
-                - 64 * ((td.board.all_threats() & td.board.us()).is_empty() && !td.board.in_check()) as i32
+                - 64 * ((td.board.all_threats() & td.board.colors(stm)).is_empty() && !td.board.in_check()) as i32
                 + 32
         && !is_loss(beta)
         && !is_win(estimated_score)
@@ -712,7 +713,7 @@ fn search<NODE: NodeType>(
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.all_threats(), td.board.side_to_move(), mv)
+            td.quiet_history.get(td.board.all_threats(), stm, mv)
                 + td.conthist(ply, 1, mv)
                 + td.conthist(ply, 2, mv)
         } else {
@@ -1007,11 +1008,11 @@ fn search<NODE: NodeType>(
                 noisy_bonus,
             );
         } else {
-            td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, quiet_bonus);
+            td.quiet_history.update(td.board.all_threats(), stm, best_move, quiet_bonus);
             update_continuation_histories(td, ply, td.board.moved_piece(best_move), best_move.to(), cont_bonus);
 
             for &mv in quiet_moves.iter() {
-                td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), mv, -quiet_malus);
+                td.quiet_history.update(td.board.all_threats(), stm, mv, -quiet_malus);
                 update_continuation_histories(td, ply, td.board.moved_piece(mv), mv.to(), -cont_malus);
             }
         }
@@ -1044,7 +1045,7 @@ fn search<NODE: NodeType>(
 
             let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
 
-            td.quiet_history.update(td.board.prior_threats(), !td.board.side_to_move(), prior_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, scaled_bonus);
 
             let entry = &td.stack[ply - 2];
             if entry.mv.is_present() {
@@ -1107,6 +1108,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
+    let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
 
     if NODE::PV {
@@ -1255,7 +1257,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                             bonus,
                         );
                     } else {
-                        td.quiet_history.update(td.board.all_threats(), td.board.side_to_move(), best_move, bonus);
+                        td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
                     }
 
                     break;
