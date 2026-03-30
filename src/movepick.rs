@@ -209,20 +209,10 @@ impl MovePicker {
                 + td.conthist(ply, 2, mv)
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv)
-                + escape[pt] * threatened[pt].contains(mv.from()) as i32;
-
-            // Bonus for checking moves
-            if td.board.checking_squares(pt).contains(mv.to()) {
-                entry.score += 10000;
-            }
-            // Malus for moving into danger
-            else if threatened[pt].contains(mv.to()) {
-                entry.score -= 8000;
-            }
-            // offensive moves
-            else if offense[pt].contains(mv.to()) {
-                entry.score += 6000;
-            }
+                + escape[pt] * threatened[pt].contains(mv.from()) as i32
+                + 10000 * td.board.checking_squares(pt).contains(mv.to()) as i32
+                - 8000 * threatened[pt].contains(mv.to()) as i32
+                + 6000 * offense[pt].contains(mv.to()) as i32;
         }
     }
 }
