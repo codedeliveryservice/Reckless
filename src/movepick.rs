@@ -188,20 +188,30 @@ impl MovePicker {
         // safe squares where we can attack an opponent piece
         let mut n = Bitboard(0);
         let mut b = Bitboard(0);
+        let mut q = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
         for square in td.board.their(PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
+
+            if !threats.contains(square) {
+                q |= bishop_attacks(square, td.board.occupancies());
+            }
         }
         for square in td.board.their(PieceType::Queen) {
             n |= knight_attacks(square);
         }
 
-        let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), Bitboard(0), Bitboard(0)];
+        let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)];
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
+
+            //if pt == PieceType::Bishop && offense[pt].contains(mv.to()) {
+                //println!("{}", td.board);
+                //println!("Move: {}-{}", mv.from(), mv.to());
+            //}
 
             entry.score = td.quiet_history.get(threats, side, mv)
                 + td.conthist(ply, 1, mv)
