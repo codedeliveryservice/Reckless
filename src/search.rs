@@ -268,6 +268,10 @@ fn search<NODE: NodeType>(
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
+    if !NODE::PV {
+        debug_assert!(alpha == beta - 1);
+    }
+
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_present();
 
