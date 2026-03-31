@@ -2,12 +2,15 @@ mod accumulator;
 
 pub use accumulator::threats::initialize;
 
+use std::sync::Arc;
+
 use crate::{
     board::{Board, BoardObserver},
     nnue::accumulator::{
         AccumulatorCache, PstAccumulator, ThreatAccumulator,
         threats::{push_threats_on_change, push_threats_on_move, push_threats_on_mutate},
     },
+    numa::NumaReplicable,
     types::{Color, MAX_PLY, Move, Piece, PieceType, Square},
 };
 
@@ -97,6 +100,7 @@ struct SparseEntry {
 
 #[derive(Clone)]
 pub struct Network {
+    parameters: Arc<Parameters>,
     index: usize,
     pst_stack: Box<[PstAccumulator]>,
     threat_stack: Box<[ThreatAccumulator]>,
@@ -105,6 +109,32 @@ pub struct Network {
 }
 
 impl Network {
+    pub fn new(parameters: Arc<Parameters>) -> Self {
+        let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
+
+        for (byte, entry) in nnz_table.iter_mut().enumerate() {
+            let mut count = 0;
+
+            for bit in 0..8 {
+                if (byte & (1 << bit)) != 0 {
+                    entry.indexes[count] = bit as u16;
+                    count += 1;
+                }
+            }
+
+            entry.count = count;
+        }
+
+        Self {
+            parameters: parameters.clone(),
+            index: 0,
+            pst_stack: vec![PstAccumulator::new(&parameters); MAX_PLY].into_boxed_slice(),
+            threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
+            cache: AccumulatorCache::new(&parameters),
+            nnz_table: nnz_table.into_boxed_slice(),
+        }
+    }
+
     pub fn push(&mut self, mv: Move, board: &Board) {
         debug_assert!(mv.is_present());
 
@@ -124,11 +154,13 @@ impl Network {
     }
 
     pub fn full_refresh(&mut self, board: &Board) {
-        self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache);
-        self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache);
+        let parameters = self.parameters.as_ref();
 
-        self.threat_stack[self.index].refresh(board, Color::White);
-        self.threat_stack[self.index].refresh(board, Color::Black);
+        self.pst_stack[self.index].refresh(board, Color::White, &mut self.cache, parameters);
+        self.pst_stack[self.index].refresh(board, Color::Black, &mut self.cache, parameters);
+
+        self.threat_stack[self.index].refresh(board, Color::White, parameters);
+        self.threat_stack[self.index].refresh(board, Color::Black, parameters);
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i32 {
@@ -142,12 +174,12 @@ impl Network {
 
             match self.can_update_pst(pov) {
                 Some(index) => self.update_pst_accumulator(index, board, pov),
-                None => self.pst_stack[self.index].refresh(board, pov, &mut self.cache),
+                None => self.pst_stack[self.index].refresh(board, pov, &mut self.cache, self.parameters.as_ref()),
             }
 
             match self.can_update_threats(pov) {
                 Some(index) => self.update_threat_accumulator(index, board, pov),
-                None => self.threat_stack[self.index].refresh(board, pov),
+                None => self.threat_stack[self.index].refresh(board, pov, self.parameters.as_ref()),
             }
         }
 
@@ -156,20 +188,22 @@ impl Network {
 
     fn update_pst_accumulator(&mut self, accurate: usize, board: &Board, pov: Color) {
         let king = board.king_square(pov);
+        let parameters = self.parameters.as_ref();
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.pst_stack.split_at_mut(i + 1) {
-                current.update(&prev[i], board, king, pov);
+                current.update(&prev[i], board, king, pov, parameters);
             }
         }
     }
 
     fn update_threat_accumulator(&mut self, accurate: usize, board: &Board, pov: Color) {
         let king = board.king_square(pov);
+        let parameters = self.parameters.as_ref();
 
         for i in accurate..self.index {
             if let (prev, [current, ..]) = self.threat_stack.split_at_mut(i + 1) {
-                unsafe { current.update(&prev[i], king, pov) };
+                unsafe { current.update(&prev[i], king, pov, parameters) };
             }
         }
     }
@@ -220,15 +254,16 @@ impl Network {
 
     fn output_transformer(&self, board: &Board) -> i32 {
         let bucket = OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
+        let parameters = self.parameters.as_ref();
 
         unsafe {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
-            let l2_out = forward::propagate_l2(l1_out, bucket);
-            let l3_out = forward::propagate_l3(l2_out, bucket);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l2_out = forward::propagate_l2(l1_out, bucket, parameters);
+            let l3_out = forward::propagate_l3(l2_out, bucket, parameters);
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
@@ -238,13 +273,15 @@ impl Network {
         self.full_refresh(board);
         self.evaluate(board); // just to update internal state
 
+        let parameters = self.parameters.as_ref();
+
         unsafe {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
-            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
-            let l2_out = forward::propagate_l2(l1_out, bucket);
-            let l3_out = forward::propagate_l3(l2_out, bucket);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l2_out = forward::propagate_l2(l1_out, bucket, parameters);
+            let l3_out = forward::propagate_l3(l2_out, bucket, parameters);
             (l3_out * NETWORK_SCALE as f32) as i32
         }
     }
@@ -271,33 +308,6 @@ impl Network {
     }
 }
 
-impl Default for Network {
-    fn default() -> Self {
-        let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
-
-        for (byte, entry) in nnz_table.iter_mut().enumerate() {
-            let mut count = 0;
-
-            for bit in 0..8 {
-                if (byte & (1 << bit)) != 0 {
-                    entry.indexes[count] = bit as u16;
-                    count += 1;
-                }
-            }
-
-            entry.count = count;
-        }
-
-        Self {
-            index: 0,
-            pst_stack: vec![PstAccumulator::new(); MAX_PLY].into_boxed_slice(),
-            threat_stack: vec![ThreatAccumulator::new(); MAX_PLY].into_boxed_slice(),
-            cache: AccumulatorCache::default(),
-            nnz_table: nnz_table.into_boxed_slice(),
-        }
-    }
-}
-
 impl BoardObserver for Network {
     fn on_piece_move(&mut self, board: &Board, piece: Piece, from: Square, to: Square) {
         push_threats_on_move(&mut self.threat_stack[self.index], board, piece, from, to);
@@ -313,7 +323,7 @@ impl BoardObserver for Network {
 }
 
 #[repr(C)]
-struct Parameters {
+pub struct Parameters {
     ft_threat_weights: Aligned<[[i8; L1_SIZE]; 66864]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
@@ -325,10 +335,23 @@ struct Parameters {
     l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
-static PARAMETERS: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+impl NumaReplicable for Parameters {
+    fn allocate() -> std::sync::Arc<Self> {
+        static EMBEDDED: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+
+        let mut boxed = Box::<std::mem::MaybeUninit<Parameters>>::new(std::mem::MaybeUninit::uninit());
+        let ptr = boxed.as_mut_ptr();
+        std::mem::forget(boxed);
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(&EMBEDDED as *const Parameters, ptr, 1);
+            std::sync::Arc::from(Box::from_raw(ptr))
+        }
+    }
+}
 
 #[repr(align(64))]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 struct Aligned<T> {
     data: T,
 }

@@ -6,8 +6,8 @@ use std::sync::{
 use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
-    nnue::Network,
-    numa::{NumaReplicator, NumaValue},
+    nnue::{Network, Parameters},
+    numa::{NumaConfig, NumaReplicable, NumaReplicated, NumaReplicatedAccessToken, NumaReplicationContext},
     stack::Stack,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
@@ -93,7 +93,11 @@ pub struct SharedCorrectionHistory {
     pub non_pawn: [CorrectionHistory; 2],
 }
 
-unsafe impl NumaValue for SharedCorrectionHistory {}
+impl NumaReplicable for SharedCorrectionHistory {
+    fn allocate() -> Arc<Self> {
+        Arc::new(Self::default())
+    }
+}
 
 pub struct SharedContext {
     pub tt: TranspositionTable,
@@ -102,13 +106,14 @@ pub struct SharedContext {
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
-    pub history: *const SharedCorrectionHistory,
-    pub replicator: NumaReplicator<SharedCorrectionHistory>,
+    pub history: Arc<NumaReplicated<SharedCorrectionHistory>>,
+    pub parameters: Arc<NumaReplicated<Parameters>>,
+    pub numa_context: Arc<NumaReplicationContext>,
 }
 
 impl Default for SharedContext {
     fn default() -> Self {
-        let replicator = unsafe { NumaReplicator::new(SharedCorrectionHistory::default) };
+        let numa_context = Arc::new(NumaReplicationContext::new(NumaConfig::from_system()));
 
         Self {
             tt: TranspositionTable::default(),
@@ -117,18 +122,17 @@ impl Default for SharedContext {
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
-            history: unsafe { replicator.get() },
-            replicator,
+            history: NumaReplicated::new(numa_context.clone()),
+            parameters: NumaReplicated::new(numa_context.clone()),
+            numa_context: numa_context,
         }
     }
 }
 
-unsafe impl Send for SharedContext {}
-unsafe impl Sync for SharedContext {}
-
 pub struct ThreadData {
     pub id: usize,
     pub shared: Arc<SharedContext>,
+    pub corrhist: Arc<SharedCorrectionHistory>,
     pub board: Board,
     pub time_manager: TimeManager,
     pub stack: Box<Stack>,
@@ -156,14 +160,18 @@ pub struct ThreadData {
 }
 
 impl ThreadData {
-    pub fn new(shared: Arc<SharedContext>) -> Self {
+    pub fn new(shared: Arc<SharedContext>, numa_token: NumaReplicatedAccessToken) -> Self {
+        let corrhist = shared.history.get(numa_token);
+        let parameters = shared.parameters.get(numa_token);
+
         Self {
             id: 0,
             shared,
+            corrhist,
             board: Board::starting_position(),
             time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::new(),
-            nnue: Network::default(),
+            nnue: Network::new(parameters),
             root_moves: Vec::new(),
             pv_table: PrincipalVariationTable::default(),
             noisy_history: NoisyHistory::default(),
@@ -192,7 +200,7 @@ impl ThreadData {
     }
 
     pub fn corrhist(&self) -> &SharedCorrectionHistory {
-        unsafe { &*self.shared.history }
+        &self.corrhist
     }
 
     pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {
