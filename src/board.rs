@@ -117,7 +117,7 @@ impl Board {
     }
 
     pub fn prior_threats(&self) -> Bitboard {
-        if self.state_stack.len() > 0 {
+        if !self.state_stack.is_empty() {
             return self.state_stack[self.state_stack.len() - 1].all_threats;
         }
         Bitboard(0)
