@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise},
+    lookup::{bishop_attacks, knight_attacks, rook_attacks, pawn_attacks_setwise},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
@@ -190,6 +190,12 @@ impl MovePicker {
         let mut b = Bitboard(0);
         let mut q = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+
+        for square in td.board.their(PieceType::Bishop) & !threats {
+            n |= knight_attacks(square);
+            q |= rook_attacks(square, td.board.occupancies());
+        }
+
         for square in td.board.their(PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
