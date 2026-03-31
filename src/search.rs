@@ -267,6 +267,7 @@ fn search<NODE: NodeType>(
 ) -> i32 {
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+    debug_assert!(NODE::PV || alpha == beta - 1);
 
     let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
@@ -285,8 +286,9 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw(td);
+    let draw_score = draw(td);
+    if !NODE::ROOT && alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
+        alpha = draw_score;
         if alpha >= beta {
             return alpha;
         }
@@ -734,7 +736,7 @@ fn search<NODE: NodeType>(
             let futility_value = eval + 88 * depth + 63 * history / 1024 + 88 * (eval >= beta) as i32 - 114;
 
             if !in_check && is_quiet && depth < 14 && futility_value <= alpha && !td.board.is_direct_check(mv) {
-                if !is_decisive(best_score) && best_score <= futility_value {
+                if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
                 skip_quiets = true;
@@ -750,7 +752,7 @@ fn search<NODE: NodeType>(
                 && noisy_futility_value <= alpha
                 && !td.board.is_direct_check(mv)
             {
-                if !is_decisive(best_score) && best_score <= noisy_futility_value {
+                if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
                 break;
@@ -1098,9 +1100,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(!NODE::ROOT);
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+    debug_assert!(NODE::PV || alpha == beta - 1);
 
-    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw(td);
+    let draw_score = draw(td);
+    if alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
+        alpha = draw_score;
         if alpha >= beta {
             return alpha;
         }

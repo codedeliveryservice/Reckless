@@ -275,42 +275,41 @@ impl Board {
     ///
     /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
-        let hm = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
-        if hm < 3 {
+        let half_moves = self.state.plies_from_null.min(self.state.halfmove_clock as usize);
+        if half_moves < 3 {
             return false;
         }
 
-        let s = |v: usize| self.state_stack[self.state_stack.len() - v].key;
-        let s0 = self.state.key;
+        let current_key = self.state.key;
+        let stack = &self.state_stack;
+        let len = stack.len();
 
-        let mut other = s0 ^ s(1) ^ ZOBRIST.side;
+        let mut index = len - 1;
+        let mut other = current_key ^ stack[index].key ^ ZOBRIST.side;
 
-        for d in (3..=hm).step_by(2) {
-            other ^= s(d - 1) ^ s(d) ^ ZOBRIST.side;
+        for compared_ply in (3..=half_moves).step_by(2) {
+            index -= 1;
+            other ^= stack[index].key ^ stack[index - 1].key ^ ZOBRIST.side;
+            index -= 1;
 
             if other != 0 {
                 continue;
             }
 
-            let diff = s0 ^ s(d);
-            let mut i = h1(diff);
+            let diff = current_key ^ stack[index].key;
+            let mut cuckoo_index = h1(diff);
 
-            if cuckoo(i) != diff {
-                i = h2(diff);
-
-                if cuckoo(i) != diff {
+            if cuckoo(cuckoo_index) != diff {
+                cuckoo_index = h2(diff);
+                if cuckoo(cuckoo_index) != diff {
                     continue;
                 }
             }
 
-            if (between(cuckoo_a(i), cuckoo_b(i)) & self.occupancies()).is_empty() {
-                if ply > d {
-                    return true;
-                }
-
-                if self.state.repetition != 0 {
-                    return true;
-                }
+            if (between(cuckoo_a(cuckoo_index), cuckoo_b(cuckoo_index)) & self.occupancies()).is_empty()
+                && (ply > compared_ply || stack[index].repetition != 0)
+            {
+                return true;
             }
         }
 
@@ -605,7 +604,7 @@ impl Board {
             return;
         }
 
-        self.state.key ^= ZOBRIST.en_passant[self.state.en_passant];
+        self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
         self.state.en_passant = Square::None;
     }
 
