@@ -267,10 +267,7 @@ fn search<NODE: NodeType>(
 ) -> i32 {
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
-
-    if !NODE::PV {
-        debug_assert!(alpha == beta - 1);
-    }
+    debug_assert!(NODE::PV || alpha == beta - 1);
 
     let in_check = td.board.in_check();
     let excluded = td.stack[ply].excluded.is_present();
@@ -1104,6 +1101,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(!NODE::ROOT);
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+    debug_assert!(NODE::PV || alpha == beta - 1);
 
     let draw_score = draw(td);
     if alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
