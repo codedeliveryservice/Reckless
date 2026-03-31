@@ -48,7 +48,7 @@ impl PstAccumulator {
                 PieceType::Queen,
                 PieceType::King,
             ] {
-                let pieces = board.side_pieces(color, piece_type);
+                let pieces = board.piece_by_color(color, piece_type);
                 let to_add = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);
 
