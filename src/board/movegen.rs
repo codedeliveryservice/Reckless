@@ -54,7 +54,12 @@ impl super::Board {
 
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
         let stm = self.side_to_move();
-        self.collect_unpinned::<T, _>(list, !self.all_threats(), self.piece_by_color(stm, PieceType::King), king_attacks);
+        self.collect_unpinned::<T, _>(
+            list,
+            !self.all_threats(),
+            self.piece_by_color(stm, PieceType::King),
+            king_attacks,
+        );
 
         if self.checkers().is_multiple() {
             return;
