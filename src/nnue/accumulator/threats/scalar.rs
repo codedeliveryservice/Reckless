@@ -43,8 +43,8 @@ fn push_threats_single(
         deltas.push(ThreatDelta::new(sliding_piece, from, piece, square, add));
     }
 
-    let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
-    let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
+    let black_pawns = board.colored_pieces(Color::Black, PieceType::Pawn) & pawn_attacks(square, Color::White);
+    let white_pawns = board.colored_pieces(Color::White, PieceType::Pawn) & pawn_attacks(square, Color::Black);
 
     let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
     let kings = board.pieces(PieceType::King) & king_attacks(square);
@@ -76,8 +76,8 @@ pub fn push_threats_on_mutate(
     let diagonal = board.pieces2(PieceType::Bishop, PieceType::Queen) & bishop_attacks;
     let orthogonal = board.pieces2(PieceType::Rook, PieceType::Queen) & rook_attacks;
 
-    let black_pawns = board.of(PieceType::Pawn, Color::Black) & pawn_attacks(square, Color::White);
-    let white_pawns = board.of(PieceType::Pawn, Color::White) & pawn_attacks(square, Color::Black);
+    let black_pawns = board.colored_pieces(Color::Black, PieceType::Pawn) & pawn_attacks(square, Color::White);
+    let white_pawns = board.colored_pieces(Color::White, PieceType::Pawn) & pawn_attacks(square, Color::Black);
 
     let knights = board.pieces(PieceType::Knight) & knight_attacks(square);
     let kings = board.pieces(PieceType::King) & king_attacks(square);

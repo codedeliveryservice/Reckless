@@ -189,11 +189,11 @@ impl MovePicker {
         let mut n = Bitboard(0);
         let mut b = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
-        for square in td.board.their(PieceType::Rook) {
+        for square in td.board.colored_pieces(!side, PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
         }
-        for square in td.board.their(PieceType::Queen) {
+        for square in td.board.colored_pieces(!side, PieceType::Queen) {
             n |= knight_attacks(square);
         }
 

@@ -53,7 +53,13 @@ impl super::Board {
     }
 
     fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
-        self.collect_unpinned::<T, _>(list, !self.all_threats(), self.our(PieceType::King), king_attacks);
+        let stm = self.side_to_move();
+        self.collect_unpinned::<T, _>(
+            list,
+            !self.all_threats(),
+            self.colored_pieces(stm, PieceType::King),
+            king_attacks,
+        );
 
         if self.checkers().is_multiple() {
             return;
@@ -70,10 +76,10 @@ impl super::Board {
 
         self.collect_pawn_moves::<T>(list, target, pinned);
 
-        let knights = self.our(PieceType::Knight);
-        let bishops = self.our(PieceType::Bishop);
-        let rooks = self.our(PieceType::Rook);
-        let queens = self.our(PieceType::Queen);
+        let knights = self.colored_pieces(stm, PieceType::Knight);
+        let bishops = self.colored_pieces(stm, PieceType::Bishop);
+        let rooks = self.colored_pieces(stm, PieceType::Rook);
+        let queens = self.colored_pieces(stm, PieceType::Queen);
 
         self.collect_unpinned::<T, _>(list, target, knights & !pinned, knight_attacks);
         self.collect_unpinned::<T, _>(list, target, bishops & !pinned, |sq| bishop_attacks(sq, occupancies));
@@ -92,9 +98,10 @@ impl super::Board {
     fn collect_unpinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
+        let stm = self.side_to_move();
         for from in bb {
             if T::KIND == Kind::Noisy {
-                list.push_setwise(from, attacks(from) & target & self.them(), MoveKind::Capture);
+                list.push_setwise(from, attacks(from) & target & self.colors(!stm), MoveKind::Capture);
             }
             if T::KIND == Kind::Quiet {
                 list.push_setwise(from, attacks(from) & target & !self.occupancies(), MoveKind::Normal);
@@ -106,10 +113,11 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
         let king = self.king_square(self.side_to_move());
+        let stm = self.side_to_move();
         for from in bb {
             let pin_mask = ray_pass(king, from);
             if T::KIND == Kind::Noisy {
-                list.push_setwise(from, attacks(from) & target & self.them() & pin_mask, MoveKind::Capture);
+                list.push_setwise(from, attacks(from) & target & self.colors(!stm) & pin_mask, MoveKind::Capture);
             }
             if T::KIND == Kind::Quiet {
                 list.push_setwise(from, attacks(from) & target & !self.occupancies() & pin_mask, MoveKind::Normal);
@@ -136,7 +144,7 @@ impl super::Board {
     }
 
     fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard) {
-        let pawns = self.our(PieceType::Pawn);
+        let pawns = self.colored_pieces(self.side_to_move(), PieceType::Pawn);
         let seventh_rank = Bitboard::SEVENTH_RANK[self.side_to_move()];
 
         self.collect_pawn_pushes::<T>(list, target, pinned, pawns, seventh_rank);
@@ -190,14 +198,15 @@ impl super::Board {
         let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask);
         let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask);
 
-        let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
+        let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
 
         list.push_promotion_capture_setwise(up_right, right & target);
         list.push_promotion_capture_setwise(up_left, left & target);
 
-        let right_captures = (right_pawns & !seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.them();
-        let left_captures = (left_pawns & !seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.them();
+        let right_captures =
+            (right_pawns & !seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
+        let left_captures = (left_pawns & !seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
 
         list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
         list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
