@@ -284,8 +284,9 @@ fn search<NODE: NodeType>(
         return qsearch::<NODE>(td, alpha, beta, ply);
     }
 
-    if !NODE::ROOT && alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw(td);
+    let draw_score = draw(td);
+    if !NODE::ROOT && alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
+        alpha = draw_score;
         if alpha >= beta {
             return alpha;
         }
@@ -1100,8 +1101,9 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
 
-    if alpha < Score::ZERO && td.board.upcoming_repetition(ply as usize) {
-        alpha = draw(td);
+    let draw_score = draw(td);
+    if alpha < draw_score && td.board.upcoming_repetition(ply as usize) {
+        alpha = draw_score;
         if alpha >= beta {
             return alpha;
         }
