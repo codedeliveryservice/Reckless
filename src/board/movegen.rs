@@ -57,7 +57,7 @@ impl super::Board {
         self.collect_unpinned::<T, _>(
             list,
             !self.all_threats(),
-            self.piece_by_color(stm, PieceType::King),
+            self.colored_pieces(stm, PieceType::King),
             king_attacks,
         );
 
@@ -76,10 +76,10 @@ impl super::Board {
 
         self.collect_pawn_moves::<T>(list, target, pinned);
 
-        let knights = self.piece_by_color(stm, PieceType::Knight);
-        let bishops = self.piece_by_color(stm, PieceType::Bishop);
-        let rooks = self.piece_by_color(stm, PieceType::Rook);
-        let queens = self.piece_by_color(stm, PieceType::Queen);
+        let knights = self.colored_pieces(stm, PieceType::Knight);
+        let bishops = self.colored_pieces(stm, PieceType::Bishop);
+        let rooks = self.colored_pieces(stm, PieceType::Rook);
+        let queens = self.colored_pieces(stm, PieceType::Queen);
 
         self.collect_unpinned::<T, _>(list, target, knights & !pinned, knight_attacks);
         self.collect_unpinned::<T, _>(list, target, bishops & !pinned, |sq| bishop_attacks(sq, occupancies));
@@ -144,7 +144,7 @@ impl super::Board {
     }
 
     fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard) {
-        let pawns = self.piece_by_color(self.side_to_move(), PieceType::Pawn);
+        let pawns = self.colored_pieces(self.side_to_move(), PieceType::Pawn);
         let seventh_rank = Bitboard::SEVENTH_RANK[self.side_to_move()];
 
         self.collect_pawn_pushes::<T>(list, target, pinned, pawns, seventh_rank);
