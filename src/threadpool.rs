@@ -10,6 +10,7 @@ use std::{
 
 use crate::{
     board::Board,
+    numa::NumaReplicatedAccessToken,
     search::{self, Report},
     thread::{SharedContext, Status, ThreadData},
     time::TimeManager,
@@ -31,6 +32,8 @@ impl ThreadPool {
     }
 
     pub fn new(shared: Arc<SharedContext>) -> Self {
+        shared.numa_context.set_thread_count(1);
+
         let workers = make_worker_threads(1);
         let data = make_thread_data(shared, &workers, Board::starting_position().into());
 
@@ -41,6 +44,8 @@ impl ThreadPool {
         let threads = threads.clamp(1, ThreadPool::available_threads());
         let shared = self.vector[0].shared.clone();
         let board = Arc::new(self.vector[0].board.clone());
+
+        shared.numa_context.set_thread_count(threads);
 
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);
@@ -67,6 +72,8 @@ impl ThreadPool {
 
     pub fn clear(&mut self) {
         let shared = self.vector[0].shared.clone();
+
+        shared.numa_context.set_thread_count(self.workers.len());
 
         std::mem::drop(self.vector.drain(..));
         self.vector = make_thread_data(shared, &self.workers, Board::starting_position().into());
@@ -224,17 +231,10 @@ impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     }
 }
 
-fn make_worker_thread(id: Option<usize>) -> WorkerThread {
+fn make_worker_thread() -> WorkerThread {
     let (sender, receiver) = make_work_channel();
 
     let handle = std::thread::spawn(move || {
-        #[cfg(feature = "numa")]
-        if let Some(id) = id {
-            crate::numa::bind_thread(id);
-        }
-        #[cfg(not(feature = "numa"))]
-        let _ = id;
-
         while let Ok(work) = receiver.receiver.recv() {
             work();
             let (lock, cvar) = &*receiver.completion_signal;
@@ -249,28 +249,32 @@ fn make_worker_thread(id: Option<usize>) -> WorkerThread {
 }
 
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
-    #[cfg(feature = "numa")]
-    {
-        let concurrency = std::thread::available_parallelism().map_or(1, |n| n.get());
-        (0..num_threads).map(|id| make_worker_thread((num_threads >= concurrency / 2).then_some(id))).collect()
-    }
-    #[cfg(not(feature = "numa"))]
-    {
-        (0..num_threads).map(|_| make_worker_thread(None)).collect()
-    }
+    std::iter::repeat_with(make_worker_thread).take(num_threads).collect()
 }
 
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread], board: Arc<Board>) -> Vec<ThreadData> {
     std::thread::scope(|scope| -> Vec<ThreadData> {
+        let cfg = shared.numa_context.get_numa_config();
+        let should_bind = cfg.suggests_binding_threads(worker_threads.len());
+        let numa_nodes = cfg.distribute_threads_among_numa_nodes(worker_threads.len());
+
         let handles = worker_threads
             .iter()
-            .map(|worker| {
+            .enumerate()
+            .map(|(index, worker)| {
                 let (tx, rx) = std::sync::mpsc::channel();
                 let shared = shared.clone();
+                let cfg = cfg.clone();
                 let board = board.clone();
+                let numa_node = numa_nodes[index];
                 let join_handle = scope.spawn_into(
                     move || {
-                        let mut td = Box::new(ThreadData::new(shared));
+                        let token = if should_bind {
+                            cfg.bind_current_thread_to_numa_node(numa_node)
+                        } else {
+                            NumaReplicatedAccessToken::new(0)
+                        };
+                        let mut td = Box::new(ThreadData::new(shared, token));
                         td.board = (*board).clone();
                         tx.send(td).unwrap();
                     },
