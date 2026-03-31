@@ -59,6 +59,10 @@ pub unsafe fn splat_f32(a: f32) -> __m512 {
     _mm512_set1_ps(a)
 }
 
+pub unsafe fn mul_f32(a: __m512, b: __m512) -> __m512 {
+    _mm512_mul_ps(a, b)
+}
+
 pub unsafe fn mul_add_f32(a: __m512, b: __m512, c: __m512) -> __m512 {
     _mm512_fmadd_ps(a, b, c)
 }

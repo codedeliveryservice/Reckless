@@ -108,25 +108,34 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
 }
 
 pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = Aligned::new(PARAMETERS.l2_biases[bucket]);
+    let mut pre_activations = Aligned::new(PARAMETERS.l2_biases[bucket]);
 
     for i in 0..L2_SIZE {
         let input = simd::splat_f32(l1_out[i]);
         let weights = PARAMETERS.l2_weights[bucket][i].as_ptr();
 
-        for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
+        for j in (0..2 * L3_SIZE).step_by(simd::F32_LANES) {
             let weights = *weights.add(j).cast();
-            let vector = output.as_mut_ptr().add(j).cast();
+            let vector = pre_activations.as_mut_ptr().add(j).cast();
             *vector = simd::mul_add_f32(weights, input, *vector);
         }
     }
 
+    let mut output = Aligned::new([0.0; L3_SIZE]);
+
     let zero = simd::zero_f32();
     let one = simd::splat_f32(1.0);
+    let a = simd::splat_f32(1.0 / 6.0);
+    let b = simd::splat_f32(0.5);
 
     for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
-        let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+        let vector_lhs = pre_activations.as_mut_ptr().add(i).cast();
+        let vector_rhs = pre_activations.as_mut_ptr().add(i + L3_SIZE).cast();
+
+        let swish = simd::mul_f32(*vector_rhs, simd::clamp_f32(simd::mul_add_f32(*vector_rhs, a, b), zero, one));
+        let swiglu = simd::mul_f32(*vector_lhs, swish);
+
+        *output.as_mut_ptr().add(i).cast() = swiglu;
     }
 
     output
