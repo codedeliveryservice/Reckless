@@ -176,6 +176,10 @@ impl Board {
         self.colors(side) & self.pieces(piece_type)
     }
 
+    pub fn pieces_by_color(&self, side: Color, pt1: PieceType, pt2: PieceType) -> Bitboard {
+        self.colors(side) & (self.pieces(pt1) | self.pieces(pt2))
+    }
+
     pub fn king_square(&self, color: Color) -> Square {
         self.piece_by_color(color, PieceType::King).lsb()
     }
@@ -242,7 +246,7 @@ impl Board {
         }
 
         // Here on, there are exactly 2 non-king minors
-        if (self.piece_by_color(stm, PieceType::Bishop) | self.piece_by_color(stm, PieceType::Knight)).popcount() == 1 {
+        if self.pieces_by_color(stm, PieceType::Bishop, PieceType::Knight).popcount() == 1 {
             return true;
         }
 
@@ -390,8 +394,8 @@ impl Board {
         if piece.piece_type() == PieceType::Pawn {
             if mv.is_en_passant() {
                 let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
-                let diagonal = self.piece_by_color(!stm, PieceType::Bishop) | self.piece_by_color(!stm, PieceType::Queen);
-                let orthogonal = self.piece_by_color(!stm, PieceType::Rook) | self.piece_by_color(!stm, PieceType::Queen);
+                let diagonal = self.pieces_by_color(!stm, PieceType::Bishop, PieceType::Queen);
+                let orthogonal = self.pieces_by_color(!stm, PieceType::Rook, PieceType::Queen);
                 let diagonal = bishop_attacks(king, occupancies) & diagonal;
                 let orthogonal = rook_attacks(king, occupancies) & orthogonal;
                 return to == self.en_passant()
@@ -590,7 +594,7 @@ impl Board {
         // Detect clearance pin
         let occ = self.occupancies() ^ pushed_pawn.to_bb() ^ attackers;
         let king_ray = rook_attacks(king, occ) & Bitboard::rank(king.rank());
-        (king_ray & (self.piece_by_color(!stm, PieceType::Rook) | self.piece_by_color(!stm, PieceType::Queen))).is_empty()
+        (king_ray & (self.pieces_by_color(!stm, PieceType::Rook, PieceType::Queen))).is_empty()
     }
 
     /// We verify is self.state.enpassant is valid, and remove it if it is not.
