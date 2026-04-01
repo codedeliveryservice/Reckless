@@ -1034,8 +1034,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
-            let factor = 95
-                + 156 * (depth > 5) as i32
+            let factor = 119
                 + 215 * (td.stack[ply - 1].move_count > 8) as i32
                 + 113 * (prior_move == td.stack[ply - 1].tt_move) as i32
                 + 130 * (!in_check && best_score <= eval - 96) as i32
