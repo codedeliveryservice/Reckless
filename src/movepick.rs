@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise},
+    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
@@ -188,16 +188,27 @@ impl MovePicker {
         // safe squares where we can attack an opponent piece
         let mut n = Bitboard(0);
         let mut b = Bitboard(0);
+        let mut q = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+
+        for square in td.board.colored_pieces(!side, PieceType::Bishop) & !threats {
+            n |= knight_attacks(square);
+            q |= rook_attacks(square, td.board.occupancies());
+        }
+
         for square in td.board.colored_pieces(!side, PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
+
+            if !threats.contains(square) {
+                q |= bishop_attacks(square, td.board.occupancies());
+            }
         }
         for square in td.board.colored_pieces(!side, PieceType::Queen) {
             n |= knight_attacks(square);
         }
 
-        let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), Bitboard(0), Bitboard(0)];
+        let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)];
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
