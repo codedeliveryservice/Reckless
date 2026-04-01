@@ -117,10 +117,8 @@ impl Board {
     }
 
     pub fn prior_threats(&self) -> Bitboard {
-        if !self.state_stack.is_empty() {
-            return self.state_stack[self.state_stack.len() - 1].all_threats;
-        }
-        Bitboard(0)
+        debug_assert!(!self.state_stack.is_empty());
+        self.state_stack[self.state_stack.len() - 1].all_threats
     }
 
     pub const fn captured_piece(&self) -> Option<Piece> {
