@@ -117,6 +117,7 @@ impl Board {
     }
 
     pub fn prior_threats(&self) -> Bitboard {
+        debug_assert!(!self.state_stack.is_empty());
         self.state_stack[self.state_stack.len() - 1].all_threats
     }
 
