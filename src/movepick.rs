@@ -191,12 +191,12 @@ impl MovePicker {
         let mut q = Bitboard(0);
         let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
 
-        for square in td.board.their(PieceType::Bishop) & !threats {
+        for square in td.board.colored_pieces(!side, PieceType::Bishop) & !threats {
             n |= knight_attacks(square);
             q |= rook_attacks(square, td.board.occupancies());
         }
 
-        for square in td.board.their(PieceType::Rook) {
+        for square in td.board.colored_pieces(!side, PieceType::Rook) {
             n |= knight_attacks(square);
             b |= bishop_attacks(square, td.board.occupancies());
 
@@ -204,7 +204,7 @@ impl MovePicker {
                 q |= bishop_attacks(square, td.board.occupancies());
             }
         }
-        for square in td.board.their(PieceType::Queen) {
+        for square in td.board.colored_pieces(!side, PieceType::Queen) {
             n |= knight_attacks(square);
         }
 
@@ -213,11 +213,6 @@ impl MovePicker {
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
-
-            //if pt == PieceType::Bishop && offense[pt].contains(mv.to()) {
-                //println!("{}", td.board);
-                //println!("Move: {}-{}", mv.from(), mv.to());
-            //}
 
             entry.score = td.quiet_history.get(threats, side, mv)
                 + td.conthist(ply, 1, mv)
