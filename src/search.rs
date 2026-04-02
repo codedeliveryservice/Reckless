@@ -1040,7 +1040,7 @@ fn search<NODE: NodeType>(
                 + 130 * (!in_check && best_score <= eval - 96) as i32
                 + 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
 
-            let scaled_bonus = factor * (153 * depth - 34).min(2474) / 128;
+            let scaled_bonus = factor * (168 * depth - 34).min(2474) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, scaled_bonus);
 
