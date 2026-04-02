@@ -1043,8 +1043,7 @@ fn search<NODE: NodeType>(
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
             let mut factor = pcm1();
-            factor += pcm2() * (depth > pcm16()) as i32;
-            factor += pcm3() * (td.stack[ply - 1].move_count > pcm17()) as i32;
+            factor += pcm2() * (td.stack[ply - 1].move_count > pcm3()) as i32;
             factor += pcm4() * (prior_move == td.stack[ply - 1].tt_move) as i32;
             factor += pcm5() * (!in_check && best_score <= eval - pcm6()) as i32;
             factor +=
