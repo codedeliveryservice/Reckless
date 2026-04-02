@@ -101,7 +101,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         let mut delta = 13;
-        let mut reduction = 0;
+        let mut reduction_factor = 0;
 
         for index in 0..td.multi_pv {
             td.pv_index = index;
@@ -133,6 +133,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 td.root_delta = beta - alpha;
 
                 // Root Search
+                let reduction = reduction_factor / 2;
                 let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
                 td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
@@ -145,13 +146,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     s if s <= alpha => {
                         beta = (3 * alpha + beta) / 4;
                         alpha = (score - delta).max(-Score::INFINITE);
-                        reduction = 0;
+                        reduction_factor = 0;
                         delta += 27 * delta / 128;
                     }
                     s if s >= beta => {
                         alpha = (beta - delta).max(alpha);
                         beta = (score + delta).min(Score::INFINITE);
-                        reduction += 1;
+                        reduction_factor += 3;
                         delta += 63 * delta / 128;
                     }
                     _ => {
