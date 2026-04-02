@@ -211,14 +211,11 @@ impl MovePicker {
         let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)];
 
         // King ring diag attacks and ortho attacks
-        let mut king_ring_diag = Bitboard(0);
         let mut king_ring_ortho = Bitboard(0);
 
         for square in king_attacks(td.board.king_square(!side)) {
-            king_ring_diag |= bishop_attacks(square, td.board.occupancies());
             king_ring_ortho |= rook_attacks(square, td.board.occupancies());
         }
-        king_ring_diag &= !threats;
         king_ring_ortho &= !threats;
 
         for entry in self.list.iter_mut() {
@@ -235,9 +232,6 @@ impl MovePicker {
                 - 8000 * threatened[pt].contains(mv.to()) as i32
                 + 6000 * offense[pt].contains(mv.to()) as i32;
 
-            //if pt == PieceType::Bishop && king_ring_diag.contains(mv.to()) {
-                //entry.score += 10000;
-            //}
             if pt == PieceType::Rook && king_ring_ortho.contains(mv.to()) {
                 entry.score += 5000;
             }
