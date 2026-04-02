@@ -137,6 +137,7 @@ define!(
     i32 lmr21: 966;
     i32 lmr22: 1604;
     i32 lmr23: 128;
+    i32 lmr24: 512;
     i32 dod1: 60;
     i32 dod2: 768;
     i32 dos1: 5;
@@ -157,6 +158,7 @@ define!(
     i32 fds15: 1452;
     i32 fds16: 3316;
     i32 fds17: 128;
+    i32 fds18: 512;
     i32 fdsred1: 3072;
     i32 fdsred2: 5687;
     i32 noisy1: 106;

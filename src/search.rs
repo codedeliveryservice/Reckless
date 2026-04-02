@@ -829,7 +829,7 @@ fn search<NODE: NodeType>(
                 reduction += lmr22();
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + lmr24() {
                 reduction += lmr23();
             }
 
@@ -891,7 +891,7 @@ fn search<NODE: NodeType>(
                 reduction -= fds16();
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 512 {
+            if !NODE::PV && td.stack[ply - 1].reduction > reduction + fds18() {
                 reduction += fds17();
             }
 
