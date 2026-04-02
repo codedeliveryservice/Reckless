@@ -151,7 +151,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     s if s >= beta => {
                         alpha = (beta - delta).max(alpha);
                         beta = (score + delta).min(Score::INFINITE);
-                        reduction += 1;
+                        reduction = (reduction + 1).min(5);
                         delta += 63 * delta / 128;
                     }
                     _ => {
