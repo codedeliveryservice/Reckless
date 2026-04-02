@@ -133,7 +133,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 td.root_delta = beta - alpha;
 
                 // Root Search
-                let reduction = reduction_factor / 2;
+                let reduction = reduction_factor / 3;
                 let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
 
                 td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
@@ -152,7 +152,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     s if s >= beta => {
                         alpha = (beta - delta).max(alpha);
                         beta = (score + delta).min(Score::INFINITE);
-                        reduction_factor += 3;
+                        reduction_factor += 2;
                         delta += 63 * delta / 128;
                     }
                     _ => {
