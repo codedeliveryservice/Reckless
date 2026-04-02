@@ -1,5 +1,5 @@
 use crate::{
-    lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
+    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
@@ -210,6 +210,14 @@ impl MovePicker {
 
         let offense = [pawn_offense, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)];
 
+        // King ring diag attacks and ortho attacks
+        let mut king_ring_ortho = Bitboard(0);
+
+        for square in king_attacks(td.board.king_square(!side)) {
+            king_ring_ortho |= rook_attacks(square, td.board.occupancies());
+        }
+        king_ring_ortho &= !threats;
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
@@ -222,7 +230,8 @@ impl MovePicker {
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
                 + 10000 * td.board.checking_squares(pt).contains(mv.to()) as i32
                 - 8000 * threatened[pt].contains(mv.to()) as i32
-                + 6000 * offense[pt].contains(mv.to()) as i32;
+                + 6000 * offense[pt].contains(mv.to()) as i32
+                + 5000 * (pt == PieceType::Rook && king_ring_ortho.contains(mv.to())) as i32;
         }
     }
 }
