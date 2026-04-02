@@ -593,7 +593,7 @@ fn search<NODE: NodeType>(
     let mut probcut_beta = beta + 269 - 72 * improving as i32;
 
     if cut_node
-        && !is_decisive(beta)
+        && !is_win(beta)
         && if is_valid(tt_score) { tt_score >= probcut_beta && !is_decisive(tt_score) } else { eval >= beta }
         && !tt_move.is_quiet()
     {
@@ -639,6 +639,8 @@ fn search<NODE: NodeType>(
 
                 if !is_decisive(score) {
                     return (3 * score + beta) / 4;
+                } else {
+                    return score;
                 }
             }
         }
@@ -683,8 +685,6 @@ fn search<NODE: NodeType>(
         } else if cut_node {
             extension = -2;
         }
-    } else if NODE::PV && tt_move.is_noisy() && tt_move.to() == td.board.recapture_square() {
-        extension = 1;
     }
 
     let mut best_move = Move::NULL;
