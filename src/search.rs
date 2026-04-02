@@ -1036,7 +1036,7 @@ fn search<NODE: NodeType>(
         if prior_move.is_quiet() {
             let factor = 95
                 + 156 * (depth > 5) as i32
-                + 215 * (td.stack[ply - 1].move_count > 8) as i32
+                + (30 * td.stack[ply - 1].move_count).min(300)
                 + 113 * (prior_move == td.stack[ply - 1].tt_move) as i32
                 + 130 * (!in_check && best_score <= eval - 96) as i32
                 + 317 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 120) as i32;
