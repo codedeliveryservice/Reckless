@@ -1,5 +1,6 @@
 use crate::{
     lookup::{bishop_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
+    parameters::*,
     search::NodeType,
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
@@ -84,7 +85,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 46 + 109);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / mp1() + mp2());
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -169,7 +170,7 @@ impl MovePicker {
                     if entry.mv.is_en_passant() { PieceType::Pawn } else { td.board.piece_on(mv.to()).piece_type() };
 
                 entry.score =
-                    16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+                    mp3() * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
             }
         }
     }
@@ -183,7 +184,7 @@ impl MovePicker {
         let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
 
         let threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
-        let escape = [0, 8000, 8000, 14000, 20000, 0];
+        let escape = [0, mp4(), mp5(), mp6(), mp7(), 0];
 
         // safe squares where we can attack an opponent piece
         let mut n = Bitboard(0);
@@ -220,9 +221,9 @@ impl MovePicker {
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv)
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
-                + 10000 * td.board.checking_squares(pt).contains(mv.to()) as i32
-                - 8000 * threatened[pt].contains(mv.to()) as i32
-                + 6000 * offense[pt].contains(mv.to()) as i32;
+                + mp8() * td.board.checking_squares(pt).contains(mv.to()) as i32
+                - mp9() * threatened[pt].contains(mv.to()) as i32
+                + mp10() * offense[pt].contains(mv.to()) as i32;
         }
     }
 }
