@@ -339,13 +339,12 @@ fn search<NODE: NodeType>(
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
-        tt_depth = entry.depth;
-        tt_score = entry.score;
-        tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
-
-        if entry.mv.is_present() && td.board.is_legal(entry.mv) {
+        if entry.mv.is_null() || td.board.is_legal(entry.mv) {
+            tt_depth = entry.depth;
             tt_move = entry.mv;
+            tt_score = entry.score;
+            tt_bound = entry.bound;
+            tt_pv |= entry.tt_pv;
         }
 
         if !NODE::PV
