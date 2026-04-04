@@ -86,3 +86,13 @@ pub unsafe fn horizontal_sum(x: [__m512; 1]) -> f32 {
 pub unsafe fn nnz_bitmask(x: __m512i) -> u16 {
     _mm512_cmpgt_epi32_mask(x, _mm512_setzero_si512())
 }
+
+pub unsafe fn dot_reduce_f32_avx512(a: *const f32, b: *const f32, len: usize) -> f32 {
+    let mut acc = _mm512_setzero_ps();
+    for i in (0..len).step_by(16) {
+        let va = _mm512_loadu_ps(a.add(i));
+        let vb = _mm512_loadu_ps(b.add(i));
+        acc = _mm512_fmadd_ps(va, vb, acc);
+    }
+    _mm512_reduce_add_ps(acc)
+}

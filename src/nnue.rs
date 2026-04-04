@@ -54,6 +54,12 @@ const L1_SIZE: usize = 768;
 const L2_SIZE: usize = 16;
 const L3_SIZE: usize = 32;
 
+const _: () = {
+    if L3_SIZE % 16 != 0 {
+        panic!("L3_SIZE must be a multiple of 16 for AVX-512 alignment");
+    }
+};
+
 const FT_QUANT: i32 = 255;
 const L1_QUANT: i32 = 64;
 

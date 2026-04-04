@@ -133,23 +133,32 @@ pub unsafe fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Al
 }
 
 pub unsafe fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
-    const LANES: usize = 16 / simd::F32_LANES;
-
-    let input = l2_out.as_ptr();
-    let weights = PARAMETERS.l3_weights[bucket].as_ptr();
-
-    let mut output = [simd::zero_f32(); LANES];
-
-    for (lane, result) in output.iter_mut().enumerate() {
-        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
-            let a = *weights.add(i + lane * simd::F32_LANES).cast();
-            let b = *input.add(i + lane * simd::F32_LANES).cast();
-
-            *result = simd::mul_add_f32(a, b, *result);
-        }
+    #[cfg(target_feature = "avx512f")]
+    {
+        let input = l2_out.as_ptr();
+        let weights = PARAMETERS.l3_weights[bucket].as_ptr();
+        simd::dot_reduce_f32_avx512(input, weights, L3_SIZE) + PARAMETERS.l3_biases[bucket]
     }
 
-    simd::horizontal_sum(output) + PARAMETERS.l3_biases[bucket]
+    #[cfg(not(target_feature = "avx512f"))]
+    {
+        const LANES: usize = 16 / simd::F32_LANES;
+
+        let input = l2_out.as_ptr();
+        let weights = PARAMETERS.l3_weights[bucket].as_ptr();
+
+        let mut output = [simd::zero_f32(); LANES];
+
+        for (lane, result) in output.iter_mut().enumerate() {
+            for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
+                let a = *weights.add(i + lane * simd::F32_LANES).cast();
+                let b = *input.add(i + lane * simd::F32_LANES).cast();
+                *result = simd::mul_add_f32(a, b, *result);
+            }
+        }
+
+        simd::horizontal_sum(output) + PARAMETERS.l3_biases[bucket]
+    }
 }
 
 #[cfg(all(not(target_feature = "neon"), not(target_feature = "avx512vbmi2")))]
