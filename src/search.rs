@@ -334,16 +334,20 @@ fn search<NODE: NodeType>(
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
     let mut tt_score = Score::NONE;
+    let mut tt_raw_eval = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
-        tt_depth = entry.depth;
-        tt_move = entry.mv;
-        tt_score = entry.score;
-        tt_bound = entry.bound;
-        tt_pv |= entry.tt_pv;
+        if entry.mv.is_null() || td.board.is_legal(entry.mv) {
+            tt_depth = entry.depth;
+            tt_move = entry.mv;
+            tt_score = entry.score;
+            tt_raw_eval = entry.raw_eval;
+            tt_bound = entry.bound;
+            tt_pv |= entry.tt_pv;
+        }
 
         if !NODE::PV
             && !excluded
@@ -418,8 +422,8 @@ fn search<NODE: NodeType>(
     } else if excluded {
         raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
-    } else if let Some(entry) = &entry {
-        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
+    } else if is_valid(tt_raw_eval) {
+        raw_eval = tt_raw_eval;
         eval = correct_eval(td, raw_eval, correction_value);
     } else {
         raw_eval = td.nnue.evaluate(&td.board);
