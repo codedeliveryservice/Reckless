@@ -347,7 +347,7 @@ fn search<NODE: NodeType>(
 
         if !NODE::PV
             && !excluded
-            && tt_depth > depth - (tt_score < beta) as i32
+            && tt_depth >= depth
             && is_valid(tt_score)
             && match tt_bound {
                 Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
@@ -355,7 +355,7 @@ fn search<NODE: NodeType>(
                 _ => true,
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 3 {
                 let quiet_bonus = (185 * depth - 81).min(1806);
                 let cont_bonus = (108 * depth - 56).min(1365);
 
