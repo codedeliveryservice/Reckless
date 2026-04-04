@@ -1,6 +1,9 @@
 use std::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
 
-use crate::types::{Move, Score, is_decisive, is_loss, is_valid, is_win};
+use crate::{
+    thread::ThreadData,
+    types::{Move, Score, is_decisive, is_loss, is_valid, is_win},
+};
 
 pub const DEFAULT_TT_SIZE: usize = 16;
 
@@ -156,7 +159,7 @@ impl TranspositionTable {
         self.age.store((self.age() + 1) & AGE_MASK, Ordering::Relaxed);
     }
 
-    pub fn read(&self, hash: u64, halfmove_clock: u8, ply: isize) -> Option<Entry> {
+    pub fn read(&self, td: &ThreadData, hash: u64, ply: isize) -> Option<Entry> {
         let cluster = {
             let index = index(hash, self.len());
             unsafe { &*self.ptr().add(index) }
@@ -165,10 +168,10 @@ impl TranspositionTable {
         let key = verification_key(hash);
 
         for entry in &cluster.entries {
-            if key == entry.key && entry.depth() != TtDepth::NONE {
+            if key == entry.key && (entry.mv.is_null() || td.board.is_legal(entry.mv)) {
                 let hit = Entry {
                     depth: entry.depth(),
-                    score: score_from_tt(entry.score as i32, ply, halfmove_clock),
+                    score: score_from_tt(entry.score as i32, ply, td.board.halfmove_clock()),
                     raw_eval: entry.raw_eval as i32,
                     bound: entry.flags.bound(),
                     tt_pv: entry.flags.tt_pv(),
