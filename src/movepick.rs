@@ -218,6 +218,9 @@ impl MovePicker {
         }
         king_ring_ortho &= !threats;
 
+        // don't move king wall pawns
+        let wall_pawns = king_attacks(td.board.king_square(side)) & td.board.pieces(PieceType::Pawn) & Bitboard::PAWN_HOMES[side];
+
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.piece_on(mv.from()).piece_type();
@@ -232,6 +235,10 @@ impl MovePicker {
                 - 8000 * threatened[pt].contains(mv.to()) as i32
                 + 6000 * offense[pt].contains(mv.to()) as i32
                 + 5000 * (pt == PieceType::Rook && king_ring_ortho.contains(mv.to())) as i32;
+
+            if Bitboard::HOME_ROWS[side].contains(td.board.king_square(side)) && wall_pawns.contains(mv.from()) {
+                entry.score -= 4000;
+            }
         }
     }
 }
