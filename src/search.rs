@@ -518,7 +518,7 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
-    if !tt_pv
+    if cut_node
         && !in_check
         && !excluded
         && estimated_score >= beta
