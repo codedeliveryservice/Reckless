@@ -1216,8 +1216,15 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         move_count += 1;
 
         if !is_loss(best_score) {
+            let history = if !mv.is_quiet() {
+                let captured = td.board.piece_on(mv.to()).piece_type();
+                td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
+            } else {
+                0
+            };
+
             // Late Move Pruning (LMP)
-            if move_count >= 3 && !td.board.is_direct_check(mv) {
+            if move_count >= (2293 + 256 * history / 1024) / 1024 && !td.board.is_direct_check(mv) {
                 break;
             }
 
