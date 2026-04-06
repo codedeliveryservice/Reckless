@@ -84,7 +84,7 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 46 + 109);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 45 + 111);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -183,7 +183,7 @@ impl MovePicker {
         let rook_threats = minor_threats | td.board.piece_threats(PieceType::Rook);
 
         let threatened = [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)];
-        let escape = [0, 8000, 8000, 14000, 20000, 0];
+        let escape = [0, 7768, 8218, 13424, 20208, 0];
 
         // safe squares where we can attack an opponent piece
         let mut n = Bitboard(0);
@@ -232,9 +232,9 @@ impl MovePicker {
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv)
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
-                + 10000 * td.board.checking_squares(pt).contains(mv.to()) as i32
-                - 8000 * threatened[pt].contains(mv.to()) as i32
-                + 6000 * offense[pt].contains(mv.to()) as i32
+                + 9325 * td.board.checking_squares(pt).contains(mv.to()) as i32
+                - 7584 * threatened[pt].contains(mv.to()) as i32
+                + 6158 * offense[pt].contains(mv.to()) as i32
                 + 5000 * (pt == PieceType::Rook && king_ring_ortho.contains(mv.to())) as i32;
 
             if Bitboard::HOME_ROWS[side].contains(td.board.king_square(side)) && wall_pawns.contains(mv.from()) {
