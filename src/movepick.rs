@@ -219,7 +219,8 @@ impl MovePicker {
         king_ring_ortho &= !threats;
 
         // don't move king wall pawns
-        let wall_pawns = king_attacks(td.board.king_square(side)) & td.board.pieces(PieceType::Pawn) & Bitboard::PAWN_HOMES[side];
+        let wall_pawns =
+            king_attacks(td.board.king_square(side)) & td.board.pieces(PieceType::Pawn) & Bitboard::PAWN_HOMES[side];
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
