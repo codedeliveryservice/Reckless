@@ -1036,8 +1036,8 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
-            let factor = 116
-                + 202 * (td.stack[ply - 1].move_count > 7) as i32
+            let factor = 96
+                + 15 * (td.stack[ply - 1].move_count).min(15) as i32
                 + 116 * (prior_move == td.stack[ply - 1].tt_move) as i32
                 + 138 * (!in_check && best_score <= eval - 93) as i32
                 + 321 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 128) as i32;
