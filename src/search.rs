@@ -73,8 +73,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
-    let mut eval_stability = 0;
-    let mut pv_stability = 0;
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
@@ -191,18 +189,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.print_uci_info(depth);
         }
 
-        if (td.root_moves[0].score - average[td.pv_index]).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
-        }
-
-        if last_best_rootmove.mv == td.root_moves[0].mv {
-            pv_stability += 1;
-        } else {
-            pv_stability = 0;
-        }
-
         best_move_changes += td.best_move_changes;
 
         if td.root_moves[0].score != -Score::INFINITE
@@ -224,15 +210,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let multiplier = || {
             let nodes_factor = (2.7168 - 2.2669 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.5630_f32);
 
-            let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
-
-            let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
-
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            nodes_factor * score_trend * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
