@@ -537,10 +537,9 @@ fn search<NODE: NodeType>(
     if cut_node
         && !in_check
         && !excluded
-        && !potential_singularity
         && estimated_score >= beta
         && estimated_score
-            >= beta - 8 * depth + 116 * tt_pv as i32 - 106 * improvement / 1024 + 304
+            >= beta - 8 * depth + 116 * tt_pv as i32 - 106 * improvement / 1024 + 335
                 - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
         && ply as i32 >= td.nmp_min_ply
         && td.board.has_non_pawns()
