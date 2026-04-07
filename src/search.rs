@@ -522,11 +522,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && estimated_score >= beta
-        && estimated_score
-            >= beta + 1165 * depth * depth / 128 + 25 * depth - (80 * improving as i32)
-                + 560 * correction_value.abs() / 1024
-                - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
-                + 30
+        && estimated_score >= beta + rfp_value(depth, tt_move.is_null(), tt_move.is_noisy(), correction_value.abs())
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -1370,4 +1366,16 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+fn rfp_value(depth: i32, tt_move_isnull: bool, tt_move_isnoisy: bool, correction: i32) -> i32 {
+    (-3694 // .
+        + 3257 * depth
+        + 1138 * (depth * depth)
+        - 3058 * tt_move_isnull as i32
+        + 3187 * tt_move_isnoisy as i32
+        + 185 * (depth * tt_move_isnull as i32)
+        - 102 * (depth * tt_move_isnoisy as i32)
+        + 66 * correction)
+        / 128
 }
