@@ -744,7 +744,7 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 23;
+            let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 50 * (eval >= beta) as i32 + 23;
 
             if !in_check
                 && depth < 11
