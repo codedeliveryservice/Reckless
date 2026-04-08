@@ -518,13 +518,14 @@ fn search<NODE: NodeType>(
     }
 
     // Reverse Futility Pruning (RFP)
-    if !tt_pv
+    if !NODE::PV
         && !in_check
         && !excluded
         && estimated_score >= beta
         && estimated_score
             >= beta + 1165 * depth * depth / 128 + 25 * depth - (80 * improving as i32)
                 + 560 * correction_value.abs() / 1024
+                + 116 * tt_pv as i32
                 - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
                 + 30
         && !is_loss(beta)
