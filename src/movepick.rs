@@ -177,6 +177,18 @@ impl MovePicker {
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.all_threats();
         let side = td.board.side_to_move();
+        let occupancies = td.board.occupancies();
+        let own_king = td.board.king_square(side);
+        let enemy_king = td.board.king_square(!side);
+        let own_king_home = Bitboard::HOME_ROWS[side].contains(own_king);
+        let checking_squares = [
+            td.board.checking_squares(PieceType::Pawn),
+            td.board.checking_squares(PieceType::Knight),
+            td.board.checking_squares(PieceType::Bishop),
+            td.board.checking_squares(PieceType::Rook),
+            td.board.checking_squares(PieceType::Queen),
+            Bitboard(0),
+        ];
         let pawn_threats = td.board.piece_threats(PieceType::Pawn);
         let minor_threats =
             pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
@@ -193,15 +205,15 @@ impl MovePicker {
 
         for square in td.board.colored_pieces(!side, PieceType::Bishop) & !threats {
             n |= knight_attacks(square);
-            q |= rook_attacks(square, td.board.occupancies());
+            q |= rook_attacks(square, occupancies);
         }
 
         for square in td.board.colored_pieces(!side, PieceType::Rook) {
             n |= knight_attacks(square);
-            b |= bishop_attacks(square, td.board.occupancies());
+            b |= bishop_attacks(square, occupancies);
 
             if !threats.contains(square) {
-                q |= bishop_attacks(square, td.board.occupancies());
+                q |= bishop_attacks(square, occupancies);
             }
         }
         for square in td.board.colored_pieces(!side, PieceType::Queen) {
@@ -213,14 +225,13 @@ impl MovePicker {
         // King ring diag attacks and ortho attacks
         let mut king_ring_ortho = Bitboard(0);
 
-        for square in king_attacks(td.board.king_square(!side)) {
-            king_ring_ortho |= rook_attacks(square, td.board.occupancies());
+        for square in king_attacks(enemy_king) {
+            king_ring_ortho |= rook_attacks(square, occupancies);
         }
         king_ring_ortho &= !threats;
 
         // don't move king wall pawns
-        let wall_pawns =
-            king_attacks(td.board.king_square(side)) & td.board.pieces(PieceType::Pawn) & Bitboard::PAWN_HOMES[side];
+        let wall_pawns = king_attacks(own_king) & td.board.pieces(PieceType::Pawn) & Bitboard::PAWN_HOMES[side];
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
@@ -232,12 +243,12 @@ impl MovePicker {
                 + td.conthist(ply, 4, mv)
                 + td.conthist(ply, 6, mv)
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
-                + 9325 * td.board.checking_squares(pt).contains(mv.to()) as i32
+                + 9325 * checking_squares[pt].contains(mv.to()) as i32
                 - 7584 * threatened[pt].contains(mv.to()) as i32
                 + 6158 * offense[pt].contains(mv.to()) as i32
                 + 5000 * (pt == PieceType::Rook && king_ring_ortho.contains(mv.to())) as i32;
 
-            if Bitboard::HOME_ROWS[side].contains(td.board.king_square(side)) && wall_pawns.contains(mv.from()) {
+            if own_king_home && wall_pawns.contains(mv.from()) {
                 entry.score -= 4000;
             }
         }
