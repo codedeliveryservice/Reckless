@@ -546,9 +546,8 @@ fn search<NODE: NodeType>(
         && td.board.has_non_pawns()
         && !is_loss(beta)
         && !(tt_bound == Bound::Lower
-            && tt_move.is_present()
-            && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+            && tt_move.is_noisy()
+            && td.board.move_value(tt_move) >= PieceType::Knight.value())
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
