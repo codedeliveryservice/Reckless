@@ -454,7 +454,6 @@ fn search<NODE: NodeType>(
             _ => true,
         }
     {
-        estimated_score = tt_score;
         eval = tt_score;
     }
 
@@ -546,7 +545,6 @@ fn search<NODE: NodeType>(
         && td.board.has_non_pawns()
         && !is_loss(beta)
         && !(tt_bound == Bound::Lower
-            && tt_move.is_present()
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
