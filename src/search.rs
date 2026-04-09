@@ -679,9 +679,9 @@ fn search<NODE: NodeType>(
         }
         // Negative Extensions
         else if tt_score >= beta {
-            extension = -2;
+            extension = -1;
         } else if cut_node {
-            extension = -2;
+            extension = -1;
         }
     }
 
