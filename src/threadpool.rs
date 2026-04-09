@@ -37,13 +37,19 @@ impl ThreadPool {
     }
 
     pub fn set_count(&mut self, threads: usize) {
+        let threads = threads.clamp(1, ThreadPool::available_threads());
         let shared = self.vector[0].shared.clone();
+        let board = self.vector[0].board.clone();
 
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);
 
         std::mem::drop(self.vector.drain(..));
         self.vector = make_thread_data(shared, &self.workers);
+
+        for thread in self.vector.iter_mut() {
+            thread.board = board.clone();
+        }
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData {
