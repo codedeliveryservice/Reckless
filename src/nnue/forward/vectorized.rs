@@ -36,8 +36,8 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
             let rhs1_clipped = simd::min_i16(simd::add_i16(pst_rhs1, threat_rhs1), one);
             let rhs2_clipped = simd::min_i16(simd::add_i16(pst_rhs2, threat_rhs2), one);
 
-            let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs1_clipped);
-            let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT }>(lhs2_clipped);
+            let shifted1 = simd::shift_left_i16::<{ 16 - FT_SHIFT - simd::MUL_HI_SHIFT }>(lhs1_clipped);
+            let shifted2 = simd::shift_left_i16::<{ 16 - FT_SHIFT - simd::MUL_HI_SHIFT }>(lhs2_clipped);
 
             let product1 = simd::mul_high_i16(shifted1, rhs1_clipped);
             let product2 = simd::mul_high_i16(shifted2, rhs2_clipped);

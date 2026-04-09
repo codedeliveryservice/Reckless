@@ -4,6 +4,7 @@ pub const F32_LANES: usize = size_of::<__m512>() / size_of::<f32>();
 pub const I16_LANES: usize = size_of::<__m512i>() / size_of::<i16>();
 #[allow(unused)]
 pub const I32_LANES: usize = size_of::<__m512i>() / size_of::<i32>();
+pub const MUL_HI_SHIFT: u32 = 0;
 
 pub fn add_i16(a: __m512i, b: __m512i) -> __m512i {
     unsafe { _mm512_add_epi16(a, b) }
