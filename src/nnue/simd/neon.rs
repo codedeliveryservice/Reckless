@@ -2,6 +2,7 @@ use std::{arch::aarch64::*, mem::size_of};
 
 pub const F32_LANES: usize = size_of::<float32x4_t>() / size_of::<f32>();
 pub const I16_LANES: usize = size_of::<int16x8_t>() / size_of::<i16>();
+pub const MUL_HI_SHIFT: i32 = 1;
 
 pub fn add_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
     unsafe { vaddq_s16(a, b) }
@@ -32,13 +33,8 @@ pub unsafe fn shift_left_i16<const SHIFT: i32>(a: int16x8_t) -> int16x8_t {
 }
 
 pub unsafe fn mul_high_i16(a: int16x8_t, b: int16x8_t) -> int16x8_t {
-    let low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
-    let high = vmull_s16(vget_high_s16(a), vget_high_s16(b));
-
-    let low_hi = vshrn_n_s32::<16>(low);
-    let high_hi = vshrn_n_s32::<16>(high);
-
-    vcombine_s16(low_hi, high_hi)
+    // doubles the result, so one of the inputs must be preshifted
+    vqdmulhq_s16(a, b)
 }
 
 pub unsafe fn convert_i8_i16(a: int8x8_t) -> int16x8_t {
@@ -79,6 +75,7 @@ pub unsafe fn clamp_f32(x: float32x4_t, min: float32x4_t, max: float32x4_t) -> f
     vmaxq_f32(vminq_f32(x, max), min)
 }
 
+#[allow(unused)]
 unsafe fn dot_bytes(u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
     let u8s = vreinterpretq_u8_s32(u8s);
 
@@ -91,6 +88,21 @@ unsafe fn dot_bytes(u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
     vpaddq_s32(sums_low, sums_high)
 }
 
+#[cfg(target_feature = "dotprod")]
+pub unsafe fn dpbusd(mut i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
+    // Nightly only equivalent:
+    // vdotq_s32(i32s, vreinterpretq_s8_s32(u8s), i8s)
+    std::arch::asm!(
+        "sdot {acc:v}.4s, {src1:v}.16b, {src2:v}.16b",
+        acc  = inout(vreg) i32s,
+        src1 = in(vreg) u8s,
+        src2 = in(vreg) i8s,
+        options(pure, nomem, nostack)
+    );
+    i32s
+}
+
+#[cfg(not(target_feature = "dotprod"))]
 pub unsafe fn dpbusd(i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
     vaddq_s32(i32s, dot_bytes(u8s, i8s))
 }
@@ -98,28 +110,24 @@ pub unsafe fn dpbusd(i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4
 pub unsafe fn double_dpbusd(
     i32s: int32x4_t, u8s1: int32x4_t, i8s1: int8x16_t, u8s2: int32x4_t, i8s2: int8x16_t,
 ) -> int32x4_t {
-    let accum = vaddq_s32(dot_bytes(u8s1, i8s1), dot_bytes(u8s2, i8s2));
-    vaddq_s32(i32s, accum)
+    dpbusd(dpbusd(i32s, u8s1, i8s1), u8s2, i8s2)
 }
 
 pub unsafe fn horizontal_sum(x: [float32x4_t; 4]) -> f32 {
-    let sum01 = vaddq_f32(x[0], x[1]);
-    let sum23 = vaddq_f32(x[2], x[3]);
-    let sum = vaddq_f32(sum01, sum23);
+    // The reduction order is important to prevent rounding differences
+    // with the AVX2/512 implementations
+    let sum02 = vaddq_f32(x[0], x[2]);
+    let sum24 = vaddq_f32(x[1], x[3]);
+    let sum = vaddq_f32(sum02, sum24);
 
-    let pair = vpadd_f32(vget_low_f32(sum), vget_high_f32(sum));
-    let final_sum = vpadd_f32(pair, pair);
+    let pair = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
 
-    vget_lane_f32::<0>(final_sum)
+    vget_lane_f32::<0>(pair) + vget_lane_f32::<1>(pair)
 }
 
 pub unsafe fn nnz_bitmask(x: int32x4_t) -> u16 {
     let cmp = vcgtq_s32(x, vdupq_n_s32(0));
 
-    let mask0 = (vgetq_lane_u32::<0>(cmp) >> 31) & 1;
-    let mask1 = ((vgetq_lane_u32::<1>(cmp) >> 31) & 1) << 1;
-    let mask2 = ((vgetq_lane_u32::<2>(cmp) >> 31) & 1) << 2;
-    let mask3 = ((vgetq_lane_u32::<3>(cmp) >> 31) & 1) << 3;
-
-    (mask0 | mask1 | mask2 | mask3) as u16
+    let values: [u32; 4] = [1, 2, 4, 8];
+    vaddvq_u32(vandq_u32(cmp, vld1q_u32(values.as_ptr()))) as u16
 }
