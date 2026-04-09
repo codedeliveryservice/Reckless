@@ -350,8 +350,8 @@ fn search<NODE: NodeType>(
             && tt_depth > depth - (tt_score < beta) as i32
             && is_valid(tt_score)
             && match tt_bound {
-                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
-                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+                Bound::Upper => tt_score <= alpha - 8 * cut_node as i32,
+                Bound::Lower => tt_score >= beta + 8 * !cut_node as i32,
                 _ => true,
             }
         {
