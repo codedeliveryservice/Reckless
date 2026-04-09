@@ -1208,6 +1208,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let mut best_move = Move::NULL;
 
     let mut move_count = 0;
+    let mut checks_count = 0;
     let mut move_picker = MovePicker::new_qsearch();
 
     let skip_quiets =
@@ -1215,8 +1216,13 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets(best_score), ply) {
         move_count += 1;
+        checks_count += td.board.is_direct_check(mv) as i32;
 
         if !is_loss(best_score) {
+            if mv.is_quiet() && checks_count >= 2 {
+                break;
+            }
+
             // Late Move Pruning (LMP)
             if move_count >= 3 && !td.board.is_direct_check(mv) {
                 break;
