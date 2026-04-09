@@ -117,8 +117,8 @@ pub unsafe fn horizontal_sum(x: [float32x4_t; 4]) -> f32 {
     // The reduction order is important to prevent rounding differences
     // with the AVX2/512 implementations
     let sum02 = vaddq_f32(x[0], x[2]);
-    let sum24 = vaddq_f32(x[1], x[3]);
-    let sum = vaddq_f32(sum02, sum24);
+    let sum13 = vaddq_f32(x[1], x[3]);
+    let sum = vaddq_f32(sum02, sum13);
 
     let pair = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
 
