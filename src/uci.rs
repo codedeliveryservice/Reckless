@@ -300,8 +300,8 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             println!("info string set Hash to {v} MB");
         }
         ["name", "Threads", "value", v] => {
-            threads.set_count(v.parse().unwrap());
-            println!("info string set Threads to {v}");
+            threads.set_count(v.parse().unwrap_or(1));
+            println!("info string set Threads to {}", threads.len());
         }
         ["name", "MoveOverhead", "value", v] => {
             settings.move_overhead = v.parse().unwrap();
