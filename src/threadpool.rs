@@ -32,7 +32,7 @@ impl ThreadPool {
 
     pub fn new(shared: Arc<SharedContext>) -> Self {
         let workers = make_worker_threads(1);
-        let data = make_thread_data(shared, &workers, Board::default().into());
+        let data = make_thread_data(shared, &workers, Board::starting_position().into());
 
         Self { workers, vector: data }
     }
@@ -69,7 +69,7 @@ impl ThreadPool {
         let shared = self.vector[0].shared.clone();
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(shared, &self.workers, Board::default().into());
+        self.vector = make_thread_data(shared, &self.workers, Board::starting_position().into());
     }
 
     pub fn execute_searches(&mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>) {
