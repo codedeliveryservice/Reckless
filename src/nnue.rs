@@ -119,7 +119,7 @@ impl Network {
         self.threat_stack[self.index].delta.clear();
     }
 
-    pub fn pop(&mut self) {
+    pub const fn pop(&mut self) {
         self.index -= 1;
     }
 

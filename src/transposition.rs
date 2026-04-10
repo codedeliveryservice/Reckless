@@ -78,7 +78,7 @@ pub struct InternalEntry {
 }
 
 impl InternalEntry {
-    fn depth(&self) -> i32 {
+    const fn depth(&self) -> i32 {
         TtDepth::from_tt(self.offset_depth)
     }
 }
@@ -89,7 +89,7 @@ impl TtDepth {
     pub const NONE: i32 = 0;
     pub const SOME: i32 = -1;
 
-    fn from_tt(offset_depth: u8) -> i32 {
+    const fn from_tt(offset_depth: u8) -> i32 {
         offset_depth as i32 - 1
     }
 

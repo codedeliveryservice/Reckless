@@ -49,11 +49,11 @@ impl Bitboard {
         if offset > 0 { Self(self.0 << offset) } else { Self(self.0 >> -offset) }
     }
 
-    pub fn set(&mut self, square: Square) {
+    pub const fn set(&mut self, square: Square) {
         self.0 |= 1 << square as u64;
     }
 
-    pub fn clear(&mut self, square: Square) {
+    pub const fn clear(&mut self, square: Square) {
         self.0 &= !(1 << square as u64);
     }
 }

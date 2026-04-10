@@ -308,7 +308,7 @@ impl PrincipalVariationTable {
         &self.table[0][..self.len[0]]
     }
 
-    pub fn clear(&mut self, ply: usize) {
+    pub const fn clear(&mut self, ply: usize) {
         self.len[ply] = 0;
     }
 
