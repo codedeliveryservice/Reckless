@@ -18,7 +18,7 @@ pub enum Color {
     Black,
 }
 
-pub fn pawn_attacks(square: u8, color: Color) -> u64 {
+pub const fn pawn_attacks(square: u8, color: Color) -> u64 {
     let bitboard = 1 << square;
     if matches!(color, Color::White) {
         (bitboard & !A_FILE) << 7 | (bitboard & !H_FILE) << 9
@@ -27,7 +27,7 @@ pub fn pawn_attacks(square: u8, color: Color) -> u64 {
     }
 }
 
-pub fn king_attacks(square: u8) -> u64 {
+pub const fn king_attacks(square: u8) -> u64 {
     let bitboard = 1 << square;
 
     (bitboard >> 8 | bitboard << 8)
@@ -39,7 +39,7 @@ pub fn king_attacks(square: u8) -> u64 {
         | (bitboard & !H_FILE) << 9
 }
 
-pub fn knight_attacks(square: u8) -> u64 {
+pub const fn knight_attacks(square: u8) -> u64 {
     let bitboard = 1 << square;
 
     (bitboard & !A_FILE) >> 17

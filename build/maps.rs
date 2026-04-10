@@ -67,11 +67,11 @@ fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[(i8, i
     map
 }
 
-fn get_permutation_count(mask: u64) -> u64 {
+const fn get_permutation_count(mask: u64) -> u64 {
     1 << mask.count_ones()
 }
 
-fn magic_index(occupancies: u64, entry: &MagicEntry) -> usize {
+const fn magic_index(occupancies: u64, entry: &MagicEntry) -> usize {
     let mut hash = occupancies & entry.mask;
     hash = hash.wrapping_mul(entry.magic) >> entry.shift;
     hash as usize + entry.offset

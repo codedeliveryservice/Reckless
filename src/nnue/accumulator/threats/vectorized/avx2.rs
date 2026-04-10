@@ -37,7 +37,7 @@ pub fn closest_on_rays(rays: [__m256i; 2]) -> u64 {
     x & occupied
 }
 
-pub fn ray_fill(x: u64) -> u64 {
+pub const fn ray_fill(x: u64) -> u64 {
     let x = (x + 0x7E7E7E7E7E7E7E7E) & 0x8080808080808080;
     x - (x >> 7)
 }

@@ -50,7 +50,7 @@ impl ThreadPool {
         &mut self.vector[0]
     }
 
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.vector.len()
     }
 

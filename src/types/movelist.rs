@@ -122,7 +122,7 @@ impl MoveList {
         self.inner.iter_mut()
     }
 
-    pub fn remove(&mut self, index: usize) -> MoveEntry {
+    pub const fn remove(&mut self, index: usize) -> MoveEntry {
         self.inner.swap_remove(index)
     }
 }

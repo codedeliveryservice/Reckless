@@ -197,11 +197,11 @@ impl Board {
         (self.pieces(PieceType::Pawn) | self.pieces(PieceType::King)) != self.occupancies()
     }
 
-    pub fn advance_fullmove_counter(&mut self) {
+    pub const fn advance_fullmove_counter(&mut self) {
         self.fullmove_number += self.side_to_move() as usize;
     }
 
-    pub fn set_frc(&mut self, frc: bool) {
+    pub const fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
     }
 
