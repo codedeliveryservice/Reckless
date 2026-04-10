@@ -170,6 +170,10 @@ impl MovePicker {
 
                 entry.score =
                     16 * captured.value() + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured);
+
+                if mv.is_promotion() && mv.promotion_piece() == Some(PieceType::Queen) {
+                    entry.score += 4000;
+                }
             }
         }
     }
