@@ -17,7 +17,7 @@ use crate::{
 
 pub struct ThreadPool {
     pub workers: Vec<WorkerThread>,
-    pub vector: Vec<Box<ThreadData>>,
+    pub vector: Vec<ThreadData>,
 }
 
 impl ThreadPool {
@@ -57,11 +57,11 @@ impl ThreadPool {
         self.vector.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Box<ThreadData>> {
+    pub fn iter(&self) -> impl Iterator<Item = &ThreadData> {
         self.vector.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<ThreadData>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData> {
         self.vector.iter_mut()
     }
 
@@ -260,10 +260,8 @@ fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     }
 }
 
-fn make_thread_data(
-    shared: Arc<SharedContext>, worker_threads: &[WorkerThread], board: Arc<Board>,
-) -> Vec<Box<ThreadData>> {
-    std::thread::scope(|scope| -> Vec<Box<ThreadData>> {
+fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread], board: Arc<Board>) -> Vec<ThreadData> {
+    std::thread::scope(|scope| -> Vec<ThreadData> {
         let handles = worker_threads
             .iter()
             .map(|worker| {
@@ -282,10 +280,10 @@ fn make_thread_data(
             })
             .collect::<Vec<_>>();
 
-        let mut thread_data: Vec<Box<ThreadData>> = Vec::with_capacity(handles.len());
+        let mut thread_data: Vec<ThreadData> = Vec::with_capacity(handles.len());
         for (rx, handle) in handles {
             let td = rx.recv().unwrap();
-            thread_data.push(td);
+            thread_data.push(*td);
             handle.join();
         }
 

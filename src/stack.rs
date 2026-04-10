@@ -11,21 +11,24 @@ impl Stack {
     pub fn sentinel(&mut self) -> &mut StackEntry {
         unsafe { self.data.get_unchecked_mut(0) }
     }
-}
 
-impl Default for Stack {
-    fn default() -> Self {
-        let mut stack = Self {
-            data: [StackEntry::default(); MAX_PLY + 16],
-            sentinel: [[0; 64]; 13],
-        };
-
+    pub fn new() -> Box<Self> {
+        let mut stack = Box::new(Self::default());
         let ptr = &raw mut stack.sentinel;
         for entry in &mut stack.data {
             entry.conthist = ptr;
             entry.contcorrhist = ptr;
         }
         stack
+    }
+}
+
+impl Default for Stack {
+    fn default() -> Self {
+        Self {
+            data: [StackEntry::default(); MAX_PLY + 16],
+            sentinel: [[0; 64]; 13],
+        }
     }
 }
 

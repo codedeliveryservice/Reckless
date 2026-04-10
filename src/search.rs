@@ -129,7 +129,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
-                td.stack = Stack::default();
+                td.stack = Stack::new();
                 td.root_delta = beta - alpha;
 
                 // Root Search
