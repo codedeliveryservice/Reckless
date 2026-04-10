@@ -123,7 +123,7 @@ impl<T> Index<Square> for [T] {
     type Output = T;
 
     fn index(&self, square: Square) -> &Self::Output {
-        unsafe { self.get_unchecked(square as usize) }
+        &self[square as usize]
     }
 }
 
