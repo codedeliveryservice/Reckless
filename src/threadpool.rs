@@ -9,6 +9,7 @@ use std::{
 };
 
 use crate::{
+    board::Board,
     search::{self, Report},
     thread::{SharedContext, Status, ThreadData},
     time::TimeManager,
@@ -31,7 +32,7 @@ impl ThreadPool {
 
     pub fn new(shared: Arc<SharedContext>) -> Self {
         let workers = make_worker_threads(1);
-        let data = make_thread_data(shared, &workers);
+        let data = make_thread_data(shared, &workers, Board::default().into());
 
         Self { workers, vector: data }
     }
@@ -39,17 +40,13 @@ impl ThreadPool {
     pub fn set_count(&mut self, threads: usize) {
         let threads = threads.clamp(1, ThreadPool::available_threads());
         let shared = self.vector[0].shared.clone();
-        let board = self.vector[0].board.clone();
+        let board = Arc::new(self.vector[0].board.clone());
 
         self.workers.drain(..).for_each(WorkerThread::join);
         self.workers = make_worker_threads(threads);
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(shared, &self.workers);
-
-        for thread in self.vector.iter_mut() {
-            thread.board = board.clone();
-        }
+        self.vector = make_thread_data(shared, &self.workers, board);
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData {
@@ -72,7 +69,7 @@ impl ThreadPool {
         let shared = self.vector[0].shared.clone();
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(shared, &self.workers);
+        self.vector = make_thread_data(shared, &self.workers, Board::default().into());
     }
 
     pub fn execute_searches(&mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>) {
@@ -263,16 +260,21 @@ fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     }
 }
 
-fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<Box<ThreadData>> {
+fn make_thread_data(
+    shared: Arc<SharedContext>, worker_threads: &[WorkerThread], board: Arc<Board>,
+) -> Vec<Box<ThreadData>> {
     std::thread::scope(|scope| -> Vec<Box<ThreadData>> {
         let handles = worker_threads
             .iter()
             .map(|worker| {
                 let (tx, rx) = std::sync::mpsc::channel();
                 let shared = shared.clone();
+                let board = board.clone();
                 let join_handle = scope.spawn_into(
                     move || {
-                        tx.send(Box::new(ThreadData::new(shared))).unwrap();
+                        let mut td = Box::new(ThreadData::new(shared));
+                        td.board = (*board).clone();
+                        tx.send(td).unwrap();
                     },
                     worker,
                 );
