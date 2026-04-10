@@ -1162,6 +1162,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     let raw_eval;
     let eval;
     let mut best_score;
+    let correction_value = eval_correction(td, ply);
 
     // Evaluation
     if in_check {
@@ -1173,7 +1174,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
             _ => td.nnue.evaluate(&td.board),
         };
-        eval = correct_eval(td, raw_eval, eval_correction(td, ply));
+        eval = correct_eval(td, raw_eval, correction_value);
         best_score = eval;
 
         if is_valid(tt_score)
@@ -1223,7 +1224,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - 108) {
+            if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - correction_value.abs().min(64) - 79) {
                 continue;
             }
         }
