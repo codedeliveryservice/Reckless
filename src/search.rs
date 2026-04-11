@@ -232,7 +232,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
 
-            nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
+            (nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability).clamp(0.5, 3.0)
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
