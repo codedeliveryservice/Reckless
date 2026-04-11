@@ -36,7 +36,7 @@ impl Counter {
     }
 
     pub fn increment(&self, id: usize) {
-        self.shards[id].inner.store(self.shards[id].inner.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
+        self.shards[id].inner.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn reset(&self) {
