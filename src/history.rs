@@ -217,13 +217,6 @@ impl Default for ContinuationHistory {
     }
 }
 
-fn zeroed_box<T>() -> Box<T> {
-    unsafe {
-        let layout = std::alloc::Layout::new::<T>();
-        let ptr = std::alloc::alloc_zeroed(layout);
-        if ptr.is_null() {
-            std::alloc::handle_alloc_error(layout);
-        }
-        Box::<T>::from_raw(ptr.cast())
-    }
+pub fn zeroed_box<T>() -> Box<T> {
+    unsafe { Box::<T>::new_zeroed().assume_init() }
 }
