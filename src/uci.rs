@@ -82,6 +82,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread()),
             ["d"] => println!("{}", threads.main_thread().board),
+            ["verify"] => crate::tools::verify_is_legal(),
             ["bench", args @ ..] => match mode {
                 Mode::Uci => tools::bench::<true>(args),
                 Mode::Cli => tools::bench::<false>(args),

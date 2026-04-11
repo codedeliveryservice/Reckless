@@ -367,7 +367,7 @@ impl Board {
                 Square::C1 => CastlingKind::WhiteQueenside,
                 Square::G8 => CastlingKind::BlackKingside,
                 Square::C8 => CastlingKind::BlackQueenside,
-                _ => unreachable!(),
+                _ => return false,
             };
 
             return self.castling().is_allowed(kind)

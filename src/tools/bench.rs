@@ -15,6 +15,7 @@ use crate::{
     thread::SharedContext,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
+    types::{MoveList, Move},
 };
 
 const POSITIONS: &[&str] = &[
@@ -68,6 +69,43 @@ const POSITIONS: &[&str] = &[
 const DEFAULT_DEPTH: i32 = 12;
 const DEFAULT_HASH: usize = 16;
 const DEFAULT_THREADS: usize = 1;
+
+pub fn verify_is_legal() {
+
+    for (_index, &position) in POSITIONS.iter().enumerate() {
+
+        let board = Board::from_fen(position).unwrap();
+        let mut legal_moves = MoveList::new();
+        board.append_all_moves(&mut legal_moves);
+
+        //index through every 16-bit value
+        for i in 0..=u16::MAX {
+            let flags = i >> 12;
+
+            // Some invalid flags
+            if flags == 0b0011 || flags == 0b0110 || flags == 0b0111 {
+                continue;
+            }
+
+            let mv = Move(i);
+
+            if mv.is_present() {
+                let contains = legal_moves.iter().any(|entry| entry.mv == mv);
+
+                if contains && !board.is_legal(mv) {
+                    println!("For board. . . .{} ", position);
+                    println!("Move: {}-{} is in the list of legal moves, but determined NOT legal.", mv.from(), mv.to());
+                }
+                if !contains && board.is_legal(mv) {
+                    println!("For board. . . .{} ", position);
+                    println!("Move: {}-{} was determined LEGAL, but not in the list of legal moves.", mv.from(), mv.to());
+                }
+            }
+        }
+    }
+
+    println!("Completed verification. If no errors, then we're good.");
+}
 
 pub fn bench<const PRETTY: bool>(args: &[&str]) {
     #[allow(clippy::get_first)]
