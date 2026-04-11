@@ -678,7 +678,9 @@ fn search<NODE: NodeType>(
             return (2 * score + beta) / 3;
         }
         // Negative Extensions
-        else if tt_score >= beta {
+        else if score > tt_score {
+            tt_move = Move::NULL;
+        } else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
