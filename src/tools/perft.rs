@@ -79,8 +79,6 @@ pub fn is_legal_perft(depth: usize, board: &mut Board) {
 
         board.undo_move(mv);
 
-        //let mv16: u16 = unsafe { std::mem::transmute(mv) };
-
         println!("{}: {count}", mv.to_uci(board));
     }
 
