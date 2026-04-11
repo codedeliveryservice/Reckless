@@ -5,7 +5,10 @@
 
 use std::time::Instant;
 
-use crate::board::{Board, NullBoardObserver};
+use crate::{
+    board::{Board, NullBoardObserver},
+    types::{Move, MoveList},
+};
 
 pub fn perft(depth: usize, board: &mut Board) {
     println!("{}", "-".repeat(60));
@@ -24,7 +27,7 @@ pub fn perft(depth: usize, board: &mut Board) {
 
         board.make_move(mv, &mut NullBoardObserver);
 
-        let count = perft_internal(depth - 1, board);
+        let count = perft_internal(&|board| board.generate_all_moves(), depth - 1, board);
         nodes += count;
         index += 1;
 
@@ -52,7 +55,7 @@ pub fn simple_perft(depth: usize, board: &mut Board) {
 
         board.make_move(mv, &mut NullBoardObserver);
 
-        let count = perft_internal(depth - 1, board);
+        let count = perft_internal(&|board| board.generate_all_moves(), depth - 1, board);
         nodes += count;
 
         board.undo_move(mv);
@@ -63,23 +66,57 @@ pub fn simple_perft(depth: usize, board: &mut Board) {
     println!("total: {nodes}");
 }
 
-fn perft_internal(depth: usize, board: &mut Board) -> u64 {
+pub fn is_legal_perft(depth: usize, board: &mut Board) {
+    let mut nodes = 0;
+
+    for entry in is_legal_movegen(board).iter() {
+        let mv = entry.mv;
+
+        board.make_move(mv, &mut NullBoardObserver);
+
+        let count = perft_internal(&is_legal_movegen, depth - 1, board);
+        nodes += count;
+
+        board.undo_move(mv);
+
+        println!("{}: {count}", mv.to_uci(board));
+    }
+
+    println!("total: {nodes}");
+}
+
+fn perft_internal<F: Fn(&Board) -> MoveList>(move_gen: &F, depth: usize, board: &mut Board) -> u64 {
     if depth == 0 {
         return 1;
     }
 
     if depth == 1 {
-        return board.generate_all_moves().len() as u64;
+        return move_gen(board).len() as u64;
     }
 
     let mut nodes = 0;
 
-    for entry in board.generate_all_moves().iter() {
+    for entry in move_gen(board).iter() {
         let mv = entry.mv;
         board.make_move(mv, &mut NullBoardObserver);
-        nodes += perft_internal(depth - 1, board);
+        nodes += perft_internal(move_gen, depth - 1, board);
         board.undo_move(mv);
     }
 
     nodes
+}
+
+fn is_legal_movegen(board: &Board) -> MoveList {
+    let mut moves = MoveList::new();
+    for i in 0..0x10000 {
+        let j = i >> 12;
+        if j == 0b0011 || j == 0b0110 || j == 0b0111 {
+            continue;
+        }
+        let mv: Move = unsafe { std::mem::transmute(i as u16) };
+        if mv.is_present() && board.is_legal(mv) {
+            moves.push(mv.from(), mv.to(), mv.kind());
+        }
+    }
+    moves
 }
