@@ -71,7 +71,7 @@ const DEFAULT_HASH: usize = 16;
 const DEFAULT_THREADS: usize = 1;
 
 pub fn verify_is_legal() {
-    for (_index, &position) in POSITIONS.iter().enumerate() {
+    for &position in POSITIONS.iter() {
         let board = Board::from_fen(position).unwrap();
         let mut legal_moves = MoveList::new();
         board.append_all_moves(&mut legal_moves);
