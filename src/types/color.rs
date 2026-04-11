@@ -35,13 +35,13 @@ impl<T> Index<Color> for [T] {
     type Output = T;
 
     fn index(&self, index: Color) -> &Self::Output {
-        unsafe { self.get_unchecked(index as usize) }
+        &self[index as usize]
     }
 }
 
 impl<T> IndexMut<Color> for [T] {
     fn index_mut(&mut self, index: Color) -> &mut Self::Output {
-        unsafe { self.get_unchecked_mut(index as usize) }
+        &mut self[index as usize]
     }
 }
 
