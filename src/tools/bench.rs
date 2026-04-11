@@ -15,7 +15,7 @@ use crate::{
     thread::SharedContext,
     threadpool::ThreadPool,
     time::{Limits, TimeManager},
-    types::{MoveList, Move},
+    types::{Move, MoveList},
 };
 
 const POSITIONS: &[&str] = &[
@@ -71,9 +71,7 @@ const DEFAULT_HASH: usize = 16;
 const DEFAULT_THREADS: usize = 1;
 
 pub fn verify_is_legal() {
-
     for (_index, &position) in POSITIONS.iter().enumerate() {
-
         let board = Board::from_fen(position).unwrap();
         let mut legal_moves = MoveList::new();
         board.append_all_moves(&mut legal_moves);
@@ -94,11 +92,19 @@ pub fn verify_is_legal() {
 
                 if contains && !board.is_legal(mv) {
                     println!("For board. . . .{} ", position);
-                    println!("Move: {}-{} is in the list of legal moves, but determined NOT legal.", mv.from(), mv.to());
+                    println!(
+                        "Move: {}-{} is in the list of legal moves, but determined NOT legal.",
+                        mv.from(),
+                        mv.to()
+                    );
                 }
                 if !contains && board.is_legal(mv) {
                     println!("For board. . . .{} ", position);
-                    println!("Move: {}-{} was determined LEGAL, but not in the list of legal moves.", mv.from(), mv.to());
+                    println!(
+                        "Move: {}-{} was determined LEGAL, but not in the list of legal moves.",
+                        mv.from(),
+                        mv.to()
+                    );
                 }
             }
         }
