@@ -3,7 +3,7 @@ use crate::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
         pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
-    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, Rank, Square, ZOBRIST},
+    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, PAWN_HOME_RANK, PROMO_RANK, Square, ZOBRIST},
 };
 
 #[cfg(test)]
@@ -386,10 +386,7 @@ impl Board {
                     && (orthogonal | diagonal).is_empty();
             }
 
-            let offset = Square::UP[stm];
-            let promotion_rank = if stm == Color::White { Rank::R8 } else { Rank::R1 };
-
-            if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
+            if mv.is_promotion() != (mv.to().rank() == PROMO_RANK[stm]) {
                 return false;
             }
 
@@ -398,13 +395,13 @@ impl Board {
             }
 
             if mv.is_double_push() {
-                return from.rank() == (if stm == Color::White { Rank::R2 } else { Rank::R7 })
-                    && from.shift(2 * offset) == to
-                    && !self.occupancies().contains(from.shift(offset))
+                return from.rank() == PAWN_HOME_RANK[stm]
+                    && from.shift(2 * Square::UP[stm]) == to
+                    && !self.occupancies().contains(from.shift(Square::UP[stm]))
                     && !self.occupancies().contains(to);
             }
 
-            return !mv.is_castling() && from.shift(offset) == to && !self.occupancies().contains(to);
+            return !mv.is_castling() && from.shift(Square::UP[stm]) == to && !self.occupancies().contains(to);
         }
 
         !mv.is_special()
