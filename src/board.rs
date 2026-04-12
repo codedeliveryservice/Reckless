@@ -369,12 +369,11 @@ impl Board {
             return false;
         }
 
-        if self.in_check() {
-            if self.checkers().is_multiple()
-                || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to))
-            {
-                return false;
-            }
+        if self.in_check()
+            && (self.checkers().is_multiple()
+                || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to)))
+        {
+            return false;
         }
 
         if piece.piece_type() == PieceType::Pawn {
@@ -410,9 +409,9 @@ impl Board {
             return !mv.is_castling() && from.shift(offset) == to && !self.occupancies().contains(to);
         }
 
-        return !mv.is_special()
+        !mv.is_special()
             && (mv.is_capture() == self.colors(!stm).contains(to))
-            && attacks(piece, from, self.occupancies()).contains(to);
+            && attacks(piece, from, self.occupancies()).contains(to)
     }
 
     /// Quickly checks if the move *might* give check to the opponent's king.
