@@ -330,65 +330,47 @@ impl Board {
             | (king_attacks(square) & self.pieces(PieceType::King))
     }
 
-    /// Checks if the given move is legal in the current position.
     pub fn is_legal(&self, mv: Move) -> bool {
         debug_assert!(mv.is_present());
-
         let stm = self.side_to_move();
         let king = self.king_square(stm);
-
         let from = mv.from();
         let to = mv.to();
 
-        if self.in_check() && king != from {
-            if self.checkers().is_multiple() {
-                return false;
-            }
-
-            if !mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to) {
-                return false;
-            }
-        }
-
-        if self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to) {
+        if !self.colors(stm).contains(from) {
             return false;
         }
 
         let piece = self.piece_on(from);
-        let captured = self.piece_on(to).piece_type();
 
-        if mv.is_castling() {
-            if king != from {
-                return false;
+        if piece.piece_type() == PieceType::King {
+            if mv.is_castling() {
+                let kind = match to {
+                    Square::G1 => CastlingKind::WhiteKingside,
+                    Square::C1 => CastlingKind::WhiteQueenside,
+                    Square::G8 => CastlingKind::BlackKingside,
+                    Square::C8 => CastlingKind::BlackQueenside,
+                    _ => return false,
+                };
+
+                return self.castling().is_allowed(kind)
+                    && (self.castling_path[kind] & self.occupancies()).is_empty()
+                    && (self.castling_threat[kind] & self.all_threats()).is_empty()
+                    && !self.pinned(stm).contains(self.castling_rooks[kind]);
             }
 
-            let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingside,
-                Square::C1 => CastlingKind::WhiteQueenside,
-                Square::G8 => CastlingKind::BlackKingside,
-                Square::C8 => CastlingKind::BlackQueenside,
-                _ => return false,
-            };
-
-            return self.castling().is_allowed(kind)
-                && (self.castling_path[kind] & self.occupancies()).is_empty()
-                && (self.castling_threat[kind] & self.all_threats()).is_empty()
-                && !self.pinned(stm).contains(self.castling_rooks[kind]);
+            return !mv.is_special()
+                && !self.colors(stm).contains(to)
+                && (mv.is_capture() == self.colors(!stm).contains(to))
+                && (king_attacks(from) & !self.all_threats()).contains(to);
         }
 
-        if king == from && self.all_threats().contains(to) {
-            return false;
-        }
-
-        if !self.colors(stm).contains(from) || self.colors(stm).contains(to) {
-            return false;
-        }
-
-        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
-            return false;
-        }
-
-        if mv.is_capture() && !mv.is_en_passant() && !self.colors(!stm).contains(to) {
+        if self.colors(stm).contains(to)
+            || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to))
+            || (self.in_check()
+                && (self.checkers().is_multiple()
+                    || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to))))
+        {
             return false;
         }
 
@@ -422,12 +404,12 @@ impl Board {
                     && !self.occupancies().contains(to);
             }
 
-            return from.shift(offset) == to && !self.occupancies().contains(to);
-        } else if mv.is_double_push() || mv.is_promotion() || mv.is_en_passant() {
-            return false;
+            return !mv.is_castling() && from.shift(offset) == to && !self.occupancies().contains(to);
         }
 
-        attacks(piece, from, self.occupancies()).contains(to)
+        !mv.is_special()
+            && (mv.is_capture() == self.colors(!stm).contains(to))
+            && attacks(piece, from, self.occupancies()).contains(to)
     }
 
     /// Quickly checks if the move *might* give check to the opponent's king.
