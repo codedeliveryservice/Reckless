@@ -657,6 +657,7 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
+        td.stack[ply].mv = Move::NULL;
         singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
@@ -677,11 +678,11 @@ fn search<NODE: NodeType>(
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
             return (2 * singular_score + beta) / 3;
+        } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
+            tt_move = Move::NULL;
         }
         // Negative Extensions
-        else if singular_score > tt_score {
-            tt_move = Move::NULL;
-        } else if tt_score >= beta {
+        else if tt_score >= beta {
             extension = -2;
         } else if cut_node {
             extension = -2;
