@@ -699,7 +699,6 @@ fn search<NODE: NodeType>(
     let mut skip_quiets = false;
     let mut current_search_count = 0;
     let mut alpha_raises = 0;
-    let mut tt_move_score = Score::NONE;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded {
@@ -826,9 +825,9 @@ fn search<NODE: NodeType>(
                 reduction += 1515;
             }
 
-            if is_valid(tt_move_score) && is_valid(singular_score) {
-                let margin = tt_move_score - singular_score;
-                reduction += (200 * (margin - 125) / 128).clamp(0, 1024);
+            if is_valid(best_score) && is_valid(singular_score) {
+                let margin = best_score - singular_score;
+                reduction += (250 * (margin - 125) / 128).clamp(0, 2048);
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 485 {
@@ -889,9 +888,9 @@ fn search<NODE: NodeType>(
                 reduction += 1360;
             }
 
-            if is_valid(tt_move_score) && is_valid(singular_score) {
-                let margin = tt_move_score - singular_score;
-                reduction += (200 * (margin - 125) / 128).clamp(0, 1024);
+            if is_valid(best_score) && is_valid(singular_score) {
+                let margin = best_score - singular_score;
+                reduction += (250 * (margin - 125) / 128).clamp(0, 2048);
             }
 
             if mv == tt_move {
@@ -957,10 +956,6 @@ fn search<NODE: NodeType>(
             } else {
                 root_move.score = -Score::INFINITE;
             }
-        }
-
-        if mv == tt_move {
-            tt_move_score = score;
         }
 
         if score > best_score {
