@@ -646,6 +646,7 @@ fn search<NODE: NodeType>(
 
     // Singular Extensions (SE)
     let mut extension = 0;
+    let mut singular_score = Score::NONE;
 
     if !NODE::ROOT && !excluded && potential_singularity {
         debug_assert!(is_valid(tt_score));
@@ -656,29 +657,29 @@ fn search<NODE: NodeType>(
         let singular_depth = (depth - 1) / 2;
 
         td.stack[ply].excluded = tt_move;
-        let score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
 
         if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
-        if score < singular_beta {
+        if singular_score < singular_beta {
             let double_margin =
                 204 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
             let triple_margin =
                 257 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 15 * correction_value.abs() / 128 + 32;
 
             extension = 1;
-            extension += (score < singular_beta - double_margin) as i32;
-            extension += (score < singular_beta - triple_margin) as i32;
+            extension += (singular_score < singular_beta - double_margin) as i32;
+            extension += (singular_score < singular_beta - triple_margin) as i32;
         }
         // Multi-Cut
-        else if score >= beta && !is_decisive(score) {
-            return (2 * score + beta) / 3;
+        else if singular_score >= beta && !is_decisive(singular_score) {
+            return (2 * singular_score + beta) / 3;
         }
         // Negative Extensions
-        else if score > tt_score {
+        else if singular_score > tt_score {
             tt_move = Move::NULL;
         } else if tt_score >= beta {
             extension = -2;
@@ -698,6 +699,7 @@ fn search<NODE: NodeType>(
     let mut skip_quiets = false;
     let mut current_search_count = 0;
     let mut alpha_raises = 0;
+    let mut tt_move_score = Score::NONE;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
         if mv == td.stack[ply].excluded {
@@ -824,6 +826,11 @@ fn search<NODE: NodeType>(
                 reduction += 1515;
             }
 
+            if is_valid(tt_move_score) && is_valid(singular_score) {
+                let margin = tt_move_score - singular_score;
+                reduction += (512 * (margin - 160) / 128).clamp(0, 2048);
+            }
+
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 485 {
                 reduction += 129;
             }
@@ -880,6 +887,11 @@ fn search<NODE: NodeType>(
 
             if td.stack[ply + 1].cutoff_count > 2 {
                 reduction += 1360;
+            }
+
+            if is_valid(tt_move_score) && is_valid(singular_score) {
+                let margin = tt_move_score - singular_score;
+                reduction += (400 * (margin - 160) / 128).clamp(0, 2048);
             }
 
             if mv == tt_move {
@@ -945,6 +957,10 @@ fn search<NODE: NodeType>(
             } else {
                 root_move.score = -Score::INFINITE;
             }
+        }
+
+        if mv == tt_move {
+            tt_move_score = score;
         }
 
         if score > best_score {
