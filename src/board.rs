@@ -359,25 +359,25 @@ impl Board {
                     && !self.pinned(stm).contains(self.castling_rooks[kind]);
             }
 
-            return !mv.is_special() && !self.colors(stm).contains(to) &&
-                (mv.is_capture() == self.colors(!stm).contains(to)) &&
-                (attacks(piece, from, Bitboard(0)) & !self.all_threats()).contains(to);
+            return !mv.is_special()
+                && !self.colors(stm).contains(to)
+                && (mv.is_capture() == self.colors(!stm).contains(to))
+                && (attacks(piece, from, Bitboard(0)) & !self.all_threats()).contains(to);
         }
 
-        if self.colors(stm).contains(to)
-            || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to)) {
+        if self.colors(stm).contains(to) || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to)) {
             return false;
         }
 
         if self.in_check() {
             if self.checkers().is_multiple()
-                || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to)) {
+                || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to))
+            {
                 return false;
             }
         }
 
         if piece.piece_type() == PieceType::Pawn {
-
             if mv.is_en_passant() {
                 let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
                 let diagonal = self.colored_pieces2(!stm, PieceType::Bishop, PieceType::Queen);
