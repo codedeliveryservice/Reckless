@@ -3,7 +3,9 @@ use crate::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
         pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
-    types::{Bitboard, Castling, CastlingKind, Color, Move, Piece, PieceType, PAWN_HOME_RANK, PROMO_RANK, Square, ZOBRIST},
+    types::{
+        Bitboard, Castling, CastlingKind, Color, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square, ZOBRIST,
+    },
 };
 
 #[cfg(test)]
