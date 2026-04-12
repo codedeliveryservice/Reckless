@@ -362,7 +362,7 @@ impl Board {
             return !mv.is_special()
                 && !self.colors(stm).contains(to)
                 && (mv.is_capture() == self.colors(!stm).contains(to))
-                && (attacks(piece, from, Bitboard(0)) & !self.all_threats()).contains(to);
+                && (king_attacks(from) & !self.all_threats()).contains(to);
         }
 
         if self.colors(stm).contains(to) || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to)) {
