@@ -121,7 +121,7 @@ impl Default for NoisyHistory {
 
 pub struct CorrectionHistory {
     // [side_to_move][key]
-    entries: Box<[[AtomicI16; Self::SIZE]; 2]>,
+    entries: Box<[[AtomicI16; 2]; Self::SIZE]>,
 }
 
 unsafe impl NumaValue for CorrectionHistory {}
@@ -133,13 +133,13 @@ impl CorrectionHistory {
     const MASK: usize = Self::SIZE - 1;
 
     pub fn get(&self, stm: Color, key: u64) -> i32 {
-        self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32
+        self.entries[key as usize & Self::MASK][stm].load(Ordering::Relaxed) as i32
     }
 
     pub fn update(&self, stm: Color, key: u64, bonus: i32) {
-        let current = self.entries[stm][key as usize & Self::MASK].load(Ordering::Relaxed) as i32;
+        let current = self.entries[key as usize & Self::MASK][stm].load(Ordering::Relaxed) as i32;
         let new = current + bonus - bonus.abs() * current / Self::MAX_HISTORY;
-        self.entries[stm][key as usize & Self::MASK].store(new as i16, Ordering::Relaxed);
+        self.entries[key as usize & Self::MASK][stm].store(new as i16, Ordering::Relaxed);
     }
 
     pub fn clear(&self) {
