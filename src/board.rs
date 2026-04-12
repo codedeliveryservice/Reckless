@@ -330,7 +330,7 @@ impl Board {
             | (king_attacks(square) & self.pieces(PieceType::King))
     }
 
-    pub fn is_legal2(&self, mv: Move) -> bool {
+    pub fn is_legal(&self, mv: Move) -> bool {
         debug_assert!(mv.is_present());
         let stm = self.side_to_move();
         let king = self.king_square(stm);
@@ -413,106 +413,6 @@ impl Board {
         return !mv.is_special()
             && (mv.is_capture() == self.colors(!stm).contains(to))
             && attacks(piece, from, self.occupancies()).contains(to);
-    }
-
-    /// Checks if the given move is legal in the current position.
-    pub fn is_legal(&self, mv: Move) -> bool {
-        debug_assert!(mv.is_present());
-
-        let stm = self.side_to_move();
-        let king = self.king_square(stm);
-
-        let from = mv.from();
-        let to = mv.to();
-
-        if self.in_check() && king != from {
-            if self.checkers().is_multiple() {
-                return false;
-            }
-
-            if !mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to) {
-                return false;
-            }
-        }
-
-        if self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to) {
-            return false;
-        }
-
-        let piece = self.piece_on(from);
-        let captured = self.piece_on(to).piece_type();
-
-        if mv.is_castling() {
-            if king != from {
-                return false;
-            }
-
-            let kind = match to {
-                Square::G1 => CastlingKind::WhiteKingside,
-                Square::C1 => CastlingKind::WhiteQueenside,
-                Square::G8 => CastlingKind::BlackKingside,
-                Square::C8 => CastlingKind::BlackQueenside,
-                _ => return false,
-            };
-
-            return self.castling().is_allowed(kind)
-                && (self.castling_path[kind] & self.occupancies()).is_empty()
-                && (self.castling_threat[kind] & self.all_threats()).is_empty()
-                && !self.pinned(stm).contains(self.castling_rooks[kind]);
-        }
-
-        if king == from && self.all_threats().contains(to) {
-            return false;
-        }
-
-        if !self.colors(stm).contains(from) || self.colors(stm).contains(to) {
-            return false;
-        }
-
-        if captured != PieceType::None && (!mv.is_capture() || captured == PieceType::King) {
-            return false;
-        }
-
-        if mv.is_capture() && !mv.is_en_passant() && !self.colors(!stm).contains(to) {
-            return false;
-        }
-
-        if piece.piece_type() == PieceType::Pawn {
-            if mv.is_en_passant() {
-                let occupancies = self.occupancies() ^ from.to_bb() ^ to.to_bb() ^ (to ^ 8).to_bb();
-                let diagonal = self.colored_pieces2(!stm, PieceType::Bishop, PieceType::Queen);
-                let orthogonal = self.colored_pieces2(!stm, PieceType::Rook, PieceType::Queen);
-                let diagonal = bishop_attacks(king, occupancies) & diagonal;
-                let orthogonal = rook_attacks(king, occupancies) & orthogonal;
-                return to == self.en_passant()
-                    && pawn_attacks(from, stm).contains(to)
-                    && (orthogonal | diagonal).is_empty();
-            }
-
-            let offset = Square::UP[stm];
-            let promotion_rank = if stm == Color::White { Rank::R8 } else { Rank::R1 };
-
-            if mv.is_promotion() != (mv.to().rank() == promotion_rank) {
-                return false;
-            }
-
-            if mv.is_capture() {
-                return pawn_attacks(from, stm).contains(to) && self.colors(!stm).contains(to);
-            }
-
-            if mv.is_double_push() {
-                return from.rank() == (if stm == Color::White { Rank::R2 } else { Rank::R7 })
-                    && from.shift(2 * offset) == to
-                    && !self.occupancies().contains(from.shift(offset))
-                    && !self.occupancies().contains(to);
-            }
-
-            return from.shift(offset) == to && !self.occupancies().contains(to);
-        } else if mv.is_double_push() || mv.is_promotion() || mv.is_en_passant() {
-            return false;
-        }
-
-        attacks(piece, from, self.occupancies()).contains(to)
     }
 
     /// Quickly checks if the move *might* give check to the opponent's king.
