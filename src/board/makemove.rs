@@ -48,11 +48,8 @@ impl Board {
         self.state.captured = None;
         self.state.recapture_square = Square::None;
 
-        if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
-            self.state.halfmove_clock = 0;
-        } else {
-            self.state.halfmove_clock += 1;
-        }
+        self.state.halfmove_clock =
+            !(mv.kind() == MoveKind::Capture || pt == PieceType::Pawn) as u8 * (self.state.halfmove_clock + 1);
         self.state.plies_from_null += 1;
 
         let captured = self.piece_on(to);
