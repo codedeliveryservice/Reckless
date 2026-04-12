@@ -108,14 +108,12 @@ fn perft_internal<F: Fn(&Board) -> MoveList>(move_gen: &F, depth: usize, board: 
 
 fn is_legal_movegen(board: &Board) -> MoveList {
     let mut moves = MoveList::new();
-    for i in 0..0x10000 {
+    for i in 0..=u16::MAX {
         let j = i >> 12;
         if j == 0b0011 || j == 0b0110 || j == 0b0111 {
             continue;
         }
-
-        let mv: Move = unsafe { std::mem::transmute(i as u16) };
-
+        let mv: Move = unsafe { std::mem::transmute(i) };
         if mv.is_present() && board.is_legal(mv) {
             moves.push(mv.from(), mv.to(), mv.kind());
         }

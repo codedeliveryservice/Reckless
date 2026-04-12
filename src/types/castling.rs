@@ -29,13 +29,13 @@ impl<T> Index<CastlingKind> for [T] {
     type Output = T;
 
     fn index(&self, index: CastlingKind) -> &Self::Output {
-        unsafe { self.get_unchecked(index as usize) }
+        &self[index as usize]
     }
 }
 
 impl<T> IndexMut<CastlingKind> for [T] {
     fn index_mut(&mut self, index: CastlingKind) -> &mut Self::Output {
-        unsafe { self.get_unchecked_mut(index as usize) }
+        &mut self[index as usize]
     }
 }
 
@@ -91,6 +91,6 @@ impl<T> Index<Castling> for [T] {
     type Output = T;
 
     fn index(&self, index: Castling) -> &Self::Output {
-        unsafe { self.get_unchecked(index.raw as usize) }
+        &self[index.raw as usize]
     }
 }

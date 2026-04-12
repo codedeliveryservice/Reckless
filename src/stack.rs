@@ -72,13 +72,13 @@ impl Index<isize> for Stack {
 
     fn index(&self, index: isize) -> &Self::Output {
         debug_assert!(index + 8 >= 0 && index < MAX_PLY as isize + 16);
-        unsafe { self.data.get_unchecked((index + 8) as usize) }
+        &self.data[(index + 8) as usize]
     }
 }
 
 impl IndexMut<isize> for Stack {
     fn index_mut(&mut self, index: isize) -> &mut Self::Output {
         debug_assert!(index + 8 >= 0 && index < MAX_PLY as isize + 16);
-        unsafe { self.data.get_unchecked_mut((index + 8) as usize) }
+        &mut self.data[(index + 8) as usize]
     }
 }
