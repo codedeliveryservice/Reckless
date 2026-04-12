@@ -175,7 +175,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             td.root_in_tb = true;
 
             // Keep probing in search if DTZ is not available and we are winning
-            td.stop_probing_tb = td.root_moves[0].score < Score::ZERO;
+            td.stop_probing_tb = td.root_moves[0].tb_score <= Score::ZERO;
         }
     }
 }
