@@ -33,6 +33,9 @@ pub const MAX_MOVES: usize = 256;
 #[derive(PartialEq, PartialOrd)]
 pub enum Rank { R1, R2, R3, R4, R5, R6, R7, R8 }
 
+pub const PROMO_RANK: [Rank; 2] = [Rank::R8, Rank::R1];
+pub const PAWN_HOME_RANK: [Rank; 2] = [Rank::R2, Rank::R7];
+
 #[rustfmt::skip]
 #[repr(u8)]
 #[derive(PartialEq, PartialOrd)]
