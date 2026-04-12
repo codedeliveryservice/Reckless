@@ -113,8 +113,23 @@ fn is_legal_movegen(board: &Board) -> MoveList {
         if j == 0b0011 || j == 0b0110 || j == 0b0111 {
             continue;
         }
+
         let mv: Move = unsafe { std::mem::transmute(i as u16) };
-        if mv.is_present() && board.is_legal(mv) {
+
+        if !mv.is_present() {
+            continue;
+        }
+
+        let b1 = board.is_legal(mv);
+        let b2 = board.is_legal2(mv);
+
+        if b1 != b2 {
+            println!("{}", board);
+            println!("Move: {}-{}, {}", mv.from(), mv.to(), mv.kind() as u16);
+            println!("main: {}, patch {}", b1, b2);
+        }
+
+        if board.is_legal2(mv) {
             moves.push(mv.from(), mv.to(), mv.kind());
         }
     }
