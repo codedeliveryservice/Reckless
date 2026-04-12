@@ -365,13 +365,11 @@ impl Board {
                 && (king_attacks(from) & !self.all_threats()).contains(to);
         }
 
-        if self.colors(stm).contains(to) || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to)) {
-            return false;
-        }
-
-        if self.in_check()
-            && (self.checkers().is_multiple()
-                || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to)))
+        if self.colors(stm).contains(to)
+            || (self.pinned(stm).contains(from) && !ray_pass(king, from).contains(to))
+            || (self.in_check()
+                && (self.checkers().is_multiple()
+                    || (!mv.is_en_passant() && !(self.checkers() | between(king, self.checkers().lsb())).contains(to))))
         {
             return false;
         }
