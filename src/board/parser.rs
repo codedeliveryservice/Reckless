@@ -67,15 +67,13 @@ impl Board {
 
     fn set_castling(&mut self, rights: &str) {
         for right in rights.chars() {
-            if !matches!(right, 'a'..='h' | 'A'..='H' | 'K' | 'Q' | 'k' | 'q') {
+            if !matches!(right.to_ascii_uppercase(), 'A'..='H' | 'K' | 'Q') {
                 continue;
             }
 
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
-            //let rook_file = Square::from_rank_file(color, token as u8 - b'A');
             let mut rook_file = right.to_ascii_uppercase() as u8 - b'A';
 
-            //If not FRC, the move the file
             if right.to_ascii_uppercase() == 'K' {
                 rook_file = File::H as u8;
             } else if right.to_ascii_uppercase() == 'Q' {
