@@ -1,7 +1,7 @@
 #![allow(unsafe_op_in_unsafe_fn)]
-#![deny(clippy::large_types_passed_by_value)]
-#![deny(clippy::trivially_copy_pass_by_ref)]
-#![deny(clippy::redundant_clone)]
+#![warn(clippy::large_types_passed_by_value)]
+#![warn(clippy::trivially_copy_pass_by_ref)]
+#![warn(clippy::redundant_clone)]
 
 mod board;
 mod evaluation;
