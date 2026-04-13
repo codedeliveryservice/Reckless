@@ -21,7 +21,7 @@ jobs:
         rust: [1.88.0, 1.92.0]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
