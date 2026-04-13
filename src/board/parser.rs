@@ -1,7 +1,7 @@
 use super::Board;
 use crate::{
     lookup::between,
-    types::{CastlingKind, Color, Piece, PieceType, Square},
+    types::{CastlingKind, Color, File, HOME_RANK, KING_TO_FILE, Piece, ROOK_TO_FILE, Square},
 };
 
 #[derive(Debug)]
@@ -67,11 +67,41 @@ impl Board {
 
     fn set_castling(&mut self, rights: &str) {
         for right in rights.chars() {
-            match right {
+
+            let color = if right.is_uppercase() { Color::White } else { Color::Black };
+            //let rook_file = Square::from_rank_file(color, token as u8 - b'A');
+            let mut rook_file = right.to_ascii_uppercase() as u8 - b'A';
+
+            //If not FRC, the move the file
+            if right.to_ascii_uppercase() == 'K' {
+                rook_file = File::H as u8;
+            } else if right.to_ascii_uppercase() == 'Q' {
+                rook_file = File::A as u8;
+            };
+
+            let king_from = self.king_square(color);
+            let rook_from = Square::from_rank_file(HOME_RANK[color].clone() as u8, rook_file as u8);
+            let king_side = rook_from > king_from;
+
+            let rights = if color == Color::White {
+                if king_side { CastlingKind::WhiteKingside } else { CastlingKind::WhiteQueenside }
+            } else {
+                if king_side { CastlingKind::BlackKingside } else { CastlingKind::BlackQueenside }
+            };
+
+            let king_to = Square::from_rank_file(HOME_RANK[color].clone() as u8,
+                KING_TO_FILE[king_side as usize].clone() as u8);
+            let rook_to = Square::from_rank_file(HOME_RANK[color].clone() as u8,
+                ROOK_TO_FILE[king_side as usize].clone() as u8);
+
+            self.set_castling_for(rights, king_from, king_to, rook_from, rook_to);
+/*
                 'K' => {
+                    let rights = CastlingKind::WhiteKingside;
                     let rook_from = self.colored_pieces(Color::White, PieceType::Rook).msb();
                     let king_from = self.king_square(Color::White);
-                    self.set_castling_for(CastlingKind::WhiteKingside, king_from, Square::G1, rook_from, Square::F1);
+                    let king_to = CastlingKind::landing_square(rights);
+                    self.set_castling_for(rights, king_from, king_to, rook_from, Square::F1);
                 }
                 'Q' => {
                     let rook_from = self.colored_pieces(Color::White, PieceType::Rook).lsb();
@@ -125,7 +155,7 @@ impl Board {
                     self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
                 }
                 _ => continue,
-            }
+                */
         }
     }
 
