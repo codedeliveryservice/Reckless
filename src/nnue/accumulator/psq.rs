@@ -197,7 +197,7 @@ impl PstAccumulator {
 }
 
 const REGISTERS: usize = 8;
-const _: () = assert!(L1_SIZE % (REGISTERS * simd::I16_LANES) == 0);
+const _: () = assert!(L1_SIZE.is_multiple_of(REGISTERS * simd::I16_LANES));
 
 unsafe fn apply_changes(entry: &mut CacheEntry, adds: ArrayVec<PstFeature, 64>, subs: ArrayVec<PstFeature, 64>) {
     let mut registers: [_; REGISTERS] = std::mem::zeroed();
