@@ -80,7 +80,7 @@ fn reckless_move_to_tb_move(mv: Move) -> TbMove {
     let mut tb_move: TbMove = (from << 6) | to;
 
     if mv.is_promotion() {
-        let promotion_bits = promo_bits_from_piece(mv.promotion_piece()) & 0x7;
+        let promotion_bits = promo_bits_from_piece(mv.promo_piece_type()) & 0x7;
         tb_move |= promotion_bits << 12;
     }
 

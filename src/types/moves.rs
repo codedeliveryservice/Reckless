@@ -106,7 +106,7 @@ impl Move {
         matches!(self.kind(), MoveKind::DoublePush)
     }
 
-    pub const fn promotion_piece(self) -> PieceType {
+    pub const fn promo_piece_type(self) -> PieceType {
         debug_assert!(self.is_promotion());
         PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize)
     }
@@ -122,7 +122,7 @@ impl Move {
         let mut output = format!("{}{}", self.from(), self.to());
 
         if self.is_promotion() {
-            match self.promotion_piece() {
+            match self.promo_piece_type() {
                 PieceType::Knight => output.push('n'),
                 PieceType::Bishop => output.push('b'),
                 PieceType::Rook => output.push('r'),

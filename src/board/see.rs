@@ -24,7 +24,7 @@ impl super::Board {
         balance -= self.piece_on(mv.from()).value();
 
         if mv.is_promotion() {
-            balance -= mv.promotion_piece().value();
+            balance -= mv.promo_piece_type().value();
         }
 
         if balance >= 0 {
@@ -101,18 +101,9 @@ impl super::Board {
         let mut value = capture.value();
 
         if mv.is_promotion() {
-            value += mv.promotion_piece().value() - PieceType::Pawn.value()
+            value += mv.promo_piece_type().value() - PieceType::Pawn.value()
         }
-
         value
-
-        //capture.value() + mv.is_promotion() as i32 * (mv.promotion_piece().value() - PieceType::Pawn.value())
-
-        //if let Some(promotion) = mv.promotion_piece() {
-            //capture.value() + promotion.value() - PieceType::Pawn.value()
-        //} else {
-            //capture.value()
-        //}
     }
 
     fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {
