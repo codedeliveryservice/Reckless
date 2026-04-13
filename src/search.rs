@@ -1084,7 +1084,10 @@ fn search<NODE: NodeType>(
         }
     }
 
-    tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
+    tt_pv |= !NODE::ROOT
+        && bound == Bound::Upper
+        && td.stack[ply - 1].tt_pv
+        && (move_count >= 5 || move_picker.generated() < 5);
 
     if !NODE::ROOT && best_score >= beta && !is_decisive(best_score) && !is_decisive(alpha) {
         let weight = depth.min(8);

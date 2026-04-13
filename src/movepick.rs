@@ -22,6 +22,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    generated: usize,
 }
 
 impl MovePicker {
@@ -33,6 +34,7 @@ impl MovePicker {
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            generated: 0,
         }
     }
 
@@ -44,6 +46,7 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            generated: 0,
         }
     }
 
@@ -55,11 +58,16 @@ impl MovePicker {
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            generated: 0,
         }
     }
 
     pub const fn stage(&self) -> Stage {
         self.stage
+    }
+
+    pub const fn generated(&self) -> usize {
+        self.generated
     }
 
     pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
@@ -74,6 +82,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateNoisy {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
+            self.generated += self.list.len();
             self.score_noisy(td);
         }
 
@@ -107,6 +116,7 @@ impl MovePicker {
         if self.stage == Stage::GenerateQuiet {
             self.stage = Stage::Quiet;
             td.board.append_quiet_moves(&mut self.list);
+            self.generated += self.list.len();
             self.score_quiet(td, ply);
         }
 
