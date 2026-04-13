@@ -149,7 +149,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                         delta += 28 * delta / 128;
                     }
                     s if s >= beta => {
-                        alpha = (beta - delta).max(alpha);
+                        alpha = (alpha + beta) / 2;
                         beta = (score + delta).min(Score::INFINITE);
                         reduction += 1;
                         delta += 62 * delta / 128;
