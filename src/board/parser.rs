@@ -74,14 +74,14 @@ impl Board {
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
             let mut rook_file = right.to_ascii_uppercase() as u8 - b'A';
 
-            if right.to_ascii_uppercase() == 'K' {
+            if right.eq_ignore_ascii_case(&'K') {
                 rook_file = File::H as u8;
-            } else if right.to_ascii_uppercase() == 'Q' {
+            } else if right.eq_ignore_ascii_case(&'Q') {
                 rook_file = File::A as u8;
             };
 
             let king_from = self.king_square(color);
-            let rook_from = Square::from_rank_file(HOME_RANK[color].clone() as u8, rook_file as u8);
+            let rook_from = Square::from_rank_file(HOME_RANK[color].clone() as u8, rook_file);
             let king_side = rook_from > king_from;
 
             let rights = if color == Color::White {
