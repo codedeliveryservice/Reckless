@@ -106,11 +106,9 @@ impl Move {
         matches!(self.kind(), MoveKind::DoublePush)
     }
 
-    pub const fn promotion_piece(self) -> Option<PieceType> {
-        if self.is_promotion() {
-            return Some(PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize));
-        }
-        None
+    pub const fn promo_piece_type(self) -> PieceType {
+        debug_assert!(self.is_promotion());
+        PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize)
     }
 
     pub fn to_uci(self, board: &Board) -> String {
@@ -124,11 +122,11 @@ impl Move {
         let mut output = format!("{}{}", self.from(), self.to());
 
         if self.is_promotion() {
-            match self.promotion_piece() {
-                Some(PieceType::Knight) => output.push('n'),
-                Some(PieceType::Bishop) => output.push('b'),
-                Some(PieceType::Rook) => output.push('r'),
-                Some(PieceType::Queen) => output.push('q'),
+            match self.promo_piece_type() {
+                PieceType::Knight => output.push('n'),
+                PieceType::Bishop => output.push('b'),
+                PieceType::Rook => output.push('r'),
+                PieceType::Queen => output.push('q'),
                 _ => (),
             }
         }

@@ -111,7 +111,7 @@ impl Board {
                 self.update_hash(rook, rook_to);
             }
             _ if mv.is_promotion() => {
-                let promotion = Piece::new(stm, mv.promotion_piece().unwrap());
+                let promotion = Piece::new(stm, mv.promo_piece_type());
 
                 self.remove_piece(piece, to);
                 self.add_piece(promotion, to);
