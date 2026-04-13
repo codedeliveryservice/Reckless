@@ -67,6 +67,9 @@ impl Board {
 
     fn set_castling(&mut self, rights: &str) {
         for right in rights.chars() {
+            if !matches!(right, 'a'..='h' | 'A'..='H' | 'K' | 'Q' | 'k' | 'q') {
+                continue;
+            }
 
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
             //let rook_file = Square::from_rank_file(color, token as u8 - b'A');
@@ -89,73 +92,12 @@ impl Board {
                 if king_side { CastlingKind::BlackKingside } else { CastlingKind::BlackQueenside }
             };
 
-            let king_to = Square::from_rank_file(HOME_RANK[color].clone() as u8,
-                KING_TO_FILE[king_side as usize].clone() as u8);
-            let rook_to = Square::from_rank_file(HOME_RANK[color].clone() as u8,
-                ROOK_TO_FILE[king_side as usize].clone() as u8);
+            let king_to =
+                Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side as usize].clone() as u8);
+            let rook_to =
+                Square::from_rank_file(HOME_RANK[color].clone() as u8, ROOK_TO_FILE[king_side as usize].clone() as u8);
 
             self.set_castling_for(rights, king_from, king_to, rook_from, rook_to);
-/*
-                'K' => {
-                    let rights = CastlingKind::WhiteKingside;
-                    let rook_from = self.colored_pieces(Color::White, PieceType::Rook).msb();
-                    let king_from = self.king_square(Color::White);
-                    let king_to = CastlingKind::landing_square(rights);
-                    self.set_castling_for(rights, king_from, king_to, rook_from, Square::F1);
-                }
-                'Q' => {
-                    let rook_from = self.colored_pieces(Color::White, PieceType::Rook).lsb();
-                    let king_from = self.king_square(Color::White);
-                    self.set_castling_for(CastlingKind::WhiteQueenside, king_from, Square::C1, rook_from, Square::D1);
-                }
-                'k' => {
-                    let rook_from = self.colored_pieces(Color::Black, PieceType::Rook).msb();
-                    let king_from = self.king_square(Color::Black);
-                    self.set_castling_for(CastlingKind::BlackKingside, king_from, Square::G8, rook_from, Square::F8);
-                }
-                'q' => {
-                    let rook_from = self.colored_pieces(Color::Black, PieceType::Rook).lsb();
-                    let king_from = self.king_square(Color::Black);
-                    self.set_castling_for(CastlingKind::BlackQueenside, king_from, Square::C8, rook_from, Square::D8);
-                }
-                token @ 'A'..='H' => {
-                    let king_from = self.king_square(Color::White);
-                    let rook_from = Square::from_rank_file(0, token as u8 - b'A');
-
-                    let kind = if king_from.file() < rook_from.file() {
-                        CastlingKind::WhiteKingside
-                    } else {
-                        CastlingKind::WhiteQueenside
-                    };
-
-                    let (king_to, rook_to) = match kind {
-                        CastlingKind::WhiteKingside => (Square::G1, Square::F1),
-                        CastlingKind::WhiteQueenside => (Square::C1, Square::D1),
-                        _ => unreachable!(),
-                    };
-
-                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
-                }
-                token @ 'a'..='h' => {
-                    let king_from = self.king_square(Color::Black);
-                    let rook_from = Square::from_rank_file(7, token as u8 - b'a');
-
-                    let kind = if king_from.file() < rook_from.file() {
-                        CastlingKind::BlackKingside
-                    } else {
-                        CastlingKind::BlackQueenside
-                    };
-
-                    let (king_to, rook_to) = match kind {
-                        CastlingKind::BlackKingside => (Square::G8, Square::F8),
-                        CastlingKind::BlackQueenside => (Square::C8, Square::D8),
-                        _ => unreachable!(),
-                    };
-
-                    self.set_castling_for(kind, king_from, king_to, rook_from, rook_to);
-                }
-                _ => continue,
-                */
         }
     }
 
