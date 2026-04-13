@@ -69,38 +69,22 @@ impl Board {
         for right in rights.chars() {
             match right {
                 'K' => {
-                    let mut rook_from = Square::H1;
-                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
-                        rook_from = rook_from.shift(-1);
-                    }
-
+                    let rook_from = self.colored_pieces(Color::White, PieceType::Rook).msb();
                     let king_from = self.king_square(Color::White);
                     self.set_castling_for(CastlingKind::WhiteKingside, king_from, Square::G1, rook_from, Square::F1);
                 }
                 'Q' => {
-                    let mut rook_from = Square::A1;
-                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
-                        rook_from = rook_from.shift(1);
-                    }
-
+                    let rook_from = self.colored_pieces(Color::White, PieceType::Rook).lsb();
                     let king_from = self.king_square(Color::White);
                     self.set_castling_for(CastlingKind::WhiteQueenside, king_from, Square::C1, rook_from, Square::D1);
                 }
                 'k' => {
-                    let mut rook_from = Square::H8;
-                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
-                        rook_from = rook_from.shift(-1);
-                    }
-
+                    let rook_from = self.colored_pieces(Color::Black, PieceType::Rook).msb();
                     let king_from = self.king_square(Color::Black);
                     self.set_castling_for(CastlingKind::BlackKingside, king_from, Square::G8, rook_from, Square::F8);
                 }
                 'q' => {
-                    let mut rook_from = Square::A8;
-                    while self.piece_on(rook_from).piece_type() != PieceType::Rook {
-                        rook_from = rook_from.shift(1);
-                    }
-
+                    let rook_from = self.colored_pieces(Color::Black, PieceType::Rook).lsb();
                     let king_from = self.king_square(Color::Black);
                     self.set_castling_for(CastlingKind::BlackQueenside, king_from, Square::C8, rook_from, Square::D8);
                 }
