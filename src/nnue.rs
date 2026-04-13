@@ -77,7 +77,7 @@ const INPUT_BUCKETS_LAYOUT: [u8; 64] = [
 ];
 
 #[rustfmt::skip]
-const OUTPUT_BUCKETS_LAYOUT: [usize; 33] = [
+pub const OUTPUT_BUCKETS_LAYOUT: [usize; 33] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0,
     1, 1, 1, 1,
     2, 2, 2, 2,
@@ -232,6 +232,42 @@ impl Network {
 
             (l3_out * NETWORK_SCALE as f32) as i32
         }
+    }
+
+    pub fn eval_with_bucket(&mut self, board: &Board, bucket: usize) -> i32 {
+        self.full_refresh(board);
+        self.evaluate(board); // just to update internal state
+
+        unsafe {
+            let ft_out =
+                forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
+            let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
+            let l1_out = forward::propagate_l1(ft_out, &nnz_indexes[..nnz_count], bucket);
+            let l2_out = forward::propagate_l2(l1_out, bucket);
+            let l3_out = forward::propagate_l3(l2_out, bucket);
+            (l3_out * NETWORK_SCALE as f32) as i32
+        }
+    }
+
+    pub fn piece_contribution(&mut self, board: &Board, sq: Square) -> Option<i32> {
+        let piece = board.piece_on(sq);
+
+        if piece == Piece::None || piece.piece_type() == PieceType::King {
+            return None;
+        }
+
+        let baseline = self.evaluate(board);
+
+        let mut board_without = board.clone();
+        board_without.remove_piece(piece, sq);
+
+        self.full_refresh(&board_without);
+        let without = self.evaluate(&board_without);
+
+        self.full_refresh(board);
+        self.evaluate(board);
+
+        Some(baseline - without)
     }
 }
 
