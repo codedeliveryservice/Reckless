@@ -105,8 +105,7 @@ impl PstAccumulator {
     pub fn update(&mut self, prev: &Self, board: &Board, king: Square, pov: Color) {
         let PstDelta { mv, piece, captured } = self.delta;
 
-        let resulting_piece = if mv.is_promotion() { mv.promo_piece_type() }
-            else { piece.piece_type() };
+        let resulting_piece = if mv.is_promotion() { mv.promo_piece_type() } else { piece.piece_type() };
 
         let add1 = pst_index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
         let sub1 = pst_index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
