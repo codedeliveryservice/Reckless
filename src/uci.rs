@@ -334,7 +334,7 @@ fn eval(td: &mut ThreadData) {
 
     let side = td.board.side_to_move();
 
-    println!(" NNUE derived piece values:");
+    println!("NNUE derived piece values");
     println!("+-------+-------+-------+-------+-------+-------+-------+-------+");
     for rank in (0..8).rev() {
         print!("|");
@@ -363,7 +363,7 @@ fn eval(td: &mut ThreadData) {
 
     let used_bucket = crate::nnue::OUTPUT_BUCKETS_LAYOUT[td.board.occupancies().popcount()];
 
-    println!("\n NNUE network contributions (White side)");
+    println!("\nNNUE output buckets (White side)");
     println!("+------------+------------+");
     println!("|   Bucket   |   Total    |");
     println!("+------------+------------+");
