@@ -744,19 +744,14 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
-            // Bad Noisy Futility Pruning (BNFP)
+            // Noisy Futility Pruning (NFP)
             let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 23;
 
-            if !in_check
-                && depth < 11
-                && move_picker.stage() == Stage::BadNoisy
-                && noisy_futility_value <= alpha
-                && !td.board.is_direct_check(mv)
-            {
+            if !in_check && depth < 11 && noisy_futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
-                break;
+                continue;
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
