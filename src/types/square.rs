@@ -6,7 +6,7 @@ use crate::types::{Color, File, Rank};
 /// Represents a square on a bitboard corresponding to the [Little-Endian Rank-File Mapping][LERFM].
 ///
 /// [LERFM]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian_Rank-File_Mapping
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Debug, Default)]
 #[repr(u8)]
 #[rustfmt::skip]
 pub enum Square {

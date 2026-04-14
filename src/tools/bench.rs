@@ -63,6 +63,11 @@ const POSITIONS: &[&str] = &[
     "8/8/1k1r2p1/p1p2nPp/P3RN1P/8/4KP2/8 b - - 13 55",
     "5r1k/1p3p1p/2p2p2/1q2bP1Q/3p1P2/1PP1R1P1/6KP/2N5 w - - 0 25",
     "8/8/5pk1/5Nn1/R3r1P1/8/6K1/8 w - - 4 65",
+    "rbbnkqrn/pppppppp/8/8/8/8/PPPPPPPP/RBBNKQRN w AGag - 0 1",
+    "nbrknrbq/pppppppp/8/8/8/8/PPPPPPPP/NBRKNRBQ w CFcf - 0 1",
+    "nqnbbrkr/pppppppp/8/8/8/8/PPPPPPPP/NQNBBRKR w FHfh - 0 1",
+    "nqrnbkrb/pppppppp/8/8/8/8/PPPPPPPP/NQRNBKRB w KQkq - 0 1",
+    "rqkbbnnr/pppppppp/8/8/8/8/PPPPPPPP/BBNNRKRQ w GEha - 0 1",
 ];
 
 const DEFAULT_DEPTH: i32 = 12;

@@ -45,6 +45,10 @@ impl Bitboard {
         Square::new(self.0.trailing_zeros() as u8)
     }
 
+    pub const fn msb(self) -> Square {
+        Square::new(63 - self.0.leading_zeros() as u8)
+    }
+
     pub const fn shift(self, offset: i8) -> Self {
         if offset > 0 { Self(self.0 << offset) } else { Self(self.0 >> -offset) }
     }
