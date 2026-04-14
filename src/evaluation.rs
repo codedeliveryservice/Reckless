@@ -1,9 +1,9 @@
 use crate::{thread::ThreadData, types::Score};
 
 pub fn correct_eval(td: &ThreadData, raw_eval: i32, correction_value: i32) -> i32 {
-    let mut eval = (raw_eval * (20664 + td.board.material())
-        + td.optimism[td.board.side_to_move()] * (1487 + td.board.material()))
-        / 26685;
+    let mut eval = (raw_eval * (20800 + td.board.material())
+        + td.optimism[td.board.side_to_move()] * (1469 + td.board.material()))
+        / 27270;
 
     eval = eval * (200 - td.board.halfmove_clock() as i32) / 200;
 
