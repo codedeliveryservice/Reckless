@@ -1064,12 +1064,6 @@ fn search<NODE: NodeType>(
             let scaled_bonus = factor * (165 * depth - 35).min(2467) / 128;
 
             td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, scaled_bonus);
-
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_present() {
-                let bonus = (159 * depth - 39).min(1160);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, prior_move.to(), bonus);
-            }
         } else if prior_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
@@ -1362,7 +1356,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_present() {
-            td.continuation_history.update(entry.conthist, piece, sq, bonus);
+            td.continuation_history.update(td, ply, entry.conthist, piece, sq, bonus);
         }
     }
 }
