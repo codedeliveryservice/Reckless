@@ -1061,15 +1061,11 @@ fn search<NODE: NodeType>(
                 + 138 * (!in_check && best_score <= eval - 93) as i32
                 + 321 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 128) as i32;
 
-            let scaled_bonus = factor * (165 * depth - 35).min(2467) / 128;
+            let quiet_bonus = factor * (165 * depth - 35).min(2467) / 128;
+            td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, quiet_bonus);
 
-            td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, scaled_bonus);
-
-            let entry = &td.stack[ply - 2];
-            if entry.mv.is_present() {
-                let bonus = (159 * depth - 39).min(1160);
-                td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, prior_move.to(), bonus);
-            }
+            let cont_bonus = (159 * depth - 39).min(1160);
+            update_continuation_histories(td, ply - 1, td.stack[ply - 1].piece, prior_move.to(), cont_bonus / 4);
         } else if prior_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
             let bonus = 60;
