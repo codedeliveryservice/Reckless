@@ -87,10 +87,10 @@ impl Board {
 
             let king_side = rook_from > king_from;
 
-            let rights = if color == Color::White {
-                if king_side { CastlingKind::WhiteKingside } else { CastlingKind::WhiteQueenside }
+            let rights = if king_side {
+                CastlingKind::KINGSIDE[color]
             } else {
-                if king_side { CastlingKind::BlackKingside } else { CastlingKind::BlackQueenside }
+                CastlingKind::QUEENSIDE[color]
             };
 
             let king_to =
