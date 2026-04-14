@@ -87,11 +87,7 @@ impl Board {
 
             let king_side = rook_from > king_from;
 
-            let rights = if king_side {
-                CastlingKind::KINGSIDE[color]
-            } else {
-                CastlingKind::QUEENSIDE[color]
-            };
+            let rights = if king_side { CastlingKind::KINGSIDE[color] } else { CastlingKind::QUEENSIDE[color] };
 
             let king_to =
                 Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side as usize].clone() as u8);
