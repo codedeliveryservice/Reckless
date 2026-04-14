@@ -66,6 +66,7 @@ const POSITIONS: &[&str] = &[
     "rbbnkqrn/pppppppp/8/8/8/8/PPPPPPPP/RBBNKQRN w AGag - 0 1",
     "nbrknrbq/pppppppp/8/8/8/8/PPPPPPPP/NBRKNRBQ w CFcf - 0 1",
     "nqnbbrkr/pppppppp/8/8/8/8/PPPPPPPP/NQNBBRKR w FHfh - 0 1",
+    "nqrnbkrb/pppppppp/8/8/8/8/PPPPPPPP/NQRNBKRB w KQkq - 0 1",
 ];
 
 const DEFAULT_DEPTH: i32 = 12;

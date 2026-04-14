@@ -1,7 +1,7 @@
 use super::Board;
 use crate::{
-    lookup::between,
-    types::{CastlingKind, Color, File, HOME_RANK, KING_TO_FILE, Piece, ROOK_TO_FILE, Square},
+    lookup::{between, ray_pass},
+    types::{CastlingKind, Color, HOME_RANK, KING_TO_FILE, Piece, PieceType, ROOK_TO_FILE, Square},
 };
 
 #[derive(Debug)]
@@ -72,16 +72,19 @@ impl Board {
             }
 
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
-            let mut rook_file = right.to_ascii_uppercase() as u8 - b'A';
+            let king_from = self.king_square(color);
+            let mut search_step = right.to_ascii_uppercase() as i8 - b'A' as i8 - king_from.file() as i8;
 
             if right.eq_ignore_ascii_case(&'K') {
-                rook_file = File::H as u8;
-            } else if right.eq_ignore_ascii_case(&'Q') {
-                rook_file = File::A as u8;
-            };
+                search_step = Square::RIGHT;
+            }
+            if right.eq_ignore_ascii_case(&'Q') {
+                search_step = Square::LEFT;
+            }
 
-            let king_from = self.king_square(color);
-            let rook_from = Square::from_rank_file(HOME_RANK[color].clone() as u8, rook_file);
+            let rook_from = (ray_pass(king_from, king_from.shift(search_step))
+                & self.colored_pieces(color, PieceType::Rook)).lsb();
+
             let king_side = rook_from > king_from;
 
             let rights = if color == Color::White {
