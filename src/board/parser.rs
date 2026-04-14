@@ -82,8 +82,8 @@ impl Board {
                 search_step = Square::LEFT;
             }
 
-            let rook_from = (ray_pass(king_from, king_from.shift(search_step))
-                & self.colored_pieces(color, PieceType::Rook)).lsb();
+            let rook_from =
+                (ray_pass(king_from, king_from.shift(search_step)) & self.colored_pieces(color, PieceType::Rook)).lsb();
 
             let king_side = rook_from > king_from;
 
