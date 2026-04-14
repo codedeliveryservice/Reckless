@@ -476,6 +476,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2367 && eval + td.stack[ply - 1].eval < 0
     {
         depth += 1;
+        td.stack[ply - 1].reduction -= 1024;
     }
 
     if !NODE::ROOT
@@ -488,6 +489,7 @@ fn search<NODE: NodeType>(
         && eval + td.stack[ply - 1].eval > 59
     {
         depth -= 1;
+        td.stack[ply - 1].reduction += 1024;
     }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
@@ -841,6 +843,10 @@ fn search<NODE: NodeType>(
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
             td.stack[ply].reduction = 0;
             current_search_count += 1;
+
+            let reduced_depth = (new_depth - td.stack[ply].reduction / 1024)
+                .clamp(1, new_depth + (move_count <= 3) as i32 + 1)
+                + 2 * NODE::PV as i32;
 
             if score > alpha {
                 if !NODE::ROOT {
