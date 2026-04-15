@@ -469,15 +469,16 @@ impl Board {
         let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
         let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
 
-        let our_king = self.king_square(stm);
         self.state.pinned = [Bitboard::default(); 2];
         self.state.pinners = [Bitboard::default(); 2];
-        self.state.checkers = (pawn_attacks(our_king, stm) & self.colored_pieces(!stm, PieceType::Pawn))
-            | (knight_attacks(our_king) & self.colored_pieces(!stm, PieceType::Knight));
 
         for color in [Color::White, Color::Black] {
             let king = self.king_square(color);
 
+            if color == stm {
+                self.state.checkers = (pawn_attacks(king, stm) & self.colored_pieces(!stm, PieceType::Pawn))
+                    | (knight_attacks(king) & self.colored_pieces(!stm, PieceType::Knight));
+            }
 
             let diagonal = diagonal & bishop_attacks(king, self.colors(!color)) & self.colors(!color);
             let orthogonal = orthogonal & rook_attacks(king, self.colors(!color)) & self.colors(!color);
