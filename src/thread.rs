@@ -6,7 +6,7 @@ use std::sync::{
 use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
-    nnue::{Network, Parameters},
+    nnue::{Network, ParametersHandle},
     numa::{NumaConfig, NumaReplicable, NumaReplicated, NumaReplicatedAccessToken, NumaReplicationContext},
     stack::Stack,
     threadpool::ThreadPool,
@@ -107,7 +107,7 @@ pub struct SharedContext {
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
     pub history: Arc<NumaReplicated<SharedCorrectionHistory>>,
-    pub parameters: Arc<NumaReplicated<Parameters>>,
+    pub parameters: Arc<NumaReplicated<ParametersHandle>>,
     pub numa_context: Arc<NumaReplicationContext>,
 }
 

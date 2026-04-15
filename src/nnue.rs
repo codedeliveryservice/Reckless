@@ -100,7 +100,7 @@ struct SparseEntry {
 
 #[derive(Clone)]
 pub struct Network {
-    parameters: Arc<Parameters>,
+    parameters: Arc<ParametersHandle>,
     index: usize,
     pst_stack: Box<[PstAccumulator]>,
     threat_stack: Box<[ThreatAccumulator]>,
@@ -109,7 +109,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn new(parameters: Arc<Parameters>) -> Self {
+    pub fn new(parameters: Arc<ParametersHandle>) -> Self {
         let mut nnz_table = vec![SparseEntry { indexes: [0; 8], count: 0 }; 256];
 
         for (byte, entry) in nnz_table.iter_mut().enumerate() {
@@ -335,18 +335,63 @@ pub struct Parameters {
     l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
 }
 
-impl NumaReplicable for Parameters {
-    fn allocate() -> std::sync::Arc<Self> {
+impl Parameters {
+    fn embedded() -> &'static Parameters {
         static EMBEDDED: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
+        &EMBEDDED
+    }
 
+    fn allocate_owned() -> Arc<Self> {
         let mut boxed = Box::<std::mem::MaybeUninit<Parameters>>::new(std::mem::MaybeUninit::uninit());
         let ptr = boxed.as_mut_ptr();
         std::mem::forget(boxed);
 
         unsafe {
-            std::ptr::copy_nonoverlapping(&EMBEDDED as *const Parameters, ptr, 1);
-            std::sync::Arc::from(Box::from_raw(ptr))
+            std::ptr::copy_nonoverlapping(Self::embedded() as *const Parameters, ptr, 1);
+            Arc::from(Box::from_raw(ptr))
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct ParametersHandle {
+    inner: ParametersStorage,
+}
+
+#[derive(Clone)]
+enum ParametersStorage {
+    Embedded(&'static Parameters),
+    Owned(Arc<Parameters>),
+}
+
+impl ParametersHandle {
+    fn embedded() -> Self {
+        Self { inner: ParametersStorage::Embedded(Parameters::embedded()) }
+    }
+
+    fn owned(parameters: Arc<Parameters>) -> Self {
+        Self { inner: ParametersStorage::Owned(parameters) }
+    }
+}
+
+impl std::ops::Deref for ParametersHandle {
+    type Target = Parameters;
+
+    fn deref(&self) -> &Self::Target {
+        match &self.inner {
+            ParametersStorage::Embedded(parameters) => parameters,
+            ParametersStorage::Owned(parameters) => parameters.as_ref(),
+        }
+    }
+}
+
+impl NumaReplicable for ParametersHandle {
+    fn allocate() -> Arc<Self> {
+        Arc::new(Self::owned(Parameters::allocate_owned()))
+    }
+
+    fn allocate_shared() -> Option<Arc<Self>> {
+        Arc::new(Self::embedded()).into()
     }
 }
 

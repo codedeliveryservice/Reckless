@@ -1,12 +1,24 @@
+#![allow(dead_code)]
+#![allow(unused_mut)]
+#![allow(unused_imports)]
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    sync::{Arc, LazyLock, Mutex, RwLock, mpsc},
+    sync::{
+        Arc, LazyLock, Mutex, RwLock,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+    },
     thread,
 };
 
 pub trait NumaReplicable: Send + Sync + 'static {
     fn allocate() -> Arc<Self>;
+
+    fn allocate_shared() -> Option<Arc<Self>> {
+        None
+    }
 }
 
 type CpuIndex = usize;
@@ -268,12 +280,17 @@ pub trait NumaReplicatedBase: Send + Sync {
 
 pub struct NumaReplicationContext {
     config: RwLock<NumaConfig>,
+    thread_count: AtomicUsize,
     tracked: Mutex<Vec<Arc<dyn NumaReplicatedBase>>>,
 }
 
 impl NumaReplicationContext {
     pub fn new(cfg: NumaConfig) -> Self {
-        Self { config: RwLock::new(cfg), tracked: Mutex::new(Vec::new()) }
+        Self {
+            config: RwLock::new(cfg),
+            thread_count: AtomicUsize::new(1),
+            tracked: Mutex::new(Vec::new()),
+        }
     }
 
     pub fn attach(&self, obj: Arc<dyn NumaReplicatedBase>) {
@@ -282,6 +299,22 @@ impl NumaReplicationContext {
 
     pub fn get_numa_config(&self) -> NumaConfig {
         self.config.read().unwrap().clone()
+    }
+
+    pub fn set_thread_count(&self, threads: usize) {
+        let previous = self.thread_count.swap(threads, Ordering::Release);
+        if previous == threads {
+            return;
+        }
+
+        let tracked = self.tracked.lock().unwrap().clone();
+        for obj in tracked {
+            obj.on_numa_config_changed();
+        }
+    }
+
+    pub fn get_thread_count(&self) -> usize {
+        self.thread_count.load(Ordering::Acquire)
     }
 }
 
@@ -318,10 +351,12 @@ impl<T: NumaReplicable> NumaReplicated<T> {
             rx.recv().expect("failed to receive NUMA replicated instance")
         };
 
-        if cfg.requires_memory_replication() {
+        if cfg.suggests_binding_threads(self.ctx.get_thread_count()) {
             for node in 0..cfg.num_numa_nodes() {
                 instances.push(allocate_on_node(node));
             }
+        } else if let Some(shared) = T::allocate_shared() {
+            instances.push(shared);
         } else {
             instances.push(allocate_on_node(0));
         }
