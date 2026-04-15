@@ -478,6 +478,13 @@ impl Board {
             if color == stm {
                 self.state.checkers = (pawn_attacks(king, stm) & self.colored_pieces(!stm, PieceType::Pawn))
                     | (knight_attacks(king) & self.colored_pieces(!stm, PieceType::Knight));
+            } else {
+                self.state.checking_squares[PieceType::Pawn] = pawn_attacks(king, !stm);
+                self.state.checking_squares[PieceType::Knight] = knight_attacks(king);
+                self.state.checking_squares[PieceType::Bishop] = bishop_attacks(king, self.occupancies());
+                self.state.checking_squares[PieceType::Rook] = rook_attacks(king, self.occupancies());
+                self.state.checking_squares[PieceType::Queen] =
+                    self.checking_squares(PieceType::Bishop) | self.checking_squares(PieceType::Rook);
             }
 
             let diagonal = diagonal & bishop_attacks(king, self.colors(!color)) & self.colors(!color);
@@ -496,15 +503,6 @@ impl Board {
                     }
                     _ => (),
                 }
-            }
-
-            if color != stm {
-                self.state.checking_squares[PieceType::Pawn] = pawn_attacks(king, !stm);
-                self.state.checking_squares[PieceType::Knight] = knight_attacks(king);
-                self.state.checking_squares[PieceType::Bishop] = bishop_attacks(king, self.occupancies());
-                self.state.checking_squares[PieceType::Rook] = rook_attacks(king, self.occupancies());
-                self.state.checking_squares[PieceType::Queen] =
-                    self.checking_squares(PieceType::Bishop) | self.checking_squares(PieceType::Rook);
             }
         }
     }
