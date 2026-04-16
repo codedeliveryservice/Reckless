@@ -512,6 +512,7 @@ fn search<NODE: NodeType>(
         && estimated_score < alpha - 295 - 261 * depth * depth
         && alpha < 2048
         && !tt_move.is_quiet()
+        && tt_bound != Bound::Lower
     {
         return qsearch::<NonPV>(td, alpha, beta, ply);
     }
