@@ -21,11 +21,7 @@ impl super::Board {
         }
 
         // In the worst case, we lose a piece, but still end up with a non-negative balance
-        balance -= self.piece_on(mv.from()).value();
-
-        if mv.is_promotion() {
-            balance -= mv.promo_piece_type().value();
-        }
+        balance -= if mv.is_promotion() { mv.promo_piece_type().value() } else { self.piece_on(mv.from()).value() };
 
         if balance >= 0 {
             return true;
