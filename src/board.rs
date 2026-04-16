@@ -195,10 +195,6 @@ impl Board {
         self.mailbox[mv.from()]
     }
 
-    pub fn has_non_pawns(&self) -> bool {
-        (self.pieces(PieceType::Pawn) | self.pieces(PieceType::King)) != self.occupancies()
-    }
-
     pub const fn advance_fullmove_counter(&mut self) {
         self.fullmove_number += self.side_to_move() as usize;
     }
