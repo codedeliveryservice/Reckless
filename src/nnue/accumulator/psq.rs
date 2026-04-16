@@ -66,39 +66,42 @@ impl PstAccumulator {
         self.accurate[pov] = true;
     }
 
-    #[inline]
-    #[cfg(not(target_feature = "avx512vbmi2"))]
-    fn push_features(
-        features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
-        pov: Color,
-    ) {
-        for square in bb {
-            features.push(pst_index(color, piece_type, square, king, pov));
+    cfg_select! {
+        target_feature = "avx512vbmi2" => {
+            #[inline]
+            fn push_features(
+                features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
+                pov: Color,
+            ) {
+                unsafe {
+                    use std::arch::x86_64::*;
+
+                    let base = pst_index(color, piece_type, Square::new(0), king, pov);
+
+                    let iota = _mm512_set_epi8(
+                        63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
+                        37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
+                        11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                    );
+                    let squares = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(bb.0, iota));
+                    let to_write = _mm256_xor_si256(_mm256_set1_epi16(base as i16), _mm256_cvtepu8_epi16(squares));
+                    features.unchecked_write(|data| {
+                        _mm256_storeu_si256(data.cast(), to_write);
+                        bb.count()
+                    });
+                }
+            }
         }
-    }
-
-    #[inline]
-    #[cfg(target_feature = "avx512vbmi2")]
-    fn push_features(
-        features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
-        pov: Color,
-    ) {
-        unsafe {
-            use std::arch::x86_64::*;
-
-            let base = pst_index(color, piece_type, Square::new(0), king, pov);
-
-            let iota = _mm512_set_epi8(
-                63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38,
-                37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
-                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
-            );
-            let squares = _mm512_castsi512_si128(_mm512_maskz_compress_epi8(bb.0, iota));
-            let to_write = _mm256_xor_si256(_mm256_set1_epi16(base as i16), _mm256_cvtepu8_epi16(squares));
-            features.unchecked_write(|data| {
-                _mm256_storeu_si256(data.cast(), to_write);
-                bb.count()
-            });
+        _ => {
+            #[inline]
+            fn push_features(
+                features: &mut ArrayVec<PstFeature, 64>, color: Color, piece_type: PieceType, bb: Bitboard, king: Square,
+                pov: Color,
+            ) {
+                for square in bb {
+                    features.push(pst_index(color, piece_type, square, king, pov));
+                }
+            }
         }
     }
 
