@@ -13,7 +13,6 @@ impl Board {
         self.state.recapture_square = Square::None;
 
         self.update_threats();
-        self.update_king_threats();
 
         if self.en_passant() != Square::None {
             self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
@@ -131,7 +130,6 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         self.update_threats();
-        self.update_king_threats();
         self.update_en_passant();
 
         self.state.repetition = 0;

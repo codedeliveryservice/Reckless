@@ -58,7 +58,6 @@ impl Board {
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
         board.update_threats();
-        board.update_king_threats();
         board.update_hash_keys();
         board.update_en_passant();
 
