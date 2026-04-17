@@ -74,6 +74,25 @@ To build without Syzygy tablebase support and Clang dependency, add the `--no-de
 cargo rustc --release --no-default-features -- -C target-cpu=native
 ```
 
+#### Local x86_64 compile check
+
+If you develop on Apple Silicon, install the Linux x86_64 Rust target:
+
+```bash
+rustup target add x86_64-unknown-linux-gnu
+```
+
+Then run the local x86_64 compile check before submitting changes that touch target-specific code:
+
+```bash
+make x64-check
+```
+
+This checks the Linux x86_64 scalar, AVX2, and AVX512 Rust codepaths.
+
+See the wiki for more background and rationale:
+<https://github.com/codedeliveryservice/Reckless/wiki/Cross-Architecture-Compile-Checks>
+
 #### PGO builds
 
 For profile-guided optimization (PGO) builds, you need to install additional tools:
