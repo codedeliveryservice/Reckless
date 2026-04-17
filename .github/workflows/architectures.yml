@@ -19,41 +19,40 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 scalar
           - name: linux-generic
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            config: target.x86_64-unknown-linux-gnu.rustflags=["-C","target-cpu=x86-64"]
-          # Linux x86_64 with AVX2
+            config: target.x86_64-unknown-linux-gnu.rustflags=["-C", "target-cpu=x86-64"]
+
           - name: linux-avx2
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            config: target.x86_64-unknown-linux-gnu.rustflags=["-C","target-cpu=x86-64-v3"]
-          # Linux x86_64 with AVX512
+            config: target.x86_64-unknown-linux-gnu.rustflags=["-C", "target-cpu=x86-64-v3"]
+
           - name: linux-avx512
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            config: target.x86_64-unknown-linux-gnu.rustflags=["-C","target-cpu=x86-64-v4","-C","target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"]
-          # Windows x86_64 scalar
+            config: target.x86_64-unknown-linux-gnu.rustflags=["-C", "target-cpu=x86-64-v4", "-C", "target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"]
+
           - name: windows-generic
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            config: target.x86_64-pc-windows-msvc.rustflags=["-C","target-cpu=x86-64"]
-          # Windows x86_64 with AVX2
+            config: target.x86_64-pc-windows-msvc.rustflags=["-C", "target-cpu=x86-64"]
+
           - name: windows-avx2
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            config: target.x86_64-pc-windows-msvc.rustflags=["-C","target-cpu=x86-64-v3"]
-          # Windows x86_64 with AVX512
+            config: target.x86_64-pc-windows-msvc.rustflags=["-C", "target-cpu=x86-64-v3"]
+
           - name: windows-avx512
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            config: target.x86_64-pc-windows-msvc.rustflags=["-C","target-cpu=x86-64-v4","-C","target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"]
-          # macOS arm64 with NEON
+            config: target.x86_64-pc-windows-msvc.rustflags=["-C", "target-cpu=x86-64-v4", "-C", "target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"]
+
           - name: macos
             os: macos-latest
             target: ""
-            config: build.rustflags=["-C","target-cpu=native"]
+            config: build.rustflags=["-C", "target-cpu=native"]
 
     name: ${{ matrix.name }}
 
@@ -63,7 +62,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build supported architecture
+      - name: Check supported architecture
         shell: bash
         run: |
           if [ -n "${TARGET}" ]; then
