@@ -441,44 +441,56 @@ fn parse_go_options(color: Color, tokens: &[&str]) -> GoOptions {
 
     let mut index = 0;
     while index < tokens.len() {
-        match tokens[index] {
-            "infinite" => {
+        match (tokens[index], tokens.get(index + 1).and_then(|v| v.parse::<u64>().ok())) {
+            ("infinite", _) => {
                 direct_limits = Some(Limits::Infinite);
                 index += 1;
             }
-            "ponder" => {
+            ("ponder", _) => {
                 ponder = true;
                 index += 1;
             }
-            "depth" | "movetime" | "nodes" | "wtime" | "btime" | "winc" | "binc" | "movestogo" => {
-                if index + 1 >= tokens.len() {
-                    break;
-                }
-
-                let name = tokens[index];
-                let value = match tokens[index + 1].parse::<u64>() {
-                    Ok(value) => value,
-                    Err(_) => {
-                        index += 1;
-                        continue;
-                    }
-                };
-
-                match name {
-                    "depth" if value > 0 => direct_limits = Some(Limits::Depth(value as i32)),
-                    "movetime" if value > 0 => direct_limits = Some(Limits::Time(value)),
-                    "nodes" if value > 0 => direct_limits = Some(Limits::Nodes(value)),
-                    "wtime" if Color::White == color => main = Some(value),
-                    "btime" if Color::Black == color => main = Some(value),
-                    "winc" if Color::White == color => inc = Some(value),
-                    "binc" if Color::Black == color => inc = Some(value),
-                    "movestogo" => moves = Some(value),
-                    _ => {}
-                }
-
+            ("depth", Some(value)) if value > 0 => {
+                direct_limits = Some(Limits::Depth(value as i32));
                 index += 2;
             }
-            _ => index += 1,
+            ("movetime", Some(value)) if value > 0 => {
+                direct_limits = Some(Limits::Time(value));
+                index += 2;
+            }
+            ("nodes", Some(value)) if value > 0 => {
+                direct_limits = Some(Limits::Nodes(value));
+                index += 2;
+            }
+            ("wtime", Some(value)) if Color::White == color => {
+                main = Some(value);
+                index += 2;
+            }
+            ("btime", Some(value)) if Color::Black == color => {
+                main = Some(value);
+                index += 2;
+            }
+            ("winc", Some(value)) if Color::White == color => {
+                inc = Some(value);
+                index += 2;
+            }
+            ("binc", Some(value)) if Color::Black == color => {
+                inc = Some(value);
+                index += 2;
+            }
+            ("movestogo", Some(value)) => {
+                moves = Some(value);
+                index += 2;
+            }
+            (
+                "depth" | "movetime" | "nodes" | "wtime" | "btime" | "winc" | "binc" | "movestogo",
+                None,
+            ) => {
+                index += 1;
+            }
+            _ => {
+                index += 1;
+            }
         }
     }
 
