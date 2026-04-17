@@ -12,9 +12,8 @@ pub enum CastlingKind {
 }
 
 impl CastlingKind {
-    pub const CASTLINGKINDS: [[CastlingKind; 2]; 2] = [
-        [ Self::WhiteQueenside, Self::WhiteKingside],
-        [ Self::BlackQueenside, Self::BlackKingside]];
+    pub const CASTLINGKINDS: [[CastlingKind; 2]; 2] =
+        [[Self::WhiteQueenside, Self::WhiteKingside], [Self::BlackQueenside, Self::BlackKingside]];
 
     pub const fn landing_square(self) -> Square {
         match self {
