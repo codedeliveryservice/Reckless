@@ -338,13 +338,7 @@ impl Board {
 
         if piece.piece_type() == PieceType::King {
             if mv.is_castling() {
-                let kind = match to {
-                    Square::G1 => CastlingKind::WhiteKingside,
-                    Square::C1 => CastlingKind::WhiteQueenside,
-                    Square::G8 => CastlingKind::BlackKingside,
-                    Square::C8 => CastlingKind::BlackQueenside,
-                    _ => return false,
-                };
+                let kind = CastlingKind::from_king_to(stm as usize, to);
 
                 return self.castling().is_allowed(kind)
                     && (self.castling_path[kind] & self.occupancies()).is_empty()
