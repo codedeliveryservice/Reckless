@@ -482,10 +482,7 @@ fn parse_go_options(color: Color, tokens: &[&str]) -> GoOptions {
                 moves = Some(value);
                 index += 2;
             }
-            (
-                "depth" | "movetime" | "nodes" | "wtime" | "btime" | "winc" | "binc" | "movestogo",
-                None,
-            ) => {
+            ("depth" | "movetime" | "nodes" | "wtime" | "btime" | "winc" | "binc" | "movestogo", None) => {
                 index += 1;
             }
             _ => {
@@ -511,7 +508,6 @@ fn parse_go_options(color: Color, tokens: &[&str]) -> GoOptions {
     GoOptions { limits, ponder }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -528,12 +524,7 @@ mod tests {
     }
 
     fn find_move(board: &Board, uci: &str) -> Move {
-        board
-            .generate_all_moves()
-            .iter()
-            .map(|entry| entry.mv)
-            .find(|mv| mv.to_uci(board) == uci)
-            .unwrap()
+        board.generate_all_moves().iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == uci).unwrap()
     }
 
     #[test]
@@ -696,17 +687,7 @@ mod tests {
         let reply = find_move(&after_best, "e7e5");
         let hash = after_best.hash();
 
-        threads.main_thread().shared.tt.write(
-            hash,
-            TtDepth::SOME,
-            0,
-            0,
-            Bound::Exact,
-            reply,
-            0,
-            true,
-            false,
-        );
+        threads.main_thread().shared.tt.write(hash, TtDepth::SOME, 0, 0, Bound::Exact, reply, 0, true, false);
 
         assert_eq!(extract_ponder_move(&mut threads, 0, best_move), Some(reply));
     }
@@ -726,17 +707,7 @@ mod tests {
         let illegal_reply = best_move;
         let hash = after_best.hash();
 
-        threads.main_thread().shared.tt.write(
-            hash,
-            TtDepth::SOME,
-            0,
-            0,
-            Bound::Exact,
-            illegal_reply,
-            0,
-            true,
-            false,
-        );
+        threads.main_thread().shared.tt.write(hash, TtDepth::SOME, 0, 0, Bound::Exact, illegal_reply, 0, true, false);
 
         assert_eq!(extract_ponder_move(&mut threads, 0, best_move), None);
     }
