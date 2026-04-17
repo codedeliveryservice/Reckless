@@ -89,7 +89,6 @@ impl Default for Status {
 #[derive(Default)]
 pub struct SharedCorrectionHistory {
     pub pawn: CorrectionHistory,
-    pub minor: CorrectionHistory,
     pub non_pawn: [CorrectionHistory; 2],
 }
 
