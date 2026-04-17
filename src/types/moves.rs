@@ -98,6 +98,10 @@ impl Move {
         matches!(self.kind(), MoveKind::EnPassant)
     }
 
+    pub fn capture_sq(self) -> Square {
+        self.to() ^ (self.is_en_passant() as u8 * 8)
+    }
+
     pub const fn is_castling(self) -> bool {
         matches!(self.kind(), MoveKind::Castling)
     }

@@ -27,13 +27,9 @@ impl super::Board {
             return true;
         }
 
-        // Note: no need to set the "to" square
         let mut occupancies = self.occupancies();
         occupancies.clear(mv.from());
-
-        if mv.is_en_passant() {
-            occupancies.clear(mv.to() ^ 8);
-        }
+        occupancies.clear(mv.capture_sq()); //consider EP
 
         let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
@@ -89,11 +85,7 @@ impl super::Board {
     }
 
     fn move_value(&self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            return PieceType::Pawn.value();
-        }
-
-        let capture = self.piece_on(mv.to()).piece_type();
+        let capture = self.piece_on(mv.capture_sq()).piece_type();
         let mut value = capture.value();
 
         if mv.is_promotion() {
