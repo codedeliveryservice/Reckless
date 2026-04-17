@@ -339,7 +339,7 @@ impl Board {
 
         if piece.piece_type() == PieceType::King {
             if mv.is_castling() {
-                let kind = CastlingKind::CASTLINGKINDS[stm][(to.file() == File::G) as usize];
+                let kind = CastlingKind::KINDS[stm][(to.file() == File::G) as usize];
 
                 return self.castling().is_allowed(kind)
                     && (self.castling_path[kind] & self.occupancies()).is_empty()

@@ -86,7 +86,7 @@ impl Board {
 
             let king_side = (rook_from > king_from) as usize;
 
-            let rights = CastlingKind::CASTLINGKINDS[color][king_side];
+            let rights = CastlingKind::KINDS[color][king_side];
 
             let king_to =
                 Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side as usize].clone() as u8);
