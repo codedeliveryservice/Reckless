@@ -27,9 +27,13 @@ impl super::Board {
             return true;
         }
 
+        // No need to set the to square for SEE
         let mut occupancies = self.occupancies();
         occupancies.clear(mv.from());
-        occupancies.clear(mv.capture_sq()); //consider EP
+
+        if mv.is_en_passant() {
+            occupancies.clear(mv.to() ^ 8);
+        }
 
         let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
         let mut stm = !self.side_to_move();
