@@ -835,8 +835,9 @@ fn search<NODE: NodeType>(
                 reduction += 129;
             }
 
-            let reduced_depth =
-                (new_depth - reduction / 1024).clamp(1, new_depth + (move_count <= 3) as i32 + 1) + 2 * NODE::PV as i32;
+            let reduced_depth = (new_depth - reduction / 1024)
+                .clamp(1, new_depth + (move_count <= 3 || NODE::PV) as i32 + 1)
+                + NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
