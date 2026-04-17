@@ -12,11 +12,12 @@ pub enum CastlingKind {
 }
 
 impl CastlingKind {
-    pub const KINGSIDE: [CastlingKind; 2] = [Self::WhiteKingside, Self::BlackKingside];
-    pub const QUEENSIDE: [CastlingKind; 2] = [Self::WhiteQueenside, Self::BlackQueenside];
+    pub const CASTLINGKINDS: [[CastlingKind; 2]; 2] = [
+        [ Self::WhiteQueenside, Self::WhiteKingside],
+        [ Self::BlackQueenside, Self::BlackKingside]];
 
     pub fn from_king_to(stm: usize, to: Square) -> Self {
-        if to.file() == File::G { Self::KINGSIDE[stm] } else { Self::QUEENSIDE[stm] }
+        Self::CASTLINGKINDS[stm][(to.file() == File::G) as usize]
     }
 
     pub const fn landing_square(self) -> Square {

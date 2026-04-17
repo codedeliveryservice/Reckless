@@ -84,9 +84,9 @@ impl Board {
             let rook_from =
                 (ray_pass(king_from, king_from.shift(search_step)) & self.colored_pieces(color, PieceType::Rook)).lsb();
 
-            let king_side = rook_from > king_from;
+            let king_side = (rook_from > king_from) as usize;
 
-            let rights = if king_side { CastlingKind::KINGSIDE[color] } else { CastlingKind::QUEENSIDE[color] };
+            let rights = CastlingKind::CASTLINGKINDS[color][king_side];
 
             let king_to =
                 Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side as usize].clone() as u8);
