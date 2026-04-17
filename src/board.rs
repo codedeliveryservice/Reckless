@@ -4,7 +4,8 @@ use crate::{
         pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
     },
     types::{
-        Bitboard, Castling, CastlingKind, Color, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square, ZOBRIST,
+        Bitboard, Castling, CastlingKind, Color, File, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square,
+        ZOBRIST,
     },
 };
 
@@ -338,13 +339,7 @@ impl Board {
 
         if piece.piece_type() == PieceType::King {
             if mv.is_castling() {
-                let kind = match to {
-                    Square::G1 => CastlingKind::WhiteKingside,
-                    Square::C1 => CastlingKind::WhiteQueenside,
-                    Square::G8 => CastlingKind::BlackKingside,
-                    Square::C8 => CastlingKind::BlackQueenside,
-                    _ => return false,
-                };
+                let kind = CastlingKind::KINDS[stm][(to.file() == File::G) as usize];
 
                 return self.castling().is_allowed(kind)
                     && (self.castling_path[kind] & self.occupancies()).is_empty()

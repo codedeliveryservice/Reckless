@@ -127,8 +127,8 @@ impl super::Board {
 
     fn collect_castling(&self, list: &mut MoveList) {
         let stm = self.side_to_move();
-        self.collect_castling_kind(list, CastlingKind::KINGSIDE[stm]);
-        self.collect_castling_kind(list, CastlingKind::QUEENSIDE[stm]);
+        self.collect_castling_kind(list, CastlingKind::KINDS[stm][0]); //queenside
+        self.collect_castling_kind(list, CastlingKind::KINDS[stm][1]); //kingside
     }
 
     fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
