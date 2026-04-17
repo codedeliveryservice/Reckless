@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use crate::{
     board::{Board, NullBoardObserver},
@@ -21,6 +22,7 @@ enum Mode {
 
 struct Settings {
     frc: bool,
+    ponder: bool,
     multi_pv: usize,
     move_overhead: u64,
     report: Report,
@@ -30,6 +32,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             frc: false,
+            ponder: false,
             multi_pv: 1,
             move_overhead: 100,
             report: Report::Full,
@@ -124,6 +127,9 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
             match message.trim_end() {
                 "isready" => println!("readyok"),
                 "stop" => shared.status.set(Status::STOPPED),
+                "ponderhit" => {
+                    shared.ponderhit.store(true, Ordering::Release);
+                }
                 "quit" => {
                     shared.status.set(Status::STOPPED);
                     let _ = tx.send("quit".to_string());
@@ -153,6 +159,7 @@ fn uci() {
     println!("option name Minimal type check default false");
     println!("option name Clear Hash type button");
     println!("option name UCI_Chess960 type check default false");
+    println!("option name Ponder type check default false");
     println!("option name MultiPV type spin default 1 min 1 max {MAX_MOVES}");
 
     #[cfg(feature = "syzygy")]
@@ -183,11 +190,12 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
 
 fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let board = &threads.main_thread().board;
-    let limits = parse_limits(board.side_to_move(), tokens);
-    let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    let go_options = parse_go_options(board.side_to_move(), tokens);
+    let is_ponder = go_options.ponder;
+    let time_manager = TimeManager::new(go_options.limits, board.fullmove_number(), settings.move_overhead, is_ponder);
 
     threads.main_thread().multi_pv = settings.multi_pv;
-    threads.execute_searches(time_manager, settings.report, shared);
+    threads.execute_searches(time_manager, settings.report, shared, is_ponder);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
     let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
@@ -238,7 +246,15 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
         threads[best].print_uci_info(threads[best].completed_depth);
     }
 
-    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&threads.main_thread().board));
+    let best_move = threads[best].root_moves[0].mv;
+    let mut bestmove_output = format!("bestmove {}", best_move.to_uci(&threads.main_thread().board));
+
+    if let Some(ponder_move) = extract_ponder_move(threads, best, best_move) {
+        bestmove_output.push_str(" ponder ");
+        bestmove_output.push_str(&ponder_move.to_uci(&threads.main_thread().board));
+    }
+
+    println!("{bestmove_output}");
     crate::misc::dbg_print();
 }
 
@@ -282,6 +298,28 @@ fn make_uci_move(board: &mut Board, uci_move: &str) {
     }
 }
 
+fn extract_ponder_move(threads: &mut ThreadPool, best: usize, best_move: Move) -> Option<Move> {
+    let root_move = &threads[best].root_moves[0];
+
+    if let Some(&ponder_move) = root_move.pv.line().first() {
+        return Some(ponder_move);
+    }
+
+    let mut board = threads.main_thread().board.clone();
+    board.make_move(best_move, &mut NullBoardObserver);
+
+    let hash = board.hash();
+    let halfmove_clock = board.halfmove_clock();
+    let tt_entry = threads.main_thread().shared.tt.read(hash, halfmove_clock, 0)?;
+
+    if tt_entry.mv.is_null() {
+        return None;
+    }
+
+    let is_legal = board.generate_all_moves().iter().any(|entry| entry.mv == tt_entry.mv);
+    is_legal.then_some(tt_entry.mv)
+}
+
 fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
     match tokens {
         ["name", "Minimal", "value", v] => match *v {
@@ -313,6 +351,10 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
         ["name", "UCI_Chess960", "value", v] => {
             settings.frc = v.parse().unwrap_or_default();
             println!("info string set UCI_Chess960 to {v}");
+        }
+        ["name", "Ponder", "value", v] => {
+            settings.ponder = v.parse().unwrap_or_default();
+            println!("info string set Ponder to {v}");
         }
         ["name", "MultiPV", "value", v] => {
             settings.multi_pv = v.parse().unwrap_or_default();
@@ -385,53 +427,84 @@ fn eval(td: &mut ThreadData) {
     println!("\nNNUE evaluation        {:+.2} (White side)", final_total);
 }
 
-fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
-    if let ["infinite"] = tokens {
-        return Limits::Infinite;
-    }
+struct GoOptions {
+    limits: Limits,
+    ponder: bool,
+}
 
+fn parse_go_options(color: Color, tokens: &[&str]) -> GoOptions {
+    let mut ponder = false;
     let mut main = None;
     let mut inc = None;
     let mut moves = None;
+    let mut direct_limits = None;
 
-    for chunk in tokens.chunks(2) {
-        if let [name, value] = *chunk {
-            let Ok(value) = value.parse::<u64>() else {
-                continue;
-            };
-
-            match name {
-                "depth" if value > 0 => return Limits::Depth(value as i32),
-                "movetime" if value > 0 => return Limits::Time(value),
-                "nodes" if value > 0 => return Limits::Nodes(value),
-
-                "wtime" if Color::White == color => main = Some(value),
-                "btime" if Color::Black == color => main = Some(value),
-                "winc" if Color::White == color => inc = Some(value),
-                "binc" if Color::Black == color => inc = Some(value),
-                "movestogo" => moves = Some(value),
-
-                _ => continue,
+    let mut index = 0;
+    while index < tokens.len() {
+        match tokens[index] {
+            "infinite" => {
+                direct_limits = Some(Limits::Infinite);
+                index += 1;
             }
+            "ponder" => {
+                ponder = true;
+                index += 1;
+            }
+            "depth" | "movetime" | "nodes" | "wtime" | "btime" | "winc" | "binc" | "movestogo" => {
+                if index + 1 >= tokens.len() {
+                    break;
+                }
+
+                let name = tokens[index];
+                let value = match tokens[index + 1].parse::<u64>() {
+                    Ok(value) => value,
+                    Err(_) => {
+                        index += 1;
+                        continue;
+                    }
+                };
+
+                match name {
+                    "depth" if value > 0 => direct_limits = Some(Limits::Depth(value as i32)),
+                    "movetime" if value > 0 => direct_limits = Some(Limits::Time(value)),
+                    "nodes" if value > 0 => direct_limits = Some(Limits::Nodes(value)),
+                    "wtime" if Color::White == color => main = Some(value),
+                    "btime" if Color::Black == color => main = Some(value),
+                    "winc" if Color::White == color => inc = Some(value),
+                    "binc" if Color::Black == color => inc = Some(value),
+                    "movestogo" => moves = Some(value),
+                    _ => {}
+                }
+
+                index += 2;
+            }
+            _ => index += 1,
         }
     }
 
-    if main.is_none() && inc.is_none() {
-        return Limits::Infinite;
-    }
+    let limits = if let Some(direct_limits) = direct_limits {
+        direct_limits
+    } else if main.is_none() && inc.is_none() {
+        Limits::Infinite
+    } else {
+        let main = main.unwrap_or_default();
+        let inc = inc.unwrap_or_default();
 
-    let main = main.unwrap_or_default();
-    let inc = inc.unwrap_or_default();
+        match moves {
+            Some(moves) => Limits::Cyclic(main, inc, moves),
+            None => Limits::Fischer(main, inc),
+        }
+    };
 
-    match moves {
-        Some(moves) => Limits::Cyclic(main, inc, moves),
-        None => Limits::Fischer(main, inc),
-    }
+    GoOptions { limits, ponder }
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::thread::RootMove;
+    use crate::transposition::{Bound, TtDepth};
 
     fn test_position_helper(tokens: &[&str]) -> Board {
         let shared = Arc::new(SharedContext::default());
@@ -440,6 +513,15 @@ mod tests {
 
         position(&mut threads, &settings, tokens);
         threads.main_thread().board.clone()
+    }
+
+    fn find_move(board: &Board, uci: &str) -> Move {
+        board
+            .generate_all_moves()
+            .iter()
+            .map(|entry| entry.mv)
+            .find(|mv| mv.to_uci(board) == uci)
+            .unwrap()
     }
 
     #[test]
@@ -543,5 +625,107 @@ mod tests {
     fn test_position_moves_without_startpos_ignored() {
         let board = test_position_helper(&["moves", "e2e4", "e7e5"]);
         assert_eq!(board.to_fen(), "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+    }
+
+    #[test]
+    fn test_parse_go_options_ponder() {
+        let options = parse_go_options(Color::White, &["ponder", "wtime", "1000", "btime", "1000", "winc", "50"]);
+        assert!(options.ponder);
+        assert!(matches!(options.limits, Limits::Fischer(1000, 50)));
+    }
+
+    #[test]
+    fn test_parse_go_options_depth() {
+        let options = parse_go_options(Color::White, &["depth", "10", "ponder"]);
+        assert!(options.ponder);
+        assert!(matches!(options.limits, Limits::Depth(10)));
+    }
+
+    #[test]
+    fn test_parse_go_options_ponder_with_movetime() {
+        let options = parse_go_options(Color::White, &["ponder", "movetime", "1000"]);
+        assert!(options.ponder);
+        assert!(matches!(options.limits, Limits::Time(1000)));
+    }
+
+    #[test]
+    fn test_parse_go_options_ponder_with_invalid_limit_value() {
+        let options = parse_go_options(Color::White, &["wtime", "1000", "winc", "nope", "ponder"]);
+        assert!(options.ponder);
+        assert!(matches!(options.limits, Limits::Fischer(1000, 0)));
+    }
+
+    #[test]
+    fn test_extract_ponder_move_prefers_pv() {
+        let shared = Arc::new(SharedContext::default());
+        let mut threads = ThreadPool::new(shared);
+
+        let best_move = find_move(&threads.main_thread().board, "e2e4");
+        let ponder_move = find_move(&threads.main_thread().board, "d2d4");
+
+        let mut pv = crate::thread::PrincipalVariationTable::default();
+        pv.update(0, ponder_move);
+        threads.main_thread().root_moves = vec![RootMove { mv: best_move, pv, ..Default::default() }];
+
+        assert_eq!(extract_ponder_move(&mut threads, 0, best_move), Some(ponder_move));
+    }
+
+    #[test]
+    fn test_extract_ponder_move_uses_tt_fallback() {
+        let shared = Arc::new(SharedContext::default());
+        let mut threads = ThreadPool::new(shared);
+
+        let best_move = find_move(&threads.main_thread().board, "e2e4");
+        threads.main_thread().root_moves = vec![RootMove { mv: best_move, ..Default::default() }];
+
+        let mut after_best = threads.main_thread().board.clone();
+        after_best.make_move(best_move, &mut NullBoardObserver);
+
+        let reply = find_move(&after_best, "e7e5");
+        let hash = after_best.hash();
+
+        threads.main_thread().shared.tt.write(
+            hash,
+            TtDepth::SOME,
+            0,
+            0,
+            Bound::Exact,
+            reply,
+            0,
+            true,
+            false,
+        );
+
+        assert_eq!(extract_ponder_move(&mut threads, 0, best_move), Some(reply));
+    }
+
+    #[test]
+    fn test_extract_ponder_move_rejects_illegal_tt_move() {
+        let shared = Arc::new(SharedContext::default());
+        let mut threads = ThreadPool::new(shared);
+
+        let best_move = find_move(&threads.main_thread().board, "e2e4");
+        threads.main_thread().root_moves = vec![RootMove { mv: best_move, ..Default::default() }];
+
+        let mut after_best = threads.main_thread().board.clone();
+        after_best.make_move(best_move, &mut NullBoardObserver);
+
+        // e2e4 is no longer legal for black in the resulting position.
+        let illegal_reply = best_move;
+        let hash = after_best.hash();
+
+        threads.main_thread().shared.tt.write(
+            hash,
+            TtDepth::SOME,
+            0,
+            0,
+            Bound::Exact,
+            illegal_reply,
+            0,
+            true,
+            false,
+        );
+
+        assert_eq!(extract_ponder_move(&mut threads, 0, best_move), None);
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -97,6 +97,8 @@ unsafe impl NumaValue for SharedCorrectionHistory {}
 pub struct SharedContext {
     pub tt: TranspositionTable,
     pub status: Status,
+    pub pondering: AtomicBool,
+    pub ponderhit: AtomicBool,
     pub nodes: Counter,
     pub tb_hits: Counter,
     pub soft_stop_votes: AtomicUsize,
@@ -112,6 +114,8 @@ impl Default for SharedContext {
         Self {
             tt: TranspositionTable::default(),
             status: Status::default(),
+            pondering: AtomicBool::new(false),
+            ponderhit: AtomicBool::new(false),
             nodes: Counter::default(),
             tb_hits: Counter::default(),
             soft_stop_votes: AtomicUsize::new(0),
@@ -160,7 +164,7 @@ impl ThreadData {
             id: 0,
             shared,
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite, 0, 0),
+            time_manager: TimeManager::new(Limits::Infinite, 0, 0, false),
             stack: Stack::new(),
             nnue: Network::default(),
             root_moves: Vec::new(),

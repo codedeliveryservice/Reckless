@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use crate::thread::ThreadData;
@@ -17,13 +18,56 @@ const TIME_OVERHEAD_MS: u64 = 15;
 #[derive(Clone)]
 pub struct TimeManager {
     limits: Limits,
+    ponder: bool,
     start_time: Instant,
     soft_bound: Duration,
     hard_bound: Duration,
 }
 
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use crate::thread::SharedContext;
+
+    use super::*;
+
+    #[test]
+    fn test_ponderhit_turns_off_pondering_in_timer() {
+        let mut tm = TimeManager::new(Limits::Time(10_000), 0, 0, true);
+        assert!(tm.is_ponder());
+        tm.on_ponderhit();
+        assert!(!tm.is_ponder());
+    }
+
+    #[test]
+    fn test_ponderhit_preserves_elapsed_time() {
+        let mut tm = TimeManager::new(Limits::Time(10_000), 0, 0, true);
+        std::thread::sleep(Duration::from_millis(10));
+        let before = tm.elapsed();
+        tm.on_ponderhit();
+        let after = tm.elapsed();
+        assert!(after >= before);
+    }
+
+    #[test]
+    fn test_soft_limit_ignored_while_pondering() {
+        let shared = Arc::new(SharedContext::default());
+        let mut td = crate::thread::ThreadData::new(shared.clone());
+        td.time_manager = TimeManager::new(Limits::Time(1), 0, 0, true);
+        td.completed_depth = 1;
+
+        shared.pondering.store(true, Ordering::Release);
+        std::thread::sleep(Duration::from_millis(20));
+        assert!(!td.time_manager.soft_limit(&td, || 1.0));
+
+        shared.pondering.store(false, Ordering::Release);
+        assert!(td.time_manager.soft_limit(&td, || 1.0));
+    }
+}
+
 impl TimeManager {
-    pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
+    pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64, ponder: bool) -> Self {
         let soft;
         let hard;
 
@@ -57,6 +101,7 @@ impl TimeManager {
 
         Self {
             limits,
+            ponder,
             start_time: Instant::now(),
             soft_bound: Duration::from_millis(soft.saturating_sub(TIME_OVERHEAD_MS)),
             hard_bound: Duration::from_millis(hard.saturating_sub(TIME_OVERHEAD_MS)),
@@ -68,6 +113,10 @@ impl TimeManager {
     }
 
     pub fn soft_limit(&self, td: &ThreadData, multiplier: impl Fn() -> f32) -> bool {
+        if self.ponder && td.shared.pondering.load(Ordering::Acquire) {
+            return false;
+        }
+
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() >= maximum,
@@ -81,6 +130,10 @@ impl TimeManager {
             return false;
         }
 
+        if self.ponder && td.shared.pondering.load(Ordering::Acquire) {
+            return false;
+        }
+
         match self.limits {
             Limits::Infinite | Limits::Depth(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
@@ -90,5 +143,13 @@ impl TimeManager {
 
     pub fn limits(&self) -> Limits {
         self.limits.clone()
+    }
+
+    pub fn is_ponder(&self) -> bool {
+        self.ponder
+    }
+
+    pub fn on_ponderhit(&mut self) {
+        self.ponder = false;
     }
 }
