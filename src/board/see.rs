@@ -27,7 +27,7 @@ impl super::Board {
             return true;
         }
 
-        // Note: no need to set the "to" square
+        // No need to set the to square for SEE
         let mut occupancies = self.occupancies();
         occupancies.clear(mv.from());
 
@@ -89,11 +89,7 @@ impl super::Board {
     }
 
     fn move_value(&self, mv: Move) -> i32 {
-        if mv.is_en_passant() {
-            return PieceType::Pawn.value();
-        }
-
-        let capture = self.piece_on(mv.to()).piece_type();
+        let capture = self.piece_on(mv.capture_sq()).piece_type();
         let mut value = capture.value();
 
         if mv.is_promotion() {
