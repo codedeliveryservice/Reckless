@@ -89,9 +89,9 @@ impl Board {
             let rights = CastlingKind::KINDS[color][king_side];
 
             let king_to =
-                Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side as usize].clone() as u8);
+                Square::from_rank_file(HOME_RANK[color].clone() as u8, KING_TO_FILE[king_side].clone() as u8);
             let rook_to =
-                Square::from_rank_file(HOME_RANK[color].clone() as u8, ROOK_TO_FILE[king_side as usize].clone() as u8);
+                Square::from_rank_file(HOME_RANK[color].clone() as u8, ROOK_TO_FILE[king_side].clone() as u8);
 
             self.set_castling_for(rights, king_from, king_to, rook_from, rook_to);
         }
