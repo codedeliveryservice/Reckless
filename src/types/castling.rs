@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut};
 
 use super::Square;
-use crate::{board::Board, types::Color, types::File};
+use crate::{board::Board, types::Color};
 
 #[derive(Copy, Clone)]
 pub enum CastlingKind {
@@ -15,10 +15,6 @@ impl CastlingKind {
     pub const CASTLINGKINDS: [[CastlingKind; 2]; 2] = [
         [ Self::WhiteQueenside, Self::WhiteKingside],
         [ Self::BlackQueenside, Self::BlackKingside]];
-
-    pub fn from_king_to(stm: usize, to: Square) -> Self {
-        Self::CASTLINGKINDS[stm][(to.file() == File::G) as usize]
-    }
 
     pub const fn landing_square(self) -> Square {
         match self {
