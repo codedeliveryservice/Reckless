@@ -1016,7 +1016,7 @@ fn search<NODE: NodeType>(
 
     if best_move.is_present() {
         let bonus = if !is_decisive(best_score) && !in_check && best_score > eval {
-            ((best_score - eval) / 4).min(512)
+            (depth * (best_score - eval) / 8).min(512)
         } else {
             0
         };
