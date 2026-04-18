@@ -1255,11 +1255,16 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             return Score::ZERO;
         }
 
-        if score <= best_score || score <= alpha {
+        if score <= best_score {
             continue;
         }
 
         best_score = score;
+
+        if score <= alpha {
+            continue;
+        }
+
         best_move = mv;
         if NODE::PV {
             td.pv_table.update(ply as usize, mv);
@@ -1270,8 +1275,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             continue;
         }
 
+        break;
+    }
+
+    if in_check && move_count == 0 {
+        return mated_in(ply);
+    }
+
+    if best_score >= beta && best_move.is_present() {
         let is_noisy = best_move.is_noisy();
         let bonus = if is_noisy { 106 } else { 172 };
+
         if is_noisy {
             td.noisy_history.update(
                 td.board.all_threats(),
@@ -1283,11 +1297,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         } else {
             td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
         }
-        break;
-    }
-
-    if in_check && move_count == 0 {
-        return mated_in(ply);
     }
 
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
