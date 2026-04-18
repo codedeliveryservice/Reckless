@@ -496,9 +496,11 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
-    let improvement = if !in_check && is_valid(td.stack[ply - 2].eval) {
+    let improvement = if in_check {
+        0
+    } else if is_valid(td.stack[ply - 2].eval) {
         eval - td.stack[ply - 2].eval
-    } else if !in_check && is_valid(td.stack[ply - 4].eval) {
+    } else if is_valid(td.stack[ply - 4].eval) {
         eval - td.stack[ply - 4].eval
     } else {
         0
@@ -776,7 +778,6 @@ fn search<NODE: NodeType>(
         make_move(td, ply, mv);
 
         let mut new_depth = depth - 1 + if move_count == 1 { extension } else { (extension > 0) as i32 };
-
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
@@ -1271,7 +1272,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         let is_noisy = best_move.is_noisy();
         let bonus = if is_noisy { 106 } else { 172 };
-
         if is_noisy {
             td.noisy_history.update(
                 td.board.all_threats(),
@@ -1283,7 +1283,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         } else {
             td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
         }
-
         break;
     }
 
