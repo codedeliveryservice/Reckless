@@ -1255,34 +1255,30 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             return Score::ZERO;
         }
 
-        if score <= best_score {
-            continue;
+        if score > best_score {
+            best_score = score;
+
+            if score > alpha {
+                best_move = mv;
+
+                if NODE::PV {
+                    td.pv_table.update(ply as usize, mv);
+                }
+
+                if score >= beta {
+                    break;
+                }
+
+                alpha = score;
+            }
         }
-
-        best_score = score;
-
-        if score <= alpha {
-            continue;
-        }
-
-        best_move = mv;
-        if NODE::PV {
-            td.pv_table.update(ply as usize, mv);
-        }
-
-        if score < beta {
-            alpha = score;
-            continue;
-        }
-
-        break;
     }
 
     if in_check && move_count == 0 {
         return mated_in(ply);
     }
 
-    if best_score >= beta && best_move.is_present() {
+    if best_score >= beta {
         let is_noisy = best_move.is_noisy();
         let bonus = if is_noisy { 106 } else { 172 };
 
