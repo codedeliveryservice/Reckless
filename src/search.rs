@@ -636,11 +636,11 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta {
                 td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
 
-                if !is_decisive(score) {
-                    return (3 * score + beta) / 4;
-                } else {
+                if is_decisive(score) {
                     return score;
                 }
+
+                return (3 * score + beta) / 4;
             }
         }
     }
@@ -677,13 +677,18 @@ fn search<NODE: NodeType>(
             extension += (singular_score < singular_beta - triple_margin) as i32;
         }
         // Multi-Cut
-        else if singular_score >= beta && !is_decisive(singular_score) {
+        if singular_score >= singular_beta && singular_score >= beta && !is_decisive(singular_score) {
             return (2 * singular_score + beta) / 3;
-        } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
+        }
+
+        let invalidate_tt_move =
+            singular_score >= singular_beta && singular_score > tt_score && td.stack[ply].mv != Move::NULL;
+        if invalidate_tt_move {
             tt_move = Move::NULL;
         }
+
         // Negative Extensions
-        else if tt_score >= beta || cut_node {
+        if singular_score >= singular_beta && !invalidate_tt_move && (tt_score >= beta || cut_node) {
             extension = -2;
         }
     }
@@ -776,7 +781,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = if move_count == 1 { depth + extension - 1 } else { depth + (extension > 0) as i32 - 1 };
+        let mut new_depth = depth - 1 + if move_count == 1 { extension } else { (extension > 0) as i32 };
 
         let mut score = Score::ZERO;
 
@@ -1209,15 +1214,24 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     // Stand Pat
     if best_score >= beta {
-        if !is_decisive(best_score) && !is_decisive(beta) {
-            best_score = beta + (best_score - beta) / 3;
-        }
+        let stand_pat_score =
+            if !is_decisive(best_score) && !is_decisive(beta) { beta + (best_score - beta) / 3 } else { best_score };
 
         if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(
+                hash,
+                TtDepth::SOME,
+                raw_eval,
+                stand_pat_score,
+                Bound::Lower,
+                Move::NULL,
+                ply,
+                tt_pv,
+                false,
+            );
         }
 
-        return best_score;
+        return stand_pat_score;
     }
 
     if best_score > alpha {
@@ -1248,46 +1262,48 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         make_move(td, ply, mv);
-
         let score = -qsearch::<NODE>(td, -beta, -alpha, ply + 1);
-
         undo_move(td, mv);
 
         if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
         }
 
-        if score > best_score {
-            best_score = score;
-
-            if score > alpha {
-                best_move = mv;
-
-                if NODE::PV {
-                    td.pv_table.update(ply as usize, mv);
-                }
-
-                if score >= beta {
-                    let bonus = if best_move.is_noisy() { 106 } else { 172 };
-
-                    if best_move.is_noisy() {
-                        td.noisy_history.update(
-                            td.board.all_threats(),
-                            td.board.moved_piece(best_move),
-                            best_move.to(),
-                            td.board.piece_on(best_move.to()).piece_type(),
-                            bonus,
-                        );
-                    } else {
-                        td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
-                    }
-
-                    break;
-                }
-
-                alpha = score;
-            }
+        if score <= best_score {
+            continue;
         }
+
+        best_score = score;
+        if score <= alpha {
+            continue;
+        }
+
+        best_move = mv;
+        if NODE::PV {
+            td.pv_table.update(ply as usize, mv);
+        }
+
+        if score < beta {
+            alpha = score;
+            continue;
+        }
+
+        let is_noisy = best_move.is_noisy();
+        let bonus = if is_noisy { 106 } else { 172 };
+
+        if is_noisy {
+            td.noisy_history.update(
+                td.board.all_threats(),
+                td.board.moved_piece(best_move),
+                best_move.to(),
+                td.board.piece_on(best_move.to()).piece_type(),
+                bonus,
+            );
+        } else {
+            td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
+        }
+
+        break;
     }
 
     if in_check && move_count == 0 {
