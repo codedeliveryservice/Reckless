@@ -857,7 +857,7 @@ fn search<NODE: NodeType>(
             }
         }
         // Full Depth Search (FDS)
-        else if !NODE::PV || move_count > 1 {
+        else if !NODE::PV || move_count >= 2 {
             let mut reduction = 232 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 48 * move_count;
@@ -902,7 +902,7 @@ fn search<NODE: NodeType>(
                 reduction += 130;
             }
 
-            let reduced_depth = new_depth - (reduction >= 2864) as i32 - (reduction >= 5585 && new_depth >= 3) as i32;
+            let reduced_depth = new_depth - (reduction >= 2864) as i32 - (reduction >= 5585) as i32;
 
             score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
             current_search_count += 1;
