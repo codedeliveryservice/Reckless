@@ -639,7 +639,6 @@ fn search<NODE: NodeType>(
                 if is_decisive(score) {
                     return score;
                 }
-
                 return (3 * score + beta) / 4;
             }
         }
@@ -677,18 +676,13 @@ fn search<NODE: NodeType>(
             extension += (singular_score < singular_beta - triple_margin) as i32;
         }
         // Multi-Cut
-        if singular_score >= singular_beta && singular_score >= beta && !is_decisive(singular_score) {
+        else if singular_score >= beta && !is_decisive(singular_score) {
             return (2 * singular_score + beta) / 3;
-        }
-
-        let invalidate_tt_move =
-            singular_score >= singular_beta && singular_score > tt_score && td.stack[ply].mv != Move::NULL;
-        if invalidate_tt_move {
+        } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
             tt_move = Move::NULL;
         }
-
         // Negative Extensions
-        if singular_score >= singular_beta && !invalidate_tt_move && (tt_score >= beta || cut_node) {
+        else if tt_score >= beta || cut_node {
             extension = -2;
         }
     }
@@ -1214,24 +1208,15 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     // Stand Pat
     if best_score >= beta {
-        let stand_pat_score =
-            if !is_decisive(best_score) && !is_decisive(beta) { beta + (best_score - beta) / 3 } else { best_score };
-
-        if entry.is_none() {
-            td.shared.tt.write(
-                hash,
-                TtDepth::SOME,
-                raw_eval,
-                stand_pat_score,
-                Bound::Lower,
-                Move::NULL,
-                ply,
-                tt_pv,
-                false,
-            );
+        if !is_decisive(best_score) && !is_decisive(beta) {
+            best_score = beta + (best_score - beta) / 3;
         }
 
-        return stand_pat_score;
+        if entry.is_none() {
+            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
+        }
+
+        return best_score;
     }
 
     if best_score > alpha {
@@ -1269,15 +1254,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             return Score::ZERO;
         }
 
-        if score <= best_score {
+        if score <= best_score || score <= alpha {
             continue;
         }
 
         best_score = score;
-        if score <= alpha {
-            continue;
-        }
-
         best_move = mv;
         if NODE::PV {
             td.pv_table.update(ply as usize, mv);
