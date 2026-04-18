@@ -79,7 +79,7 @@ impl Board {
 
         match mv.kind() {
             MoveKind::DoublePush => {
-                self.state.en_passant = Square::new((from as u8 + to as u8) / 2);
+                self.state.en_passant = to ^ 8;
                 self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
             }
             MoveKind::EnPassant => {
