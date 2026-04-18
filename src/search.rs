@@ -523,12 +523,14 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !in_check
         && !excluded
-        && estimated_score >= beta
         && estimated_score
-            >= beta + 1165 * depth * depth / 128 + 25 * depth - (80 * improving as i32)
-                + 560 * correction_value.abs() / 1024
-                - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
-                + 30
+            >= beta
+                + (1165 * depth * depth / 128 - (80 * improving as i32)
+                    + 25 * depth
+                    + 560 * correction_value.abs() / 1024
+                    - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
+                    + 30)
+                    .max(0)
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -540,10 +542,13 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
-        && estimated_score >= beta
         && estimated_score
-            >= beta - 8 * depth + 116 * tt_pv as i32 - 106 * improvement / 1024 + 304
-                - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
+            >= beta
+                + (-8 * depth + 116 * tt_pv as i32
+                    - 106 * improvement / 1024
+                    - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
+                    + 304)
+                    .max(0)
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 600
         && !is_loss(beta)
