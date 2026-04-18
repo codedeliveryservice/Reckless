@@ -868,6 +868,9 @@ fn search<NODE: NodeType>(
             reduction -= 48 * move_count;
             reduction -= 2408 * correction_value.abs() / 1024;
 
+            reduction += 546 * (is_valid(tt_score) && tt_score <= alpha) as i32;
+            reduction += 322 * (is_valid(tt_score) && tt_depth < depth) as i32;
+
             if is_quiet {
                 reduction += 1429;
                 reduction -= 152 * history / 1024;
@@ -877,8 +880,9 @@ fn search<NODE: NodeType>(
             }
 
             if tt_pv {
-                reduction -= 936;
-                reduction -= 1080 * (is_valid(tt_score) && tt_depth >= depth) as i32;
+                reduction -= 361;
+                reduction -= 636 * (is_valid(tt_score) && tt_score > alpha) as i32;
+                reduction -= 830 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
             if !tt_pv && cut_node {
