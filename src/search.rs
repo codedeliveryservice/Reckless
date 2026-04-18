@@ -1295,10 +1295,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
-        best_score = (best_score + beta) / 2;
-    }
-
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
     td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
@@ -1306,7 +1302,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
-    best_score
+    if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
+        (best_score + beta) / 2
+    } else {
+        best_score
+    }
 }
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
