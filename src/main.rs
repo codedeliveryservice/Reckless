@@ -13,6 +13,7 @@ mod nnue;
 mod numa;
 mod parameters;
 mod search;
+mod setwise;
 mod stack;
 mod thread;
 mod threadpool;
