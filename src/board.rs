@@ -413,27 +413,22 @@ impl Board {
         // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let stm = self.side_to_move();
         let occupancies = self.occupancies() ^ self.colored_pieces(stm, PieceType::King);
-        let mut threats = pawn_attacks_setwise(self.colored_pieces(!stm, PieceType::Pawn), !stm);
-        self.state.piece_threats[PieceType::Pawn] = threats;
 
-        threats = Bitboard(0);
-
-        threats |= knight_attacks_setwise(self.colored_pieces(!stm, PieceType::Knight));
-        self.state.piece_threats[PieceType::Knight] = threats;
-
-        threats = Bitboard(0);
-        threats |= bishop_attacks_setwise(self.colored_pieces(!stm, PieceType::Bishop), occupancies);
-        self.state.piece_threats[PieceType::Bishop] = threats;
-
-        threats |= rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Rook), occupancies);
-        self.state.piece_threats[PieceType::Rook] = threats;
-
-        threats = Bitboard(0);
-        for square in self.colored_pieces(!stm, PieceType::Queen) {
-            threats |= queen_attacks(square, occupancies);
-        }
-        self.state.piece_threats[PieceType::Queen] = threats;
-
+        self.state.piece_threats[PieceType::Pawn] =
+            pawn_attacks_setwise(self.colored_pieces(!stm, PieceType::Pawn), !stm);
+        self.state.piece_threats[PieceType::Knight] =
+            knight_attacks_setwise(self.colored_pieces(!stm, PieceType::Knight));
+        self.state.piece_threats[PieceType::Bishop] =
+            bishop_attacks_setwise(self.colored_pieces(!stm, PieceType::Bishop), occupancies);
+        self.state.piece_threats[PieceType::Rook] =
+            rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Rook), occupancies);
+        self.state.piece_threats[PieceType::Queen] = {
+            let mut threats = Bitboard(0);
+            for square in self.colored_pieces(!stm, PieceType::Queen) {
+                threats |= queen_attacks(square, occupancies);
+            }
+            threats
+        };
         self.state.piece_threats[PieceType::King] = king_attacks(self.king_square(!stm));
 
         self.state.all_threats = self.piece_threats(PieceType::Pawn)
