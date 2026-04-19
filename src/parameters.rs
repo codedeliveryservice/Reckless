@@ -32,3 +32,21 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    i32 rfp1: 2971;
+    i32 rfp2: 1116;
+    i32 rfp3: 8182;
+    i32 rfp4: 70;
+    i32 rfp5: 10;
+    i32 rfp6: 2861;
+    i32 rfp7: 3990;
+    i32 rfp8: 6826;
+    i32 nmp1: 964;
+    i32 nmp2: 964;
+    i32 nmp3: 32;
+    i32 nmp4: 14;
+    i32 nmp5: 2882;
+    i32 nmp6: 1691;
+    i32 nmp7: 38772;
+);
