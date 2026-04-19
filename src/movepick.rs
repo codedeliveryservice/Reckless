@@ -1,6 +1,7 @@
 use crate::{
-    lookup::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks_setwise, rook_attacks},
+    lookup::king_attacks,
     search::NodeType,
+    setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     thread::ThreadData,
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
@@ -170,6 +171,7 @@ impl MovePicker {
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.all_threats();
         let side = td.board.side_to_move();
+        let occupancies = td.board.occupancies();
 
         let threatened = {
             let pawn_threats = td.board.piece_threats(PieceType::Pawn);
@@ -183,40 +185,24 @@ impl MovePicker {
 
         // safe squares where we can attack an opponent piece
         let offense = {
-            let mut n = Bitboard(0);
-            let mut b = Bitboard(0);
-            let mut q = Bitboard(0);
-            let pawn_offense = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+            let knight_vulnerable = (td.board.colored_pieces(!side, PieceType::Bishop) & !threats)
+                | td.board.colored_pieces(!side, PieceType::Rook)
+                | td.board.colored_pieces(!side, PieceType::Queen);
+            let bishop_vulnerable = td.board.colored_pieces(!side, PieceType::Rook);
+            let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
+            let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
 
-            for square in td.board.colored_pieces(!side, PieceType::Bishop) & !threats {
-                n |= knight_attacks(square);
-                q |= rook_attacks(square, td.board.occupancies());
-            }
+            let p = pawn_attacks_setwise(td.board.colors(!side), !side);
+            let n = knight_attacks_setwise(knight_vulnerable);
+            let b = bishop_attacks_setwise(bishop_vulnerable, occupancies);
+            let q = rook_attacks_setwise(queen_orth_vulnerable, occupancies)
+                | bishop_attacks_setwise(queen_diag_vulnerable, occupancies);
 
-            for square in td.board.colored_pieces(!side, PieceType::Rook) {
-                n |= knight_attacks(square);
-                b |= bishop_attacks(square, td.board.occupancies());
-
-                if !threats.contains(square) {
-                    q |= bishop_attacks(square, td.board.occupancies());
-                }
-            }
-            for square in td.board.colored_pieces(!side, PieceType::Queen) {
-                n |= knight_attacks(square);
-            }
-
-            [pawn_offense, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)]
+            [p & !threats, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)]
         };
 
         // King ring diag attacks and ortho attacks
-        let king_ring_ortho = {
-            let mut king_ring_ortho = Bitboard(0);
-            for square in king_attacks(td.board.king_square(!side)) {
-                king_ring_ortho |= rook_attacks(square, td.board.occupancies());
-            }
-            king_ring_ortho &= !threats;
-            king_ring_ortho
-        };
+        let king_ring_ortho = rook_attacks_setwise(king_attacks(td.board.king_square(!side)), occupancies) & !threats;
 
         // don't move king wall pawns
         let wall_pawns = if Bitboard::HOME_ROWS[side].contains(td.board.king_square(side)) {
