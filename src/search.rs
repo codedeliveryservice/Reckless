@@ -525,7 +525,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && estimated_score
             >= beta
-                + (1165 * quad(depth) / 128
+                + (1165 * depth * depth / 128
                     + penalty_if(improving, 80)
                     + 25 * depth
                     + scale(correction_value.abs(), 560)
@@ -736,7 +736,7 @@ fn search<NODE: NodeType>(
             if !in_check
                 && !td.board.is_direct_check(mv)
                 && is_quiet
-                && move_count >= (3006 + 70 * improvement / 16 + 1455 * quad(depth) + scale(history, 68)) / 1024
+                && move_count >= (3006 + 70 * improvement / 16 + 1455 * depth * depth + scale(history, 68)) / 1024
             {
                 skip_quiets = true;
                 continue;
@@ -770,9 +770,9 @@ fn search<NODE: NodeType>(
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
-                (-17 * quad(depth) + 52 * depth + 20 + scale(history, -21)).min(0)
+                (-17 * depth * depth + 52 * depth + 20 + scale(history, -21)).min(0)
             } else {
-                (-8 * quad(depth) - 36 * depth + 11 + scale(history, -32)).min(0)
+                (-8 * depth * depth - 36 * depth + 11 + scale(history, -32)).min(0)
             };
 
             if !td.board.see(mv, threshold) {
@@ -1314,10 +1314,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
 
     best_score
-}
-
-const fn quad(x: i32) -> i32 {
-    x * x
 }
 
 const fn scale(value: i32, scale: i32) -> i32 {
