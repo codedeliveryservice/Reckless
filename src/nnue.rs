@@ -182,11 +182,11 @@ impl Network {
 
             let delta = &self.pst_stack[i].delta;
 
-            let from = delta.mv.from().relative_to(delta.piece.piece_color());
-            let to = delta.mv.to().relative_to(delta.piece.piece_color());
+            let from = delta.mv.from().relative_to(delta.piece.color());
+            let to = delta.mv.to().relative_to(delta.piece.color());
 
             if delta.piece.piece_type() == PieceType::King
-                && delta.piece.piece_color() == pov
+                && delta.piece.color() == pov
                 && (from.is_kingside() != to.is_kingside() || INPUT_BUCKETS_LAYOUT[from] != INPUT_BUCKETS_LAYOUT[to])
             {
                 return None;
@@ -208,7 +208,7 @@ impl Network {
             let to = delta.mv.to();
 
             if delta.piece.piece_type() == PieceType::King
-                && delta.piece.piece_color() == pov
+                && delta.piece.color() == pov
                 && from.is_kingside() != to.is_kingside()
             {
                 return None;
