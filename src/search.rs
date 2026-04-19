@@ -725,7 +725,7 @@ fn search<NODE: NodeType>(
         let history = if is_quiet {
             td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
         } else {
-            let captured = td.board.piece_on(mv.to()).piece_type();
+            let captured = td.board.type_on(mv.to());
             td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
         };
 
@@ -1029,7 +1029,7 @@ fn search<NODE: NodeType>(
                 td.board.all_threats(),
                 td.board.moved_piece(best_move),
                 best_move.to(),
-                td.board.piece_on(best_move.to()).piece_type(),
+                td.board.type_on(best_move.to()),
                 noisy_bonus,
             );
         } else {
@@ -1043,7 +1043,7 @@ fn search<NODE: NodeType>(
         }
 
         for &mv in noisy_moves.iter() {
-            let captured = td.board.piece_on(mv.to()).piece_type();
+            let captured = td.board.type_on(mv.to());
             td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
         }
 
@@ -1292,7 +1292,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
                 td.board.all_threats(),
                 td.board.moved_piece(best_move),
                 best_move.to(),
-                td.board.piece_on(best_move.to()).piece_type(),
+                td.board.type_on(best_move.to()),
                 bonus,
             );
         } else {

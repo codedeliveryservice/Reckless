@@ -89,7 +89,7 @@ impl super::Board {
     }
 
     fn move_value(&self, mv: Move) -> i32 {
-        let capture = self.piece_on(mv.capture_sq()).piece_type();
+        let capture = self.type_on(mv.capture_sq());
         let mut value = capture.value();
 
         if mv.is_promotion() {

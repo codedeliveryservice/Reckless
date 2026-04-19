@@ -158,13 +158,13 @@ impl MovePicker {
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
-            let captured = td.board.piece_on(mv.capture_sq()).piece_type();
-            let pt = td.board.piece_on(mv.from()).piece_type();
+            let captured = td.board.type_on(mv.capture_sq());
+            let pt = td.board.type_on(mv.from());
 
             entry.score = 16 * captured.value()
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
                 + 4000 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
-                + (100000 - 10000 * pt as i32) * td.board.in_check() as i32;
+                + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
         }
     }
 
@@ -212,7 +212,7 @@ impl MovePicker {
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
-            let pt = td.board.piece_on(mv.from()).piece_type();
+            let pt = td.board.type_on(mv.from());
 
             entry.score = 2048 * td.quiet_history.get(threats, side, mv) / 1024
                 + 1536 * td.conthist(ply, 1, mv) / 1024

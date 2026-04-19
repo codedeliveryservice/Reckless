@@ -184,6 +184,10 @@ impl Board {
         self.colored_pieces(color, PieceType::King).lsb()
     }
 
+    pub fn type_on(&self, square: Square) -> PieceType {
+        self.mailbox[square].piece_type()
+    }
+
     pub fn piece_on(&self, square: Square) -> Piece {
         self.mailbox[square]
     }
@@ -202,13 +206,13 @@ impl Board {
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = piece;
-        self.colors[piece.piece_color()].set(square);
+        self.colors[piece.color()].set(square);
         self.pieces[piece.piece_type()].set(square);
     }
 
     pub fn remove_piece(&mut self, piece: Piece, square: Square) {
         self.mailbox[square] = Piece::None;
-        self.colors[piece.piece_color()].clear(square);
+        self.colors[piece.color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
     }
 
@@ -220,7 +224,7 @@ impl Board {
         if piece.piece_type() == PieceType::Pawn {
             self.state.pawn_key ^= key;
         } else {
-            self.state.non_pawn_keys[piece.piece_color()] ^= key;
+            self.state.non_pawn_keys[piece.color()] ^= key;
         }
     }
 
@@ -487,7 +491,7 @@ impl Board {
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
 
-            for square in self.colored_pieces(piece.piece_color(), piece.piece_type()) {
+            for square in self.colored_pieces(piece.color(), piece.piece_type()) {
                 self.update_hash(piece, square);
             }
         }
