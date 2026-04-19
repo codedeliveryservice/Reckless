@@ -525,9 +525,7 @@ fn search<NODE: NodeType>(
         && !excluded
         && estimated_score
             >= beta
-                + (1165 * depth * depth / 128 - (80 * improving as i32)
-                    + 25 * depth
-                    + 560 * correction_value.abs() / 1024
+                + (7 * depth * depth - (80 * improving as i32) + 40 * depth + 560 * correction_value.abs() / 1024
                     - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
                     + 30)
                     .max(0)
