@@ -1,8 +1,9 @@
 use crate::{
     lookup::{
         attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
-        pawn_attacks, pawn_attacks_setwise, queen_attacks, ray_pass, rook_attacks,
+        pawn_attacks, queen_attacks, ray_pass, rook_attacks,
     },
+    setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     types::{
         Bitboard, Castling, CastlingKind, Color, File, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square,
         ZOBRIST,
@@ -412,33 +413,22 @@ impl Board {
         // This "hack" is used to speed up the implementation of `Board::is_legal`.
         let stm = self.side_to_move();
         let occupancies = self.occupancies() ^ self.colored_pieces(stm, PieceType::King);
-        let mut threats = pawn_attacks_setwise(self.colored_pieces(!stm, PieceType::Pawn), !stm);
-        self.state.piece_threats[PieceType::Pawn] = threats;
 
-        threats = Bitboard(0);
-        for square in self.colored_pieces(!stm, PieceType::Knight) {
-            threats |= knight_attacks(square);
-        }
-        self.state.piece_threats[PieceType::Knight] = threats;
-
-        threats = Bitboard(0);
-        for square in self.colored_pieces(!stm, PieceType::Bishop) {
-            threats |= bishop_attacks(square, occupancies);
-        }
-        self.state.piece_threats[PieceType::Bishop] = threats;
-
-        threats = Bitboard(0);
-        for square in self.colored_pieces(!stm, PieceType::Rook) {
-            threats |= rook_attacks(square, occupancies);
-        }
-        self.state.piece_threats[PieceType::Rook] = threats;
-
-        threats = Bitboard(0);
-        for square in self.colored_pieces(!stm, PieceType::Queen) {
-            threats |= queen_attacks(square, occupancies);
-        }
-        self.state.piece_threats[PieceType::Queen] = threats;
-
+        self.state.piece_threats[PieceType::Pawn] =
+            pawn_attacks_setwise(self.colored_pieces(!stm, PieceType::Pawn), !stm);
+        self.state.piece_threats[PieceType::Knight] =
+            knight_attacks_setwise(self.colored_pieces(!stm, PieceType::Knight));
+        self.state.piece_threats[PieceType::Bishop] =
+            bishop_attacks_setwise(self.colored_pieces(!stm, PieceType::Bishop), occupancies);
+        self.state.piece_threats[PieceType::Rook] =
+            rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Rook), occupancies);
+        self.state.piece_threats[PieceType::Queen] = {
+            let mut threats = Bitboard(0);
+            for square in self.colored_pieces(!stm, PieceType::Queen) {
+                threats |= queen_attacks(square, occupancies);
+            }
+            threats
+        };
         self.state.piece_threats[PieceType::King] = king_attacks(self.king_square(!stm));
 
         self.state.all_threats = self.piece_threats(PieceType::Pawn)
