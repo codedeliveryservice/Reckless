@@ -507,6 +507,7 @@ fn search<NODE: NodeType>(
     };
 
     let improving = improvement > 0;
+    let has_enemy_threats = !(td.board.all_threats() & td.board.colors(stm)).is_empty();
 
     // Razoring
     if !NODE::PV
@@ -523,14 +524,7 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !in_check
         && !excluded
-        && estimated_score
-            >= beta
-                + (1165 * depth * depth / 128 - (80 * improving as i32)
-                    + 25 * depth
-                    + 560 * correction_value.abs() / 1024
-                    - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
-                    + 30)
-                    .max(0)
+        && estimated_score >= beta + rfp_margin(depth, improvement, has_enemy_threats, tt_move, correction_value.abs())
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -542,13 +536,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
-        && estimated_score
-            >= beta
-                + (-8 * depth + 116 * tt_pv as i32
-                    - 106 * improvement / 1024
-                    - 20 * (td.stack[ply + 1].cutoff_count < 2) as i32
-                    + 304)
-                    .max(0)
+        && estimated_score >= beta + nmp_margin(depth, improvement, has_enemy_threats, tt_move, correction_value.abs())
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 600
         && !is_loss(beta)
@@ -1391,4 +1379,29 @@ fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
 fn undo_move(td: &mut ThreadData, mv: Move) {
     td.nnue.pop();
     td.board.undo_move(mv);
+}
+
+fn rfp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Move, correction: i32) -> i32 {
+    let value = 2971 * depth // .
+        + 1116 * depth * depth
+        + 8182 * has_enemy_threats as i32
+        + 70 * correction
+        - 10 * improvement
+        - 2861 * tt_move.is_null() as i32
+        - 3990 * tt_move.is_noisy() as i32
+        - 6826;
+
+    (value / 128).max(0)
+}
+
+fn nmp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Move, correction: i32) -> i32 {
+    let value = -1094 * depth // .
+        + 805 * has_enemy_threats as i32
+        + 50 * correction
+        - 15 * improvement
+        - 3116 * tt_move.is_null() as i32
+        - 1758 * tt_move.is_noisy() as i32
+        + 38657;
+
+    (value / 128).max(0)
 }
