@@ -135,9 +135,7 @@ unsafe fn shiftv<const A: i64, const B: i64, const C: i64, const D: i64>(
 ) -> core::arch::x86_64::__m256i {
     use core::arch::x86_64::*;
 
-    debug_assert!(A < 0 && B < 0 && C > 0 && D > 0);
-
-    _mm256_blend_epi32::<0xF0>(
+    _mm256_or_si256(
         _mm256_sllv_epi64(vector, _mm256_set_epi64x(A, B, C, D)),
         _mm256_srlv_epi64(vector, _mm256_set_epi64x(-A, -B, -C, -D)),
     )
