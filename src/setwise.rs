@@ -62,7 +62,7 @@ pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     }
 }
 
-#[cfg(not(target_feature = "avx512f"))]
+#[cfg(not(target_feature = "avx2"))]
 #[inline]
 pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use crate::lookup::bishop_attacks;
@@ -74,33 +74,28 @@ pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     result
 }
 
-#[cfg(target_feature = "avx512f")]
+#[cfg(target_feature = "avx2")]
 #[inline]
 pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use std::arch::x86_64::*;
 
     unsafe {
-        let attackers = _mm256_set1_epi64x(bb.0 as i64);
-        let rotates1 = _mm256_set_epi64x(-9, -7, 7, 9);
-        let rotates2 = _mm256_add_epi64(rotates1, rotates1);
-        let rotates4 = _mm256_add_epi64(rotates2, rotates2);
-
         let mask = _mm256_set_epi64x(!(R8 | H).0 as i64, !(R8 | A).0 as i64, !(R1 | H).0 as i64, !(R1 | A).0 as i64);
 
-        let generate = attackers;
+        let generate = _mm256_set1_epi64x(bb.0 as i64);
         let propagate = _mm256_and_si256(_mm256_set1_epi64x(!occupancies.0 as i64), mask);
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates1)));
-        let propagate = _mm256_and_si256(propagate, _mm256_rolv_epi64(propagate, rotates1));
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates2)));
-        let propagate = _mm256_and_si256(propagate, _mm256_rolv_epi64(propagate, rotates2));
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates4)));
-        let attacks = _mm256_and_si256(_mm256_rolv_epi64(generate, rotates1), mask);
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-9, -7, 7, 9>(generate)));
+        let propagate = _mm256_and_si256(propagate, shiftv::<-9, -7, 7, 9>(propagate));
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-18, -14, 14, 18>(generate)));
+        let propagate = _mm256_and_si256(propagate, shiftv::<-18, -14, 14, 18>(propagate));
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-36, -28, 28, 36>(generate)));
+        let attacks = _mm256_and_si256(shiftv::<-9, -7, 7, 9>(generate), mask);
 
         fold_to_bitboard(attacks)
     }
 }
 
-#[cfg(not(target_feature = "avx512f"))]
+#[cfg(not(target_feature = "avx2"))]
 #[inline]
 pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use crate::lookup::rook_attacks;
@@ -112,30 +107,50 @@ pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     result
 }
 
-#[cfg(target_feature = "avx512f")]
+#[cfg(target_feature = "avx2")]
 #[inline]
 pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use std::arch::x86_64::*;
 
     unsafe {
-        let attackers = _mm256_set1_epi64x(bb.0 as i64);
-        let rotates1 = _mm256_set_epi64x(-8, -1, 1, 8);
-        let rotates2 = _mm256_add_epi64(rotates1, rotates1);
-        let rotates4 = _mm256_add_epi64(rotates2, rotates2);
-
         let mask = _mm256_set_epi64x(!R8.0 as i64, !H.0 as i64, !A.0 as i64, !R1.0 as i64);
 
-        let generate = attackers;
+        let generate = _mm256_set1_epi64x(bb.0 as i64);
         let propagate = _mm256_and_si256(_mm256_set1_epi64x(!occupancies.0 as i64), mask);
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates1)));
-        let propagate = _mm256_and_si256(propagate, _mm256_rolv_epi64(propagate, rotates1));
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates2)));
-        let propagate = _mm256_and_si256(propagate, _mm256_rolv_epi64(propagate, rotates2));
-        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, _mm256_rolv_epi64(generate, rotates4)));
-        let attacks = _mm256_and_si256(_mm256_rolv_epi64(generate, rotates1), mask);
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-8, -1, 1, 8>(generate)));
+        let propagate = _mm256_and_si256(propagate, shiftv::<-8, -1, 1, 8>(propagate));
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-16, -2, 2, 16>(generate)));
+        let propagate = _mm256_and_si256(propagate, shiftv::<-16, -2, 2, 16>(propagate));
+        let generate = _mm256_or_si256(generate, _mm256_and_si256(propagate, shiftv::<-32, -4, 4, 32>(generate)));
+        let attacks = _mm256_and_si256(shiftv::<-8, -1, 1, 8>(generate), mask);
 
         fold_to_bitboard(attacks)
     }
+}
+
+#[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
+#[inline]
+unsafe fn shiftv<const A: i64, const B: i64, const C: i64, const D: i64>(
+    vector: core::arch::x86_64::__m256i,
+) -> core::arch::x86_64::__m256i {
+    use core::arch::x86_64::*;
+
+    debug_assert!(A < 0 && B < 0 && C > 0 && D > 0);
+
+    _mm256_blend_epi32::<0xF0>(
+        _mm256_sllv_epi64(vector, _mm256_set_epi64x(A, B, C, D)),
+        _mm256_srlv_epi64(vector, _mm256_set_epi64x(-A, -B, -C, -D)),
+    )
+}
+
+#[cfg(target_feature = "avx512f")]
+#[inline]
+unsafe fn shiftv<const A: i64, const B: i64, const C: i64, const D: i64>(
+    vector: core::arch::x86_64::__m256i,
+) -> core::arch::x86_64::__m256i {
+    use core::arch::x86_64::*;
+
+    _mm256_rolv_epi64(vector, _mm256_set_epi64x(A, B, C, D))
 }
 
 #[cfg(target_feature = "avx2")]
