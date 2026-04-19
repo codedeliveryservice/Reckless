@@ -164,7 +164,7 @@ impl MovePicker {
             entry.score = 16 * captured.value()
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
                 + 4000 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
-                + (100000 - 10000 * pt as i32) * td.board.in_check() as i32;
+                + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
         }
     }
 
