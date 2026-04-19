@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
     time::Limits,
@@ -1382,26 +1383,26 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
 }
 
 fn rfp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Move, correction: i32) -> i32 {
-    let value = 2971 * depth // .
-        + 1116 * depth * depth
-        + 8182 * has_enemy_threats as i32
-        + 70 * correction
-        - 10 * improvement
-        - 2861 * tt_move.is_null() as i32
-        - 3990 * tt_move.is_noisy() as i32
-        - 6826;
+    let value = rfp1() * depth // .
+        + rfp2() * depth * depth
+        + rfp3() * has_enemy_threats as i32
+        + rfp4() * correction
+        - rfp5() * improvement
+        - rfp6() * tt_move.is_null() as i32
+        - rfp7() * tt_move.is_noisy() as i32
+        - rfp8();
 
     (value / 128).max(0)
 }
 
 fn nmp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Move, correction: i32) -> i32 {
-    let value = -964 * depth // .
-        + 964 * has_enemy_threats as i32
-        + 32 * correction
-        - 14 * improvement
-        - 2882 * tt_move.is_null() as i32
-        - 1691 * tt_move.is_noisy() as i32
-        + 38772;
+    let value = -nmp1() * depth // .
+        + nmp2() * has_enemy_threats as i32
+        + nmp3() * correction
+        - nmp4() * improvement
+        - nmp5() * tt_move.is_null() as i32
+        - nmp6() * tt_move.is_noisy() as i32
+        + nmp7();
 
     (value / 128).max(0)
 }
