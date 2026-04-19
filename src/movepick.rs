@@ -158,8 +158,8 @@ impl MovePicker {
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
-            let captured = td.board.piece_on(mv.capture_sq()).piece_type();
-            let pt = td.board.piece_on(mv.from()).piece_type();
+            let captured = td.board.type_on(mv.capture_sq());
+            let pt = td.board.type_on(mv.from());
 
             entry.score = 16 * captured.value()
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
@@ -213,7 +213,7 @@ impl MovePicker {
 
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
-            let pt = td.board.piece_on(mv.from()).piece_type();
+            let pt = td.board.type_on(mv.from());
 
             entry.score = 2048 * td.quiet_history.get(threats, side, mv) / 1024
                 + 1536 * td.conthist(ply, 1, mv) / 1024
