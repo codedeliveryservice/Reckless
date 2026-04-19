@@ -988,7 +988,7 @@ fn search<NODE: NodeType>(
                 alpha = score;
 
                 if !(NODE::ROOT && td.pv_index > 0) && mv != tt_move {
-                    td.shared.tt.write(hash, depth, raw_eval, score, Bound::Lower, mv, ply, true, false);
+                    td.shared.tt.write(hash, (depth - 2).max(1), raw_eval, score, Bound::Lower, mv, ply, true, false);
                 }
 
                 if !is_decisive(score) {
