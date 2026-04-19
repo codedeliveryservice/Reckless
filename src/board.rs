@@ -184,6 +184,10 @@ impl Board {
         self.colored_pieces(color, PieceType::King).lsb()
     }
 
+    pub fn type_on(&self, square: Square) -> PieceType {
+        self.mailbox[square].piece_type()
+    }
+
     pub fn piece_on(&self, square: Square) -> Piece {
         self.mailbox[square]
     }
