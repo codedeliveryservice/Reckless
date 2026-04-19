@@ -31,9 +31,6 @@ mod tb;
 mod bindings;
 
 fn main() {
-    #[cfg(target_feature = "avx512f")]
-    crash();
-
     lookup::initialize();
     nnue::initialize();
 
