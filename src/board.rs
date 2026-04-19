@@ -24,7 +24,7 @@ mod see;
 #[derive(Copy, Clone, Default)]
 struct InternalState {
     key: u64,
-    pawn_key: u64,
+    pawn_king_key: u64,
     non_pawn_keys: [u64; Color::NUM],
     en_passant: Square,
     castling: Castling,
@@ -82,8 +82,8 @@ impl Board {
         self.state.key ^ ZOBRIST.halfmove_clock[(self.halfmove_clock().saturating_sub(8) as usize / 8).min(15)]
     }
 
-    pub const fn pawn_key(&self) -> u64 {
-        self.state.pawn_key
+    pub const fn pawn_king_key(&self) -> u64 {
+        self.state.pawn_king_key
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
@@ -216,10 +216,13 @@ impl Board {
 
         self.state.key ^= key;
 
-        if piece.piece_type() == PieceType::Pawn {
-            self.state.pawn_key ^= key;
-        } else {
-            self.state.non_pawn_keys[piece.piece_color()] ^= key;
+        match piece.piece_type() {
+            PieceType::Pawn => self.state.pawn_king_key ^= key,
+            PieceType::King => {
+                self.state.pawn_king_key ^= key;
+                self.state.non_pawn_keys[piece.piece_color()] ^= key;
+            }
+            _ => self.state.non_pawn_keys[piece.piece_color()] ^= key,
         }
     }
 
@@ -491,7 +494,7 @@ impl Board {
 
     pub fn update_hash_keys(&mut self) {
         self.state.key = 0;
-        self.state.pawn_key = 0;
+        self.state.pawn_king_key = 0;
         self.state.non_pawn_keys = [0; Color::NUM];
 
         for piece in 0..Piece::NUM {
