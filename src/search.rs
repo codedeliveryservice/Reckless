@@ -1395,13 +1395,13 @@ fn rfp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Mo
 }
 
 fn nmp_margin(depth: i32, improvement: i32, has_enemy_threats: bool, tt_move: Move, correction: i32) -> i32 {
-    let value = -1094 * depth // .
-        + 805 * has_enemy_threats as i32
-        + 50 * correction
-        - 15 * improvement
-        - 3116 * tt_move.is_null() as i32
-        - 1758 * tt_move.is_noisy() as i32
-        + 38657;
+    let value = -964 * depth // .
+        + 964 * has_enemy_threats as i32
+        + 32 * correction
+        - 14 * improvement
+        - 2882 * tt_move.is_null() as i32
+        - 1691 * tt_move.is_noisy() as i32
+        + 38772;
 
     (value / 128).max(0)
 }
