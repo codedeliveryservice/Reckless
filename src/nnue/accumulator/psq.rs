@@ -107,20 +107,20 @@ impl PstAccumulator {
 
         let resulting_piece = if mv.is_promotion() { mv.promo_piece_type() } else { piece.piece_type() };
 
-        let add1 = pst_index(piece.piece_color(), resulting_piece, mv.to(), king, pov);
-        let sub1 = pst_index(piece.piece_color(), piece.piece_type(), mv.from(), king, pov);
+        let add1 = pst_index(piece.color(), resulting_piece, mv.to(), king, pov);
+        let sub1 = pst_index(piece.color(), piece.piece_type(), mv.from(), king, pov);
 
         match mv.kind() {
             MoveKind::Castling => {
                 let (rook_from, rook_to) = board.get_castling_rook(mv.to());
 
-                let add2 = pst_index(piece.piece_color(), PieceType::Rook, rook_to, king, pov);
-                let sub2 = pst_index(piece.piece_color(), PieceType::Rook, rook_from, king, pov);
+                let add2 = pst_index(piece.color(), PieceType::Rook, rook_to, king, pov);
+                let sub2 = pst_index(piece.color(), PieceType::Rook, rook_from, king, pov);
 
                 self.add2_sub2(prev, add1, add2, sub1, sub2, pov);
             }
             MoveKind::EnPassant => {
-                let sub2 = pst_index(!piece.piece_color(), PieceType::Pawn, mv.to() ^ 8, king, pov);
+                let sub2 = pst_index(!piece.color(), PieceType::Pawn, mv.to() ^ 8, king, pov);
                 self.add1_sub2(prev, add1, sub1, sub2, pov);
             }
             MoveKind::Capture
@@ -128,7 +128,7 @@ impl PstAccumulator {
             | MoveKind::PromotionCaptureB
             | MoveKind::PromotionCaptureR
             | MoveKind::PromotionCaptureQ => {
-                let sub2 = pst_index(!piece.piece_color(), captured.piece_type(), mv.to(), king, pov);
+                let sub2 = pst_index(!piece.color(), captured.piece_type(), mv.to(), king, pov);
                 self.add1_sub2(prev, add1, sub1, sub2, pov);
             }
             _ => self.add1_sub1(prev, add1, sub1, pov),

@@ -72,10 +72,10 @@ pub fn initialize() {
     for attacking in Piece::ALL {
         for attacked in Piece::ALL {
             let attacking_piece = attacking.piece_type();
-            let attacking_color = attacking.piece_color();
+            let attacking_color = attacking.color();
 
             let attacked_piece = attacked.piece_type();
-            let attacked_color = attacked.piece_color();
+            let attacked_color = attacked.color();
 
             let map = PIECE_INTERACTION_MAP[attacking_piece][attacked_piece];
             let base = offset_table[attacking]

@@ -56,7 +56,7 @@ impl Piece {
         unsafe { std::mem::transmute(index as u8) }
     }
 
-    pub const fn piece_color(self) -> Color {
+    pub const fn color(self) -> Color {
         unsafe { std::mem::transmute((self as u8) & 1) }
     }
 
