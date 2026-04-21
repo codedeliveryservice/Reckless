@@ -654,6 +654,7 @@ fn search<NODE: NodeType>(
     // Singular Extensions (SE)
     let mut extension = 0;
     let mut singular_score = Score::NONE;
+    let mut alternate_move = Move::NULL;
 
     if !NODE::ROOT && !excluded && potential_singularity {
         debug_assert!(is_valid(tt_score));
@@ -666,6 +667,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].excluded = tt_move;
         td.stack[ply].mv = Move::NULL;
         singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        alternate_move = td.stack[ply].mv;
         td.stack[ply].excluded = Move::NULL;
 
         if td.shared.status.get() == Status::STOPPED {
@@ -685,7 +687,7 @@ fn search<NODE: NodeType>(
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
             return (2 * singular_score + beta) / 3;
-        } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
+        } else if singular_score > tt_score && !alternate_move.is_null() {
             tt_move = Move::NULL;
         }
         // Negative Extensions
@@ -836,6 +838,10 @@ fn search<NODE: NodeType>(
                 reduction += (512 * (margin - 160) / 128).clamp(0, 2048);
             }
 
+            if mv == alternate_move {
+                reduction -= 1500;
+            }
+
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 485 {
                 reduction += 129;
             }
@@ -901,6 +907,8 @@ fn search<NODE: NodeType>(
 
             if mv == tt_move {
                 reduction -= 3281;
+            } else if mv == alternate_move {
+                reduction -= 1500;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 562 {
