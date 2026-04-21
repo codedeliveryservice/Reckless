@@ -195,13 +195,12 @@ impl MovePicker {
             let p = pawn_attacks_setwise(td.board.colors(!side), !side);
             let n = knight_attacks_setwise(knight_vulnerable);
             let b = bishop_attacks_setwise(bishop_vulnerable, occupancies);
+            let r = Bitboard::file(td.board.king_square(!side).file());
             let q = rook_attacks_setwise(queen_orth_vulnerable, occupancies)
                 | bishop_attacks_setwise(queen_diag_vulnerable, occupancies);
 
-            [p & !threats, n & !threats, b & !threats, Bitboard(0), q & !threats, Bitboard(0)]
+            [p & !threats, n & !threats, b & !threats, r & !threats, q & !threats, Bitboard(0)]
         };
-
-        let king_file = td.board.king_square(!side).file();
 
         // don't move king wall pawns
         let wall_pawns = if Bitboard::HOME_ROWS[side].contains(td.board.king_square(side)) {
@@ -223,7 +222,6 @@ impl MovePicker {
                 + 9325 * td.board.checking_squares(pt).contains(mv.to()) as i32
                 - 7584 * threatened[pt].contains(mv.to()) as i32
                 + 6158 * offense[pt].contains(mv.to()) as i32
-                + 5000 * (pt == PieceType::Rook && king_file == mv.to().file()) as i32
                 - 4000 * wall_pawns.contains(mv.from()) as i32;
         }
     }
