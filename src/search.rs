@@ -835,11 +835,7 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                reduction += (512 * (margin - 160) / 128).clamp(0, 2048);
-            }
-
-            if mv == alternate_move {
-                reduction -= 1500;
+                reduction += 512 * (margin - 160) / 128;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 485 {
@@ -902,13 +898,11 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                reduction += (400 * (margin - 160) / 128).clamp(0, 2048);
+                reduction += 400 * (margin - 160) / 128;
             }
 
             if mv == tt_move {
                 reduction -= 3281;
-            } else if mv == alternate_move {
-                reduction -= 1500;
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 562 {
