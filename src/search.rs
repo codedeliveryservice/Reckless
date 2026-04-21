@@ -936,6 +936,8 @@ fn search<NODE: NodeType>(
             root_move.nodes += current_nodes - initial_nodes;
 
             if move_count == 1 || score > alpha {
+                root_move.upperbound = false;
+                root_move.lowerbound = false;
                 match score {
                     v if v <= alpha => {
                         root_move.display_score = alpha;
@@ -947,8 +949,6 @@ fn search<NODE: NodeType>(
                     }
                     _ => {
                         root_move.display_score = score;
-                        root_move.upperbound = false;
-                        root_move.lowerbound = false;
                     }
                 }
 
