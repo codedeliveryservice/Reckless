@@ -678,9 +678,9 @@ fn search<NODE: NodeType>(
             let triple_margin =
                 257 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 15 * correction_value.abs() / 128 + 32;
 
-            extension = 1;
             extension += (singular_score < singular_beta - double_margin) as i32;
             extension += (singular_score < singular_beta - triple_margin) as i32;
+            depth += 1;
         }
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
@@ -782,7 +782,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = depth - 1 + if move_count == 1 { extension } else { (extension > 0) as i32 };
+        let mut new_depth = depth - 1 + if move_count == 1 { extension } else { 0 };
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
