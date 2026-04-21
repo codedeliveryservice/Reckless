@@ -818,7 +818,8 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1818;
-                reduction += 2118 * tt_move.is_null() as i32;
+                reduction += 1059 * tt_move.is_null() as i32;
+                reduction += 1059 * alternate_move.is_null() as i32;
             }
 
             if !improving {
@@ -835,7 +836,7 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                reduction += 512 * (margin - 160) / 128;
+                reduction += (512 * (margin - 160) / 128).clamp(0, 2048);
             }
 
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 485 {
@@ -885,7 +886,8 @@ fn search<NODE: NodeType>(
 
             if !tt_pv && cut_node {
                 reduction += 1543;
-                reduction += 2058 * tt_move.is_null() as i32;
+                reduction += 1029 * tt_move.is_null() as i32;
+                reduction += 1029 * alternate_move.is_null() as i32;
             }
 
             if !improving {
@@ -898,7 +900,7 @@ fn search<NODE: NodeType>(
 
             if is_valid(tt_move_score) && is_valid(singular_score) {
                 let margin = tt_move_score - singular_score;
-                reduction += 400 * (margin - 160) / 128;
+                reduction += (400 * (margin - 160) / 128).clamp(0, 2048);
             }
 
             if mv == tt_move {
