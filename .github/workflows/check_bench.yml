@@ -58,8 +58,7 @@ jobs:
       - name: Get measured bench
         shell: bash
         run: |
-          cargo rustc --release -- --emit link=reckless
-          measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- ./reckless bench | tail -1 | cut "--delimiter= " -f 2 -)
+          measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- cargo run -- bench | tail -1 | cut "--delimiter= " -f 2 -)
           echo "measured_bench=$measured_bench" >> $GITHUB_ENV
           echo "Measured Bench: $measured_bench"
         env:
