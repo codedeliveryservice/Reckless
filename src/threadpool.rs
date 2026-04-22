@@ -72,11 +72,15 @@ impl ThreadPool {
         self.vector = make_thread_data(shared, &self.workers, Board::starting_position().into());
     }
 
-    pub fn execute_searches(&mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>) {
+    pub fn execute_searches(
+        &mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>, pondering: bool,
+    ) {
         shared.tt.increment_age();
 
         shared.nodes.reset();
         shared.tb_hits.reset();
+        shared.pondering.store(pondering, Ordering::Release);
+        shared.ponderhit.store(false, Ordering::Release);
         shared.soft_stop_votes.store(0, Ordering::Release);
         shared.status.set(Status::RUNNING);
         shared.best_stats.iter().for_each(|x| {

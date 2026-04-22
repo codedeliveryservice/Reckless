@@ -80,6 +80,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
+        if td.time_manager.is_ponder() && td.shared.ponderhit.swap(false, Ordering::AcqRel) {
+            td.time_manager.on_ponderhit();
+            td.shared.pondering.store(false, Ordering::Release);
+            soft_stop_voted = false;
+            td.shared.soft_stop_votes.store(0, Ordering::Release);
+        }
+
         if td.id == 0
             && let Limits::Depth(maximum) = td.time_manager.limits()
             && depth > maximum
