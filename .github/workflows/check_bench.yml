@@ -21,15 +21,12 @@ jobs:
         include:
           - name: Haswell
             sde_flag: -hsw
-            rustflags: "-C target-cpu=x86-64-v3"
 
           - name: Skylake (Server)
             sde_flag: -skx
-            rustflags: "-C target-cpu=x86-64-v4"
 
           - name: Ice Lake
             sde_flag: -icl
-            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
 
     name: Check bench on ${{ matrix.name }}
 
@@ -61,8 +58,6 @@ jobs:
           measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- cargo run -- bench | tail -1 | cut "--delimiter= " -f 2 -)
           echo "measured_bench=$measured_bench" >> $GITHUB_ENV
           echo "Measured Bench: $measured_bench"
-        env:
-          RUSTFLAGS: ${{ matrix.rustflags }}
 
       - name: Check bench
         shell: bash
