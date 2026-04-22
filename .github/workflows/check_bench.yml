@@ -27,6 +27,10 @@ jobs:
             sde_flag: -skx
             rustflags: "-C target-cpu=skx"
 
+          - name: Ice Lake (Client)
+            sde_flag: -icl
+            rustflags: "-C target-cpu=icelake-client"
+
           - name: Ice Lake (Server)
             sde_flag: -icx
             rustflags: "-C target-cpu=icelake-server"
