@@ -21,12 +21,15 @@ jobs:
         include:
           - name: Haswell
             sde_flag: -hsw
+            rustflags: "-C target-cpu=haswell"
 
           - name: Skylake (Server)
             sde_flag: -skx
+            rustflags: "-C target-cpu=skx"
 
-          - name: Ice Lake
-            sde_flag: -icl
+          - name: Ice Lake (Server)
+            sde_flag: -icx
+            rustflags: "-C target-cpu=icelake-server"
 
     name: Check bench on ${{ matrix.name }}
 
@@ -55,9 +58,15 @@ jobs:
       - name: Get measured bench
         shell: bash
         run: |
-          measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- cargo run -- bench | tail -1 | cut "--delimiter= " -f 2 -)
+          echo "RUSTFLAGS:" $RUSTFLAGS
+          cargo +nightly -Z target-applies-to-host rustc --release -- --emit link=reckless
+          "$SDE_PATH/sde" ${{ matrix.sde_flag }} -- ./reckless compiler
+          measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- ./reckless bench | tail -1 | cut "--delimiter= " -f 2 -)
           echo "measured_bench=$measured_bench" >> $GITHUB_ENV
           echo "Measured Bench: $measured_bench"
+        env:
+          CARGO_TARGET_APPLIES_TO_HOST: false
+          RUSTFLAGS: ${{ matrix.rustflags }}
 
       - name: Check bench
         shell: bash
