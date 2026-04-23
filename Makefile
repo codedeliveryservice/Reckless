@@ -21,15 +21,12 @@ else
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
+	cargo pgo instrument
+	cargo pgo run -- bench
+	cargo pgo optimize
+	$(PGO_MOVE)
 
 x64-check:
 	RUSTFLAGS="-C target-cpu=x86-64" cargo check --target x86_64-unknown-linux-gnu --no-default-features
 	RUSTFLAGS="-C target-cpu=x86-64-v3" cargo check --target x86_64-unknown-linux-gnu --no-default-features
 	RUSTFLAGS="-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg" cargo check --target x86_64-unknown-linux-gnu --no-default-features
-
-pgo:
-	cargo pgo instrument
-	cargo pgo run -- bench
-	cargo pgo optimize
-	$(PGO_MOVE)
