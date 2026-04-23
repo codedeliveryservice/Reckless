@@ -25,7 +25,7 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
 }
 
 pub unsafe fn propagate_l1(
-    ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
+    ft_out: &Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
 ) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
@@ -62,7 +62,7 @@ pub unsafe fn propagate_l1(
 }
 
 pub fn propagate_l2(
-    l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
+    l1_out: &Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
 ) -> Aligned<[f32; L3_SIZE]> {
     let mut output = Aligned::new([0.0; L3_SIZE]);
 
@@ -79,7 +79,7 @@ pub fn propagate_l2(
     output
 }
 
-pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
+pub fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
     let mut output = 0.0;
     for i in 0..L3_SIZE {
         output = parameters.l3_weights[bucket][i].mul_add(l2_out[i], output);

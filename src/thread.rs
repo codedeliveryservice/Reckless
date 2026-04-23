@@ -123,7 +123,7 @@ impl Default for SharedContext {
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
             history: NumaReplicated::new(numa_context.clone()),
             parameters: NumaReplicated::new(numa_context.clone()),
-            numa_context: numa_context,
+            numa_context,
         }
     }
 }

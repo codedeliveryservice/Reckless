@@ -176,6 +176,7 @@ impl PstAccumulator {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn add2_sub2(
         &mut self, prev: &Self, add1: PstFeature, add2: PstFeature, sub1: PstFeature, sub2: PstFeature, pov: Color,
         parameters: &Parameters,

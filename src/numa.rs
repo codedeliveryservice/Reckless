@@ -131,7 +131,7 @@ impl NumaConfig {
             let mut best_node = 0;
             let mut best_fill = f32::MAX;
 
-            for node in 0..self.nodes.len() {
+            for (node, _) in self.nodes.iter().enumerate() {
                 let fill = (occupation[node] + 1) as f32 / self.nodes[node].len() as f32;
                 if fill < best_fill {
                     best_node = node;

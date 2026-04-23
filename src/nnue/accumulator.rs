@@ -33,7 +33,7 @@ pub struct CacheEntry {
 impl CacheEntry {
     pub fn new(parameters: &Parameters) -> Self {
         Self {
-            values: parameters.ft_biases.clone(),
+            values: parameters.ft_biases,
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],
         }
