@@ -81,7 +81,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
 
             // Non-UCI commands
             ["compiler"] => compiler(),
-            ["eval"] => eval(&mut threads.main_thread(), &board),
+            ["eval"] => eval(threads.main_thread(), &board),
             ["d"] => println!("{}", board),
             ["bench", args @ ..] => match mode {
                 Mode::Uci => tools::bench::<true>(args),
@@ -237,7 +237,7 @@ fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc
         threads[best].print_uci_info(threads[best].completed_depth);
     }
 
-    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&board));
+    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(board));
     crate::misc::dbg_print();
 }
 
