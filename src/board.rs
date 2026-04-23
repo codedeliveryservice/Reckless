@@ -428,7 +428,7 @@ impl Board {
             rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Rook), occupancies);
         self.state.piece_threats[PieceType::Queen] =
             bishop_attacks_setwise(self.colored_pieces(!stm, PieceType::Queen), occupancies)
-            | rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Queen), occupancies);
+                | rook_attacks_setwise(self.colored_pieces(!stm, PieceType::Queen), occupancies);
         self.state.piece_threats[PieceType::King] = king_attacks(self.king_square(!stm));
 
         self.state.all_threats = self.piece_threats(PieceType::Pawn)
