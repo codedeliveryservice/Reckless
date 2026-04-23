@@ -1,9 +1,6 @@
 use std::sync::atomic::{AtomicI16, Ordering};
 
-use crate::{
-    numa::NumaValue,
-    types::{Bitboard, Color, Move, Piece, PieceType, Square},
-};
+use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
 
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
@@ -123,8 +120,6 @@ pub struct CorrectionHistory {
     // [side_to_move][key]
     entries: Box<[[AtomicI16; Self::SIZE]; 2]>,
 }
-
-unsafe impl NumaValue for CorrectionHistory {}
 
 impl CorrectionHistory {
     const MAX_HISTORY: i32 = 14605;

@@ -1,6 +1,6 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, PARAMETERS, SparseEntry,
+        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, Parameters, SparseEntry,
         accumulator::{PstAccumulator, ThreatAccumulator},
     },
     types::Color,
@@ -24,7 +24,9 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
     output
 }
 
-pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize) -> Aligned<[f32; L2_SIZE]> {
+pub unsafe fn propagate_l1(
+    ft_out: &Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
+) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
     let mut pre_activations = [0i32; L2_SIZE];
@@ -34,7 +36,7 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     for i in 0..nnz.len() {
         let index = *nnz.get_unchecked(i) as usize;
         let input = packed.get_unchecked(index);
-        let weights = &PARAMETERS.l1_weights[bucket][index * L2_SIZE * CHUNKS..];
+        let weights = &parameters.l1_weights[bucket][index * L2_SIZE * CHUNKS..];
 
         for j in 0..L2_SIZE {
             let mut vector = 0;
@@ -53,34 +55,36 @@ pub unsafe fn propagate_l1(ft_out: Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: 
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + PARAMETERS.l1_biases[bucket][i]).clamp(0.0, 1.0);
+        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + parameters.l1_biases[bucket][i]).clamp(0.0, 1.0);
     }
 
     output
 }
 
-pub fn propagate_l2(l1_out: Aligned<[f32; L2_SIZE]>, bucket: usize) -> Aligned<[f32; L3_SIZE]> {
+pub fn propagate_l2(
+    l1_out: &Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
+) -> Aligned<[f32; L3_SIZE]> {
     let mut output = Aligned::new([0.0; L3_SIZE]);
 
     for i in 0..L2_SIZE {
         for j in 0..L3_SIZE {
-            output[j] += PARAMETERS.l2_weights[bucket][i][j] * l1_out[i];
+            output[j] += parameters.l2_weights[bucket][i][j] * l1_out[i];
         }
     }
 
     for i in 0..L3_SIZE {
-        output[i] += PARAMETERS.l2_biases[bucket][i];
+        output[i] += parameters.l2_biases[bucket][i];
         output[i] = output[i].clamp(0.0, 1.0);
     }
     output
 }
 
-pub fn propagate_l3(l2_out: Aligned<[f32; L3_SIZE]>, bucket: usize) -> f32 {
+pub fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
     let mut output = 0.0;
     for i in 0..L3_SIZE {
-        output = PARAMETERS.l3_weights[bucket][i].mul_add(l2_out[i], output);
+        output = parameters.l3_weights[bucket][i].mul_add(l2_out[i], output);
     }
-    output + PARAMETERS.l3_biases[bucket]
+    output + parameters.l3_biases[bucket]
 }
 
 pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {

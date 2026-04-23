@@ -174,7 +174,7 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     threads.clear();
     shared.tt.clear(threads.len());
 
-    for corrhist in unsafe { shared.replicator.get_all() } {
+    for corrhist in shared.history.all() {
         corrhist.pawn.clear();
         corrhist.non_pawn[Color::White].clear();
         corrhist.non_pawn[Color::Black].clear();
