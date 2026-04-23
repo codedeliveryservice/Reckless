@@ -35,7 +35,7 @@ impl ThreadPool {
         shared.numa_context.set_thread_count(1);
 
         let workers = make_worker_threads(1);
-        let data = make_thread_data(shared, &workers, Board::starting_position().into());
+        let data = make_thread_data(shared, &workers);
 
         Self { workers, vector: data }
     }
@@ -43,7 +43,6 @@ impl ThreadPool {
     pub fn set_count(&mut self, threads: usize) {
         let threads = threads.clamp(1, ThreadPool::available_threads());
         let shared = self.vector[0].shared.clone();
-        let board = Arc::new(self.vector[0].board.clone());
 
         shared.numa_context.set_thread_count(threads);
 
@@ -51,7 +50,7 @@ impl ThreadPool {
         self.workers = make_worker_threads(threads);
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(shared, &self.workers, board);
+        self.vector = make_thread_data(shared, &self.workers);
     }
 
     pub fn main_thread(&mut self) -> &mut ThreadData {
@@ -66,20 +65,19 @@ impl ThreadPool {
         self.vector.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ThreadData> {
-        self.vector.iter_mut()
-    }
-
     pub fn clear(&mut self) {
         let shared = self.vector[0].shared.clone();
 
         shared.numa_context.set_thread_count(self.workers.len());
 
         std::mem::drop(self.vector.drain(..));
-        self.vector = make_thread_data(shared, &self.workers, Board::starting_position().into());
+        self.vector = make_thread_data(shared, &self.workers);
     }
 
-    pub fn execute_searches(&mut self, time_manager: TimeManager, report: Report, shared: &Arc<SharedContext>) {
+    pub fn execute_searches(
+        &mut self, time_manager: TimeManager, report: Report, multi_pv: usize, board: &Board,
+        shared: &Arc<SharedContext>,
+    ) {
         shared.tt.increment_age();
 
         shared.nodes.reset();
@@ -101,7 +99,9 @@ impl ThreadPool {
             let tm = time_manager.clone();
             handlers.push(scope.spawn_into(
                 move || {
+                    t1.multi_pv = multi_pv;
                     t1.time_manager = tm;
+                    t1.board = (*board).clone();
 
                     search::start(t1, report, thread_count);
                     shared.status.set(Status::STOPPED);
@@ -115,6 +115,7 @@ impl ThreadPool {
                     move || {
                         t.id = index + 1;
                         t.time_manager = tm;
+                        t.board = (*board).clone();
 
                         search::start(t, Report::None, thread_count);
                     },
@@ -252,7 +253,7 @@ fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     std::iter::repeat_with(make_worker_thread).take(num_threads).collect()
 }
 
-fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread], board: Arc<Board>) -> Vec<ThreadData> {
+fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<ThreadData> {
     std::thread::scope(|scope| -> Vec<ThreadData> {
         let cfg = shared.numa_context.get_numa_config();
         let should_bind = cfg.suggests_binding_threads(worker_threads.len());
@@ -265,7 +266,6 @@ fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread],
                 let (tx, rx) = std::sync::mpsc::channel();
                 let shared = shared.clone();
                 let cfg = cfg.clone();
-                let board = board.clone();
                 let numa_node = numa_nodes[index];
                 let join_handle = scope.spawn_into(
                     move || {
@@ -274,9 +274,7 @@ fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread],
                         } else {
                             NumaReplicatedAccessToken::new(0)
                         };
-                        let mut td = Box::new(ThreadData::new(shared, token));
-                        td.board = (*board).clone();
-                        tx.send(td).unwrap();
+                        tx.send(Box::new(ThreadData::new(shared, token))).unwrap();
                     },
                     worker,
                 );

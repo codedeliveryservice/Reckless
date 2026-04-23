@@ -41,6 +41,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
     let shared = Arc::new(SharedContext::default());
     let mut settings = Settings::default();
     let mut threads = ThreadPool::new(shared.clone());
+    let mut board = Board::starting_position();
 
     let rx = spawn_listener(shared.clone());
 
@@ -67,8 +68,8 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
 
             ["isready"] => println!("readyok"),
 
-            ["go", tokens @ ..] => go(&mut threads, &settings, &shared, tokens),
-            ["position", tokens @ ..] => position(&mut threads, &settings, tokens),
+            ["go", tokens @ ..] => go(&mut threads, &settings, &board, &shared, tokens),
+            ["position", tokens @ ..] => position(&mut board, &settings, tokens),
             ["setoption", tokens @ ..] => set_option(&mut threads, &mut settings, &shared, tokens),
             ["ucinewgame"] => reset(&mut threads, &shared),
 
@@ -80,17 +81,17 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
 
             // Non-UCI commands
             ["compiler"] => compiler(),
-            ["eval"] => eval(threads.main_thread()),
-            ["d"] => println!("{}", threads.main_thread().board),
+            ["eval"] => eval(threads.main_thread(), &board),
+            ["d"] => println!("{}", board),
             ["bench", args @ ..] => match mode {
                 Mode::Uci => tools::bench::<true>(args),
                 Mode::Cli => tools::bench::<false>(args),
             },
-            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut threads.main_thread().board),
+            ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
-            ["simpleperft", depth] => tools::simple_perft(depth.parse().unwrap(), &mut threads.main_thread().board),
+            ["simpleperft", depth] => tools::simple_perft(depth.parse().unwrap(), &mut board),
             ["simpleperft"] => eprintln!("Usage: simpleperft <depth>"),
-            ["islegalperft", depth] => tools::is_legal_perft(depth.parse().unwrap(), &mut threads.main_thread().board),
+            ["islegalperft", depth] => tools::is_legal_perft(depth.parse().unwrap(), &mut board),
             ["islegalperft"] => eprintln!("Usage: islegalperft <depth>"),
 
             // Ignore empty lines
@@ -181,13 +182,11 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     }
 }
 
-fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>, tokens: &[&str]) {
-    let board = &threads.main_thread().board;
+fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move(), tokens);
     let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
 
-    threads.main_thread().multi_pv = settings.multi_pv;
-    threads.execute_searches(time_manager, settings.report, shared);
+    threads.execute_searches(time_manager, settings.report, settings.multi_pv, board, shared);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
     let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
@@ -238,22 +237,20 @@ fn go(threads: &mut ThreadPool, settings: &Settings, shared: &Arc<SharedContext>
         threads[best].print_uci_info(threads[best].completed_depth);
     }
 
-    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(&threads.main_thread().board));
+    println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(board));
     crate::misc::dbg_print();
 }
 
-fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) {
-    let mut board = threads.main_thread().board.clone();
-
+fn position(board: &mut Board, settings: &Settings, mut tokens: &[&str]) {
     while !tokens.is_empty() {
         match tokens {
             ["startpos", rest @ ..] => {
-                board = Board::starting_position();
+                *board = Board::starting_position();
                 tokens = rest;
             }
             ["fen", rest @ ..] => {
                 match Board::from_fen(&rest.join(" ")) {
-                    Ok(b) => board = b,
+                    Ok(b) => *board = b,
                     Err(e) => eprintln!("Invalid FEN: {e:?}"),
                 }
                 board.set_frc(settings.frc);
@@ -261,16 +258,12 @@ fn position(threads: &mut ThreadPool, settings: &Settings, mut tokens: &[&str]) 
             }
             ["moves", rest @ ..] => {
                 for uci_move in rest {
-                    make_uci_move(&mut board, uci_move);
+                    make_uci_move(board, uci_move);
                 }
                 break;
             }
             _ => tokens = &tokens[1..],
         }
-    }
-
-    for thread in threads.iter_mut() {
-        thread.board = board.clone();
     }
 }
 
@@ -327,11 +320,11 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
     }
 }
 
-fn eval(td: &mut ThreadData) {
-    td.nnue.full_refresh(&td.board);
-    td.nnue.evaluate(&td.board);
+fn eval(td: &mut ThreadData, board: &Board) {
+    td.nnue.full_refresh(board);
+    td.nnue.evaluate(board);
 
-    let side = td.board.side_to_move();
+    let side = board.side_to_move();
 
     println!("NNUE derived piece values");
     println!("+-------+-------+-------+-------+-------+-------+-------+-------+");
@@ -339,7 +332,7 @@ fn eval(td: &mut ThreadData) {
         print!("|");
         for file in 0..8 {
             let sq = Square::from_rank_file(rank, file);
-            let piece = td.board.piece_on(sq);
+            let piece = board.piece_on(sq);
             let piece_str = if piece == Piece::None { " ".to_string() } else { piece.to_string() };
             print!("  {:^3}  |", piece_str);
         }
@@ -348,7 +341,7 @@ fn eval(td: &mut ThreadData) {
         print!("|");
         for file in 0..8 {
             let sq = Square::from_rank_file(rank, file);
-            match td.nnue.piece_contribution(&td.board, sq) {
+            match td.nnue.piece_contribution(board, sq) {
                 None => print!("       |"),
                 Some(v) => {
                     let val = v as f32 / 100.0;
@@ -360,7 +353,7 @@ fn eval(td: &mut ThreadData) {
         println!("+-------+-------+-------+-------+-------+-------+-------+-------+");
     }
 
-    let used_bucket = crate::nnue::OUTPUT_BUCKETS_LAYOUT[td.board.occupancies().popcount()];
+    let used_bucket = crate::nnue::OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
 
     println!("\nNNUE output buckets (White side)");
     println!("+------------+------------+");
@@ -368,7 +361,7 @@ fn eval(td: &mut ThreadData) {
     println!("+------------+------------+");
 
     for bucket in 0..8 {
-        let raw_score = td.nnue.eval_with_bucket(&td.board, bucket);
+        let raw_score = td.nnue.eval_with_bucket(board, bucket);
         let white_score = if side == Color::White { raw_score } else { -raw_score };
         let total = white_score as f32 / 100.0;
 
@@ -380,7 +373,7 @@ fn eval(td: &mut ThreadData) {
     }
     println!("+------------+------------+");
 
-    let final_eval = td.nnue.evaluate(&td.board);
+    let final_eval = td.nnue.evaluate(board);
     let final_total = (if side == Color::White { final_eval } else { -final_eval }) as f32 / 100.0;
     println!("\nNNUE evaluation        {:+.2} (White side)", final_total);
 }
@@ -434,12 +427,11 @@ mod tests {
     use super::*;
 
     fn test_position_helper(tokens: &[&str]) -> Board {
-        let shared = Arc::new(SharedContext::default());
         let settings = Settings::default();
-        let mut threads = ThreadPool::new(shared);
+        let mut board = Board::starting_position();
 
-        position(&mut threads, &settings, tokens);
-        threads.main_thread().board.clone()
+        position(&mut board, &settings, tokens);
+        board.clone()
     }
 
     #[test]
