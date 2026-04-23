@@ -197,7 +197,8 @@ impl MovePicker {
             let b = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
             let r = Bitboard::file(td.board.king_square(!side).file()) & !threats;
             let q = (rook_attacks_setwise(queen_orth_vulnerable, occupancies)
-                | bishop_attacks_setwise(queen_diag_vulnerable, occupancies)) & !threats;
+                | bishop_attacks_setwise(queen_diag_vulnerable, occupancies))
+                & !threats;
 
             [p, n, b, r, q, Bitboard(0)]
         };
