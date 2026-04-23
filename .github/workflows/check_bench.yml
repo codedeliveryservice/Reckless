@@ -1,0 +1,80 @@
+name: Check Bench
+
+on:
+  push:
+    branches:
+      - main
+      - tournaments
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-bench:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Haswell
+            sde_flag: -hsw
+            rustflags: "-C target-cpu=haswell"
+
+          - name: Skylake (Server)
+            sde_flag: -skx
+            rustflags: "-C target-cpu=skx"
+
+          - name: Ice Lake (Client)
+            sde_flag: -icl
+            rustflags: "-C target-cpu=icelake-client"
+
+          - name: Ice Lake (Server)
+            sde_flag: -icx
+            rustflags: "-C target-cpu=icelake-server"
+
+    name: Check bench on ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 10
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Intel SDE
+        uses: petarpetrovt/setup-sde@08ea32f9214634afad4f33b74841782e71768e52
+        with:
+          sdeVersion: "9.58.0"
+          environmentVariableName: SDE_PATH
+
+      - name: Get expected bench
+        shell: bash
+        run: |
+          expected_bench=$(git log --reverse -10 --format=format:%B | tac | grep --max-count=1 --only-matching "^[[:space:]]*\b[Bb]ench[ :]\+[[:digit:]]*[[:space:]]*$" | grep --only-matching "[[:digit:]]*")
+          [[ -n "$expected_bench" ]] || (echo "No Bench Found" && exit 1)
+          echo "expected_bench=$expected_bench" >> $GITHUB_ENV
+          echo "Expected Bench: $expected_bench"
+
+      - name: Get measured bench
+        shell: bash
+        run: |
+          echo "RUSTFLAGS:" $RUSTFLAGS
+          cargo +nightly -Z target-applies-to-host rustc --release -- --emit link=reckless
+          measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- ./reckless bench | tail -1 | cut "--delimiter= " -f 2 -)
+          echo "measured_bench=$measured_bench" >> $GITHUB_ENV
+          echo "Measured Bench: $measured_bench"
+        env:
+          CARGO_TARGET_APPLIES_TO_HOST: false
+          RUSTFLAGS: ${{ matrix.rustflags }}
+
+      - name: Check bench
+        shell: bash
+        run: |
+          if [ "$expected_bench" != "$measured_bench" ]; then
+            echo "Bench mismatch"
+            exit 1
+          fi
