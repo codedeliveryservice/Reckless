@@ -8,11 +8,13 @@ use std::{
     thread::Scope,
 };
 
+#[cfg(feature = "syzygy")]
+use crate::tb;
 use crate::{
     board::Board,
     numa::NumaReplicatedAccessToken,
     search::{self, Report},
-    thread::{SharedContext, Status, ThreadData},
+    thread::{RootMove, SharedContext, Status, ThreadData},
     time::TimeManager,
 };
 
@@ -96,12 +98,25 @@ impl ThreadPool {
             let (t1, rest) = self.vector.split_first_mut().unwrap();
             let (w1, rest_workers) = self.workers.split_first().unwrap();
 
+            t1.shared.root_in_tb.store(false, Ordering::Relaxed);
+            t1.shared.stop_probing_tb.store(false, Ordering::Relaxed);
+
+            t1.board = (*board).clone();
+            t1.root_moves =
+                t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
+
+            #[cfg(feature = "syzygy")]
+            if t1.board.castling().raw() == 0 && t1.board.occupancies().popcount() <= tb::size() {
+                tb::rank_rootmoves(t1);
+            }
+
             let tm = time_manager.clone();
+            let root_moves = t1.root_moves.clone();
+
             handlers.push(scope.spawn_into(
                 move || {
                     t1.multi_pv = multi_pv;
                     t1.time_manager = tm;
-                    t1.board = (*board).clone();
 
                     search::start(t1, report, thread_count);
                     shared.status.set(Status::STOPPED);
@@ -111,11 +126,13 @@ impl ThreadPool {
 
             for (index, (t, w)) in rest.iter_mut().zip(rest_workers).enumerate() {
                 let tm = time_manager.clone();
+                let root_moves = root_moves.clone();
                 handlers.push(scope.spawn_into(
                     move || {
                         t.id = index + 1;
                         t.time_manager = tm;
                         t.board = (*board).clone();
+                        t.root_moves = root_moves;
 
                         search::start(t, Report::None, thread_count);
                     },

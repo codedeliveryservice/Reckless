@@ -58,16 +58,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.pv_table.clear(0);
     td.nnue.full_refresh(&td.board);
 
-    td.root_moves = td.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
-
-    td.root_in_tb = false;
-    td.stop_probing_tb = false;
-
-    #[cfg(feature = "syzygy")]
-    if td.board.castling().raw() == 0 && td.board.occupancies().popcount() <= tb::size() {
-        tb::rank_rootmoves(td);
-    }
-
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
     let mut average = vec![td.previous_best_score; td.multi_pv];
@@ -373,7 +363,7 @@ fn search<NODE: NodeType>(
     #[cfg(feature = "syzygy")]
     if !NODE::ROOT
         && !excluded
-        && !td.stop_probing_tb
+        && !td.shared.stop_probing_tb.load(Ordering::Relaxed)
         && td.board.halfmove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().popcount() <= tb::size()

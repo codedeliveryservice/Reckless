@@ -1,6 +1,6 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -103,6 +103,8 @@ pub struct SharedContext {
     pub status: Status,
     pub nodes: Counter,
     pub tb_hits: Counter,
+    pub stop_probing_tb: AtomicBool,
+    pub root_in_tb: AtomicBool,
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
     pub history: Arc<NumaReplicated<SharedCorrectionHistory>>,
@@ -119,6 +121,8 @@ impl Default for SharedContext {
             status: Status::default(),
             nodes: Counter::default(),
             tb_hits: Counter::default(),
+            stop_probing_tb: AtomicBool::new(false),
+            root_in_tb: AtomicBool::new(false),
             soft_stop_votes: AtomicUsize::new(0),
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
             history: NumaReplicated::new(numa_context.clone()),
@@ -150,8 +154,6 @@ pub struct ThreadData {
     pub completed_depth: i32,
     pub nmp_min_ply: i32,
     pub previous_best_score: i32,
-    pub root_in_tb: bool,
-    pub stop_probing_tb: bool,
     pub multi_pv: usize,
     pub pv_index: usize,
     pub pv_start: usize,
@@ -185,8 +187,6 @@ impl ThreadData {
             completed_depth: 0,
             nmp_min_ply: 0,
             previous_best_score: 0,
-            root_in_tb: false,
-            stop_probing_tb: false,
             multi_pv: 1,
             pv_index: 0,
             pv_start: 0,
@@ -226,7 +226,7 @@ impl ThreadData {
             let mut upperbound = root_move.upperbound;
             let mut lowerbound = root_move.lowerbound;
 
-            if self.root_in_tb && score.abs() <= Score::TB_WIN {
+            if self.shared.root_in_tb.load(Ordering::Relaxed) && score.abs() <= Score::TB_WIN {
                 score = root_move.tb_score;
                 upperbound = false;
                 lowerbound = false;
