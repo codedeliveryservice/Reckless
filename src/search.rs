@@ -772,7 +772,7 @@ fn search<NODE: NodeType>(
 
         make_move(td, ply, mv);
 
-        let mut new_depth = depth - 1 + if move_count == 1 { extension } else { (extension > 0) as i32 };
+        let mut new_depth = depth - 1 + if move_count == 1 { extension } else { 0 };
         let mut score = Score::ZERO;
 
         // Late Move Reductions (LMR)
