@@ -189,11 +189,12 @@ fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc
     threads.execute_searches(time_manager, settings.report, settings.multi_pv, board, shared);
 
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
-    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
+    let min_depth = threads.iter().map(|v| v.completed_depth).min().unwrap();
+    let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * (td.completed_depth - min_depth + 1);
 
-    let mut votes: HashMap<&Move, i32> = HashMap::new();
+    let mut votes: HashMap<Move, i32> = HashMap::new();
     for result in threads.iter() {
-        *votes.entry(&result.root_moves[0].mv).or_default() += vote_value(result);
+        *votes.entry(result.root_moves[0].mv).or_default() += vote_value(result);
     }
 
     let mut best = 0;
