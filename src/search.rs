@@ -735,7 +735,7 @@ fn search<NODE: NodeType>(
 
             if !in_check && is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score < futility_value {
-                    best_score = futility_value;
+                    best_score = (futility_value + best_score) / 2;
                 }
                 skip_quiets = true;
                 continue;
