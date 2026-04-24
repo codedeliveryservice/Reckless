@@ -1,4 +1,4 @@
-use std::{ffi, mem, ptr};
+use std::{ffi, mem, ptr, sync::atomic::Ordering};
 
 use crate::{
     bindings::{
@@ -146,8 +146,8 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
         if dtz_success != 0 {
             let c_rootmoves: &TbRootMoves = &*tb_ptr;
             update_rootmoves(&mut td.root_moves, c_rootmoves);
-            td.root_in_tb = true;
-            td.stop_probing_tb = true;
+            td.shared.stop_probing_tb.store(true, Ordering::Relaxed);
+            td.shared.root_in_tb.store(true, Ordering::Relaxed);
             return;
         }
 
@@ -172,10 +172,10 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
         if wdl_success != 0 {
             let c_rootmoves: &TbRootMoves = &*tb_ptr;
             update_rootmoves(&mut td.root_moves, c_rootmoves);
-            td.root_in_tb = true;
+            td.shared.root_in_tb.store(true, Ordering::Relaxed);
 
             // Keep probing in search if DTZ is not available and we are winning
-            td.stop_probing_tb = td.root_moves[0].tb_score <= Score::ZERO;
+            td.shared.stop_probing_tb.store(td.root_moves[0].tb_score <= Score::ZERO, Ordering::Relaxed);
         }
     }
 }
