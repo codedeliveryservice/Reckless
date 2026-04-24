@@ -93,6 +93,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let mut delta = 15;
         let mut reduction = 0;
 
+        let alpha_asp = [0, -2, -4, 2, 4, -2, 2, 4];
+        let alpha_offset = alpha_asp[td.id % 8];
+        let beta_asp = [0, -2, -4, 2, 4, 2, -2, -4];
+        let beta_offset = beta_asp[td.id % 8];
+
         for index in 0..td.multi_pv {
             td.pv_index = index;
 
@@ -109,8 +114,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             // Aspiration Windows
             delta += average[td.pv_index] * average[td.pv_index] / 25833;
 
-            let mut alpha = (average[td.pv_index] - delta).max(-Score::INFINITE);
-            let mut beta = (average[td.pv_index] + delta).min(Score::INFINITE);
+            let mut alpha = (average[td.pv_index] - delta + alpha_offset).max(-Score::INFINITE);
+            let mut beta = (average[td.pv_index] + delta + beta_offset).min(Score::INFINITE);
 
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
