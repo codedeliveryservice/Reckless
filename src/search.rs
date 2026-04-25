@@ -418,22 +418,6 @@ fn search<NODE: NodeType>(
         td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
     }
 
-    // Prefer the TT entry to tighten the evaluation when its bound aligns with
-    // the current alpha-beta window; otherwise, retain the unbounded evaluation
-    let mut estimated_score = eval;
-
-    if !in_check
-        && !excluded
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score < eval,
-            Bound::Lower => tt_score > eval,
-            _ => true,
-        }
-    {
-        estimated_score = tt_score;
-    }
-
     // Use the bounded TT entry score for evaluation when in check
     if in_check
         && !is_decisive(tt_score)
@@ -501,7 +485,7 @@ fn search<NODE: NodeType>(
     // Razoring
     if !NODE::PV
         && !in_check
-        && estimated_score < alpha - 295 - 261 * depth * depth
+        && eval < alpha - 295 - 261 * depth * depth
         && alpha < 2048
         && !tt_move.is_quiet()
         && tt_bound != Bound::Lower
@@ -513,7 +497,7 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !in_check
         && !excluded
-        && estimated_score
+        && eval
             >= beta
                 + (1165 * depth * depth / 128 - (80 * improving as i32)
                     + 25 * depth
@@ -522,9 +506,9 @@ fn search<NODE: NodeType>(
                     + 30)
                     .max(0)
         && !is_loss(beta)
-        && !is_win(estimated_score)
+        && !(tt_bound == Bound::Upper && tt_score < beta)
     {
-        return beta + (estimated_score - beta) / 3;
+        return beta + (eval - beta) / 3;
     }
 
     // Null Move Pruning (NMP)
@@ -532,7 +516,7 @@ fn search<NODE: NodeType>(
         && !in_check
         && !excluded
         && !potential_singularity
-        && estimated_score
+        && eval
             >= beta
                 + (-8 * depth + 116 * tt_pv as i32
                     - 106 * improvement / 1024
@@ -542,13 +526,14 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 600
         && !is_loss(beta)
+        && !(tt_bound == Bound::Upper && tt_score < beta)
         && !(tt_bound == Bound::Lower
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5335 + 260 * depth + 493 * (estimated_score - beta).clamp(0, 1003) / 128) / 1024;
+        let r = (5335 + 260 * depth + 493 * (eval - beta).clamp(0, 1003) / 128) / 1024;
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
