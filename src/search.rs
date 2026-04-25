@@ -1,4 +1,4 @@
-use std::sync::atomic::Ordering;
+use std::{collections::HashMap, sync::atomic::Ordering};
 
 use crate::{
     evaluation::correct_eval,
@@ -64,7 +64,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut last_best_rootmove = RootMove::default();
 
     let mut eval_stability = 0;
-    let mut pv_stability = 0;
+    let mut pv_move_counts = HashMap::<Move, u32>::new();
     let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
@@ -187,12 +187,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             eval_stability = 0;
         }
 
-        if last_best_rootmove.mv == td.root_moves[0].mv {
-            pv_stability += 1;
-        } else {
-            pv_stability = 0;
-        }
-
+        *pv_move_counts.entry(td.root_moves[0].mv).or_insert(0) += 1;
         best_move_changes += td.best_move_changes;
 
         if td.root_moves[0].score != -Score::INFINITE
@@ -214,7 +209,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let multiplier = || {
             let nodes_factor = (2.7168 - 2.2669 * (td.root_moves[0].nodes as f32 / td.nodes() as f32)).max(0.5630_f32);
 
-            let pv_stability = (1.25 - 0.05 * pv_stability as f32).max(0.85);
+            let pv_stability_pct =
+                pv_move_counts.get(&td.root_moves[0].mv).copied().unwrap_or(0) as f32 / td.completed_depth as f32;
+
+            let pv_stability = (1.575 - 0.75 * pv_stability_pct).clamp(0.90, 1.20);
 
             let eval_stability = (1.2 - 0.04 * eval_stability as f32).max(0.88);
 
