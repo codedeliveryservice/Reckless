@@ -181,7 +181,7 @@ impl MovePicker {
             [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)]
         };
 
-        let escape = [0, 7768, 8218, 13424, 20208, 0];
+        let escape = [0, 5179, 5479, 8949, 13472, 0];
 
         // safe squares where we can attack an opponent piece
         let offense = {
