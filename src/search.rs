@@ -722,18 +722,28 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             if !in_check
-                && !td.board.is_direct_check(mv)
                 && is_quiet
-                && move_count >= (3006 + 70 * improvement / 16 + 1455 * depth * depth + 68 * history / 1024) / 1024
+                && move_count
+                    >= (3006
+                        + 70 * improvement / 16
+                        + 1455 * depth * depth
+                        + 68 * history / 1024
+                        + 1152 * td.board.is_direct_check(mv) as i32)
+                        / 1024
             {
                 skip_quiets = true;
                 continue;
             }
 
             // Futility Pruning (FP)
-            let futility_value = eval + 79 * depth + 64 * history / 1024 + 84 * (eval >= beta) as i32 - 115;
+            let futility_value = eval
+                + 79 * depth
+                + 64 * history / 1024
+                + 84 * (eval >= beta) as i32
+                + 170 * td.board.is_direct_check(mv) as i32
+                - 115;
 
-            if !in_check && is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
+            if !in_check && is_quiet && depth < 15 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
@@ -742,14 +752,10 @@ fn search<NODE: NodeType>(
             }
 
             // Bad Noisy Futility Pruning (BNFP)
-            let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 23;
+            let noisy_futility_value =
+                eval + 71 * depth + 68 * history / 1024 + 210 * td.board.is_direct_check(mv) as i32 + 23;
 
-            if !in_check
-                && depth < 11
-                && move_picker.stage() == Stage::BadNoisy
-                && noisy_futility_value <= alpha
-                && !td.board.is_direct_check(mv)
-            {
+            if !in_check && depth < 11 && move_picker.stage() == Stage::BadNoisy && noisy_futility_value <= alpha {
                 if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
