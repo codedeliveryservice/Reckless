@@ -864,6 +864,7 @@ fn search<NODE: NodeType>(
 
             reduction -= 48 * move_count;
             reduction -= 2408 * correction_value.abs() / 1024;
+            reduction += 1306 * alpha_raises;
 
             if is_quiet {
                 reduction += 1429;
