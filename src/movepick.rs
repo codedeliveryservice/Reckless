@@ -6,6 +6,32 @@ use crate::{
     types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
 
+#[derive(PartialEq)]
+pub enum Type {
+    Normal,
+    ProbCut,
+    QSearch,
+}
+
+pub trait MovePickerType {
+    const TYPE: Type;
+}
+
+pub struct Normal;
+impl MovePickerType for Normal {
+    const TYPE: Type = Type::Normal;
+}
+
+pub struct ProbCut;
+impl MovePickerType for ProbCut {
+    const TYPE: Type = Type::ProbCut;
+}
+
+pub struct QSearch;
+impl MovePickerType for QSearch {
+    const TYPE: Type = Type::QSearch;
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
 pub enum Stage {
     HashMove,
@@ -16,46 +42,26 @@ pub enum Stage {
     BadNoisy,
 }
 
-pub struct MovePicker {
+pub struct MovePicker<T: MovePickerType> {
     list: MoveList,
     tt_move: Move,
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    _marker: std::marker::PhantomData<T>,
 }
 
-impl MovePicker {
-    pub const fn new(tt_move: Move) -> Self {
+impl<T: MovePickerType> MovePicker<T> {
+    pub const fn new(tt_move: Move, threshold: Option<i32>) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
-            threshold: None,
+            threshold,
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_probcut(threshold: i32) -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_qsearch() -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            threshold: None,
-            stage: Stage::GenerateNoisy,
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
+            _marker: std::marker::PhantomData::<T>,
         }
     }
 
@@ -85,9 +91,15 @@ impl MovePicker {
                     continue;
                 }
 
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 45 + 111);
+                let threshold = match T::TYPE {
+                    Type::ProbCut => self.threshold.unwrap(),
+                    _ => -entry.score / 45 + 111,
+                };
+
                 if !td.board.see(entry.mv, threshold) {
-                    self.bad_noisy.push(entry.mv);
+                    if T::TYPE != Type::ProbCut {
+                        self.bad_noisy.push(entry.mv);
+                    }
                     continue;
                 }
 
