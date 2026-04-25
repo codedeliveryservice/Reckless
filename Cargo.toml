@@ -7,6 +7,9 @@ publish = false
 
 [features]
 default = ["syzygy"]
+search-metrics = []
+search-metrics-time = ["search-metrics"]
+search-metrics-fine-time = ["search-metrics-time"]
 syzygy = []
 spsa = []
 

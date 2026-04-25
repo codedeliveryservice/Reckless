@@ -87,6 +87,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
                 Mode::Uci => tools::bench::<true>(args),
                 Mode::Cli => tools::bench::<false>(args),
             },
+            ["profilebench", args @ ..] => tools::profilebench(args),
             ["perft", depth] => tools::perft(depth.parse().unwrap(), &mut board),
             ["perft"] => eprintln!("Usage: perft <depth>"),
             ["simpleperft", depth] => tools::simple_perft(depth.parse().unwrap(), &mut board),
