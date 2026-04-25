@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
     time::Limits,
@@ -337,15 +338,14 @@ fn search<NODE: NodeType>(
 
         if !NODE::PV
             && !excluded
-            && tt_depth > depth - (tt_score < beta) as i32
             && is_valid(tt_score)
             && match tt_bound {
-                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
-                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
-                _ => true,
+                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5) && tt_depth >= depth + v1(),
+                Bound::Lower => tt_score >= beta && (cut_node || depth > 5) && tt_depth >= depth + v2(),
+                _ => tt_depth >= depth + v3(),
             }
         {
-            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < 4 {
+            if tt_move.is_quiet() && tt_score >= beta && td.stack[ply - 1].move_count < v4() {
                 let quiet_bonus = (175 * depth - 79).min(1637);
                 let cont_bonus = (114 * depth - 57).min(1284);
 
