@@ -326,7 +326,10 @@ impl Board {
     }
 
     pub fn is_legal(&self, mv: Move) -> bool {
-        debug_assert!(mv.is_present());
+        if mv.is_null() {
+            return false;
+        }
+
         let stm = self.side_to_move();
         let king = self.king_square(stm);
         let from = mv.from();

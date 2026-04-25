@@ -684,6 +684,10 @@ fn search<NODE: NodeType>(
         }
     }
 
+    if !td.board.is_legal(tt_move) {
+        tt_move = Move::NULL;
+    }
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -1221,6 +1225,10 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     if best_score > alpha {
         alpha = best_score;
+    }
+
+    if !td.board.is_legal(tt_move) {
+        tt_move = Move::NULL;
     }
 
     let mut best_move = Move::NULL;

@@ -55,10 +55,7 @@ impl MovePicker {
     pub fn next<NODE: NodeType>(&mut self, td: &ThreadData, skip_quiets: bool, ply: isize) -> Option<Move> {
         if self.stage == Stage::HashMove {
             self.stage = Stage::GenerateNoisy;
-
-            if td.board.is_legal(self.tt_move) {
-                return Some(self.tt_move);
-            }
+            return Some(self.tt_move);
         }
 
         if self.stage == Stage::GenerateNoisy {
