@@ -126,3 +126,46 @@ pub fn bench<const PRETTY: bool>(args: &[&str]) {
 
     crate::misc::dbg_print();
 }
+
+pub fn profilebench(args: &[&str]) {
+    #[cfg(feature = "search-metrics")]
+    {
+        run_profilebench(args);
+    }
+
+    #[cfg(not(feature = "search-metrics"))]
+    {
+        let _ = args;
+        eprintln!("profilebench requires the search-metrics feature");
+    }
+}
+
+#[cfg(feature = "search-metrics")]
+fn run_profilebench(args: &[&str]) {
+    #[allow(clippy::get_first)]
+    let hash = args.get(0).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_HASH);
+    let threads = args.get(1).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_THREADS);
+    let depth = args.get(2).and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_DEPTH);
+
+    let shared = Arc::new(SharedContext::default());
+    shared.tt.resize(threads, hash);
+    shared.metrics.reset();
+
+    let mut pool = ThreadPool::new(shared.clone());
+    pool.set_count(threads);
+
+    let mut nodes = 0;
+    let time = Instant::now();
+
+    for &position in POSITIONS {
+        let board = Board::from_fen(position).unwrap();
+        let time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
+
+        pool.execute_searches(time_manager, Report::None, 1, &board, &shared);
+        nodes += shared.nodes.aggregate();
+    }
+
+    let seconds = time.elapsed().as_secs_f64();
+    let nps = nodes as f64 / seconds;
+    shared.metrics.print_tsv(nodes, nps);
+}

@@ -7,6 +7,7 @@ mod board;
 mod evaluation;
 mod history;
 mod lookup;
+mod metrics;
 mod misc;
 mod movepick;
 mod nnue;

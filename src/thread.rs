@@ -15,6 +15,9 @@ use crate::{
     types::{MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
 };
 
+#[cfg(feature = "search-metrics")]
+use crate::metrics::Metrics;
+
 #[repr(align(64))]
 struct AlignedAtomicU64 {
     inner: AtomicU64,
@@ -107,6 +110,8 @@ pub struct SharedContext {
     pub root_in_tb: AtomicBool,
     pub soft_stop_votes: AtomicUsize,
     pub best_stats: [AtomicU32; MAX_MOVES],
+    #[cfg(feature = "search-metrics")]
+    pub metrics: Metrics,
     pub history: Arc<NumaReplicated<SharedCorrectionHistory>>,
     pub parameters: Arc<NumaReplicated<ParametersHandle>>,
     pub numa_context: Arc<NumaReplicationContext>,
@@ -125,6 +130,8 @@ impl Default for SharedContext {
             root_in_tb: AtomicBool::new(false),
             soft_stop_votes: AtomicUsize::new(0),
             best_stats: [const { AtomicU32::new(0) }; MAX_MOVES],
+            #[cfg(feature = "search-metrics")]
+            metrics: Metrics::new(ThreadPool::available_threads()),
             history: NumaReplicated::new(numa_context.clone()),
             parameters: NumaReplicated::new(numa_context.clone()),
             numa_context,
