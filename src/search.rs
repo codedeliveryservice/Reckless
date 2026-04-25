@@ -1321,6 +1321,11 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
             td.stack[ply - 1].mv.to(),
         )
         + td.continuation_corrhist.get(
+            td.stack[ply - 3].contcorrhist,
+            td.stack[ply - 1].piece,
+            td.stack[ply - 1].mv.to(),
+        )
+        + td.continuation_corrhist.get(
             td.stack[ply - 4].contcorrhist,
             td.stack[ply - 1].piece,
             td.stack[ply - 1].mv.to(),
@@ -1338,22 +1343,16 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     corrhist.non_pawn[Color::White].update(stm, td.board.non_pawn_key(Color::White), bonus);
     corrhist.non_pawn[Color::Black].update(stm, td.board.non_pawn_key(Color::Black), bonus);
 
-    if td.stack[ply - 1].mv.is_present() && td.stack[ply - 2].mv.is_present() {
-        td.continuation_corrhist.update(
-            td.stack[ply - 2].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-            bonus,
-        );
-    }
-
-    if td.stack[ply - 1].mv.is_present() && td.stack[ply - 4].mv.is_present() {
-        td.continuation_corrhist.update(
-            td.stack[ply - 4].contcorrhist,
-            td.stack[ply - 1].piece,
-            td.stack[ply - 1].mv.to(),
-            bonus,
-        );
+    for offset in [2, 3, 4] {
+        let entry = &td.stack[ply - offset];
+        if td.stack[ply - 1].mv.is_present() && entry.mv.is_present() {
+            td.continuation_corrhist.update(
+                entry.contcorrhist,
+                td.stack[ply - 1].piece,
+                td.stack[ply - 1].mv.to(),
+                bonus,
+            );
+        }
     }
 }
 
