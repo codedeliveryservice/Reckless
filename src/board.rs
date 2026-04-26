@@ -76,11 +76,15 @@ impl Board {
         self.fullmove_number
     }
 
+    pub fn halfmove_clock_bucket(&self) -> usize {
+        (self.halfmove_clock().saturating_sub(8) as usize / 8).min(15)
+    }
+
     pub fn hash(&self) -> u64 {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
         // identical to the transposition table.
-        self.state.key ^ ZOBRIST.halfmove_clock[(self.halfmove_clock().saturating_sub(8) as usize / 8).min(15)]
+        self.state.key ^ ZOBRIST.halfmove_clock[self.halfmove_clock_bucket()]
     }
 
     pub const fn pawn_key(&self) -> u64 {
