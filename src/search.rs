@@ -462,7 +462,7 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && is_valid(td.stack[ply - 1].eval) {
+    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let eval_delta = eval + td.stack[ply - 1].eval;
         let reduction = td.stack[ply - 1].reduction;
 
