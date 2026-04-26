@@ -1128,7 +1128,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
 
     if NODE::PV {
@@ -1274,21 +1273,16 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         return mated_in(ply);
     }
 
-    if best_score >= beta {
-        let is_noisy = best_move.is_noisy();
-        let bonus = if is_noisy { 106 } else { 172 };
+    if best_score >= beta && best_move.is_noisy() {
+        let bonus = 106;
 
-        if is_noisy {
-            td.noisy_history.update(
-                td.board.all_threats(),
-                td.board.moved_piece(best_move),
-                best_move.to(),
-                td.board.type_on(best_move.to()),
-                bonus,
-            );
-        } else {
-            td.quiet_history.update(td.board.all_threats(), stm, best_move, bonus);
-        }
+        td.noisy_history.update(
+            td.board.all_threats(),
+            td.board.moved_piece(best_move),
+            best_move.to(),
+            td.board.type_on(best_move.to()),
+            bonus,
+        );
     }
 
     if best_score >= beta && !is_decisive(best_score) && !is_decisive(beta) {
