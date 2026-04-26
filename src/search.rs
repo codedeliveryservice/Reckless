@@ -420,19 +420,18 @@ fn search<NODE: NodeType>(
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
     // the current alpha-beta window; otherwise, retain the unbounded evaluation
-    let mut estimated_score = eval;
-
-    if !in_check
+    let estimated_score = if !in_check
         && !excluded
         && is_valid(tt_score)
         && match tt_bound {
             Bound::Upper => tt_score < eval,
             Bound::Lower => tt_score > eval,
             _ => true,
-        }
-    {
-        estimated_score = tt_score;
-    }
+        } {
+        tt_score
+    } else {
+        eval
+    };
 
     // Use the bounded TT entry score for evaluation when in check
     if in_check
@@ -463,21 +462,17 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].reduction >= 2367 && eval + td.stack[ply - 1].eval < 0
-    {
-        depth += 1;
-    }
+    if !NODE::ROOT && !in_check && !excluded && is_valid(td.stack[ply - 1].eval) {
+        let eval_delta = eval + td.stack[ply - 1].eval;
+        let reduction = td.stack[ply - 1].reduction;
 
-    if !NODE::ROOT
-        && !tt_pv
-        && !in_check
-        && !excluded
-        && depth >= 2
-        && td.stack[ply - 1].reduction > 0
-        && is_valid(td.stack[ply - 1].eval)
-        && eval + td.stack[ply - 1].eval > 59
-    {
-        depth -= 1;
+        if reduction >= 2367 && eval_delta < 0 {
+            depth += 1;
+        }
+
+        if !tt_pv && depth >= 2 && reduction > 0 && eval_delta > 59 {
+            depth -= 1;
+        }
     }
 
     let potential_singularity = depth >= 5 + tt_pv as i32
