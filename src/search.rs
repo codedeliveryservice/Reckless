@@ -830,7 +830,7 @@ fn search<NODE: NodeType>(
                 reduction += 129;
             }
 
-            reduction += helper_reduction_bias(td);
+            reduction += ((td.nodes() + td.id as u64 * 23) % 128) as i32 - 64;
 
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(1, new_depth + (move_count <= 3) as i32 + 1) + 2 * NODE::PV as i32;
@@ -899,7 +899,7 @@ fn search<NODE: NodeType>(
                 reduction += 130;
             }
 
-            reduction += helper_reduction_bias(td);
+            reduction += ((td.nodes() + td.id as u64 * 23) % 128) as i32 - 64;
 
             let reduced_depth = new_depth - (reduction >= 2864) as i32 - (reduction >= 5585) as i32;
 
@@ -1356,19 +1356,6 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
         if entry.mv.is_present() {
             td.continuation_history.update(entry.conthist, piece, sq, bonus);
         }
-    }
-}
-
-fn helper_reduction_bias(td: &ThreadData) -> i32 {
-    if td.id == 0 {
-        return 0;
-    }
-
-    match td.id % 4 {
-        1 => -96,
-        2 => 96,
-        3 => -48,
-        _ => 48,
     }
 }
 
