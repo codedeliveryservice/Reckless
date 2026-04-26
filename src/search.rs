@@ -541,14 +541,15 @@ fn search<NODE: NodeType>(
                     .max(0)
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 600
-        && !is_loss(beta)
         && !(tt_bound == Bound::Lower
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && !is_loss(beta)
+        && !is_win(estimated_score)
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
-        let r = (5335 + 260 * depth + 493 * (estimated_score - beta).clamp(0, 1003) / 128) / 1024;
+        let r = (5335 + 260 * depth + 493 * (estimated_score - beta) / 128) / 1024;
 
         td.stack[ply].conthist = td.stack.sentinel().conthist;
         td.stack[ply].contcorrhist = td.stack.sentinel().contcorrhist;
