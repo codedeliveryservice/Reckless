@@ -830,6 +830,8 @@ fn search<NODE: NodeType>(
                 reduction += 129;
             }
 
+            reduction += (td.nodes() % 64) as i32 - 32;
+
             reduction += helper_reduction_bias(td);
 
             let reduced_depth =
@@ -898,6 +900,8 @@ fn search<NODE: NodeType>(
             if !NODE::PV && td.stack[ply - 1].reduction > reduction + 562 {
                 reduction += 130;
             }
+
+            reduction += (td.nodes() % 64) as i32 - 32;
 
             reduction += helper_reduction_bias(td);
 
