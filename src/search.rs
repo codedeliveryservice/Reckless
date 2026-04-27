@@ -133,7 +133,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
                 match score {
                     s if s <= alpha => {
-                        beta = (3 * alpha + beta) / 4;
+                        beta = (score + delta).min(beta);
                         alpha = (score - delta).max(-Score::INFINITE);
                         reduction = 0;
                         delta += 28 * delta / 128;
