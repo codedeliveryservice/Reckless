@@ -733,7 +733,7 @@ fn search<NODE: NodeType>(
                 + 560 * correction_value.abs() / 1024
                 - 146;
 
-            if !in_check && is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
+            if is_valid(eval) && is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
@@ -744,7 +744,7 @@ fn search<NODE: NodeType>(
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 23;
 
-            if !in_check
+            if is_valid(eval)
                 && depth < 11
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
