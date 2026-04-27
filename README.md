@@ -125,13 +125,14 @@ Reckless supports the following UCI options:
 
 Along with the standard UCI commands, Reckless supports additional commands for testing and debugging:
 
-| Command         | Description                                                                        |
-| --------------- | ---------------------------------------------------------------------------------- |
-| `perft <depth>` | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
-| `bench`         | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
-| `d`             | Print the current board position in a human-readable format together with FEN      |
-| `eval`          | Print the network evaluation of the current position from white's perspective      |
-| `compiler`      | Print the compiler version, target and flags used to compile the engine            |
+| Command                                | Description                                                                        |
+| ------------------------------------   | ---------------------------------------------------------------------------------- |
+| `perft <depth>`                        | Run a [perft][perft] test to count the number of leaf nodes at a given depth       |
+| `bench`                                | Run a [benchmark][bench] on a set of positions to measure the engine's performance |
+| `d`                                    | Print the current board position in a human-readable format together with FEN      |
+| `eval`                                 | Print the network evaluation of the current position from white's perspective      |
+| `compiler`                             | Print the compiler version, target and flags used to compile the engine            |
+| `speedtest <Threads> <Hash> <Seconds>` | Runs a performance test across 50 positions                                        |
 
 [perft]: https://www.chessprogramming.org/Perft
 [bench]: /src/tools/bench.rs
