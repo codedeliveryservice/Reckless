@@ -786,6 +786,8 @@ fn search<NODE: NodeType>(
             reduction += 546 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 322 * (is_valid(tt_score) && tt_depth < depth) as i32;
 
+            reduction -= 1024 * NODE::ROOT as i32;
+
             if is_quiet {
                 reduction += 1806;
                 reduction -= 166 * history / 1024;
@@ -858,6 +860,8 @@ fn search<NODE: NodeType>(
 
             reduction -= 48 * move_count;
             reduction -= 2408 * correction_value.abs() / 1024;
+
+            reduction -= 1024 * NODE::ROOT as i32;
 
             if is_quiet {
                 reduction += 1429;
