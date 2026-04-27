@@ -369,7 +369,7 @@ impl ParametersHandle {
         Self { inner: ParametersStorage::Embedded(Parameters::embedded()) }
     }
 
-    fn owned(parameters: Arc<Parameters>) -> Self {
+    const fn owned(parameters: Arc<Parameters>) -> Self {
         Self { inner: ParametersStorage::Owned(parameters) }
     }
 }

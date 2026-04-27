@@ -51,7 +51,7 @@ pub struct NumaReplicatedAccessToken {
 }
 
 impl NumaReplicatedAccessToken {
-    pub fn new(index: NumaIndex) -> Self {
+    pub const fn new(index: NumaIndex) -> Self {
         Self { index }
     }
 }
@@ -74,7 +74,7 @@ impl Default for NumaConfig {
 }
 
 impl NumaConfig {
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             nodes: Vec::new(),
             node_by_cpu: BTreeMap::new(),
@@ -95,11 +95,11 @@ impl NumaConfig {
         }
     }
 
-    pub fn num_numa_nodes(&self) -> NumaIndex {
+    pub const fn num_numa_nodes(&self) -> NumaIndex {
         self.nodes.len()
     }
 
-    pub fn requires_memory_replication(&self) -> bool {
+    pub const fn requires_memory_replication(&self) -> bool {
         self.nodes.len() > 1
     }
 
