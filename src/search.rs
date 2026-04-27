@@ -631,7 +631,7 @@ fn search<NODE: NodeType>(
                 if is_decisive(score) {
                     return score;
                 }
-                return (3 * score + beta) / 4;
+                return (score + beta) / 2;
             }
         }
     }
