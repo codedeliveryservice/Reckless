@@ -11,7 +11,6 @@ pub enum Stage {
     HashMove,
     GenerateNoisy,
     GoodNoisy,
-    GenerateQuiet,
     Quiet,
     BadNoisy,
 }
@@ -101,14 +100,10 @@ impl MovePicker {
             if skip_quiets {
                 self.stage = Stage::BadNoisy;
             } else {
-                self.stage = Stage::GenerateQuiet;
+                self.stage = Stage::Quiet;
+                td.board.append_quiet_moves(&mut self.list);
+                self.score_quiet(td, ply);
             }
-        }
-
-        if self.stage == Stage::GenerateQuiet {
-            self.stage = Stage::Quiet;
-            td.board.append_quiet_moves(&mut self.list);
-            self.score_quiet(td, ply);
         }
 
         if self.stage == Stage::Quiet {
