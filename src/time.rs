@@ -32,10 +32,12 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Clock { main, inc, moves_to_go } => {
-                let _moves_to_go = moves_to_go.unwrap_or(50) as f32;
+                let moves_to_go = moves_to_go.unwrap_or(50) as f32;
 
-                let soft_limit = 0.035 * main as f32 + 0.5 * inc as f32;
-                let hard_limit = 0.750 * main as f32;
+                let budget = (main as f32 + 0.5 * inc as f32 * moves_to_go) / moves_to_go - move_overhead as f32;
+
+                let soft_limit = 1.20 * budget;
+                let hard_limit = 0.75 * main as f32;
 
                 soft = (soft_limit as u64).min(main.saturating_sub(move_overhead));
                 hard = (hard_limit as u64).min(main.saturating_sub(move_overhead));
