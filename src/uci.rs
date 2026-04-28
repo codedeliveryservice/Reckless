@@ -185,7 +185,7 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
 
 fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc<SharedContext>, tokens: &[&str]) {
     let limits = parse_limits(board.side_to_move(), tokens);
-    let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    let time_manager = TimeManager::new(limits, settings.move_overhead);
 
     threads.execute_searches(time_manager, settings.report, settings.multi_pv, board, shared);
 
@@ -386,7 +386,7 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
 
     let mut main = None;
     let mut inc = None;
-    let mut moves = None;
+    let mut moves_to_go = None;
 
     for chunk in tokens.chunks(2) {
         if let [name, value] = *chunk {
@@ -403,7 +403,7 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
                 "btime" if Color::Black == color => main = Some(value),
                 "winc" if Color::White == color => inc = Some(value),
                 "binc" if Color::Black == color => inc = Some(value),
-                "movestogo" => moves = Some(value),
+                "movestogo" => moves_to_go = Some(value),
 
                 _ => continue,
             }
@@ -417,10 +417,7 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     let main = main.unwrap_or_default();
     let inc = inc.unwrap_or_default();
 
-    match moves {
-        Some(moves) => Limits::Cyclic(main, inc, moves),
-        None => Limits::Fischer(main, inc),
-    }
+    Limits::Clock { main, inc, moves_to_go }
 }
 
 #[cfg(test)]

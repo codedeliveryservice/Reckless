@@ -8,8 +8,7 @@ pub enum Limits {
     Depth(i32),
     Time(u64),
     Nodes(u64),
-    Fischer(u64, u64),
-    Cyclic(u64, u64, u64),
+    Clock { main: u64, inc: u64, moves_to_go: Option<u64> },
 }
 
 const TIME_OVERHEAD_MS: u64 = 15;
@@ -23,7 +22,7 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-    pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
+    pub fn new(limits: Limits, move_overhead: u64) -> Self {
         let soft;
         let hard;
 
@@ -32,22 +31,14 @@ impl TimeManager {
                 soft = ms;
                 hard = ms;
             }
-            Limits::Fischer(main, inc) => {
-                let soft_scale = 0.066 - 0.042 * (-0.045 * fullmove_number as f64).exp();
-                let hard_scale = 0.742;
+            Limits::Clock { main, inc, moves_to_go } => {
+                let _moves_to_go = moves_to_go.unwrap_or(50) as f32;
 
-                let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
-                let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
+                let soft_limit = 0.035 * main as f32 + 0.5 * inc as f32;
+                let hard_limit = 0.750 * main as f32;
 
-                soft = soft_bound.min(main.saturating_sub(move_overhead));
-                hard = hard_bound.min(main.saturating_sub(move_overhead));
-            }
-            Limits::Cyclic(main, inc, moves) => {
-                let main = main.saturating_sub(move_overhead);
-                let base = (main as f64 / moves as f64) + 0.75 * inc as f64;
-
-                soft = ((1.0 * base) as u64).min(main + inc);
-                hard = ((5.0 * base) as u64).min(main + inc);
+                soft = (soft_limit as u64).min(main.saturating_sub(move_overhead));
+                hard = (hard_limit as u64).min(main.saturating_sub(move_overhead));
             }
             _ => {
                 soft = u64::MAX;
