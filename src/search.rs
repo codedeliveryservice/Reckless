@@ -679,6 +679,10 @@ fn search<NODE: NodeType>(
         }
     }
 
+    if tt_move.is_present() && !td.board.is_legal(tt_move) {
+        tt_move = Move::NULL;
+    }
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
