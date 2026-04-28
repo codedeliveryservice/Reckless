@@ -100,7 +100,7 @@ pub fn bench<const PRETTY: bool>(args: &[&str]) {
         let now = Instant::now();
 
         let board = Board::from_fen(position).unwrap();
-        let time_manager = TimeManager::new(Limits::Depth(depth), 0);
+        let time_manager = TimeManager::new(Limits::Depth(depth), 0, 0);
 
         pool.execute_searches(time_manager, Report::None, 1, &board, &shared);
 

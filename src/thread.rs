@@ -170,7 +170,7 @@ impl ThreadData {
             shared,
             corrhist,
             board: Board::starting_position(),
-            time_manager: TimeManager::new(Limits::Infinite, 0),
+            time_manager: TimeManager::new(Limits::Infinite, 0, 0),
             stack: Stack::new(),
             nnue: Network::new(parameters),
             root_moves: Vec::new(),
