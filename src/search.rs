@@ -193,7 +193,9 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
-        let multiplier = || 1.0;
+        let multiplier = || {
+            1.000 + (0.2500 * td.best_move_changes as f32).ln_1p()
+        };
 
         if td.time_manager.soft_limit(td, multiplier) {
             if !soft_stop_voted {
