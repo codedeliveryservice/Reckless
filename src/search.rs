@@ -65,7 +65,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     let mut eval_stability = 0;
     let mut pv_stability = 0;
-    let mut best_move_changes = 0;
     let mut soft_stop_voted = false;
 
     // Iterative Deepening
@@ -77,7 +76,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.shared.status.set(Status::STOPPED);
             break;
         }
-        best_move_changes /= 2;
 
         td.sel_depth = 0;
         td.root_depth = depth;
@@ -193,8 +191,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             pv_stability = 0;
         }
 
-        best_move_changes += td.best_move_changes;
-
         if td.root_moves[0].score != -Score::INFINITE
             && is_loss(td.root_moves[0].score)
             && td.shared.status.get() == Status::STOPPED
@@ -220,7 +216,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let score_trend = (0.8 + 0.05 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.80, 1.45);
 
-            let best_move_stability = 1.0 + best_move_changes as f32 / 4.0;
+            let best_move_stability = 1.0 + td.best_move_changes as f32 / 4.0;
 
             nodes_factor * pv_stability * eval_stability * score_trend * best_move_stability
         };
