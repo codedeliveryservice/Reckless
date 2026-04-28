@@ -780,7 +780,7 @@ fn search<NODE: NodeType>(
             let mut reduction = 225 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 68 * move_count;
-            reduction -= 3297 * correction_value.abs() / 1024;
+            reduction -= 3297 * correction_value.abs().min(256) / 1024;
             reduction += 1306 * alpha_raises;
 
             reduction += 546 * (is_valid(tt_score) && tt_score <= alpha) as i32;
@@ -857,7 +857,7 @@ fn search<NODE: NodeType>(
             let mut reduction = 232 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 48 * move_count;
-            reduction -= 2408 * correction_value.abs() / 1024;
+            reduction -= 2408 * correction_value.abs().min(256) / 1024;
 
             if is_quiet {
                 reduction += 1429;
