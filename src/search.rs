@@ -516,6 +516,7 @@ fn search<NODE: NodeType>(
                     - 59 * (td.board.all_threats() & td.board.colors(stm)).is_empty() as i32
                     + 30)
                     .max(0)
+        && !(tt_bound == Bound::Upper && tt_score < beta)
         && !is_loss(beta)
         && !is_win(estimated_score)
     {
@@ -536,10 +537,11 @@ fn search<NODE: NodeType>(
                     .max(0)
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 600
-        && !is_loss(beta)
+        && !(tt_bound == Bound::Upper && tt_score < beta)
         && !(tt_bound == Bound::Lower
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && !is_loss(beta)
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
