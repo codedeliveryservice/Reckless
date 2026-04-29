@@ -22,16 +22,12 @@ unsafe fn init_luts() {
             let a = Square::new(a);
             let b = Square::new(b);
 
-            if rook_attacks(a, Bitboard(0)).contains(b) {
-                BETWEEN[a][b] = rook_attacks(a, b.to_bb()) & rook_attacks(b, a.to_bb());
-                RAY_PASS[a][b] = rook_attacks(a, Bitboard(0)) & rook_attacks(b, a.to_bb());
-                RAY_PASS[a][b].set(b);
-            }
-
-            if bishop_attacks(a, Bitboard(0)).contains(b) {
-                BETWEEN[a][b] = bishop_attacks(a, b.to_bb()) & bishop_attacks(b, a.to_bb());
-                RAY_PASS[a][b] = bishop_attacks(a, Bitboard(0)) & bishop_attacks(b, a.to_bb());
-                RAY_PASS[a][b].set(b);
+            for piece in [Piece::WhiteBishop, Piece::WhiteRook] {
+                if attacks(piece, a, Bitboard(0)).contains(b) {
+                    BETWEEN[a][b] = attacks(piece, a, b.to_bb()) & attacks(piece, b, a.to_bb());
+                    RAY_PASS[a][b] = attacks(piece, a, Bitboard(0)) & attacks(piece, b, a.to_bb());
+                    RAY_PASS[a][b].set(b);
+                }
             }
         }
     }
