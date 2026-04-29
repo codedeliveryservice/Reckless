@@ -38,7 +38,6 @@ unsafe fn init_luts() {
 }
 
 unsafe fn init_cuckoo() {
-
     for index in 2..12 {
         let piece = Piece::from_index(index);
 
