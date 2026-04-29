@@ -60,6 +60,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
+    let mut score_history = Vec::new();
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
@@ -152,6 +153,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                             Ordering::AcqRel,
                         );
 
+                        if index == 0 {
+                            score_history.push(score);
+                        }
+
                         break;
                     }
                 }
@@ -199,6 +204,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 (2.1894 - 1.5719 * fraction).clamp(0.7005, 2.1766)
             };
 
+            let instability = {
+                let delta = score_history.windows(2).rev().take(5).map(|w| (w[1] - w[0]).abs() as f32).sum::<f32>();
+                (1.000 + 0.010 * (delta / 5.0)).clamp(1.0000, 1.5000)
+            };
+
             let score_trend = {
                 let delta = (td.previous_best_score - td.root_moves[0].score) as f32;
                 (0.8000 + 0.0230 * delta).clamp(0.8000, 1.5000)
@@ -206,7 +216,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             let best_move_changes = 1.0829 + (0.2761 * td.best_move_changes as f32).ln_1p();
 
-            nodes * score_trend * best_move_changes
+            nodes * instability * score_trend * best_move_changes
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
