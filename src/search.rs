@@ -194,7 +194,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         }
 
         let multiplier = || {
-            1.000 + (0.2500 * td.best_move_changes as f32).ln_1p()
+            let nodes = {
+                let fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
+                2.250 - 1.500 * fraction
+            };
+
+            let best_move_changes = 1.000 + (0.2500 * td.best_move_changes as f32).ln_1p();
+
+            nodes * best_move_changes
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
