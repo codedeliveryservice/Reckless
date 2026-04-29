@@ -196,10 +196,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let multiplier = || {
             let nodes = {
                 let fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
-                2.250 - 1.500 * fraction
+                (2.2207 - 1.5361 * fraction).clamp(0.7187, 2.3151)
             };
 
-            let best_move_changes = 1.000 + (0.2500 * td.best_move_changes as f32).ln_1p();
+            let best_move_changes = 1.0161 + (0.2654 * td.best_move_changes as f32).ln_1p();
 
             nodes * best_move_changes
         };
