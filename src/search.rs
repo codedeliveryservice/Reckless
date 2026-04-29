@@ -3,6 +3,7 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
+    parameters::*,
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
     time::Limits,
@@ -196,10 +197,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let multiplier = || {
             let nodes = {
                 let fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
-                2.250 - 1.500 * fraction
+                (nodes1() - nodes2() * fraction).clamp(nodes3(), nodes4())
             };
 
-            let best_move_changes = 1.000 + (0.2500 * td.best_move_changes as f32).ln_1p();
+            let best_move_changes = bmc1() + (bmc2() * td.best_move_changes as f32).ln_1p();
 
             nodes * best_move_changes
         };
