@@ -18,7 +18,7 @@ pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
     (bb & !H).shift(up_right) | (bb & !A).shift(up_left)
 }
 
-#[cfg(not(target_feature = "avx2"))]
+#[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
 #[inline]
 pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     (bb & !(A | B | R8)).shift(6)
@@ -31,7 +31,7 @@ pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
         | (bb & !(A | B | R1)).shift(-10)
 }
 
-#[cfg(target_feature = "avx2")]
+#[cfg(any(target_feature = "avx2", target_feature = "avx512f"))]
 #[inline]
 pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     use core::arch::x86_64::*;
@@ -59,7 +59,7 @@ pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     }
 }
 
-#[cfg(not(target_feature = "avx2"))]
+#[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
 #[inline]
 pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use crate::lookup::bishop_attacks;
@@ -71,7 +71,7 @@ pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     result
 }
 
-#[cfg(target_feature = "avx2")]
+#[cfg(any(target_feature = "avx2", target_feature = "avx512f"))]
 #[inline]
 pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use std::arch::x86_64::*;
@@ -92,7 +92,7 @@ pub fn bishop_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     }
 }
 
-#[cfg(not(target_feature = "avx2"))]
+#[cfg(all(not(target_feature = "avx2"), not(target_feature = "avx512f")))]
 #[inline]
 pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use crate::lookup::rook_attacks;
@@ -104,7 +104,7 @@ pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     result
 }
 
-#[cfg(target_feature = "avx2")]
+#[cfg(any(target_feature = "avx2", target_feature = "avx512f"))]
 #[inline]
 pub fn rook_attacks_setwise(bb: Bitboard, occupancies: Bitboard) -> Bitboard {
     use std::arch::x86_64::*;
@@ -148,7 +148,7 @@ unsafe fn shiftv<const A: i64, const B: i64, const C: i64, const D: i64>(
     _mm256_rolv_epi64(vector, _mm256_set_epi64x(A, B, C, D))
 }
 
-#[cfg(target_feature = "avx2")]
+#[cfg(any(target_feature = "avx2", target_feature = "avx512f"))]
 #[inline]
 unsafe fn fold_to_bitboard(vector: core::arch::x86_64::__m256i) -> Bitboard {
     use core::arch::x86_64::*;
