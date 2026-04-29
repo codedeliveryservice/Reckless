@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::thread::ThreadData;
+use crate::{parameters::*, thread::ThreadData};
 
 #[derive(Clone, Debug)]
 pub enum Limits {
@@ -33,8 +33,8 @@ impl TimeManager {
                 hard = ms;
             }
             Limits::Fischer(main, inc) => {
-                let soft_scale = 0.066 - 0.042 * (-0.045 * fullmove_number as f64).exp();
-                let hard_scale = 0.742;
+                let soft_scale = soft1() - soft2() * (-soft3() * fullmove_number as f64).exp();
+                let hard_scale = hard1();
 
                 let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
                 let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;

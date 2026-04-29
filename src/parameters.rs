@@ -32,3 +32,25 @@ macro_rules! define {
         }
     };
 }
+
+define!(
+    f64 soft1: 0.066;
+    f64 soft2: 0.042;
+    f64 soft3: 0.045;
+    f64 hard1: 0.742;
+    f32 nodes1: 2.7168;
+    f32 nodes2: 2.2669;
+    f32 nodes3: 0.5630;
+    f32 score1: 0.80;
+    f32 score2: 0.05;
+    f32 score3: 0.80;
+    f32 score4: 1.45;
+    f32 pv1: 1.25;
+    f32 pv2: 0.05;
+    f32 pv3: 0.85;
+    f32 eval1: 1.2;
+    f32 eval2: 0.04;
+    f32 eval3: 0.88;
+    f32 bm1: 1.0;
+    f32 bm2: 0.25;
+);
