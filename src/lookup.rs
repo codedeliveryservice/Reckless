@@ -38,16 +38,6 @@ unsafe fn init_luts() {
 }
 
 unsafe fn init_cuckoo() {
-    fn is_reversible_move(piece: Piece, a: Square, b: Square) -> bool {
-        match piece.piece_type() {
-            PieceType::Knight => knight_attacks(a).contains(b),
-            PieceType::Bishop => bishop_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Rook => rook_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Queen => queen_attacks(a, Bitboard(0)).contains(b),
-            PieceType::King => king_attacks(a).contains(b),
-            _ => unreachable!(),
-        }
-    }
 
     for index in 2..12 {
         let piece = Piece::from_index(index);
@@ -59,7 +49,7 @@ unsafe fn init_cuckoo() {
                 let mut a = Square::new(a);
                 let mut b = Square::new(b);
 
-                if !is_reversible_move(piece, a, b) {
+                if !attacks(piece, a, Bitboard(0)).contains(b) {
                     continue;
                 }
 
