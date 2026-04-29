@@ -199,9 +199,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 (2.1894 - 1.5719 * fraction).clamp(0.7005, 2.1766)
             };
 
+            let score_trend = (0.8000 + 0.0230 * (td.previous_best_score - td.root_moves[0].score) as f32).clamp(0.8000, 1.5000);
+
             let best_move_changes = 1.0829 + (0.2761 * td.best_move_changes as f32).ln_1p();
 
-            nodes * best_move_changes
+            nodes * score_trend * best_move_changes
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
