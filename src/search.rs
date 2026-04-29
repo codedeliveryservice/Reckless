@@ -685,7 +685,6 @@ fn search<NODE: NodeType>(
     let mut move_picker = MovePicker::new(tt_move);
     let mut skip_quiets = false;
     let mut current_search_count = 0;
-    let mut alpha_raises = false;
     let mut tt_move_score = Score::NONE;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
@@ -777,7 +776,7 @@ fn search<NODE: NodeType>(
 
             reduction -= 68 * move_count;
             reduction -= 3297 * correction_value.abs() / 1024;
-            reduction += 1306 * alpha_raises as i32;
+            reduction += 1306 * (bound == Bound::Exact) as i32;
 
             reduction += 546 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 322 * (is_valid(tt_score) && tt_depth < depth) as i32;
@@ -978,10 +977,6 @@ fn search<NODE: NodeType>(
 
                 if !(NODE::ROOT && td.pv_index > 0) && mv != tt_move {
                     td.shared.tt.write(hash, depth, raw_eval, score, Bound::Lower, mv, ply, true, false);
-                }
-
-                if !is_decisive(score) {
-                    alpha_raises = true;
                 }
             }
         }
