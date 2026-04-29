@@ -34,12 +34,12 @@ macro_rules! define {
 }
 
 define!(
-    f32 soft1: 0.035;
-    f32 hard1: 0.750;
-    f32 nodes1: 2.250;
-    f32 nodes2: 1.500;
-    f32 nodes3: 0.750;
-    f32 nodes4: 2.250;
-    f32 bmc1: 1.000;
-    f32 bmc2: 0.250;
+    f32 soft1: 0.0429;
+    f32 hard1: 0.7500;
+    f32 nodes1: 2.2207;
+    f32 nodes2: 1.5361;
+    f32 nodes3: 0.7187;
+    f32 nodes4: 2.3151;
+    f32 bmc1: 1.0161;
+    f32 bmc2: 0.2654;
 );
