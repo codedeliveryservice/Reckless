@@ -43,6 +43,10 @@ Reckless is an open source competitive chess engine, consistently performing amo
 
 ## Getting started
 
+Additional contributor docs:
+
+- [Testing Reckless Changes](docs/testing.md)
+
 ### Precompiled binaries
 
 You can download precompiled builds from the [GitHub Releases page](https://github.com/codedeliveryservice/Reckless/releases).
