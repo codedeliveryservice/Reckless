@@ -134,12 +134,7 @@ pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard 
 }
 
 pub fn pawn_attacks(square: Square, color: Color) -> Bitboard {
-    unsafe {
-        match color {
-            Color::White => Bitboard(*WHITE_PAWN_MAP.get_unchecked(square as usize)),
-            Color::Black => Bitboard(*BLACK_PAWN_MAP.get_unchecked(square as usize)),
-        }
-    }
+    unsafe { Bitboard(*PAWN_MAP.get_unchecked(color as usize).get_unchecked(square as usize)) }
 }
 
 pub fn king_attacks(square: Square) -> Bitboard {

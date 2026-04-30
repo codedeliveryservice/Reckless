@@ -17,12 +17,11 @@ fn generate_map<F: Fn(u8) -> u64>(f: F) -> [u64; 64] {
     map
 }
 
-pub fn generate_white_pawn_map() -> [u64; 64] {
-    generate_map(|square| pawn_attacks(square, Color::White))
-}
-
-pub fn generate_black_pawn_map() -> [u64; 64] {
-    generate_map(|square| pawn_attacks(square, Color::Black))
+pub fn generate_pawn_map() -> [[u64; 64]; 2] {
+    [
+        generate_map(|square| pawn_attacks(square, Color::White)),
+        generate_map(|square| pawn_attacks(square, Color::Black)),
+    ]
 }
 
 pub fn generate_rook_map() -> Vec<u64> {
