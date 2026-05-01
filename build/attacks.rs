@@ -25,7 +25,7 @@ const SOUTH: i8 = -8;
 const EAST: i8 = 1;
 const WEST: i8 = -1;
 
-pub const fn shift(mut bb: u64, dir: i8) -> u64 {
+pub fn shift(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
 
     if file_offset == FILE_B { bb &= !H_FILE; }
@@ -34,7 +34,14 @@ pub const fn shift(mut bb: u64, dir: i8) -> u64 {
     if dir < 0 { bb >> -dir } else { bb << dir }
 }
 
-pub const fn pawn_attacks(square: u8, color: Color) -> u64 {
+pub fn shift_dirs(mut bb: u64, dirs: &[i8]) -> u64 {
+    for dir in dirs {
+        bb |= shift(bb, *dir);
+    }
+    bb
+}
+
+pub fn pawn_attacks(square: u8, color: Color) -> u64 {
     let bitboard = 1 << square;
     if matches!(color, Color::White) {
         shift(bitboard, 7) | shift(bitboard, 9)
