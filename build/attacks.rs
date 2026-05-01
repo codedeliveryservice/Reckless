@@ -20,12 +20,8 @@ pub enum Color {
 
 const FILE_B: i8 = 1;
 const FILE_H: i8 = 7;
-const NORTH: i8 = 8;
-const SOUTH: i8 = -8;
-const EAST: i8 = 1;
-const WEST: i8 = -1;
 
-pub fn shift(mut bb: u64, dir: i8) -> u64 {
+pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
 
     if file_offset == FILE_B { bb &= !H_FILE; }
@@ -36,17 +32,18 @@ pub fn shift(mut bb: u64, dir: i8) -> u64 {
 
 pub fn shift_dirs(mut bb: u64, dirs: &[i8]) -> u64 {
     for dir in dirs {
-        bb |= shift(bb, *dir);
+        bb |= shift_dir(bb, *dir);
     }
     bb
 }
 
 pub fn pawn_attacks(square: u8, color: Color) -> u64 {
-    let bitboard = 1 << square;
+    let sq_bb = 1 << square;
     if matches!(color, Color::White) {
-        shift(bitboard, 7) | shift(bitboard, 9)
+        shift_dir(sq_bb, 7) | shift_dir(sq_bb, 9)
+        //shift_dirs(sq_bb, &[7, 9]) & !sq_bb
     } else {
-        (bitboard & !H_FILE) >> 7 | (bitboard & !A_FILE) >> 9
+        (sq_bb & !H_FILE) >> 7 | (sq_bb & !A_FILE) >> 9
     }
 }
 
