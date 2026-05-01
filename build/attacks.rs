@@ -41,10 +41,9 @@ pub fn shift_dirs(bb: u64, dirs: &[i8]) -> u64 {
 pub fn pawn_attacks(square: u8, color: Color) -> u64 {
     let sq_bb = 1 << square;
     if matches!(color, Color::White) {
-        //shift_dir(sq_bb, 7) | shift_dir(sq_bb, 9)
         shift_dirs(sq_bb, &[7, 9])
     } else {
-        (sq_bb & !H_FILE) >> 7 | (sq_bb & !A_FILE) >> 9
+        shift_dirs(sq_bb, &[-7, -9])
     }
 }
 
