@@ -19,8 +19,11 @@ pub enum Color {
 pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
 
-    if file_offset == FILE_B { bb &= !H_FILE; }
-    if file_offset == FILE_H { bb &= !A_FILE; }
+    if file_offset == FILE_B {
+        bb &= !H_FILE;
+    } else if file_offset == FILE_H {
+        bb &= !A_FILE;
+    }
 
     if dir < 0 { bb >> -dir } else { bb << dir }
 }
@@ -34,11 +37,7 @@ pub fn shift_dirs(bb: u64, dirs: &[i8]) -> u64 {
 }
 
 pub fn pawn_attacks(square: u8, color: Color) -> u64 {
-    if matches!(color, Color::White) {
-        shift_dirs(1 << square, &[7, 9])
-    } else {
-        shift_dirs(1 << square, &[-7, -9])
-    }
+    if matches!(color, Color::White) { shift_dirs(1 << square, &[7, 9]) } else { shift_dirs(1 << square, &[-7, -9]) }
 }
 
 pub fn king_attacks(square: u8) -> u64 {
