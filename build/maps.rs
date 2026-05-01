@@ -26,20 +26,20 @@ pub fn generate_pawn_map() -> [[u64; 64]; 2] {
 
 pub fn generate_diagonal_tables() -> [[u64; 64]; 2] {
     [
-        generate_map(|square| sliding_attacks(square, 0, &[(1, 1), (-1, -1)])),
-        generate_map(|square| sliding_attacks(square, 0, &[(1, -1), (-1, 1)])),
+        generate_map(|square| sliding_attacks(square, 0, &[9, -9])),
+        generate_map(|square| sliding_attacks(square, 0, &[7, -7])),
     ]
 }
 
 pub fn generate_rook_map() -> Vec<u64> {
-    generate_sliding_map(ROOK_MAP_SIZE, &ROOK_MAGICS, &[(1, 0), (-1, 0), (0, 1), (0, -1)])
+    generate_sliding_map(ROOK_MAP_SIZE, &ROOK_MAGICS, &[8, -8, 1, -1])
 }
 
 pub fn generate_bishop_map() -> Vec<u64> {
-    generate_sliding_map(BISHOP_MAP_SIZE, &BISHOP_MAGICS, &[(1, 1), (1, -1), (-1, 1), (-1, -1)])
+    generate_sliding_map(BISHOP_MAP_SIZE, &BISHOP_MAGICS, &[9, 7, -7, -9])
 }
 
-fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[(i8, i8)]) -> Vec<u64> {
+fn generate_sliding_map(size: usize, magics: &[MagicEntry], directions: &[i8]) -> Vec<u64> {
     let mut map = vec![0; size];
 
     for square in 0..64 {

@@ -15,6 +15,7 @@ pub enum Color {
     Black,
 }
 
+// Only step east/west one step at a time
 pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
 
@@ -50,27 +51,20 @@ pub fn knight_attacks(square: u8) -> u64 {
     targets & !king_attacks(square)
 }
 
-pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
-    directions.iter().fold(0, |output, &direction| output | generate_sliding_attacks(square, occupancies, direction))
+pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[i8]) -> u64 {
+    directions.iter().fold(0, |output, &direction| output | generate_slide(square, occupancies, direction))
 }
 
-fn generate_sliding_attacks(square: u8, occupancies: u64, direction: (i8, i8)) -> u64 {
-    let mut output = 0;
+fn generate_slide(square: u8, occupancies: u64, direction: i8) -> u64 {
+    let mut targets = shift_dir(1 << square, direction);
 
-    let mut rank = (square / 8) as i8 + direction.0;
-    let mut file = (square % 8) as i8 + direction.1;
-
-    while (0..8).contains(&file) && (0..8).contains(&rank) {
-        let bitboard = 1 << (rank * 8 + file);
-        output |= bitboard;
-
-        if (bitboard & occupancies) != 0 {
+    for _i in 0..8 {
+        if targets & occupancies != 0 {
             break;
         }
-
-        rank += direction.0;
-        file += direction.1;
+        //targets &= !occupancies;
+        targets = targets | shift_dir(targets, direction);
     }
 
-    output
+    targets
 }
