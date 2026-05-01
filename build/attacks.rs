@@ -18,10 +18,26 @@ pub enum Color {
     Black,
 }
 
+const FILE_B: i8 = 1;
+const FILE_H: i8 = 7;
+const NORTH: i8 = 8;
+const SOUTH: i8 = -8;
+const EAST: i8 = 1;
+const WEST: i8 = -1;
+
+pub const fn shift(mut bb: u64, dir: i8) -> u64 {
+    let file_offset = dir & 0x7;
+
+    if file_offset == FILE_B { bb &= !H_FILE; }
+    if file_offset == FILE_H { bb &= !A_FILE; }
+
+    if dir < 0 { bb >> -dir } else { bb << dir }
+}
+
 pub const fn pawn_attacks(square: u8, color: Color) -> u64 {
     let bitboard = 1 << square;
     if matches!(color, Color::White) {
-        (bitboard & !A_FILE) << 7 | (bitboard & !H_FILE) << 9
+        shift(bitboard, 7) | shift(bitboard, 9)
     } else {
         (bitboard & !H_FILE) >> 7 | (bitboard & !A_FILE) >> 9
     }
