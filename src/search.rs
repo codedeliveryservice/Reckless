@@ -775,6 +775,7 @@ fn search<NODE: NodeType>(
             let mut reduction = 225 * (move_count.ilog2() * depth.ilog2()) as i32;
 
             reduction -= 68 * move_count;
+            reduction -= 300 * extension;
             reduction -= 3297 * correction_value.abs() / 1024;
             reduction += 1306 * (bound == Bound::Exact) as i32;
 
