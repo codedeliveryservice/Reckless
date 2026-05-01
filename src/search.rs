@@ -63,7 +63,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 
-    let mut eval_stability = 0;
+    let mut scores = Vec::new();
     let mut pv_stability = 0;
     let mut soft_stop_voted = false;
 
@@ -179,11 +179,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.print_uci_info(depth);
         }
 
-        if (td.root_moves[0].score - average[td.pv_index]).abs() < 12 {
-            eval_stability += 1;
-        } else {
-            eval_stability = 0;
-        }
+        scores.push(td.root_moves[0].score);
 
         if last_best_rootmove.mv == td.root_moves[0].mv {
             pv_stability += 1;
@@ -214,17 +210,17 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             };
 
             let score_trend = {
-                let difference = (td.previous_best_score - td.root_moves[0].score) as f32;
-                (0.7386 + 0.0499 * difference).clamp(0.7961, 1.4722)
+                let fullmove_delta = (td.previous_best_score - td.root_moves[0].score) as f32;
+                let iteration_delta = (scores[scores.len().saturating_sub(4)] - td.root_moves[0].score) as f32;
+
+                (0.4891 + 0.0207 * iteration_delta + 0.0499 * fullmove_delta).clamp(0.7961, 1.4722)
             };
 
             let pv_stability = (1.2915 - 0.0507 * pv_stability as f32).max(0.8068);
 
-            let eval_stability = (1.2048 - 0.0417 * eval_stability as f32).max(0.8327);
-
             let best_move_stability = 1.0724 + (0.2160 * td.best_move_changes as f32).ln_1p();
 
-            nodes * pv_stability * eval_stability * score_trend * best_move_stability
+            nodes * pv_stability * score_trend * best_move_stability
         };
 
         if td.time_manager.soft_limit(td, multiplier) {
