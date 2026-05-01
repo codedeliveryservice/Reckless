@@ -6,50 +6,37 @@
 #![allow(clippy::precedence)]
 
 const A_FILE: u64 = 0x101010101010101;
-const B_FILE: u64 = A_FILE << 1;
 const H_FILE: u64 = A_FILE << 7;
-const G_FILE: u64 = A_FILE << 6;
-
-const AB_FILE: u64 = A_FILE | B_FILE;
-const GH_FILE: u64 = G_FILE | H_FILE;
 
 pub enum Color {
     White,
     Black,
 }
 
+pub const fn shift_left(bb: u64) -> u64 {
+    (bb & !A_FILE) >> 1
+}
+
+pub const fn shift_right(bb: u64) -> u64 {
+    (bb & !H_FILE) << 1
+}
+
 pub const fn pawn_attacks(square: u8, color: Color) -> u64 {
-    let bitboard = 1 << square;
-    if matches!(color, Color::White) {
-        (bitboard & !A_FILE) << 7 | (bitboard & !H_FILE) << 9
-    } else {
-        (bitboard & !H_FILE) >> 7 | (bitboard & !A_FILE) >> 9
-    }
+    let bb = 1 << square;
+    let up = if matches!(color, Color::White) { bb << 8 } else { bb >> 8 };
+    shift_left(up) | shift_right(up)
 }
 
 pub const fn king_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard >> 8 | bitboard << 8)
-        | (bitboard & !A_FILE) >> 9
-        | (bitboard & !A_FILE) >> 1
-        | (bitboard & !A_FILE) << 7
-        | (bitboard & !H_FILE) >> 7
-        | (bitboard & !H_FILE) << 1
-        | (bitboard & !H_FILE) << 9
+    let sq_bb = 1 << square;
+    let bb = sq_bb | (sq_bb << 8) | (sq_bb >> 8);
+    (bb | shift_left(bb) | shift_right(bb)) & !sq_bb
 }
 
 pub const fn knight_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard & !A_FILE) >> 17
-        | (bitboard & !A_FILE) << 15
-        | (bitboard & !H_FILE) >> 15
-        | (bitboard & !H_FILE) << 17
-        | (bitboard & !AB_FILE) >> 10
-        | (bitboard & !AB_FILE) << 6
-        | (bitboard & !GH_FILE) >> 6
-        | (bitboard & !GH_FILE) << 10
+    let bb = pawn_attacks(square, Color::White) | pawn_attacks(square, Color::Black);
+    let bb = shift_left(bb) | shift_right(bb) | (bb << 8) | (bb >> 8);
+    bb & !king_attacks(square)
 }
 
 pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
