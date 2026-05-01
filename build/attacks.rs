@@ -62,7 +62,6 @@ fn generate_slide(square: u8, occupancies: u64, direction: i8) -> u64 {
         if targets & occupancies != 0 {
             break;
         }
-        //targets &= !occupancies;
         targets = targets | shift_dir(targets, direction);
     }
 
