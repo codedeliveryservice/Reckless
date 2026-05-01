@@ -31,17 +31,18 @@ pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
 }
 
 pub fn shift_dirs(mut bb: u64, dirs: &[i8]) -> u64 {
+    let mut bb2 = 0;
     for dir in dirs {
-        bb |= shift_dir(bb, *dir);
+        bb2 |= shift_dir(bb, *dir);
     }
-    bb
+    bb2
 }
 
 pub fn pawn_attacks(square: u8, color: Color) -> u64 {
     let sq_bb = 1 << square;
     if matches!(color, Color::White) {
-        shift_dir(sq_bb, 7) | shift_dir(sq_bb, 9)
-        //shift_dirs(sq_bb, &[7, 9]) & !sq_bb
+        //shift_dir(sq_bb, 7) | shift_dir(sq_bb, 9)
+        shift_dirs(sq_bb, &[7, 9]) & !sq_bb
     } else {
         (sq_bb & !H_FILE) >> 7 | (sq_bb & !A_FILE) >> 9
     }
