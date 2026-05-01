@@ -6,20 +6,14 @@
 #![allow(clippy::precedence)]
 
 const A_FILE: u64 = 0x101010101010101;
-const B_FILE: u64 = A_FILE << 1;
 const H_FILE: u64 = A_FILE << 7;
-const G_FILE: u64 = A_FILE << 6;
-
-const AB_FILE: u64 = A_FILE | B_FILE;
-const GH_FILE: u64 = G_FILE | H_FILE;
+const FILE_B: i8 = 1;
+const FILE_H: i8 = 7;
 
 pub enum Color {
     White,
     Black,
 }
-
-const FILE_B: i8 = 1;
-const FILE_H: i8 = 7;
 
 pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
@@ -39,37 +33,21 @@ pub fn shift_dirs(bb: u64, dirs: &[i8]) -> u64 {
 }
 
 pub fn pawn_attacks(square: u8, color: Color) -> u64 {
-    let sq_bb = 1 << square;
     if matches!(color, Color::White) {
-        shift_dirs(sq_bb, &[7, 9])
+        shift_dirs(1 << square, &[7, 9])
     } else {
-        shift_dirs(sq_bb, &[-7, -9])
+        shift_dirs(1 << square, &[-7, -9])
     }
 }
 
-pub const fn king_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard >> 8 | bitboard << 8)
-        | (bitboard & !A_FILE) >> 9
-        | (bitboard & !A_FILE) >> 1
-        | (bitboard & !A_FILE) << 7
-        | (bitboard & !H_FILE) >> 7
-        | (bitboard & !H_FILE) << 1
-        | (bitboard & !H_FILE) << 9
+pub fn king_attacks(square: u8) -> u64 {
+    shift_dirs(1 << square, &[7, 8, 9, 1, -7, -8, -9, -1])
 }
 
-pub const fn knight_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard & !A_FILE) >> 17
-        | (bitboard & !A_FILE) << 15
-        | (bitboard & !H_FILE) >> 15
-        | (bitboard & !H_FILE) << 17
-        | (bitboard & !AB_FILE) >> 10
-        | (bitboard & !AB_FILE) << 6
-        | (bitboard & !GH_FILE) >> 6
-        | (bitboard & !GH_FILE) << 10
+pub fn knight_attacks(square: u8) -> u64 {
+    let targets = shift_dirs(1 << square, &[7, 9, -7, -9]);
+    let targets = shift_dirs(targets, &[8, 1, -8, -1]);
+    targets & !king_attacks(square)
 }
 
 pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
