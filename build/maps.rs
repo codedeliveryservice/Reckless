@@ -27,7 +27,7 @@ pub fn generate_pawn_map() -> [[u64; 64]; 2] {
 pub fn generate_diagonal_tables() -> [[u64; 64]; 2] {
     [
         generate_map(|square| sliding_attacks(square, 0, &[(1, 1), (-1, -1)])),
-        generate_map(|square| sliding_attacks(square, 0, &[(1, -1), (-1, 1)]))
+        generate_map(|square| sliding_attacks(square, 0, &[(1, -1), (-1, 1)])),
     ]
 }
 
