@@ -95,26 +95,12 @@ pub fn ray_pass(a: Square, b: Square) -> Bitboard {
     unsafe { RAY_PASS[a as usize][b as usize] }
 }
 
-pub fn diagonal(sq: Square) -> Bitboard {
-    unsafe { Bitboard(*DIAGONAL.get_unchecked(sq as usize)) }
-}
-
-pub fn anti_diagonal(sq: Square) -> Bitboard {
-    unsafe { Bitboard(*ANTI_DIAGONAL.get_unchecked(sq as usize)) }
-}
-
 pub fn relative_diagonal(color: Color, sq: Square) -> Bitboard {
-    match color {
-        Color::White => diagonal(sq),
-        Color::Black => anti_diagonal(sq),
-    }
+    unsafe { Bitboard(*DIAGONALS[color as usize].get_unchecked(sq as usize)) }
 }
 
 pub fn relative_anti_diagonal(color: Color, sq: Square) -> Bitboard {
-    match color {
-        Color::White => anti_diagonal(sq),
-        Color::Black => diagonal(sq),
-    }
+    unsafe { Bitboard(*DIAGONALS[!color as usize].get_unchecked(sq as usize)) }
 }
 
 pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard {
