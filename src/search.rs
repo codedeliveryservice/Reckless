@@ -213,7 +213,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 let fullmove_delta = (td.previous_best_score - td.root_moves[0].score) as f32;
                 let iteration_delta = (scores[scores.len().saturating_sub(4)] - td.root_moves[0].score) as f32;
 
-                (0.4891 + 0.0207 * iteration_delta + 0.0499 * fullmove_delta).clamp(0.7961, 1.4722)
+                (0.6191 + 0.0207 * iteration_delta + 0.0499 * fullmove_delta).clamp(0.7961, 1.4722)
             };
 
             let pv_stability = (1.2915 - 0.0507 * pv_stability as f32).max(0.8068);
