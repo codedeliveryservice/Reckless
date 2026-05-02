@@ -726,6 +726,15 @@ fn search<NODE: NodeType>(
                 continue;
             }
 
+            // Late Move Pruning for noisy moves
+            if !in_check
+                && !td.board.is_direct_check(mv)
+                && !is_quiet
+                && move_count >= (2568 + 60 * improvement / 16 + 1092 * depth * depth + 68 * history / 1024) / 1024
+            {
+                continue;
+            }
+
             // Futility Pruning (FP)
             let futility_value = eval
                 + 79 * depth
