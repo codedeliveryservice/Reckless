@@ -712,7 +712,13 @@ fn search<NODE: NodeType>(
             td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
         } else {
             let captured = td.board.type_on(mv.to());
-            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
+            td.noisy_history.get(
+                td.board.all_threats(),
+                td.board.is_direct_check(mv),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured,
+            )
         };
 
         if !NODE::ROOT && !is_loss(best_score) {
@@ -1017,6 +1023,7 @@ fn search<NODE: NodeType>(
         if best_move.is_noisy() {
             td.noisy_history.update(
                 td.board.all_threats(),
+                td.board.is_direct_check(best_move),
                 td.board.moved_piece(best_move),
                 best_move.to(),
                 td.board.type_on(best_move.to()),
@@ -1034,7 +1041,14 @@ fn search<NODE: NodeType>(
 
         for &mv in noisy_moves.iter() {
             let captured = td.board.type_on(mv.to());
-            td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
+            td.noisy_history.update(
+                td.board.all_threats(),
+                td.board.is_direct_check(mv),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured,
+                -noisy_malus,
+            );
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
@@ -1072,6 +1086,7 @@ fn search<NODE: NodeType>(
 
             td.noisy_history.update(
                 td.board.prior_threats(),
+                td.board.is_prior_direct_check(td.stack[ply - 1].piece, prior_move),
                 td.board.piece_on(prior_move.to()),
                 prior_move.to(),
                 captured,
@@ -1273,6 +1288,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
         td.noisy_history.update(
             td.board.all_threats(),
+            td.board.is_direct_check(best_move),
             td.board.moved_piece(best_move),
             best_move.to(),
             td.board.type_on(best_move.to()),

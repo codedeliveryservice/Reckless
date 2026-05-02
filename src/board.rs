@@ -410,6 +410,13 @@ impl Board {
         self.checking_squares(self.moved_piece(mv).piece_type()).contains(mv.to())
     }
 
+    pub fn is_prior_direct_check(&self, piece: Piece, mv: Move) -> bool {
+        debug_assert!(!self.state_stack.is_empty());
+
+        let prior_checking_squares = self.state_stack[self.state_stack.len() - 1].checking_squares;
+        prior_checking_squares[piece.piece_type()].contains(mv.to())
+    }
+
     pub fn update_threats(&mut self) {
         // The king is excluded from the occupancy bitboard when computing threats,
         // letting sliders "see through" it as if the king weren't blocking their path.
