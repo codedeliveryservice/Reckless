@@ -404,10 +404,7 @@ fn search<NODE: NodeType>(
     let mut eval;
 
     // Evaluation
-    if in_check {
-        raw_eval = Score::NONE;
-        eval = Score::NONE;
-    } else if excluded {
+    if excluded {
         raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
     } else if let Some(entry) = &entry {
@@ -422,8 +419,7 @@ fn search<NODE: NodeType>(
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
     // the current alpha-beta window; otherwise, retain the unbounded evaluation
-    let estimated_score = if !in_check
-        && !excluded
+    let estimated_score = if !excluded
         && is_valid(tt_score)
         && match tt_bound {
             Bound::Upper => tt_score < eval,
