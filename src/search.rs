@@ -1296,7 +1296,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
-    let bucket = td.board.halfmove_clock_bucket();
+    let bucket = (td.board.halfmove_clock_bucket() << 2) | td.board.material_phase_bucket();
     let corrhist = td.corrhist();
 
     (corrhist.pawn.get(stm, td.board.pawn_key(), bucket)
@@ -1317,7 +1317,7 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
-    let bucket = td.board.halfmove_clock_bucket();
+    let bucket = (td.board.halfmove_clock_bucket() << 2) | td.board.material_phase_bucket();
     let corrhist = td.corrhist();
     let bonus = (142 * depth * diff / 128).clamp(-4771, 3001);
 

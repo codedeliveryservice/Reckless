@@ -80,6 +80,11 @@ impl Board {
         (self.halfmove_clock().saturating_sub(8) as usize / 8).min(15)
     }
 
+    pub fn material_phase_bucket(&self) -> usize {
+        const MAX_MATERIAL: usize = 10296;
+        (self.material().abs() as usize / ((MAX_MATERIAL + 1) / 4)).min(3)
+    }
+
     pub fn hash(&self) -> u64 {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
