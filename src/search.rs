@@ -452,7 +452,7 @@ fn search<NODE: NodeType>(
     td.stack[ply + 2].cutoff_count = 0;
 
     // Quiet move ordering using eval difference
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
+    if !NODE::ROOT && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
         let value = 824 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-133, 348);
 
@@ -460,7 +460,7 @@ fn search<NODE: NodeType>(
     }
 
     // Hindsight reductions
-    if !NODE::ROOT && !in_check && !excluded && is_valid(td.stack[ply - 1].eval) {
+    if !NODE::ROOT && !excluded && is_valid(td.stack[ply - 1].eval) {
         let eval_delta = eval + td.stack[ply - 1].eval;
         let reduction = td.stack[ply - 1].reduction;
 
@@ -479,9 +479,7 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
-    let improvement = if in_check {
-        0
-    } else if is_valid(td.stack[ply - 2].eval) {
+    let improvement = if is_valid(td.stack[ply - 2].eval) {
         eval - td.stack[ply - 2].eval
     } else if is_valid(td.stack[ply - 4].eval) {
         eval - td.stack[ply - 4].eval
@@ -729,7 +727,7 @@ fn search<NODE: NodeType>(
                 + 560 * correction_value.abs() / 1024
                 - 146;
 
-            if !in_check && is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
+            if is_quiet && depth < 15 && futility_value <= alpha && !td.board.is_direct_check(mv) {
                 if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
@@ -740,8 +738,7 @@ fn search<NODE: NodeType>(
             // Bad Noisy Futility Pruning (BNFP)
             let noisy_futility_value = eval + 71 * depth + 68 * history / 1024 + 23;
 
-            if !in_check
-                && depth < 11
+            if depth < 11
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
                 && !td.board.is_direct_check(mv)
