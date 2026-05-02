@@ -40,7 +40,7 @@ struct InternalState {
     pinned: [Bitboard; Color::NUM],
     pinners: [Bitboard; Color::NUM],
     checkers: Bitboard,
-    checking_squares: [Bitboard; PieceType::NUM],
+    checking_squares: [Bitboard; PieceType::NUM + 1],
 }
 
 #[derive(Clone)]
@@ -408,6 +408,13 @@ impl Board {
     /// en passant, or checks delivered via castling.
     pub fn is_direct_check(&self, mv: Move) -> bool {
         self.checking_squares(self.moved_piece(mv).piece_type()).contains(mv.to())
+    }
+
+    pub fn is_prior_direct_check(&self, piece: Piece, mv: Move) -> bool {
+        debug_assert!(!self.state_stack.is_empty());
+
+        let prior_checking_squares = self.state_stack[self.state_stack.len() - 1].checking_squares;
+        prior_checking_squares[piece.piece_type() as usize].contains(mv.to())
     }
 
     pub fn update_threats(&mut self) {
