@@ -202,8 +202,13 @@ impl ThreadData {
         &self.corrhist
     }
 
-    pub fn conthist(&self, ply: isize, index: isize, mv: Move) -> i32 {
-        self.continuation_history.get(self.stack[ply - index].conthist, self.board.piece_on(mv.from()), mv.to())
+    pub fn conthist(&self, ply: isize, index: isize, in_check: bool, mv: Move) -> i32 {
+        self.continuation_history.get(
+            self.stack[ply - index].conthist,
+            in_check,
+            self.board.piece_on(mv.from()),
+            mv.to(),
+        )
     }
 
     pub fn print_uci_info(&self, depth: i32) {

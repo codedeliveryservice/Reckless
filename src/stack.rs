@@ -4,7 +4,8 @@ use crate::types::{MAX_PLY, Move, Piece, Score};
 
 pub struct Stack {
     data: [StackEntry; MAX_PLY + 16],
-    sentinel: [[i16; 64]; 13],
+    sentinel1: [[[i16; 64]; 13]; 2],
+    sentinel2: [[i16; 64]; 13],
 }
 
 impl Stack {
@@ -14,10 +15,9 @@ impl Stack {
 
     pub fn new() -> Box<Self> {
         let mut stack = Box::new(Self::default());
-        let ptr = &raw mut stack.sentinel;
         for entry in &mut stack.data {
-            entry.conthist = ptr;
-            entry.contcorrhist = ptr;
+            entry.conthist = &raw mut stack.sentinel1;
+            entry.contcorrhist = &raw mut stack.sentinel2;
         }
         stack
     }
@@ -27,7 +27,8 @@ impl Default for Stack {
     fn default() -> Self {
         Self {
             data: [StackEntry::default(); MAX_PLY + 16],
-            sentinel: [[0; 64]; 13],
+            sentinel1: [[[0; 64]; 13]; 2],
+            sentinel2: [[0; 64]; 13],
         }
     }
 }
@@ -40,10 +41,11 @@ pub struct StackEntry {
     pub excluded: Move,
     pub tt_move: Move,
     pub tt_pv: bool,
+    pub in_check: bool,
     pub cutoff_count: i32,
     pub move_count: i32,
     pub reduction: i32,
-    pub conthist: *mut [[i16; 64]; 13],
+    pub conthist: *mut [[[i16; 64]; 13]; 2],
     pub contcorrhist: *mut [[i16; 64]; 13],
 }
 
@@ -58,6 +60,7 @@ impl Default for StackEntry {
             excluded: Move::NULL,
             tt_move: Move::NULL,
             tt_pv: false,
+            in_check: false,
             cutoff_count: 0,
             move_count: 0,
             reduction: 0,
