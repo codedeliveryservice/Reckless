@@ -99,22 +99,7 @@ impl TryInto<char> for Piece {
 
 impl Display for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let piece = match self {
-            Self::WhitePawn => 'P',
-            Self::BlackPawn => 'p',
-            Self::WhiteKnight => 'N',
-            Self::BlackKnight => 'n',
-            Self::WhiteBishop => 'B',
-            Self::BlackBishop => 'b',
-            Self::WhiteRook => 'R',
-            Self::BlackRook => 'r',
-            Self::WhiteQueen => 'Q',
-            Self::BlackQueen => 'q',
-            Self::WhiteKing => 'K',
-            Self::BlackKing => 'k',
-            Self::None => panic!(),
-        };
-        write!(f, "{piece}")
+        write!(f, "{}", TryInto::<char>::try_into(*self).unwrap())
     }
 }
 

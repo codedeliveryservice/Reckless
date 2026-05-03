@@ -77,14 +77,12 @@ fn write(mut buf: BufWriter<File>) -> Result<(), std::io::Error> {
         };
     }
 
-    write_map!("DIAGONAL", "u64", maps::generate_diagonal_table());
-    write_map!("ANTI_DIAGONAL", "u64", maps::generate_anti_diagonal_table());
+    write_map!("DIAGONALS", "[u64; 64]", maps::generate_diagonal_tables());
 
     write_map!("KING_MAP", "u64", maps::generate_king_map());
     write_map!("KNIGHT_MAP", "u64", maps::generate_knight_map());
 
-    write_map!("WHITE_PAWN_MAP", "u64", maps::generate_white_pawn_map());
-    write_map!("BLACK_PAWN_MAP", "u64", maps::generate_black_pawn_map());
+    write_map!("PAWN_MAP", "[u64; 64]", maps::generate_pawn_map());
 
     write_map!("ROOK_MAP", "u64", maps::generate_rook_map());
     write_map!("BISHOP_MAP", "u64", maps::generate_bishop_map());

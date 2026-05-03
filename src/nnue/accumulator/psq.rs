@@ -22,7 +22,7 @@ pub struct PstAccumulator {
 }
 
 impl PstAccumulator {
-    pub fn new(parameters: &Parameters) -> Self {
+    pub const fn new(parameters: &Parameters) -> Self {
         Self {
             values: Aligned::new([parameters.ft_biases.data; 2]),
             delta: PstDelta { mv: Move::NULL, piece: Piece::None, captured: Piece::None },

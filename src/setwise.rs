@@ -15,10 +15,7 @@ pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
         Color::Black => (-7, -9),
     };
 
-    let right_attacks = (bb & !Bitboard::file(File::H)).shift(up_right);
-    let left_attacks = (bb & !Bitboard::file(File::A)).shift(up_left);
-
-    right_attacks | left_attacks
+    (bb & !H).shift(up_right) | (bb & !A).shift(up_left)
 }
 
 #[cfg(not(target_feature = "avx2"))]

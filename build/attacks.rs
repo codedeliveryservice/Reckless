@@ -6,73 +6,63 @@
 #![allow(clippy::precedence)]
 
 const A_FILE: u64 = 0x101010101010101;
-const B_FILE: u64 = A_FILE << 1;
 const H_FILE: u64 = A_FILE << 7;
-const G_FILE: u64 = A_FILE << 6;
-
-const AB_FILE: u64 = A_FILE | B_FILE;
-const GH_FILE: u64 = G_FILE | H_FILE;
+const FILE_B: i8 = 1;
+const FILE_H: i8 = 7;
 
 pub enum Color {
     White,
     Black,
 }
 
-pub const fn pawn_attacks(square: u8, color: Color) -> u64 {
-    let bitboard = 1 << square;
-    if matches!(color, Color::White) {
-        (bitboard & !A_FILE) << 7 | (bitboard & !H_FILE) << 9
-    } else {
-        (bitboard & !H_FILE) >> 7 | (bitboard & !A_FILE) >> 9
+// Only step east/west one step at a time
+pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
+    let file_offset = dir & 0x7;
+
+    if file_offset == FILE_B {
+        bb &= !H_FILE;
+    } else if file_offset == FILE_H {
+        bb &= !A_FILE;
     }
+
+    if dir < 0 { bb >> -dir } else { bb << dir }
 }
 
-pub const fn king_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard >> 8 | bitboard << 8)
-        | (bitboard & !A_FILE) >> 9
-        | (bitboard & !A_FILE) >> 1
-        | (bitboard & !A_FILE) << 7
-        | (bitboard & !H_FILE) >> 7
-        | (bitboard & !H_FILE) << 1
-        | (bitboard & !H_FILE) << 9
+pub fn shift_dirs(bb: u64, dirs: &[i8]) -> u64 {
+    let mut targets = 0;
+    for dir in dirs {
+        targets |= shift_dir(bb, *dir);
+    }
+    targets
 }
 
-pub const fn knight_attacks(square: u8) -> u64 {
-    let bitboard = 1 << square;
-
-    (bitboard & !A_FILE) >> 17
-        | (bitboard & !A_FILE) << 15
-        | (bitboard & !H_FILE) >> 15
-        | (bitboard & !H_FILE) << 17
-        | (bitboard & !AB_FILE) >> 10
-        | (bitboard & !AB_FILE) << 6
-        | (bitboard & !GH_FILE) >> 6
-        | (bitboard & !GH_FILE) << 10
+pub fn pawn_attacks(square: u8, color: Color) -> u64 {
+    if matches!(color, Color::White) { shift_dirs(1 << square, &[7, 9]) } else { shift_dirs(1 << square, &[-7, -9]) }
 }
 
-pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[(i8, i8)]) -> u64 {
-    directions.iter().fold(0, |output, &direction| output | generate_sliding_attacks(square, occupancies, direction))
+pub fn king_attacks(square: u8) -> u64 {
+    shift_dirs(1 << square, &[7, 8, 9, 1, -7, -8, -9, -1])
 }
 
-fn generate_sliding_attacks(square: u8, occupancies: u64, direction: (i8, i8)) -> u64 {
-    let mut output = 0;
+pub fn knight_attacks(square: u8) -> u64 {
+    let targets = shift_dirs(1 << square, &[7, 9, -7, -9]);
+    let targets = shift_dirs(targets, &[8, 1, -8, -1]);
+    targets & !king_attacks(square)
+}
 
-    let mut rank = (square / 8) as i8 + direction.0;
-    let mut file = (square % 8) as i8 + direction.1;
+pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[i8]) -> u64 {
+    directions.iter().fold(0, |output, &direction| output | generate_slide(square, occupancies, direction))
+}
 
-    while (0..8).contains(&file) && (0..8).contains(&rank) {
-        let bitboard = 1 << (rank * 8 + file);
-        output |= bitboard;
+fn generate_slide(square: u8, occupancies: u64, direction: i8) -> u64 {
+    let mut targets = shift_dir(1 << square, direction);
 
-        if (bitboard & occupancies) != 0 {
+    for _i in 0..8 {
+        if targets & occupancies != 0 {
             break;
         }
-
-        rank += direction.0;
-        file += direction.1;
+        targets = targets | shift_dir(targets, direction);
     }
 
-    output
+    targets
 }

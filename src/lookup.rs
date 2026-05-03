@@ -22,33 +22,18 @@ unsafe fn init_luts() {
             let a = Square::new(a);
             let b = Square::new(b);
 
-            if rook_attacks(a, Bitboard(0)).contains(b) {
-                BETWEEN[a][b] = rook_attacks(a, b.to_bb()) & rook_attacks(b, a.to_bb());
-                RAY_PASS[a][b] = rook_attacks(a, Bitboard(0)) & rook_attacks(b, a.to_bb());
-                RAY_PASS[a][b].set(b);
-            }
-
-            if bishop_attacks(a, Bitboard(0)).contains(b) {
-                BETWEEN[a][b] = bishop_attacks(a, b.to_bb()) & bishop_attacks(b, a.to_bb());
-                RAY_PASS[a][b] = bishop_attacks(a, Bitboard(0)) & bishop_attacks(b, a.to_bb());
-                RAY_PASS[a][b].set(b);
+            for piece in [Piece::WhiteBishop, Piece::WhiteRook] {
+                if attacks(piece, a, Bitboard(0)).contains(b) {
+                    BETWEEN[a][b] = attacks(piece, a, b.to_bb()) & attacks(piece, b, a.to_bb());
+                    RAY_PASS[a][b] = attacks(piece, a, Bitboard(0)) & attacks(piece, b, a.to_bb());
+                    RAY_PASS[a][b].set(b);
+                }
             }
         }
     }
 }
 
 unsafe fn init_cuckoo() {
-    fn is_reversible_move(piece: Piece, a: Square, b: Square) -> bool {
-        match piece.piece_type() {
-            PieceType::Knight => knight_attacks(a).contains(b),
-            PieceType::Bishop => bishop_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Rook => rook_attacks(a, Bitboard(0)).contains(b),
-            PieceType::Queen => queen_attacks(a, Bitboard(0)).contains(b),
-            PieceType::King => king_attacks(a).contains(b),
-            _ => unreachable!(),
-        }
-    }
-
     for index in 2..12 {
         let piece = Piece::from_index(index);
 
@@ -59,7 +44,7 @@ unsafe fn init_cuckoo() {
                 let mut a = Square::new(a);
                 let mut b = Square::new(b);
 
-                if !is_reversible_move(piece, a, b) {
+                if !attacks(piece, a, Bitboard(0)).contains(b) {
                     continue;
                 }
 
@@ -110,26 +95,12 @@ pub fn ray_pass(a: Square, b: Square) -> Bitboard {
     unsafe { RAY_PASS[a as usize][b as usize] }
 }
 
-pub fn diagonal(sq: Square) -> Bitboard {
-    unsafe { Bitboard(*DIAGONAL.get_unchecked(sq as usize)) }
-}
-
-pub fn anti_diagonal(sq: Square) -> Bitboard {
-    unsafe { Bitboard(*ANTI_DIAGONAL.get_unchecked(sq as usize)) }
-}
-
 pub fn relative_diagonal(color: Color, sq: Square) -> Bitboard {
-    match color {
-        Color::White => diagonal(sq),
-        Color::Black => anti_diagonal(sq),
-    }
+    unsafe { Bitboard(*DIAGONALS[color as usize].get_unchecked(sq as usize)) }
 }
 
 pub fn relative_anti_diagonal(color: Color, sq: Square) -> Bitboard {
-    match color {
-        Color::White => anti_diagonal(sq),
-        Color::Black => diagonal(sq),
-    }
+    unsafe { Bitboard(*DIAGONALS[!color as usize].get_unchecked(sq as usize)) }
 }
 
 pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard {
@@ -145,12 +116,7 @@ pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard 
 }
 
 pub fn pawn_attacks(square: Square, color: Color) -> Bitboard {
-    unsafe {
-        match color {
-            Color::White => Bitboard(*WHITE_PAWN_MAP.get_unchecked(square as usize)),
-            Color::Black => Bitboard(*BLACK_PAWN_MAP.get_unchecked(square as usize)),
-        }
-    }
+    unsafe { Bitboard(*PAWN_MAP.get_unchecked(color as usize).get_unchecked(square as usize)) }
 }
 
 pub fn king_attacks(square: Square) -> Bitboard {
