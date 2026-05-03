@@ -3,7 +3,7 @@ use crate::{
     search::NodeType,
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     thread::ThreadData,
-    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType, Square},
+    types::{ArrayVec, Bitboard, Color, MAX_MOVES, Move, MoveEntry, MoveList, PieceType, Square},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -229,12 +229,12 @@ impl MovePicker {
                 + 5000 * offense[pt].contains(mv.to()) as i32
                 - 4000 * wall_pawns.contains(mv.from()) as i32;
 
-            if !passed_pawns.is_empty() && pt == PieceType::King {
-                let passed_pawn = passed_pawns.lsb();
+            if td.board.material() < 2000 && !passed_pawns.is_empty() && pt == PieceType::King {
+                let passed_pawn = if side == Color::White { passed_pawns.msb() } else { passed_pawns.lsb() };
                 if mv.to().distance_from(passed_pawn) < mv.from().distance_from(passed_pawn) {
                     //println!("{}", td.board);
                     //println!("Move: {}-{}", mv.from(), mv.to());
-                    entry.score += 5000;
+                    entry.score += 3000;
                 }
             }
         }
