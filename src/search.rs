@@ -327,6 +327,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut tt_was_pv = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -335,6 +336,7 @@ fn search<NODE: NodeType>(
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
+        tt_was_pv = entry.tt_pv;
 
         if !NODE::PV
             && !excluded
@@ -659,10 +661,13 @@ fn search<NODE: NodeType>(
         }
 
         if singular_score < singular_beta {
-            let double_margin =
-                204 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-            let triple_margin =
-                257 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 15 * correction_value.abs() / 128 + 32;
+            let double_margin = 196 * NODE::PV as i32 + 58 * (NODE::PV && !tt_was_pv) as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 16 * correction_value.abs() / 128;
+            let triple_margin = 249 * NODE::PV as i32 + 58 * (NODE::PV && !tt_was_pv) as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 15 * correction_value.abs() / 128
+                + 32;
 
             extension = 1;
             extension += (singular_score < singular_beta - double_margin) as i32;
