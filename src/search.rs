@@ -31,25 +31,51 @@ pub enum Report {
 
 pub trait NodeType {
     const PV: bool;
+    const CUT: bool;
     const ROOT: bool;
+
+    type REFUTE: NodeType;
+    type CONFIRM: NodeType;
 }
 
 struct Root;
 impl NodeType for Root {
     const PV: bool = true;
+    const CUT: bool = false;
     const ROOT: bool = true;
+
+    type REFUTE = Cut;
+    type CONFIRM = All;
 }
 
 struct PV;
 impl NodeType for PV {
     const PV: bool = true;
+    const CUT: bool = false;
     const ROOT: bool = false;
+
+    type REFUTE = Cut;
+    type CONFIRM = All;
 }
 
-struct NonPV;
-impl NodeType for NonPV {
+struct Cut;
+impl NodeType for Cut {
     const PV: bool = false;
+    const CUT: bool = true;
     const ROOT: bool = false;
+
+    type REFUTE = All;
+    type CONFIRM = Cut;
+}
+
+struct All;
+impl NodeType for All {
+    const PV: bool = false;
+    const CUT: bool = false;
+    const ROOT: bool = false;
+
+    type REFUTE = Cut;
+    type CONFIRM = All;
 }
 
 pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
@@ -121,7 +147,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                 td.root_delta = beta - alpha;
 
                 // Root Search
-                let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), false, 0);
+                let score = search::<Root>(td, alpha, beta, (depth - reduction).max(1), 0);
 
                 td.root_moves[td.pv_index..td.pv_end].sort_by_key(|rm| std::cmp::Reverse(rm.score));
 
@@ -254,9 +280,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     td.previous_best_score = td.root_moves[0].score;
 }
 
-fn search<NODE: NodeType>(
-    td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, cut_node: bool, ply: isize,
-) -> i32 {
+fn search<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, depth: i32, ply: isize) -> i32 {
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
     debug_assert!(NODE::PV || alpha == beta - 1);
@@ -342,8 +366,8 @@ fn search<NODE: NodeType>(
             && tt_depth > depth - (tt_score < beta) as i32
             && is_valid(tt_score)
             && match tt_bound {
-                Bound::Upper => tt_score <= alpha && (!cut_node || depth > 5),
-                Bound::Lower => tt_score >= beta && (cut_node || depth > 5),
+                Bound::Upper => tt_score <= alpha && (!NODE::CUT || depth > 5),
+                Bound::Lower => tt_score >= beta && (NODE::CUT || depth > 5),
                 _ => true,
             }
         {
@@ -503,7 +527,7 @@ fn search<NODE: NodeType>(
         && !tt_move.is_quiet()
         && tt_bound != Bound::Lower
     {
-        return qsearch::<NonPV>(td, alpha, beta, ply);
+        return qsearch::<NODE::REFUTE>(td, alpha, beta, ply);
     }
 
     // Reverse Futility Pruning (RFP)
@@ -525,7 +549,7 @@ fn search<NODE: NodeType>(
     }
 
     // Null Move Pruning (NMP)
-    if cut_node
+    if NODE::CUT
         && !in_check
         && !excluded
         && !potential_singularity
@@ -555,7 +579,7 @@ fn search<NODE: NodeType>(
         td.board.make_null_move();
         td.shared.tt.prefetch(td.board.hash());
 
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+        let score = -search::<All>(td, -beta, -beta + 1, depth - r, ply + 1);
 
         td.board.undo_null_move();
 
@@ -569,7 +593,7 @@ fn search<NODE: NodeType>(
             }
 
             td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+            let verified_score = search::<All>(td, beta - 1, beta, depth - r, ply);
             td.nmp_min_ply = 0;
 
             if td.shared.status.get() == Status::STOPPED {
@@ -585,7 +609,7 @@ fn search<NODE: NodeType>(
     // ProbCut
     let mut probcut_beta = beta + 270 - 75 * improving as i32;
 
-    if cut_node
+    if NODE::CUT
         && !is_win(beta)
         && if is_valid(tt_score) { tt_score >= probcut_beta && !is_decisive(tt_score) } else { eval >= beta }
         && !tt_move.is_quiet()
@@ -603,7 +627,7 @@ fn search<NODE: NodeType>(
 
             make_move(td, ply, mv);
 
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
+            let mut score = -qsearch::<All>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             let base_depth = (depth - 4).max(0);
             let mut probcut_depth = (base_depth - (score - probcut_beta) / 319).clamp(0, base_depth);
@@ -611,11 +635,11 @@ fn search<NODE: NodeType>(
             if score >= probcut_beta && probcut_depth > 0 {
                 let adjusted_beta = (probcut_beta + 260 * (base_depth - probcut_depth)).min(Score::INFINITE);
 
-                score = -search::<NonPV>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, false, ply + 1);
+                score = -search::<All>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, ply + 1);
 
                 if score < adjusted_beta && probcut_beta < adjusted_beta {
                     probcut_depth = base_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
+                    score = -search::<All>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, ply + 1);
                 } else {
                     probcut_beta = adjusted_beta;
                 }
@@ -652,7 +676,7 @@ fn search<NODE: NodeType>(
 
         td.stack[ply].excluded = tt_move;
         td.stack[ply].mv = Move::NULL;
-        singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
+        singular_score = search::<NODE::CONFIRM>(td, singular_beta - 1, singular_beta, singular_depth, ply);
         td.stack[ply].excluded = Move::NULL;
 
         if td.shared.status.get() == Status::STOPPED {
@@ -676,7 +700,7 @@ fn search<NODE: NodeType>(
             tt_move = Move::NULL;
         }
         // Negative Extensions
-        else if tt_score >= beta || cut_node {
+        else if tt_score >= beta || NODE::CUT {
             extension = -2;
         }
     }
@@ -805,7 +829,7 @@ fn search<NODE: NodeType>(
                 reduction -= 830 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if !tt_pv && cut_node {
+            if !tt_pv && NODE::CUT {
                 reduction += 1818;
                 reduction += 2118 * tt_move.is_null() as i32;
             }
@@ -837,7 +861,7 @@ fn search<NODE: NodeType>(
                 (new_depth - reduction / 1024).clamp(1, new_depth + (move_count <= 3) as i32 + 1) + 2 * NODE::PV as i32;
 
             td.stack[ply].reduction = reduction;
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, true, ply + 1);
+            score = -search::<Cut>(td, -alpha - 1, -alpha, reduced_depth, ply + 1);
             td.stack[ply].reduction = 0;
             current_search_count += 1;
 
@@ -848,7 +872,7 @@ fn search<NODE: NodeType>(
                 }
 
                 if new_depth > reduced_depth {
-                    score = -search::<NonPV>(td, -alpha - 1, -alpha, new_depth, !cut_node, ply + 1);
+                    score = -search::<NODE::REFUTE>(td, -alpha - 1, -alpha, new_depth, ply + 1);
                     current_search_count += 1;
                 }
             }
@@ -873,7 +897,7 @@ fn search<NODE: NodeType>(
                 reduction -= 1080 * (is_valid(tt_score) && tt_depth >= depth) as i32;
             }
 
-            if !tt_pv && cut_node {
+            if !tt_pv && NODE::CUT {
                 reduction += 1543;
                 reduction += 2058 * tt_move.is_null() as i32;
             }
@@ -903,7 +927,7 @@ fn search<NODE: NodeType>(
 
             let reduced_depth = new_depth - (reduction >= 2864) as i32 - (reduction >= 5585) as i32;
 
-            score = -search::<NonPV>(td, -alpha - 1, -alpha, reduced_depth, !cut_node, ply + 1);
+            score = -search::<NODE::REFUTE>(td, -alpha - 1, -alpha, reduced_depth, ply + 1);
             current_search_count += 1;
         }
 
@@ -913,7 +937,7 @@ fn search<NODE: NodeType>(
                 new_depth = new_depth.max(1);
             }
 
-            score = -search::<PV>(td, -beta, -alpha, new_depth, false, ply + 1);
+            score = -search::<PV>(td, -beta, -alpha, new_depth, ply + 1);
             current_search_count += 1;
         }
 
@@ -1005,13 +1029,13 @@ fn search<NODE: NodeType>(
     }
 
     if best_move.is_present() {
-        let noisy_bonus = (115 * depth).min(778) - 50 - 77 * cut_node as i32;
+        let noisy_bonus = (115 * depth).min(778) - 50 - 77 * NODE::CUT as i32;
         let noisy_malus = (176 * depth).min(1343) - 51 - 21 * noisy_moves.len() as i32;
 
-        let quiet_bonus = (172 * depth).min(1508) - 76 - 55 * cut_node as i32;
+        let quiet_bonus = (172 * depth).min(1508) - 76 - 55 * NODE::CUT as i32;
         let quiet_malus = (156 * depth).min(1065) - 45 - 36 * quiet_moves.len() as i32;
 
-        let cont_bonus = (99 * depth).min(995) - 65 - 49 * cut_node as i32;
+        let cont_bonus = (99 * depth).min(995) - 65 - 49 * NODE::CUT as i32;
         let cont_malus = (371 * depth).min(914) - 44 - 18 * quiet_moves.len() as i32;
 
         if best_move.is_noisy() {
