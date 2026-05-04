@@ -131,8 +131,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
                 match score {
                     s if s <= alpha => {
-                        beta = (3 * alpha + beta) / 4;
                         alpha = (score - delta).max(-Score::INFINITE);
+                        beta = (alpha + delta).min(beta);
                         delta += 28 * delta / 128;
                     }
                     s if s >= beta => {
