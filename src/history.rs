@@ -1,14 +1,17 @@
 use std::sync::atomic::{AtomicI16, Ordering};
 
-use crate::types::{Bitboard, Color, Move, Piece, PieceType, Square};
+use crate::{
+    parameters::*,
+    types::{Bitboard, Color, Move, Piece, PieceType, Square},
+};
 
 type FromToHistory<T> = [[T; 64]; 64];
 type PieceToHistory<T> = [[T; 64]; 13];
 type ContinuationHistoryType = [[[[PieceToHistory<i16>; 64]; 13]; 2]; 2];
 
-fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
-    let bonus = bonus.clamp(-MAX, MAX);
-    *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
+fn apply_bonus(entry: &mut i16, bonus: i32, max: i32) {
+    let bonus = bonus.clamp(-max, max);
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / max) as i16;
 }
 
 struct QuietHistoryEntry {
@@ -17,9 +20,6 @@ struct QuietHistoryEntry {
 }
 
 impl QuietHistoryEntry {
-    const MAX_FACTORIZER: i32 = 1852;
-    const MAX_BUCKET: i32 = 6324;
-
     pub const fn bucket(&self, threats: Bitboard, mv: Move) -> i16 {
         let from_threatened = threats.contains(mv.from()) as usize;
         let to_threatened = threats.contains(mv.to()) as usize;
@@ -29,7 +29,7 @@ impl QuietHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus(entry, bonus, history1());
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, mv: Move, bonus: i32) {
@@ -37,7 +37,7 @@ impl QuietHistoryEntry {
         let to_threatened = threats.contains(mv.to()) as usize;
 
         let entry = &mut self.buckets[from_threatened][to_threatened];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        apply_bonus(entry, bonus, history2());
     }
 }
 
@@ -71,9 +71,6 @@ struct NoisyHistoryEntry {
 }
 
 impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4524;
-    const MAX_BUCKET: i32 = 7826;
-
     pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
         let threatened = threats.contains(sq) as usize;
         self.buckets[captured][threatened]
@@ -81,13 +78,13 @@ impl NoisyHistoryEntry {
 
     pub fn update_factorizer(&mut self, bonus: i32) {
         let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
+        apply_bonus(entry, bonus, history3());
     }
 
     pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
         let threatened = threats.contains(sq) as usize;
         let entry = &mut self.buckets[captured][threatened];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
+        apply_bonus(entry, bonus, history4());
     }
 }
 
@@ -160,8 +157,6 @@ pub struct ContinuationCorrectionHistory {
 }
 
 impl ContinuationCorrectionHistory {
-    const MAX_HISTORY: i32 = 16282;
-
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
     ) -> *mut PieceToHistory<i16> {
@@ -174,7 +169,7 @@ impl ContinuationCorrectionHistory {
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus(entry, bonus, history5());
     }
 }
 
@@ -190,8 +185,6 @@ pub struct ContinuationHistory {
 }
 
 impl ContinuationHistory {
-    const MAX_HISTORY: i32 = 15168;
-
     pub fn subtable_ptr(
         &mut self, in_check: bool, capture: bool, piece: Piece, to: Square,
     ) -> *mut PieceToHistory<i16> {
@@ -204,7 +197,7 @@ impl ContinuationHistory {
 
     pub fn update(&self, subtable_ptr: *mut PieceToHistory<i16>, piece: Piece, to: Square, bonus: i32) {
         let entry = &mut unsafe { &mut *subtable_ptr }[piece][to];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus(entry, bonus, history6());
     }
 }
 
