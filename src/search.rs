@@ -672,7 +672,7 @@ fn search<NODE: NodeType>(
         // Multi-Cut
         else if singular_score >= beta && !is_decisive(singular_score) {
             return (2 * singular_score + beta) / 3;
-        } else if singular_score > tt_score && td.stack[ply].mv != Move::NULL {
+        } else if singular_score > tt_score {
             tt_move = Move::NULL;
         }
         // Negative Extensions
