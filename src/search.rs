@@ -1051,15 +1051,13 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper && (cut_node || NODE::PV) {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
-            let factor = 116
-                + 202 * (td.stack[ply - 1].move_count > 7) as i32
-                + 116 * (prior_move == td.stack[ply - 1].tt_move) as i32
-                + 138 * (!in_check && best_score <= eval - 93) as i32
-                + 321 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 128) as i32;
+            let bonus = (301 * depth).min(2010) - 281
+                + 318 * (td.stack[ply - 1].move_count > 7) as i32
+                + 239 * (prior_move == td.stack[ply - 1].tt_move) as i32
+                + 219 * (!in_check && best_score <= eval - 93) as i32
+                + 180 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 128) as i32;
 
-            let scaled_bonus = factor * (165 * depth - 35).min(2467) / 128;
-
-            td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, scaled_bonus);
+            td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, bonus);
 
             let entry = &td.stack[ply - 2];
             if entry.mv.is_present() {
