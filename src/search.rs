@@ -895,7 +895,7 @@ fn search<NODE: NodeType>(
                 reduction -= 3281;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 562 {
+            if td.stack[ply - 1].reduction > reduction + 562 {
                 reduction += 130;
             }
 
