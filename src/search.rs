@@ -131,9 +131,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
                 match score {
                     s if s <= alpha => {
-                        beta = (3 * alpha + beta) / 4;
                         alpha = (score - delta).max(-Score::INFINITE);
-                        reduction = 0;
+                        beta = (alpha + delta).min(beta);
                         delta += 28 * delta / 128;
                     }
                     s if s >= beta => {
@@ -328,6 +327,7 @@ fn search<NODE: NodeType>(
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
     let mut tt_pv = NODE::PV;
+    let mut tt_was_pv = false;
 
     // Search early TT cutoff
     if let Some(entry) = &entry {
@@ -336,6 +336,7 @@ fn search<NODE: NodeType>(
         tt_score = entry.score;
         tt_bound = entry.bound;
         tt_pv |= entry.tt_pv;
+        tt_was_pv = entry.tt_pv;
 
         if !NODE::PV
             && !excluded
@@ -660,10 +661,13 @@ fn search<NODE: NodeType>(
         }
 
         if singular_score < singular_beta {
-            let double_margin =
-                204 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 16 * correction_value.abs() / 128;
-            let triple_margin =
-                257 * NODE::PV as i32 - 16 * tt_move.is_quiet() as i32 - 15 * correction_value.abs() / 128 + 32;
+            let double_margin = 196 * NODE::PV as i32 + 58 * (NODE::PV && !tt_was_pv) as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 16 * correction_value.abs() / 128;
+            let triple_margin = 249 * NODE::PV as i32 + 58 * (NODE::PV && !tt_was_pv) as i32
+                - 16 * tt_move.is_quiet() as i32
+                - 15 * correction_value.abs() / 128
+                + 32;
 
             extension = 1;
             extension += (singular_score < singular_beta - double_margin) as i32;
@@ -895,7 +899,7 @@ fn search<NODE: NodeType>(
                 reduction -= 3281;
             }
 
-            if !NODE::PV && td.stack[ply - 1].reduction > reduction + 562 {
+            if td.stack[ply - 1].reduction > reduction + 562 {
                 reduction += 130;
             }
 
@@ -1048,7 +1052,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    if !NODE::ROOT && bound == Bound::Upper {
+    if !NODE::ROOT && bound == Bound::Upper && (cut_node || NODE::PV) {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
             let factor = 116
@@ -1068,7 +1072,7 @@ fn search<NODE: NodeType>(
             }
         } else if prior_move.is_noisy() {
             let captured = td.board.captured_piece().unwrap_or_default().piece_type();
-            let bonus = 60;
+            let bonus = (60 * depth).min(600);
 
             td.noisy_history.update(
                 td.board.prior_threats(),
