@@ -113,7 +113,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             let best_avg = ((td.shared.best_stats[td.pv_index].load(Ordering::Acquire) & 0xffff) as i32 - 32768
                 + average[td.pv_index])
                 / 2;
-            td.optimism[td.board.side_to_move()] = 159 * best_avg / (best_avg.abs() + 186);
+
+            const ALPHA: f32 = 0.5;
+
+            let previous = td.optimism[td.board.side_to_move()] as f32;
+            let optimism = (159 * best_avg / (best_avg.abs() + 186)) as f32;
+            let smoothed = ((1.0 - ALPHA) * previous + ALPHA * optimism).round() as i32;
+
+            td.optimism[td.board.side_to_move()] = smoothed;
             td.optimism[!td.board.side_to_move()] = -td.optimism[td.board.side_to_move()];
 
             loop {
