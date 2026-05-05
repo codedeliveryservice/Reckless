@@ -196,8 +196,8 @@ define!(
     i32 post1: 194;
     i32 post2: 89;
     i32 post3: 1595;
-    i32 pcm1: 116;
-    i32 pcm2: 202;
+    i32 pcm1: 78;
+    i32 pcm2: 16;
     i32 pcm3: 116;
     i32 pcm4: 138;
     i32 pcm5: 93;
@@ -211,7 +211,7 @@ define!(
     i32 pcm13: 1160;
     i32 pcm14: 60;
     i32 pcm15: 600;
-    i32 pcm16: 7;
+    i32 pcm16: 224;
     i32 qs1: 8;
     i32 qs2: 64;
     i32 qs3: 79;

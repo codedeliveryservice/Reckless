@@ -1058,7 +1058,7 @@ fn search<NODE: NodeType>(
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
             let factor = pcm1()
-                + pcm2() * (td.stack[ply - 1].move_count > pcm16()) as i32
+                + (pcm2() * td.stack[ply - 1].move_count).min(pcm16()) as i32
                 + pcm3() * (prior_move == td.stack[ply - 1].tt_move) as i32
                 + pcm4() * (!in_check && best_score <= eval - pcm5()) as i32
                 + pcm6() * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - pcm7()) as i32;
