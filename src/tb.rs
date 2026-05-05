@@ -38,6 +38,8 @@ pub fn size() -> usize {
 }
 
 pub fn probe(board: &Board) -> Option<GameOutcome> {
+    let ep_square = tb_en_passant_square(board);
+
     let code = unsafe {
         tb_probe_wdl(
             board.colors(Color::White).0,
@@ -50,7 +52,7 @@ pub fn probe(board: &Board) -> Option<GameOutcome> {
             board.pieces(PieceType::Pawn).0,
             0,
             0,
-            board.en_passant() as u32 & 0x3F,
+            ep_square,
             board.side_to_move() == Color::White,
         )
     };
@@ -63,32 +65,9 @@ pub fn probe(board: &Board) -> Option<GameOutcome> {
     }
 }
 
-fn reckless_move_to_tb_move(mv: Move) -> TbMove {
-    fn promo_bits_from_piece(pt: PieceType) -> TbMove {
-        match pt {
-            PieceType::Queen => 1,
-            PieceType::Rook => 2,
-            PieceType::Bishop => 3,
-            PieceType::Knight => 4,
-            _ => unreachable!(),
-        }
-    }
-
-    let from = (mv.from() as u16) & 0x3F;
-    let to = (mv.to() as u16) & 0x3F;
-
-    let mut tb_move: TbMove = (from << 6) | to;
-
-    if mv.is_promotion() {
-        let promotion_bits = promo_bits_from_piece(mv.promo_piece_type()) & 0x7;
-        tb_move |= promotion_bits << 12;
-    }
-
-    tb_move
-}
-
 pub fn rank_rootmoves(td: &mut ThreadData) {
     let mut rootmoves_in_c: mem::MaybeUninit<TbRootMoves> = mem::MaybeUninit::uninit();
+    let ep_square = tb_en_passant_square(&td.board);
 
     unsafe {
         let tb_ptr = rootmoves_in_c.as_mut_ptr();
@@ -136,7 +115,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             td.board.pieces(PieceType::Pawn).0,
             td.board.halfmove_clock() as u32,
             0,
-            td.board.en_passant() as u32 & 0x3F,
+            ep_square,
             td.board.side_to_move() == Color::White,
             false,
             true,
@@ -163,7 +142,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             td.board.pieces(PieceType::Pawn).0,
             td.board.halfmove_clock() as u32,
             0,
-            td.board.en_passant() as u32 & 0x3F,
+            ep_square,
             td.board.side_to_move() == Color::White,
             true,
             tb_ptr,
@@ -178,4 +157,32 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             td.shared.stop_probing_tb.store(td.root_moves[0].tb_score <= Score::ZERO, Ordering::Relaxed);
         }
     }
+}
+
+fn reckless_move_to_tb_move(mv: Move) -> TbMove {
+    fn promo_bits_from_piece(pt: PieceType) -> TbMove {
+        match pt {
+            PieceType::Queen => 1,
+            PieceType::Rook => 2,
+            PieceType::Bishop => 3,
+            PieceType::Knight => 4,
+            _ => unreachable!(),
+        }
+    }
+
+    let from = (mv.from() as u16) & 0x3F;
+    let to = (mv.to() as u16) & 0x3F;
+
+    let mut tb_move: TbMove = (from << 6) | to;
+
+    if mv.is_promotion() {
+        let promotion_bits = promo_bits_from_piece(mv.promo_piece_type()) & 0x7;
+        tb_move |= promotion_bits << 12;
+    }
+
+    tb_move
+}
+
+fn tb_en_passant_square(board: &Board) -> u32 {
+    board.en_passant() as u32 & 0x3F
 }
