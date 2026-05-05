@@ -154,3 +154,99 @@ const fn magic_index(occupancies: Bitboard, entry: &MagicEntry) -> u32 {
     hash = hash.wrapping_mul(entry.magic) >> entry.shift;
     hash as u32 + entry.offset
 }
+
+macro_rules! init {
+    (|$sq:ident, $size:literal | $($rest:tt)+) => {{
+        let mut $sq = 0;
+        let mut res = [{$($rest)+}; $size];
+        while $sq < $size {
+            res[$sq] = {$($rest)+};
+            $sq += 1;
+        }
+        res
+    }};
+}
+
+pub const RAY_N: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq + 8;
+    while s < 64 {
+        r |= 1u64 << s;
+        s += 8;
+    }
+    r
+});
+
+pub const RAY_E: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 7 {
+        s += 1;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_S: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s >= 8 {
+        s -= 8;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_W: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 0 {
+        s -= 1;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_NE: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 7 && s < 56 {
+        s += 9;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_NW: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 0 && s < 56 {
+        s += 7;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_SE: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 7 && s >= 7 {
+        s -= 7;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const RAY_SW: [u64; 64] = init!(|sq, 64| {
+    let mut r = 0u64;
+    let mut s = sq;
+    while s % 8 != 0 && s >= 9 {
+        s -= 9;
+        r |= 1u64 << s;
+    }
+    r
+});
+
+pub const BISHOP_RAYS: &[[u64; 64]] = &[RAY_NE, RAY_NW, RAY_SE, RAY_SW];
+pub const ROOK_RAYS: &[[u64; 64]] = &[RAY_N, RAY_E, RAY_S, RAY_W];
+pub const QUEEN_RAYS: &[[u64; 64]] = &[RAY_N, RAY_E, RAY_S, RAY_W, RAY_NE, RAY_NW, RAY_SE, RAY_SW];
