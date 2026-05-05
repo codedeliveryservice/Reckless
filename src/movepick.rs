@@ -3,7 +3,7 @@ use crate::{
     search::NodeType,
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     thread::ThreadData,
-    types::{ArrayVec, Bitboard, Color, MAX_MOVES, Move, MoveEntry, MoveList, PieceType, Square},
+    types::{ArrayVec, Bitboard, MAX_MOVES, Move, MoveEntry, MoveList, PieceType},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd)]
@@ -206,14 +206,6 @@ impl MovePicker {
             Bitboard(0)
         };
 
-        // passed pawns
-        //let mut passed_space = td.board.colored_pieces(!side, PieceType::Pawn) | pawn_threats;
-        //passed_space |= passed_space.shift(Square::UP[!side]);
-        //passed_space |= passed_space.shift(2 * Square::UP[!side]);
-        //passed_space |= passed_space.shift(4 * Square::UP[!side]);
-        //passed_space = !passed_space;
-        //let passed_pawns = td.board.colored_pieces(side, PieceType::Pawn) & passed_space;
-
         for entry in self.list.iter_mut() {
             let mv = entry.mv;
             let pt = td.board.type_on(mv.from());
@@ -228,13 +220,6 @@ impl MovePicker {
                 - 7584 * threatened[pt].contains(mv.to()) as i32
                 + 5000 * offense[pt].contains(mv.to()) as i32
                 - 4000 * wall_pawns.contains(mv.from()) as i32;
-
-            //if td.board.material() < 2000 && !passed_pawns.is_empty() && pt == PieceType::King {
-                //let passed_pawn = if side == Color::White { passed_pawns.msb() } else { passed_pawns.lsb() };
-                //if mv.to().distance_from(passed_pawn) < mv.from().distance_from(passed_pawn) {
-                    //entry.score += 3000;
-                //}
-            //}
         }
     }
 }
