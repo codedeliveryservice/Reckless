@@ -232,8 +232,6 @@ impl MovePicker {
             if td.board.material() < 2000 && !passed_pawns.is_empty() && pt == PieceType::King {
                 let passed_pawn = if side == Color::White { passed_pawns.msb() } else { passed_pawns.lsb() };
                 if mv.to().distance_from(passed_pawn) < mv.from().distance_from(passed_pawn) {
-                    //println!("{}", td.board);
-                    //println!("Move: {}-{}", mv.from(), mv.to());
                     entry.score += 3000;
                 }
             }

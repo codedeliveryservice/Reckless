@@ -61,13 +61,8 @@ impl Square {
     }
 
     pub fn distance_from(self, square: Square) -> i32 {
-        //println!("square: {}", self);
-        //println!("square from: {}", square);
         let file_dist = (self.file() as i32 - square.file() as i32).abs();
         let rank_dist = (self.rank() as i32 - square.rank() as i32).abs();
-        //println!("file_dist: {}", file_dist);
-        //println!("rank_dist: {}", rank_dist);
-        //println!("returning: {}", file_dist.min(rank_dist));
         file_dist.max(rank_dist)
     }
 
