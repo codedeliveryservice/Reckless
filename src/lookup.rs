@@ -108,11 +108,11 @@ pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
 }
 
 pub fn ray_pass(square1: Square, square2: Square) -> Bitboard {
-    Bitboard(RAYPASS[square1 as usize][square2 as usize])
+    unsafe { Bitboard(*RAYPASS[square1 as usize].get_unchecked(square2 as usize)) }
 }
 
 pub fn between(square1: Square, square2: Square) -> Bitboard {
-    Bitboard(RAYPASS[square1][square2] & RAYPASS[square2][square1])
+    unsafe { Bitboard(*BETWEEN[square1 as usize].get_unchecked(square2 as usize)) }
 }
 
 pub fn bishop_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
