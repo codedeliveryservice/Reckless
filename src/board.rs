@@ -466,8 +466,6 @@ impl Board {
             let diagonal = diagonal & bishop_attacks(king, self.colors(!color)) & self.colors(!color);
             let orthogonal = orthogonal & rook_attacks(king, self.colors(!color)) & self.colors(!color);
 
-            //println!("{}", raypass2(Square::H8, Square::G8));
-
             for square in diagonal | orthogonal {
                 let blockers = between(king, square) & self.colors(color);
                 match blockers.popcount() {
