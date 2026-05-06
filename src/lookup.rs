@@ -136,6 +136,14 @@ pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
     }
 }
 
+pub fn raypass2(square1: Square, square2: Square) -> Bitboard {
+    unsafe { Bitboard(RAYPASS2[square1 as usize][square2 as usize]) }
+}
+
+pub fn between2(square1: Square, square2: Square) -> Bitboard {
+    unsafe { Bitboard(RAYPASS2[square1][square2] & RAYPASS2[square2][square1]) }
+}
+
 pub fn bishop_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
     unsafe {
         let entry = BISHOP_MAGICS.get_unchecked(square as usize);

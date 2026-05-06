@@ -54,6 +54,19 @@ pub fn sliding_attacks(square: u8, occupancies: u64, directions: &[i8]) -> u64 {
     directions.iter().fold(0, |output, &direction| output | generate_slide(square, occupancies, direction))
 }
 
+pub fn directional_ray(square1: u8, square2: u8) -> u64{
+    let mut slide = 0;
+    for dir in [8, 9, 1, -7, -8, -9, -1, 7] {
+        let s = generate_slide(square2, 0, dir);
+        if (s & (1 << square1)) != 0 {
+            slide = s;
+        }
+    }
+    slide
+    //generate_slide(square1, 0, 1) | generate_slide(square2, 0, 1)
+    //generate_slide(square2, 0, 8) | (1 << square2)
+}
+
 fn generate_slide(square: u8, occupancies: u64, direction: i8) -> u64 {
     let mut targets = shift_dir(1 << square, direction);
 
