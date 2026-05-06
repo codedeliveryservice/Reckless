@@ -1,6 +1,6 @@
 use crate::{
     lookup::{
-        attacks, between, between2, raypass2, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
+        attacks, between, bishop_attacks, cuckoo, cuckoo_a, cuckoo_b, h1, h2, king_attacks, knight_attacks,
         pawn_attacks, ray_pass, rook_attacks,
     },
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
@@ -469,7 +469,7 @@ impl Board {
             //println!("{}", raypass2(Square::H8, Square::G8));
 
             for square in diagonal | orthogonal {
-                let blockers = between2(king, square) & self.colors(color);
+                let blockers = between(king, square) & self.colors(color);
                 match blockers.popcount() {
                     0 => {
                         debug_assert_eq!(color, stm);
