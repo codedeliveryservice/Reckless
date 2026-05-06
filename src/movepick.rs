@@ -21,7 +21,9 @@ pub struct MovePicker {
     threshold: Option<i32>,
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
+    bad_quiet: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    bad_quiet_idx: usize,
 }
 
 impl MovePicker {
@@ -32,7 +34,9 @@ impl MovePicker {
             threshold: None,
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
+            bad_quiet: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_quiet_idx: 0,
         }
     }
 
@@ -43,7 +47,9 @@ impl MovePicker {
             threshold: Some(threshold),
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
+            bad_quiet: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_quiet_idx: 0,
         }
     }
 
@@ -54,7 +60,9 @@ impl MovePicker {
             threshold: None,
             stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
+            bad_quiet: ArrayVec::new(),
             bad_noisy_idx: 0,
+            bad_quiet_idx: 0,
         }
     }
 
@@ -114,6 +122,12 @@ impl MovePicker {
                         continue;
                     }
 
+                    let threshold = -entry.score / 45 + 111;
+                    if !td.board.see(entry.mv, threshold) {
+                        self.bad_quiet.push(entry.mv);
+                        continue;
+                    }
+
                     if NODE::ROOT {
                         self.score_quiet(td, ply);
                     }
@@ -129,6 +143,13 @@ impl MovePicker {
         if self.bad_noisy_idx < self.bad_noisy.len() {
             let mv = self.bad_noisy[self.bad_noisy_idx];
             self.bad_noisy_idx += 1;
+            return Some(mv);
+        }
+
+        // Stage::BadQuiet
+        if self.bad_quiet_idx < self.bad_quiet.len() {
+            let mv = self.bad_quiet[self.bad_quiet_idx];
+            self.bad_quiet_idx += 1;
             return Some(mv);
         }
 
