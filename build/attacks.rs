@@ -63,8 +63,6 @@ pub fn directional_ray(square1: u8, square2: u8) -> u64{
         }
     }
     slide
-    //generate_slide(square1, 0, 1) | generate_slide(square2, 0, 1)
-    //generate_slide(square2, 0, 8) | (1 << square2)
 }
 
 fn generate_slide(square: u8, occupancies: u64, direction: i8) -> u64 {
