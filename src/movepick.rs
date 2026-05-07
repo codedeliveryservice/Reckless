@@ -74,8 +74,8 @@ impl MovePicker {
         if self.stage == Stage::GenerateNoisy {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
-            self.score_noisy(td);
             self.remove_tt();
+            self.score_noisy(td);
         }
 
         if self.stage == Stage::GoodNoisy {
@@ -99,8 +99,8 @@ impl MovePicker {
             } else {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
-                self.score_quiet(td, ply);
                 self.remove_tt();
+                self.score_quiet(td, ply);
             }
         }
 
