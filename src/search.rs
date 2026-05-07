@@ -753,6 +753,9 @@ fn search<NODE: NodeType>(
                 if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
                 }
+                if move_picker.stage() == Stage::BadNoisy {
+                    break;
+                }
                 continue;
             }
 
