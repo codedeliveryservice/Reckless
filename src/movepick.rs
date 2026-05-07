@@ -105,13 +105,11 @@ impl MovePicker {
         }
 
         if self.stage == Stage::Quiet {
-            if !skip_quiets {
-                while !self.list.is_empty() {
-                    if NODE::ROOT {
-                        self.score_quiet(td, ply);
-                    }
-                    return Some(self.get_best_entry().mv);
+            if !skip_quiets && !self.list.is_empty() {
+                if NODE::ROOT {
+                    self.score_quiet(td, ply);
                 }
+                return Some(self.get_best_entry().mv);
             }
 
             self.stage = Stage::BadNoisy;
