@@ -74,16 +74,13 @@ impl MovePicker {
         if self.stage == Stage::GenerateNoisy {
             self.stage = Stage::GoodNoisy;
             td.board.append_noisy_moves(&mut self.list);
+            self.remove_tt();
             self.score_noisy(td);
         }
 
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
-                if entry.mv == self.tt_move {
-                    continue;
-                }
-
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 45 + 111);
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
@@ -102,24 +99,17 @@ impl MovePicker {
             } else {
                 self.stage = Stage::Quiet;
                 td.board.append_quiet_moves(&mut self.list);
+                self.remove_tt();
                 self.score_quiet(td, ply);
             }
         }
 
         if self.stage == Stage::Quiet {
-            if !skip_quiets {
-                while !self.list.is_empty() {
-                    let entry = self.get_best_entry();
-                    if entry.mv == self.tt_move {
-                        continue;
-                    }
-
-                    if NODE::ROOT {
-                        self.score_quiet(td, ply);
-                    }
-
-                    return Some(entry.mv);
+            if !skip_quiets && !self.list.is_empty() {
+                if NODE::ROOT {
+                    self.score_quiet(td, ply);
                 }
+                return Some(self.get_best_entry().mv);
             }
 
             self.stage = Stage::BadNoisy;
@@ -146,6 +136,12 @@ impl MovePicker {
             }
         }
         self.list.remove(best_index)
+    }
+
+    fn remove_tt(&mut self) {
+        if let Some(pos) = self.list.iter().position(|&e| e.mv == self.tt_move) {
+            self.list.remove(pos);
+        }
     }
 
     fn score_noisy(&mut self, td: &ThreadData) {
