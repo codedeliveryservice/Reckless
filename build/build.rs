@@ -84,6 +84,9 @@ fn write(mut buf: BufWriter<File>) -> Result<(), std::io::Error> {
 
     write_map!("PAWN_MAP", "[u64; 64]", maps::generate_pawn_map());
 
+    write_map!("RAYPASS", "[u64; 64]", maps::generate_rays_map());
+    write_map!("BETWEEN", "[u64; 64]", maps::generate_between_map());
+
     write_map!("ROOK_MAP", "u64", maps::generate_rook_map());
     write_map!("BISHOP_MAP", "u64", maps::generate_bishop_map());
 

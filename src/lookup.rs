@@ -2,34 +2,13 @@ use crate::types::{Bitboard, Color, Piece, PieceType, Square, ZOBRIST};
 
 include!(concat!(env!("OUT_DIR"), "/lookup.rs"));
 
-static mut BETWEEN: [[Bitboard; 64]; 64] = [[Bitboard(0); 64]; 64];
-static mut RAY_PASS: [[Bitboard; 64]; 64] = [[Bitboard(0); 64]; 64];
-
 static mut CUCKOO: [u64; 0x2000] = [0; 0x2000];
 static mut A: [Square; 0x2000] = [Square::None; 0x2000];
 static mut B: [Square; 0x2000] = [Square::None; 0x2000];
 
 pub fn initialize() {
     unsafe {
-        init_luts();
         init_cuckoo();
-    }
-}
-
-unsafe fn init_luts() {
-    for a in 0..64 {
-        for b in 0..64 {
-            let a = Square::new(a);
-            let b = Square::new(b);
-
-            for piece in [Piece::WhiteBishop, Piece::WhiteRook] {
-                if attacks(piece, a, Bitboard(0)).contains(b) {
-                    BETWEEN[a][b] = attacks(piece, a, b.to_bb()) & attacks(piece, b, a.to_bb());
-                    RAY_PASS[a][b] = attacks(piece, a, Bitboard(0)) & attacks(piece, b, a.to_bb());
-                    RAY_PASS[a][b].set(b);
-                }
-            }
-        }
     }
 }
 
@@ -87,14 +66,6 @@ pub fn cuckoo_b(index: usize) -> Square {
     unsafe { B[index] }
 }
 
-pub fn between(a: Square, b: Square) -> Bitboard {
-    unsafe { BETWEEN[a as usize][b as usize] }
-}
-
-pub fn ray_pass(a: Square, b: Square) -> Bitboard {
-    unsafe { RAY_PASS[a as usize][b as usize] }
-}
-
 pub fn relative_diagonal(color: Color, sq: Square) -> Bitboard {
     unsafe { Bitboard(*DIAGONALS[color as usize].get_unchecked(sq as usize)) }
 }
@@ -134,6 +105,14 @@ pub fn rook_attacks(square: Square, occupancies: Bitboard) -> Bitboard {
 
         Bitboard(*ROOK_MAP.get_unchecked(index as usize))
     }
+}
+
+pub fn ray_pass(square1: Square, square2: Square) -> Bitboard {
+    unsafe { Bitboard(*RAYPASS[square1 as usize].get_unchecked(square2 as usize)) }
+}
+
+pub fn between(square1: Square, square2: Square) -> Bitboard {
+    unsafe { Bitboard(*BETWEEN[square1 as usize].get_unchecked(square2 as usize)) }
 }
 
 pub fn bishop_attacks(square: Square, occupancies: Bitboard) -> Bitboard {

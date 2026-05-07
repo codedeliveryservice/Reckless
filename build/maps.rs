@@ -17,6 +17,14 @@ fn generate_map<F: Fn(u8) -> u64>(f: F) -> [u64; 64] {
     map
 }
 
+pub fn generate_between_map() -> [[u64; 64]; 64] {
+    std::array::from_fn(|i| generate_map(|square| generate_ray(square, i as u8, true)))
+}
+
+pub fn generate_rays_map() -> [[u64; 64]; 64] {
+    std::array::from_fn(|i| generate_map(|square| generate_ray(square, i as u8, false)))
+}
+
 pub fn generate_pawn_map() -> [[u64; 64]; 2] {
     [
         generate_map(|square| pawn_attacks(square, Color::White)),
