@@ -111,21 +111,21 @@ struct Cluster {
 }
 
 impl Cluster {
-    fn key(&self, index: usize) -> u64 {
-        verification_key(self.keys >> (index * 21))
+    fn key(&self, index: usize) -> u16 {
+        verification_key(self.keys >> (index * 16))
     }
 
-    fn set_key(&mut self, index: usize, key: u64) {
-        self.keys &= !(0x1FFFFF << (index * 21));
-        self.keys |= verification_key(key) << (index * 21);
+    fn set_key(&mut self, index: usize, key: u16) {
+        self.keys &= !(0xFFFF << (index * 16));
+        self.keys |= (key as u64) << (index * 16);
     }
 
-    fn lookup_key(&self, key: u64) -> usize {
-        let bits = 0x0000_0400_0020_0001;
-        let needle = bits * verification_key(key);
+    fn lookup_key(&self, key: u16) -> usize {
+        let bits = 0x0001_0001_0001_0001;
+        let needle = key as u64 * bits;
         let zeros = self.keys ^ needle;
-        let matches = zeros.wrapping_sub(bits) & !zeros & (bits << 20);
-        (matches.trailing_zeros() / 21) as usize
+        let matches = zeros.wrapping_sub(bits) & !zeros & (bits << 15);
+        (matches.trailing_zeros() / 16) as usize
     }
 }
 
@@ -302,8 +302,8 @@ const fn index(hash: u64, len: usize) -> usize {
 }
 
 /// Returns the verification key of the hash (bottom 21 bits).
-const fn verification_key(hash: u64) -> u64 {
-    hash & 0x1FFFFF
+const fn verification_key(hash: u64) -> u16 {
+    hash as u16
 }
 
 /// Adjust mate distance from "plies from the root" to "plies from the current position".
