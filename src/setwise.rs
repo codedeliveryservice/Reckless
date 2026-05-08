@@ -35,18 +35,8 @@ pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     use core::arch::x86_64::*;
 
     unsafe {
-        let mask_a = _mm256_set_epi64x(
-            !(A | B).0 as i64,
-            !A.0 as i64,
-            !H.0 as i64,
-            !(G | H).0 as i64,
-        );
-        let mask_b = _mm256_set_epi64x(
-            !(G | H).0 as i64,
-            !H.0 as i64,
-            !A.0 as i64,
-            !(A | B).0 as i64,
-        );
+        let mask_a = _mm256_set_epi64x(!(A | B).0 as i64, !A.0 as i64, !H.0 as i64, !(G | H).0 as i64);
+        let mask_b = _mm256_set_epi64x(!(G | H).0 as i64, !H.0 as i64, !A.0 as i64, !(A | B).0 as i64);
 
         let bb = _mm256_set1_epi64x(bb.0 as i64);
         let a = _mm256_and_si256(bb, mask_a);
