@@ -25,11 +25,11 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new_all(tt_move: Move, threshold: i32) -> Self {
+    pub const fn new_all(tt_move: Move, threshold: Option<i32>) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
-            threshold: Some(threshold),
+            threshold,
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
@@ -42,17 +42,6 @@ impl MovePicker {
             tt_move,
             threshold: None,
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
-            bad_noisy: ArrayVec::new(),
-            bad_noisy_idx: 0,
-        }
-    }
-
-    pub const fn new_probcut(threshold: i32) -> Self {
-        Self {
-            list: MoveList::new(),
-            tt_move: Move::NULL,
-            threshold: Some(threshold),
-            stage: Stage::GenerateNoisy,
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
         }
