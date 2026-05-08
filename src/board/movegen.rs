@@ -155,7 +155,7 @@ impl super::Board {
     }
 
     fn movable_pawns(pinned: Bitboard, pawns: Bitboard, pin_mask: Bitboard) -> Bitboard {
-        (pawns & !pinned) | (pawns & pinned & pin_mask)
+        pawns & (!pinned | pin_mask)
     }
 
     fn collect_pawn_pushes<T: MoveGenerator>(
