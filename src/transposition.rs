@@ -13,7 +13,7 @@ const AGE_CYCLE: u8 = 1 << 5;
 const AGE_MASK: u8 = AGE_CYCLE - 1;
 
 const _: () = assert!(std::mem::size_of::<Cluster>() == 32);
-const _: () = assert!(std::mem::size_of::<InternalEntry>() == 10);
+const _: () = assert!(std::mem::size_of::<InternalEntry>() == 8);
 
 #[derive(Copy, Clone)]
 pub struct Entry {
@@ -65,11 +65,10 @@ pub enum Bound {
     Upper,
 }
 
-/// Internal representation of a transposition table entry (10 bytes).
+/// Internal representation of a transposition table entry (8 bytes).
 #[derive(Clone)]
 #[repr(C)]
 pub struct InternalEntry {
-    key: u16,         // 2 bytes
     mv: Move,         // 2 bytes
     score: i16,       // 2 bytes
     raw_eval: i16,    // 2 bytes
@@ -108,6 +107,26 @@ impl InternalEntry {
 #[repr(align(32))]
 struct Cluster {
     entries: [InternalEntry; ENTRIES_PER_CLUSTER],
+    keys: u64,
+}
+
+impl Cluster {
+    fn key(&self, index: usize) -> u64 {
+        verification_key(self.keys >> (index * 21))
+    }
+
+    fn set_key(&mut self, index: usize, key: u64) {
+        self.keys &= !(0x1FFFFF << (index * 21));
+        self.keys |= verification_key(key) << (index * 21);
+    }
+
+    fn lookup_key(&self, key: u64) -> usize {
+        let bits = 0x0000_0400_0020_0001;
+        let needle = bits * verification_key(key);
+        let zeros = self.keys ^ needle;
+        let matches = zeros.wrapping_sub(bits) & !zeros & (bits << 20);
+        (matches.trailing_zeros() / 21) as usize
+    }
 }
 
 /// The transposition table is used to cache previously performed search results.
@@ -163,23 +182,24 @@ impl TranspositionTable {
         };
 
         let key = verification_key(hash);
+        let index = cluster.lookup_key(key);
 
-        for entry in &cluster.entries {
-            if key == entry.key && entry.depth() != TtDepth::NONE {
-                let hit = Entry {
-                    depth: entry.depth(),
-                    score: score_from_tt(entry.score as i32, ply, halfmove_clock),
-                    raw_eval: entry.raw_eval as i32,
-                    bound: entry.flags.bound(),
-                    tt_pv: entry.flags.tt_pv(),
-                    mv: entry.mv,
-                };
+        if index < cluster.entries.len() {
+            let entry = &cluster.entries[index];
 
-                return Some(hit);
-            }
+            let hit = Entry {
+                depth: entry.depth(),
+                score: score_from_tt(entry.score as i32, ply, halfmove_clock),
+                raw_eval: entry.raw_eval as i32,
+                bound: entry.flags.bound(),
+                tt_pv: entry.flags.tt_pv(),
+                mv: entry.mv,
+            };
+
+            Some(hit)
+        } else {
+            None
         }
-
-        None
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -198,29 +218,40 @@ impl TranspositionTable {
         let key = verification_key(hash);
         let tt_age = self.age();
 
-        let mut replacement_slot = None;
-        let mut lowest_quality = i32::MAX;
+        let replacement_index = {
+            if let lookup_index = cluster.lookup_key(key)
+                && lookup_index < cluster.entries.len()
+            {
+                lookup_index
+            } else {
+                let mut replacement_index = None;
+                let mut lowest_quality = i32::MAX;
 
-        for candidate in &mut cluster.entries {
-            if candidate.key == key || candidate.depth() == TtDepth::NONE {
-                replacement_slot = Some(candidate);
-                break;
+                for (index, candidate) in cluster.entries.iter().enumerate() {
+                    if candidate.depth() == TtDepth::NONE {
+                        replacement_index = Some(index);
+                        break;
+                    }
+
+                    let quality = candidate.depth() - 4 * candidate.relative_age(tt_age);
+                    if quality < lowest_quality {
+                        replacement_index = Some(index);
+                        lowest_quality = quality;
+                    }
+                }
+
+                replacement_index.unwrap()
             }
+        };
 
-            let quality = candidate.depth() - 4 * candidate.relative_age(tt_age);
-            if quality < lowest_quality {
-                replacement_slot = Some(candidate);
-                lowest_quality = quality;
-            }
-        }
+        let entry_key = cluster.key(replacement_index);
+        let entry = &mut cluster.entries[replacement_index];
 
-        let entry = replacement_slot.unwrap();
-
-        if !(entry.key == key && mv.is_null()) {
+        if !(entry_key == key && mv.is_null()) {
             entry.mv = mv;
         }
 
-        if !force && key == entry.key && depth + 4 + 2 * tt_pv as i32 <= entry.depth() && entry.flags.age() == tt_age {
+        if !force && key == entry_key && depth + 4 + 2 * tt_pv as i32 <= entry.depth() && entry.flags.age() == tt_age {
             return;
         }
 
@@ -229,11 +260,11 @@ impl TranspositionTable {
             score += score.signum() * ply as i32;
         }
 
-        entry.key = key;
         entry.offset_depth = TtDepth::to_tt(depth);
         entry.score = score as i16;
         entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
+        cluster.set_key(replacement_index, key);
     }
 
     pub fn prefetch(&self, hash: u64) {
@@ -270,9 +301,9 @@ const fn index(hash: u64, len: usize) -> usize {
     (((hash as u128) * (len as u128)) >> 64) as usize
 }
 
-/// Returns the verification key of the hash (bottom 16 bits).
-const fn verification_key(hash: u64) -> u16 {
-    hash as u16
+/// Returns the verification key of the hash (bottom 21 bits).
+const fn verification_key(hash: u64) -> u64 {
+    hash & 0x1FFFFF
 }
 
 /// Adjust mate distance from "plies from the root" to "plies from the current position".
