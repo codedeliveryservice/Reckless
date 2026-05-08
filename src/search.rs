@@ -484,7 +484,7 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
-    let improvement = if in_check {
+    let improvement = if in_check || excluded {
         0
     } else if is_valid(td.stack[ply - 2].eval) {
         eval - td.stack[ply - 2].eval
