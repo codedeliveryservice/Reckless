@@ -6,6 +6,7 @@ const G: Bitboard = Bitboard::file(File::G);
 const H: Bitboard = Bitboard::file(File::H);
 #[cfg(target_feature = "avx2")]
 const R1: Bitboard = Bitboard::rank(Rank::R1);
+#[cfg(target_feature = "avx2")]
 const R8: Bitboard = Bitboard::rank(Rank::R8);
 
 pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
