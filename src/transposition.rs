@@ -301,7 +301,7 @@ const fn index(hash: u64, len: usize) -> usize {
     (((hash as u128) * (len as u128)) >> 64) as usize
 }
 
-/// Returns the verification key of the hash (bottom 21 bits).
+/// Returns the verification key of the hash (bottom 16 bits).
 const fn verification_key(hash: u64) -> u16 {
     hash as u16
 }
