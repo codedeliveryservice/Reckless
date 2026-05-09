@@ -1,4 +1,6 @@
-use crate::types::{Bitboard, Color, File, Rank};
+use crate::types::{Bitboard, Color, File};
+#[cfg(target_feature = "avx2")]
+use crate::types::Rank;
 
 const A: Bitboard = Bitboard::file(File::A);
 const B: Bitboard = Bitboard::file(File::B);
