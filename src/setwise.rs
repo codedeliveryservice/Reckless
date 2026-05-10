@@ -4,6 +4,7 @@ const A: Bitboard = Bitboard::file(File::A);
 const B: Bitboard = Bitboard::file(File::B);
 const G: Bitboard = Bitboard::file(File::G);
 const H: Bitboard = Bitboard::file(File::H);
+#[cfg(target_feature = "avx2")]
 const R1: Bitboard = Bitboard::rank(Rank::R1);
 const R8: Bitboard = Bitboard::rank(Rank::R8);
 
