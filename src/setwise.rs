@@ -1,4 +1,6 @@
-use crate::types::{Bitboard, Color, File, Rank};
+#[cfg(target_feature = "avx2")]
+use crate::types::Rank;
+use crate::types::{Bitboard, Color, File};
 
 const A: Bitboard = Bitboard::file(File::A);
 const B: Bitboard = Bitboard::file(File::B);
@@ -6,6 +8,7 @@ const G: Bitboard = Bitboard::file(File::G);
 const H: Bitboard = Bitboard::file(File::H);
 #[cfg(target_feature = "avx2")]
 const R1: Bitboard = Bitboard::rank(Rank::R1);
+#[cfg(target_feature = "avx2")]
 const R8: Bitboard = Bitboard::rank(Rank::R8);
 
 pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
@@ -17,35 +20,21 @@ pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
     (bb & !H).shift(up_right) | (bb & !A).shift(up_left)
 }
 
-#[cfg(not(target_feature = "avx2"))]
 #[inline]
 pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
-    (bb & !(A | B | R8)).shift(6)
-        | (bb & !A).shift(15)
-        | (bb & !H).shift(17)
-        | (bb & !(G | H)).shift(10)
-        | (bb & !(G | H)).shift(-6)
-        | (bb & !H).shift(-15)
-        | (bb & !A).shift(-17)
-        | (bb & !(A | B)).shift(-10)
-}
+    let not_a = bb & !A;
+    let not_ab = bb & !(A | B);
+    let not_h = bb & !H;
+    let not_gh = bb & !(G | H);
 
-#[cfg(target_feature = "avx2")]
-#[inline]
-pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
-    use core::arch::x86_64::*;
-
-    unsafe {
-        let mask_a = _mm256_set_epi64x(!(A | B).0 as i64, !A.0 as i64, !H.0 as i64, !(G | H).0 as i64);
-        let mask_b = _mm256_set_epi64x(!(G | H).0 as i64, !H.0 as i64, !A.0 as i64, !(A | B).0 as i64);
-
-        let bb = _mm256_set1_epi64x(bb.0 as i64);
-        let a = _mm256_and_si256(bb, mask_a);
-        let b = _mm256_and_si256(bb, mask_b);
-        let a = _mm256_sllv_epi64(a, _mm256_set_epi64x(6, 15, 17, 10));
-        let b = _mm256_srlv_epi64(b, _mm256_set_epi64x(6, 15, 17, 10));
-        fold_to_bitboard(_mm256_or_si256(a, b))
-    }
+    not_a.shift(15)
+        | not_a.shift(-17)
+        | not_ab.shift(6)
+        | not_ab.shift(-10)
+        | not_h.shift(17)
+        | not_h.shift(-15)
+        | not_gh.shift(10)
+        | not_gh.shift(-6)
 }
 
 #[cfg(not(target_feature = "avx2"))]
