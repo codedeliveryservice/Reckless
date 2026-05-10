@@ -25,7 +25,7 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    pub const fn new_all(tt_move: Move, threshold: Option<i32>) -> Self {
+    pub const fn new(tt_move: Move, threshold: Option<i32>) -> Self {
         Self {
             list: MoveList::new(),
             tt_move,
