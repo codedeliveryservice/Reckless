@@ -4,9 +4,8 @@ const A: Bitboard = Bitboard::file(File::A);
 const B: Bitboard = Bitboard::file(File::B);
 const G: Bitboard = Bitboard::file(File::G);
 const H: Bitboard = Bitboard::file(File::H);
+#[cfg(target_feature = "avx2")]
 const R1: Bitboard = Bitboard::rank(Rank::R1);
-const R2: Bitboard = Bitboard::rank(Rank::R2);
-const R7: Bitboard = Bitboard::rank(Rank::R7);
 const R8: Bitboard = Bitboard::rank(Rank::R8);
 
 pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
@@ -22,13 +21,13 @@ pub fn pawn_attacks_setwise(bb: Bitboard, color: Color) -> Bitboard {
 #[inline]
 pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     (bb & !(A | B | R8)).shift(6)
-        | (bb & !(A | R7 | R8)).shift(15)
-        | (bb & !(H | R7 | R8)).shift(17)
-        | (bb & !(G | H | R8)).shift(10)
-        | (bb & !(G | H | R1)).shift(-6)
-        | (bb & !(H | R1 | R2)).shift(-15)
-        | (bb & !(A | R1 | R2)).shift(-17)
-        | (bb & !(A | B | R1)).shift(-10)
+        | (bb & !A).shift(15)
+        | (bb & !H).shift(17)
+        | (bb & !(G | H)).shift(10)
+        | (bb & !(G | H)).shift(-6)
+        | (bb & !H).shift(-15)
+        | (bb & !A).shift(-17)
+        | (bb & !(A | B)).shift(-10)
 }
 
 #[cfg(target_feature = "avx2")]
@@ -37,18 +36,8 @@ pub fn knight_attacks_setwise(bb: Bitboard) -> Bitboard {
     use core::arch::x86_64::*;
 
     unsafe {
-        let mask_a = _mm256_set_epi64x(
-            !(A | B | R8).0 as i64,
-            !(A | R7 | R8).0 as i64,
-            !(H | R7 | R8).0 as i64,
-            !(G | H | R8).0 as i64,
-        );
-        let mask_b = _mm256_set_epi64x(
-            !(G | H | R1).0 as i64,
-            !(H | R1 | R2).0 as i64,
-            !(A | R1 | R2).0 as i64,
-            !(A | B | R1).0 as i64,
-        );
+        let mask_a = _mm256_set_epi64x(!(A | B).0 as i64, !A.0 as i64, !H.0 as i64, !(G | H).0 as i64);
+        let mask_b = _mm256_set_epi64x(!(G | H).0 as i64, !H.0 as i64, !A.0 as i64, !(A | B).0 as i64);
 
         let bb = _mm256_set1_epi64x(bb.0 as i64);
         let a = _mm256_and_si256(bb, mask_a);
