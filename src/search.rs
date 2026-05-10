@@ -458,8 +458,8 @@ fn search<NODE: NodeType>(
 
     // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
-        let value = 824 * (-(eval + td.stack[ply - 1].eval)) / 128;
-        let bonus = value.clamp(-133, 348);
+        let value = 412 * (-(eval + td.stack[ply - 1].eval)) / 128;
+        let bonus = value.clamp(-266, 696);
 
         td.quiet_history.update(td.board.prior_threats(), !stm, td.stack[ply - 1].mv, bonus);
     }
