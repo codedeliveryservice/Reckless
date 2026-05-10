@@ -16,7 +16,7 @@ pub struct QuietHistory {
 }
 
 impl QuietHistory {
-    const MAX_HISTORY: i32 = 14336;
+    const MAX_HISTORY: i32 = 10 * 1024;
 
     pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
         self.entries[stm][threats.contains(mv.from()) as usize][threats.contains(mv.to()) as usize][mv.from()][mv.to()]
