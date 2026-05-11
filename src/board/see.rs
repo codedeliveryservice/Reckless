@@ -88,6 +88,78 @@ impl super::Board {
         stm != self.side_to_move()
     }
 
+    pub fn see_value(&self, mv: Move) -> i32 {
+        if mv.is_castling() {
+            return 0;
+        }
+
+        let mut gain = [0; 32];
+        let mut d = 0;
+
+        gain[0] = self.move_value(mv);
+        let mut piece = if mv.is_promotion() { mv.promo_piece_type() } else { self.type_on(mv.from()) };
+
+        let mut occupancies = self.occupancies();
+        occupancies.clear(mv.from());
+
+        if mv.is_en_passant() {
+            occupancies.clear(mv.to() ^ 8);
+        }
+
+        let mut attackers = self.attackers_to(mv.to(), occupancies) & occupancies;
+        let mut stm = !self.side_to_move();
+
+        let diagonal = self.pieces2(PieceType::Bishop, PieceType::Queen);
+        let orthogonal = self.pieces2(PieceType::Rook, PieceType::Queen);
+
+        let king_rays =
+            [ray_pass(self.king_square(Color::White), mv.to()), ray_pass(self.king_square(Color::Black), mv.to())];
+
+        loop {
+            let mut our_attackers = attackers & self.colors(stm);
+
+            // Exclude pinned pieces if pinners are still on the board
+            if (self.pinners(!stm) & occupancies) != Bitboard(0) {
+                our_attackers &= !(self.pinned(stm) & !king_rays[stm]);
+            }
+
+            if our_attackers.is_empty() {
+                break;
+            }
+
+            let attacker = self.least_valuable_attacker(our_attackers);
+
+            // The king cannot capture a protected piece; the side to move loses the exchange
+            if attacker == PieceType::King && !(attackers & self.colors(!stm)).is_empty() {
+                break;
+            }
+
+            // Make the capture
+            d += 1;
+            gain[d] = piece.value() - gain[d - 1];
+            piece = attacker;
+
+            occupancies.clear((self.pieces(attacker) & our_attackers).lsb());
+            stm = !stm;
+
+            // Capturing a piece may reveal a new sliding attacker
+            if [PieceType::Pawn, PieceType::Bishop, PieceType::Queen].contains(&attacker) {
+                attackers |= bishop_attacks(mv.to(), occupancies) & diagonal;
+            }
+            if [PieceType::Rook, PieceType::Queen].contains(&attacker) {
+                attackers |= rook_attacks(mv.to(), occupancies) & orthogonal;
+            }
+            attackers &= occupancies;
+        }
+
+        while d > 0 {
+            gain[d - 1] = gain[d - 1].max(-gain[d]);
+            d -= 1;
+        }
+
+        gain[0]
+    }
+
     fn move_value(&self, mv: Move) -> i32 {
         let capture = self.type_on(mv.capture_sq());
         let mut value = capture.value();
