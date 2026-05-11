@@ -95,7 +95,7 @@ impl Move {
     }
 
     pub const fn is_en_passant(self) -> bool {
-        matches!(self.kind(), MoveKind::EnPassant)
+        self.0 & (15 << 12) == 0b0101_0000_0000_0000
     }
 
     pub fn capture_sq(self) -> Square {
