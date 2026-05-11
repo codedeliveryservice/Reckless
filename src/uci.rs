@@ -189,6 +189,11 @@ fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc
 
     threads.execute_searches(time_manager, settings.report, settings.multi_pv, board, shared);
 
+    if threads[0].root_moves.is_empty() {
+        println!("bestmove (none)");
+        return;
+    }
+
     let min_score = threads.iter().map(|v| v.root_moves[0].score).min().unwrap();
     let vote_value = |td: &ThreadData| (td.root_moves[0].score - min_score + 10) * td.completed_depth;
 
