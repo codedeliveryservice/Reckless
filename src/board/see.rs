@@ -153,7 +153,7 @@ impl super::Board {
         }
 
         while d > 0 {
-            gain[d - 1] = gain[d - 1].max(-gain[d]);
+            gain[d - 1] = -gain[d].max(-gain[d - 1]);
             d -= 1;
         }
 
