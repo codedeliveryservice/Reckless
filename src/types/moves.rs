@@ -70,16 +70,7 @@ impl Move {
     }
 
     pub const fn is_noisy(self) -> bool {
-        matches!(
-            self.kind(),
-            MoveKind::Capture
-                | MoveKind::EnPassant
-                | MoveKind::PromotionQ
-                | MoveKind::PromotionCaptureN
-                | MoveKind::PromotionCaptureB
-                | MoveKind::PromotionCaptureR
-                | MoveKind::PromotionCaptureQ
-        )
+        self.0 & 0b0111_0000_0000_0000 > 0b0010_0000_0000_0000
     }
 
     pub const fn is_special(self) -> bool {
