@@ -762,6 +762,10 @@ fn search<NODE: NodeType>(
                 break;
             }
 
+            if !NODE::ROOT && !is_loss(best_score) && !in_check && is_quiet && depth < 5 && history < -1024 * depth {
+                continue;
+            }
+
             // Static Exchange Evaluation Pruning (SEE Pruning)
             let threshold = if is_quiet {
                 (-17 * depth * depth + 52 * depth - 21 * history / 1024 + 20).min(0)
