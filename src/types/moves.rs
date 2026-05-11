@@ -87,11 +87,11 @@ impl Move {
     }
 
     pub const fn is_capture(self) -> bool {
-        (self.0 >> 14) & 1 != 0
+        self.0 & (1 << 14) != 0
     }
 
     pub const fn is_promotion(self) -> bool {
-        (self.0 >> 15) != 0
+        self.0 & (1 << 15) != 0
     }
 
     pub const fn is_en_passant(self) -> bool {
