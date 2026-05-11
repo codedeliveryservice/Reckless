@@ -166,6 +166,7 @@ impl super::Board {
         let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
         let pawns = Self::movable_pawns(pinned, pawns, Bitboard::file(self.king_square(stm).file()));
+        let promotions = (pawns & seventh_rank).shift(up) & empty;
 
         if T::KIND == Kind::Quiet {
             let non_promotions = pawns & !seventh_rank;
@@ -174,16 +175,13 @@ impl super::Board {
 
             list.push_pawns_setwise(up, single_pushes & target, MoveKind::Normal);
             list.push_pawns_setwise(up * 2, double_pushes & target, MoveKind::DoublePush);
-        }
-
-        let promotions = (pawns & seventh_rank).shift(up) & empty;
-        if T::KIND == Kind::Noisy {
-            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
-        }
-        if T::KIND == Kind::Quiet {
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionR);
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionB);
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionN);
+        }
+
+        if T::KIND == Kind::Noisy {
+            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
         }
     }
 
