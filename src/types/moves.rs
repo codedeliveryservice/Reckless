@@ -69,17 +69,9 @@ impl Move {
         self.is_present() && !self.is_noisy()
     }
 
+    //only Queen promotions are noisy unders are not
     pub const fn is_noisy(self) -> bool {
-        matches!(
-            self.kind(),
-            MoveKind::Capture
-                | MoveKind::EnPassant
-                | MoveKind::PromotionQ
-                | MoveKind::PromotionCaptureN
-                | MoveKind::PromotionCaptureB
-                | MoveKind::PromotionCaptureR
-                | MoveKind::PromotionCaptureQ
-        )
+        (self.kind() as u8 & 7) > 2
     }
 
     pub const fn is_special(self) -> bool {
