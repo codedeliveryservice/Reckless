@@ -60,7 +60,7 @@ impl MovePicker {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 45 + 111);
-                if !td.board.see(entry.mv, threshold) {
+                if entry.see_value < threshold {
                     self.bad_noisy.push(entry.mv);
                     continue;
                 }
@@ -130,7 +130,10 @@ impl MovePicker {
             let captured = td.board.type_on(mv.capture_sq());
             let pt = td.board.type_on(mv.from());
 
+            entry.see_value = td.board.see_value(mv);
+
             entry.score = 16 * captured.value()
+                + (8 * entry.see_value).min(0)
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
                 + 4000 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
                 + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
