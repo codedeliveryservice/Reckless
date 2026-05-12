@@ -65,48 +65,21 @@ impl Default for QuietHistory {
     }
 }
 
-struct NoisyHistoryEntry {
-    factorizer: i16,
-    buckets: [[i16; 2]; 7],
-}
-
-impl NoisyHistoryEntry {
-    const MAX_FACTORIZER: i32 = 4652;
-    const MAX_BUCKET: i32 = 7800;
-
-    pub fn bucket(&self, threats: Bitboard, sq: Square, captured: PieceType) -> i16 {
-        let threatened = threats.contains(sq) as usize;
-        self.buckets[captured][threatened]
-    }
-
-    pub fn update_factorizer(&mut self, bonus: i32) {
-        let entry = &mut self.factorizer;
-        apply_bonus::<{ Self::MAX_FACTORIZER }>(entry, bonus);
-    }
-
-    pub fn update_bucket(&mut self, threats: Bitboard, sq: Square, captured: PieceType, bonus: i32) {
-        let threatened = threats.contains(sq) as usize;
-        let entry = &mut self.buckets[captured][threatened];
-        apply_bonus::<{ Self::MAX_BUCKET }>(entry, bonus);
-    }
-}
-
 pub struct NoisyHistory {
     // [piece][to][captured_piece_type][to_threatened]
-    entries: Box<PieceToHistory<NoisyHistoryEntry>>,
+    entries: Box<PieceToHistory<[[i16; 2]; 7]>>,
 }
 
 impl NoisyHistory {
+    const MAX_HISTORY: i32 = 12800;
+
     pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType) -> i32 {
-        let entry = &self.entries[piece][sq];
-        (entry.factorizer + entry.bucket(threats, sq, captured)) as i32
+        self.entries[piece][sq][captured][threats.contains(sq) as usize] as i32
     }
 
     pub fn update(&mut self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType, bonus: i32) {
-        let entry = &mut self.entries[piece][sq];
-
-        entry.update_factorizer(bonus);
-        entry.update_bucket(threats, sq, captured, bonus);
+        let entry = &mut self.entries[piece][sq][captured][threats.contains(sq) as usize];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
 }
 
