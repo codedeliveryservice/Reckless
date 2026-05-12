@@ -170,17 +170,14 @@ fn reckless_move_to_tb_move(mv: Move) -> TbMove {
         }
     }
 
-    let from = (mv.from() as u16) & 0x3F;
-    let to = (mv.to() as u16) & 0x3F;
-
-    let mut tb_move: TbMove = (from << 6) | to;
+    let tb_move = mv.to_tbmove();
 
     if mv.is_promotion() {
         let promotion_bits = promo_bits_from_piece(mv.promo_piece_type()) & 0x7;
-        tb_move |= promotion_bits << 12;
+        tb_move | (promotion_bits << 12)
+    } else {
+        tb_move
     }
-
-    tb_move
 }
 
 fn tb_en_passant_square(board: &Board) -> u32 {

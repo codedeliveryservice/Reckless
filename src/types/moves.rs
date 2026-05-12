@@ -1,6 +1,7 @@
 use std::mem;
 
 use super::{PieceType, Square};
+use crate::bindings::TbMove;
 use crate::board::Board;
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
@@ -47,6 +48,10 @@ impl Move {
 
     pub const fn to(self) -> Square {
         Square::new(((self.0 >> 6) & 0b0011_1111) as u8)
+    }
+
+    pub const fn to_tbmove(self) -> TbMove {
+        (self.0 & 0x0FFF) as TbMove
     }
 
     pub const fn encoded(self) -> usize {
