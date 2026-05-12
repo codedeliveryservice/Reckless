@@ -1,8 +1,7 @@
 use std::mem;
 
 use super::{PieceType, Square};
-use crate::bindings::TbMove;
-use crate::board::Board;
+use crate::{bindings::TbMove, board::Board};
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
