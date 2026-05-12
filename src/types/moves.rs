@@ -123,7 +123,9 @@ impl Move {
             }
         }
 
-        let base = (self.0 & 0x0FFF) as TbMove;
+        let from = (self.0 & 0x3F) as TbMove;
+        let to = ((self.0 >> 6) & 0x3F) as TbMove;
+        let base: TbMove = (from << 6) | to;
 
         if self.is_promotion() {
             let promo = promo_bits(self.promo_piece_type()) & 0x7;
