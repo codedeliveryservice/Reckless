@@ -123,8 +123,8 @@ impl Move {
             }
         }
 
-        let from = (self.from() as u16) & 0x3F;
-        let to = (self.to() as u16) & 0x3F;
+        let from = self.from() as u16;
+        let to = self.to() as u16;
 
         let base: TbMove = (from << 6) | to;
 
