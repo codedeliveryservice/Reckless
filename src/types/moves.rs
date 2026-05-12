@@ -50,8 +50,25 @@ impl Move {
         Square::new(((self.0 >> 6) & 0b0011_1111) as u8)
     }
 
-    pub const fn to_tbmove(self) -> TbMove {
-        (self.0 & 0x0FFF) as TbMove
+    pub const fn to_tb_move(self) -> TbMove {
+        const fn promo_bits(pt: PieceType) -> TbMove {
+            match pt {
+                PieceType::Queen => 1,
+                PieceType::Rook => 2,
+                PieceType::Bishop => 3,
+                PieceType::Knight => 4,
+                _ => unreachable!(),
+            }
+        }
+
+        let base = (self.0 & 0x0FFF) as TbMove;
+
+        if self.is_promotion() {
+            let promo = promo_bits(self.promo_piece_type()) & 0x7;
+            base | (promo << 12)
+        } else {
+            base
+        }
     }
 
     pub const fn encoded(self) -> usize {

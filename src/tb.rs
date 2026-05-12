@@ -2,12 +2,12 @@ use std::{ffi, mem, ptr, sync::atomic::Ordering};
 
 use crate::{
     bindings::{
-        TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbMove, TbRootMove, TbRootMoves, tb_init,
-        tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl,
+        TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbRootMove, TbRootMoves, tb_init, tb_probe_root_dtz,
+        tb_probe_root_wdl, tb_probe_wdl,
     },
     board::Board,
     thread::{RootMove, ThreadData},
-    types::{Color, MAX_PLY, Move, PieceType, Score},
+    types::{Color, MAX_PLY, PieceType, Score},
 };
 
 #[derive(Eq, PartialEq)]
@@ -83,7 +83,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             ptr::write(
                 c_move_ptr,
                 TbRootMove {
-                    move_: reckless_move_to_tb_move(root_move.mv),
+                    move_: root_move.mv.to_tb_move(),
                     pv: [0; MAX_PLY],
                     pvSize: 0,
                     tbScore: 0,
@@ -96,7 +96,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
         let update_rootmoves = |root_moves: &mut Vec<RootMove>, c_rootmoves: &TbRootMoves| {
             for i in 0..c_rootmoves.size as usize {
                 let tb_move = c_rootmoves.moves[i].move_;
-                if let Some(rm) = root_moves.iter_mut().find(|rm| reckless_move_to_tb_move(rm.mv) == tb_move) {
+                if let Some(rm) = root_moves.iter_mut().find(|rm| rm.mv.to_tb_move() == tb_move) {
                     rm.tb_score = c_rootmoves.moves[i].tbScore;
                     rm.tb_rank = c_rootmoves.moves[i].tbRank;
                 }
@@ -156,27 +156,6 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             // Keep probing in search if DTZ is not available and we are winning
             td.shared.stop_probing_tb.store(td.root_moves[0].tb_score <= Score::ZERO, Ordering::Relaxed);
         }
-    }
-}
-
-fn reckless_move_to_tb_move(mv: Move) -> TbMove {
-    fn promo_bits_from_piece(pt: PieceType) -> TbMove {
-        match pt {
-            PieceType::Queen => 1,
-            PieceType::Rook => 2,
-            PieceType::Bishop => 3,
-            PieceType::Knight => 4,
-            _ => unreachable!(),
-        }
-    }
-
-    let tb_move = mv.to_tbmove();
-
-    if mv.is_promotion() {
-        let promotion_bits = promo_bits_from_piece(mv.promo_piece_type()) & 0x7;
-        tb_move | (promotion_bits << 12)
-    } else {
-        tb_move
     }
 }
 
