@@ -71,7 +71,7 @@ pub struct NoisyHistory {
 }
 
 impl NoisyHistory {
-    const MAX_HISTORY: i32 = 12 * 1024;
+    const MAX_HISTORY: i32 = 11776;
 
     pub fn get(&self, threats: Bitboard, piece: Piece, sq: Square, captured: PieceType) -> i32 {
         self.entries[piece][sq][captured][threats.contains(sq) as usize] as i32
