@@ -3,9 +3,6 @@ use std::mem;
 use super::{PieceType, Square};
 use crate::board::Board;
 
-#[cfg(feature = "syzygy")]
-use crate::bindings::TbMove;
-
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
 ///
@@ -115,8 +112,8 @@ impl Move {
     }
 
     #[cfg(feature = "syzygy")]
-    pub const fn to_tb_move(self) -> TbMove {
-        const fn promo_bits(pt: PieceType) -> TbMove {
+    pub const fn to_tb_move(self) -> crate::bindings::TbMove {
+        const fn promo_bits(pt: PieceType) -> crate::bindings::TbMove {
             match pt {
                 PieceType::Queen => 1,
                 PieceType::Rook => 2,
@@ -129,7 +126,7 @@ impl Move {
         let from = self.from() as u16;
         let to = self.to() as u16;
 
-        let base: TbMove = (from << 6) | to;
+        let base: crate::bindings::TbMove = (from << 6) | to;
 
         if self.is_promotion() {
             let promo = promo_bits(self.promo_piece_type()) & 0x7;
