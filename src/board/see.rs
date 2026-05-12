@@ -98,15 +98,39 @@ impl super::Board {
         value
     }
 
+    #[cfg(target_feature = "avx512f")]
     fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {
-        let mut mask = 0u8;
+        use std::arch::x86_64::*;
 
-        mask |= u8::from(!(self.pieces(PieceType::Pawn) & attackers).is_empty());
-        mask |= u8::from(!(self.pieces(PieceType::Knight) & attackers).is_empty()) << 1;
-        mask |= u8::from(!(self.pieces(PieceType::Bishop) & attackers).is_empty()) << 2;
-        mask |= u8::from(!(self.pieces(PieceType::Rook) & attackers).is_empty()) << 3;
-        mask |= u8::from(!(self.pieces(PieceType::Queen) & attackers).is_empty()) << 4;
-        mask |= u8::from(!(self.pieces(PieceType::King) & attackers).is_empty()) << 5;
+        let overlaps = unsafe {
+            let pieces = _mm512_setr_epi64(
+                (self.pieces(PieceType::Pawn) & attackers).0 as i64,
+                (self.pieces(PieceType::Knight) & attackers).0 as i64,
+                (self.pieces(PieceType::Bishop) & attackers).0 as i64,
+                (self.pieces(PieceType::Rook) & attackers).0 as i64,
+                (self.pieces(PieceType::Queen) & attackers).0 as i64,
+                (self.pieces(PieceType::King) & attackers).0 as i64,
+                0,
+                0,
+            );
+            _mm512_test_epi64_mask(pieces, pieces) as u8
+        };
+
+        let mask = overlaps & 0x3F;
+
+        debug_assert_ne!(mask, 0, "least_valuable_attacker called with empty attackers bitboard");
+
+        PieceType::new(mask.trailing_zeros() as usize)
+    }
+
+    #[cfg(not(target_feature = "avx512f"))]
+    fn least_valuable_attacker(&self, attackers: Bitboard) -> PieceType {
+        let mask = u8::from(!(self.pieces(PieceType::Pawn) & attackers).is_empty())
+            | u8::from(!(self.pieces(PieceType::Knight) & attackers).is_empty()) << 1
+            | u8::from(!(self.pieces(PieceType::Bishop) & attackers).is_empty()) << 2
+            | u8::from(!(self.pieces(PieceType::Rook) & attackers).is_empty()) << 3
+            | u8::from(!(self.pieces(PieceType::Queen) & attackers).is_empty()) << 4
+            | u8::from(!(self.pieces(PieceType::King) & attackers).is_empty()) << 5;
 
         debug_assert_ne!(mask, 0, "least_valuable_attacker called with empty attackers bitboard");
 
