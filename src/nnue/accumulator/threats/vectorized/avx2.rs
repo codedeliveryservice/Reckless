@@ -158,8 +158,8 @@ pub fn splat_xray_threats(
         let attacker = unsafe { pieces.get_unchecked(slider) };
         let attacker_sq = unsafe { squares.get_unchecked(slider) };
         // SAFETY: victim is always less than 64
-        let attacked = unsafe { pieces.get_unchecked((victim + 32) % 64) };
-        let attacked_sq = unsafe { squares.get_unchecked((victim + 32) % 64) };
+        let attacked = unsafe { pieces.get_unchecked((victim + 32) & 63) };
+        let attacked_sq = unsafe { squares.get_unchecked((victim + 32) & 63) };
 
         accum.delta.push(ThreatDelta::new(*attacker, *attacker_sq, *attacked, *attacked_sq, add));
 
