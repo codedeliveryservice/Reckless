@@ -196,7 +196,7 @@ impl TranspositionTable {
                 mv: entry.mv,
             };
 
-            Some(hit)
+            is_valid(hit.score).then_some(hit)
         } else {
             None
         }
