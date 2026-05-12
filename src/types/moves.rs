@@ -123,8 +123,9 @@ impl Move {
             }
         }
 
-        let from = (self.0 & 0x3F) as TbMove;
-        let to = ((self.0 >> 6) & 0x3F) as TbMove;
+        let from = (self.from() as u16) & 0x3F;
+        let to = (self.to() as u16) & 0x3F;
+
         let base: TbMove = (from << 6) | to;
 
         if self.is_promotion() {
