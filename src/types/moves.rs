@@ -1,7 +1,10 @@
 use std::mem;
 
 use super::{PieceType, Square};
-use crate::{bindings::TbMove, board::Board};
+use crate::board::Board;
+
+#[cfg(feature = "syzygy")]
+use crate::bindings::TbMove;
 
 /// Represents a chess move containing the from and to squares, as well as flags for special moves.
 /// The information encoded as a 16-bit integer, 6 bits for the from/to square and 4 bits for the flags.
@@ -111,6 +114,7 @@ impl Move {
         PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize)
     }
 
+    #[cfg(feature = "syzygy")]
     pub const fn to_tb_move(self) -> TbMove {
         const fn promo_bits(pt: PieceType) -> TbMove {
             match pt {
