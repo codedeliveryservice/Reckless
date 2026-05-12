@@ -60,6 +60,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
     td.multi_pv = td.multi_pv.min(td.root_moves.len());
 
+    td.quiet_history.decay();
+
     let mut average = vec![td.previous_best_score; td.multi_pv];
     let mut last_best_rootmove = RootMove::default();
 

@@ -29,6 +29,16 @@ impl QuietHistory {
             [mv.from()][mv.to()];
         apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
     }
+
+    pub fn decay(&mut self) {
+        self.entries
+            .iter_mut()
+            .flatten()
+            .flatten()
+            .flatten()
+            .flatten()
+            .for_each(|entry| *entry = ((*entry as i32 * 768) / 1024) as i16);
+    }
 }
 
 impl Default for QuietHistory {
