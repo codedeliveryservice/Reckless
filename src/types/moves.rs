@@ -50,31 +50,6 @@ impl Move {
         Square::new(((self.0 >> 6) & 0b0011_1111) as u8)
     }
 
-    pub const fn to_tb_move(self) -> TbMove {
-        const fn promo_bits(pt: PieceType) -> TbMove {
-            match pt {
-                PieceType::Queen => 1,
-                PieceType::Rook => 2,
-                PieceType::Bishop => 3,
-                PieceType::Knight => 4,
-                _ => unreachable!(),
-            }
-        }
-
-        let base = (self.0 & 0x0FFF) as TbMove;
-
-        if self.is_promotion() {
-            let promo = promo_bits(self.promo_piece_type()) & 0x7;
-            base | (promo << 12)
-        } else {
-            base
-        }
-    }
-
-    pub const fn encoded(self) -> usize {
-        (self.0 & 0b0000_1111_1111_1111) as usize
-    }
-
     pub const fn kind(self) -> MoveKind {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
@@ -135,6 +110,27 @@ impl Move {
     pub const fn promo_piece_type(self) -> PieceType {
         debug_assert!(self.is_promotion());
         PieceType::new(((self.kind() as usize) & 3) + PieceType::Knight as usize)
+    }
+
+    pub const fn to_tb_move(self) -> TbMove {
+        const fn promo_bits(pt: PieceType) -> TbMove {
+            match pt {
+                PieceType::Queen => 1,
+                PieceType::Rook => 2,
+                PieceType::Bishop => 3,
+                PieceType::Knight => 4,
+                _ => unreachable!(),
+            }
+        }
+
+        let base = (self.0 & 0x0FFF) as TbMove;
+
+        if self.is_promotion() {
+            let promo = promo_bits(self.promo_piece_type()) & 0x7;
+            base | (promo << 12)
+        } else {
+            base
+        }
     }
 
     pub fn to_uci(self, board: &Board) -> String {
