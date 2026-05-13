@@ -445,6 +445,7 @@ fn search<NODE: NodeType>(
 
     // Use the bounded TT entry score for evaluation when in check
     if in_check
+        && !excluded
         && !is_decisive(tt_score)
         && is_valid(tt_score)
         && match tt_bound {
