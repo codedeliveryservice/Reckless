@@ -59,7 +59,16 @@ impl MovePicker {
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 39 + 107);
+                let threshold = self.threshold.unwrap_or_else(|| {
+                    let history = td.noisy_history.get(
+                        td.board.all_threats(),
+                        td.board.moved_piece(entry.mv),
+                        entry.mv.to(),
+                        td.board.type_on(entry.mv.capture_sq()),
+                    );
+                    -history / 39 + 107
+                });
+
                 if !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
