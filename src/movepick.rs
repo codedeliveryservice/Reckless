@@ -1,5 +1,6 @@
 use crate::{
     lookup::king_attacks,
+    parameters::*,
     search::NodeType,
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     thread::ThreadData,
@@ -61,7 +62,7 @@ impl MovePicker {
         if self.stage == Stage::GoodNoisy {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
-                let threshold = self.threshold.unwrap_or_else(|| -entry.score / 39 + 107);
+                let threshold = self.threshold.unwrap_or_else(|| -entry.score / mp16() + mp17());
                 if (self.tt_move.is_quiet() && self.noisy_count > 2) || !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
@@ -133,9 +134,9 @@ impl MovePicker {
             let captured = td.board.type_on(mv.capture_sq());
             let pt = td.board.type_on(mv.from());
 
-            entry.score = 15704 * captured.value() / 1024
+            entry.score = mp14() * captured.value() / 1024
                 + td.noisy_history.get(threats, td.board.moved_piece(mv), mv.to(), captured)
-                + 4057 * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
+                + mp15() * (mv.is_promotion() && mv.promo_piece_type() == PieceType::Queen) as i32
                 + (200000 - 20000 * pt as i32) * td.board.in_check() as i32;
         }
     }
@@ -159,7 +160,7 @@ impl MovePicker {
             [Bitboard(0), pawn_threats, pawn_threats, minor_threats, rook_threats, Bitboard(0)]
         };
 
-        let escape = [0, 8297, 8292, 13144, 21081, 0];
+        let escape = [0, mp10(), mp11(), mp12(), mp13(), 0];
 
         // safe squares where we can attack an opponent piece
         let offense = {
@@ -197,16 +198,16 @@ impl MovePicker {
             let mv = entry.mv;
             let pt = td.board.type_on(mv.from());
 
-            entry.score = 1973 * td.quiet_history.get(threats, side, mv) / 1024
-                + 1573 * td.conthist(ply, 1, mv) / 1024
-                + 956 * td.conthist(ply, 2, mv) / 1024
-                + 987 * td.conthist(ply, 4, mv) / 1024
-                + 944 * td.conthist(ply, 6, mv) / 1024
+            entry.score = mp1() * td.quiet_history.get(threats, side, mv) / 1024
+                + mp2() * td.conthist(ply, 1, mv) / 1024
+                + mp3() * td.conthist(ply, 2, mv) / 1024
+                + mp4() * td.conthist(ply, 4, mv) / 1024
+                + mp5() * td.conthist(ply, 6, mv) / 1024
                 + escape[pt] * threatened[pt].contains(mv.from()) as i32
-                + 9503 * td.board.checking_squares(pt).contains(mv.to()) as i32
-                - 8074 * threatened[pt].contains(mv.to()) as i32
-                + 5182 * offense[pt].contains(mv.to()) as i32
-                - 4255 * wall_pawns.contains(mv.from()) as i32;
+                + mp6() * td.board.checking_squares(pt).contains(mv.to()) as i32
+                - mp7() * threatened[pt].contains(mv.to()) as i32
+                + mp8() * offense[pt].contains(mv.to()) as i32
+                - mp9() * wall_pawns.contains(mv.from()) as i32;
         }
     }
 }
