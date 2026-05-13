@@ -206,14 +206,6 @@ impl ThreadData {
         self.continuation_history.get(self.stack[ply - index].conthist, self.board.piece_on(mv.from()), mv.to())
     }
 
-    fn print_uci_no_move(&self) {
-        if self.board.in_check() {
-            println!("info depth 0 score mate 0");
-        } else {
-            println!("info depth 0 score cp 0");
-        }
-    }
-
     pub fn print_uci_info(&self, depth: i32) {
         if self.root_moves.is_empty() {
             self.print_uci_no_move();
@@ -280,6 +272,14 @@ impl ThreadData {
             }
 
             println!();
+        }
+    }
+
+    fn print_uci_no_move(&self) {
+        if self.board.in_check() {
+            println!("info depth 0 score mate 0");
+        } else {
+            println!("info depth 0 score cp 0");
         }
     }
 }
