@@ -840,7 +840,7 @@ fn search<NODE: NodeType>(
                 reduction += 126;
             }
 
-            reduction += ((td.nodes() + td.id as u64 * 25) % 128) as i32 - 63;
+            reduction += ((td.nodes() + td.id as u64 * 25) & 127) as i32 - 63;
 
             let reduced_depth =
                 (new_depth - reduction / 1024).clamp(1, new_depth + (move_count <= 3) as i32 + 1) + 2 * NODE::PV as i32;
@@ -907,7 +907,7 @@ fn search<NODE: NodeType>(
                 reduction += 123;
             }
 
-            reduction += ((td.nodes() + td.id as u64 * 24) % 128) as i32 - 58;
+            reduction += ((td.nodes() + td.id as u64 * 24) & 127) as i32 - 58;
 
             let reduced_depth = new_depth - (reduction >= 2757) as i32 - (reduction >= 5670) as i32;
 
