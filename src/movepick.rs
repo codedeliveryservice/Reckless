@@ -66,7 +66,7 @@ impl MovePicker {
                         entry.mv.to(),
                         td.board.type_on(entry.mv.capture_sq()),
                     );
-                    -history / 39 + 107
+                    -history / 39 + 27
                 });
 
                 if !td.board.see(entry.mv, threshold) {
