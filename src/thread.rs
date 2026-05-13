@@ -207,6 +207,11 @@ impl ThreadData {
     }
 
     pub fn print_uci_info(&self, depth: i32) {
+        if self.root_moves.is_empty() {
+            self.print_uci_no_move();
+            return;
+        }
+
         let elapsed = self.time_manager.elapsed();
         let nps = self.shared.nodes.aggregate() as f64 / elapsed.as_secs_f64();
         let ms = elapsed.as_millis();
@@ -267,6 +272,14 @@ impl ThreadData {
             }
 
             println!();
+        }
+    }
+
+    fn print_uci_no_move(&self) {
+        if self.board.in_check() {
+            println!("info depth 0 score mate 0");
+        } else {
+            println!("info depth 0 score cp 0");
         }
     }
 }

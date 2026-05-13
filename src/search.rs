@@ -67,6 +67,13 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
     let mut pv_stability = 0;
     let mut soft_stop_voted = false;
 
+    if td.root_moves.is_empty() {
+        if report == Report::Full {
+            td.print_uci_info(0);
+        }
+        return;
+    }
+
     // Iterative Deepening
     for depth in 1..MAX_PLY as i32 {
         if td.id == 0
