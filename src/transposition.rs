@@ -220,8 +220,7 @@ impl TranspositionTable {
 
         let replacement_index = {
             let lookup_index = cluster.lookup_key(key);
-            if lookup_index < cluster.entries.len()
-            {
+            if lookup_index < cluster.entries.len() {
                 lookup_index
             } else {
                 let mut replacement_index = None;
