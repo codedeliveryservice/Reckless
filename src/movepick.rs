@@ -22,6 +22,7 @@ pub struct MovePicker {
     stage: Stage,
     bad_noisy: ArrayVec<Move, MAX_MOVES>,
     bad_noisy_idx: usize,
+    noisy_count: usize,
 }
 
 impl MovePicker {
@@ -33,6 +34,7 @@ impl MovePicker {
             stage: if tt_move.is_present() { Stage::HashMove } else { Stage::GenerateNoisy },
             bad_noisy: ArrayVec::new(),
             bad_noisy_idx: 0,
+            noisy_count: 0,
         }
     }
 
@@ -60,7 +62,7 @@ impl MovePicker {
             while !self.list.is_empty() {
                 let entry = self.get_best_entry();
                 let threshold = self.threshold.unwrap_or_else(|| -entry.score / 39 + 107);
-                if !td.board.see(entry.mv, threshold) {
+                if (self.tt_move.is_quiet() && self.noisy_count > 2) || !td.board.see(entry.mv, threshold) {
                     self.bad_noisy.push(entry.mv);
                     continue;
                 }
@@ -69,6 +71,7 @@ impl MovePicker {
                     self.score_noisy(td);
                 }
 
+                self.noisy_count += 1;
                 return Some(entry.mv);
             }
 
