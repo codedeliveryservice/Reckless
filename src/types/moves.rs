@@ -126,7 +126,7 @@ impl Move {
         let from = self.from() as u16;
         let to = self.to() as u16;
 
-        let base: crate::bindings::TbMove = (from << 6) | to;
+        let base = (from << 6) | to;
 
         if self.is_promotion() {
             let promo = promo_bits(self.promo_piece_type()) & 0x7;
