@@ -219,9 +219,8 @@ impl TranspositionTable {
         let tt_age = self.age();
 
         let replacement_index = {
-            if let lookup_index = cluster.lookup_key(key)
-                && lookup_index < cluster.entries.len()
-            {
+            let lookup_index = cluster.lookup_key(key);
+            if lookup_index < cluster.entries.len() {
                 lookup_index
             } else {
                 let mut replacement_index = None;
