@@ -505,6 +505,7 @@ fn search<NODE: NodeType>(
 
     // Razoring
     if !NODE::PV
+        && !cut_node
         && !in_check
         && estimated_score < alpha - 265 - 267 * depth * depth
         && alpha < 2048
