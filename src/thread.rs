@@ -210,7 +210,7 @@ impl ThreadData {
         if self.board.in_check() {
             println!("info depth 0 score mate 0");
         } else {
-            println!("info depth 0 score 0");
+            println!("info depth 0 score cp 0");
         }
     }
 
