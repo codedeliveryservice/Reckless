@@ -202,8 +202,7 @@ impl super::Board {
         list.push_promotion_capture_setwise(up_right, right & target);
         list.push_promotion_capture_setwise(up_left, left & target);
 
-        let right_captures =
-            (right_pawns & !seventh_rank).shift(up_right) & self.colors(!stm);
+        let right_captures = (right_pawns & !seventh_rank).shift(up_right) & self.colors(!stm);
         let left_captures = (left_pawns & !seventh_rank).shift(up_left) & self.colors(!stm);
 
         list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
