@@ -3,7 +3,6 @@ use std::sync::atomic::Ordering;
 use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
-    parameters::*,
     stack::Stack,
     thread::{RootMove, Status, ThreadData},
     time::Limits,
@@ -1068,11 +1067,11 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && bound == Bound::Upper && (cut_node || NODE::PV) {
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
-            let bonus = (v1() * depth).min(v2()) - v3()
-                + (v4() * td.stack[ply - 1].move_count).min(v5())
-                + v6() * (prior_move == td.stack[ply - 1].tt_move) as i32
-                + v8() * (!in_check && best_score <= eval - v9()) as i32
-                + v10() * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - v11()) as i32;
+            let bonus = (261 * depth).min(5348) - 544
+                + (70 * td.stack[ply - 1].move_count).min(656)
+                + 429 * (prior_move == td.stack[ply - 1].tt_move) as i32
+                + 588 * (!in_check && best_score <= eval - 101) as i32
+                + 240 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 133) as i32;
 
             td.quiet_history.update(td.board.prior_threats(), !stm, prior_move, bonus);
 
