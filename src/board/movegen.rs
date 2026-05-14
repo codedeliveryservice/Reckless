@@ -193,26 +193,26 @@ impl super::Board {
         let up_left = Square::UP[stm] + Square::LEFT;
         let right_pin_mask = relative_diagonal(stm, self.king_square(stm));
         let left_pin_mask = relative_anti_diagonal(stm, self.king_square(stm));
-        let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask);
-        let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask);
+        let right_pawns = Self::movable_pawns(pinned, pawns, right_pin_mask) & !Bitboard::file(File::H);
+        let left_pawns = Self::movable_pawns(pinned, pawns, left_pin_mask) & !Bitboard::file(File::A);
 
-        let right = (right_pawns & seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
-        let left = (left_pawns & seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
+        let right = (right_pawns & seventh_rank).shift(up_right) & self.colors(!stm);
+        let left = (left_pawns & seventh_rank).shift(up_left) & self.colors(!stm);
 
         list.push_promotion_capture_setwise(up_right, right & target);
         list.push_promotion_capture_setwise(up_left, left & target);
 
         let right_captures =
-            (right_pawns & !seventh_rank & !Bitboard::file(File::H)).shift(up_right) & self.colors(!stm);
-        let left_captures = (left_pawns & !seventh_rank & !Bitboard::file(File::A)).shift(up_left) & self.colors(!stm);
+            (right_pawns & !seventh_rank).shift(up_right) & self.colors(!stm);
+        let left_captures = (left_pawns & !seventh_rank).shift(up_left) & self.colors(!stm);
 
         list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
         list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
 
         if self.en_passant() != Square::None {
             let ep = self.en_passant().to_bb();
-            let right_attacker = right_pawns & !Bitboard::file(File::H) & ep.shift(-up_right);
-            let left_attacker = left_pawns & !Bitboard::file(File::A) & ep.shift(-up_left);
+            let right_attacker = right_pawns & ep.shift(-up_right);
+            let left_attacker = left_pawns & ep.shift(-up_left);
             for pawn in right_attacker | left_attacker {
                 list.push(pawn, self.en_passant(), MoveKind::EnPassant);
             }
