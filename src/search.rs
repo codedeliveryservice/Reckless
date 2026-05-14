@@ -795,9 +795,8 @@ fn search<NODE: NodeType>(
 
         // Late Move Reductions (LMR)
         if depth >= 2 && move_count >= 2 {
-            let mut reduction = 191 * (move_count.ilog2() * depth.ilog2()) as i32;
+            let mut reduction = 256 * depth.ilog2() as i32;
 
-            reduction -= 63 * move_count;
             reduction -= 3403 * correction_value.abs() / 1024;
             reduction += 1405 * (bound == Bound::Exact) as i32;
 
