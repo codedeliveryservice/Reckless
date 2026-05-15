@@ -1182,10 +1182,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    let raw_eval;
-    let eval;
-    let mut best_score;
     let correction_value = eval_correction(td, ply);
+
+    let raw_eval;
+    let mut eval;
+    let mut best_score;
 
     // Evaluation
     if in_check {
@@ -1209,6 +1210,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
         {
             best_score = tt_score;
+            eval = tt_score;
         }
     }
 
