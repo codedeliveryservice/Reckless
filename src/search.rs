@@ -8,8 +8,8 @@ use crate::{
     time::Limits,
     transposition::{Bound, TtDepth},
     types::{
-        ArrayVec, Color, MAX_PLY, Move, Piece, PieceType, Score, Square, draw, is_decisive, is_loss, is_valid, is_win,
-        mate_in, mated_in,
+        ArrayVec, Color, MAX_PLY, Move, Piece, Score, Square, draw, is_decisive, is_loss, is_valid, is_win, mate_in,
+        mated_in,
     },
 };
 
@@ -547,9 +547,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 624
         && !is_loss(beta)
-        && !(tt_bound == Bound::Lower
-            && tt_move.is_capture()
-            && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
+        && !(tt_bound == Bound::Lower && td.board.see(tt_move, 200))
     {
         debug_assert_ne!(td.stack[ply - 1].mv, Move::NULL);
 
