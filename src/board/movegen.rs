@@ -67,7 +67,7 @@ impl super::Board {
 
         let occupancies = self.occupancies();
         let target = if self.in_check() {
-            between(self.king_square(self.side_to_move()), self.checkers().lsb()) | self.checkers().lsb().to_bb()
+            between(self.king_square(stm), self.checkers().lsb()) | self.checkers()
         } else {
             Bitboard::ALL
         };
