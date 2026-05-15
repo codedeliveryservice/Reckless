@@ -1,18 +1,19 @@
 #![allow(dead_code)]
 
 use std::sync::{
-    Mutex,
+    Mutex, OnceLock,
     atomic::{AtomicI64, Ordering},
 };
 
 const SLOTS: usize = 32;
 
-static HITS: [Wrapper; SLOTS] = [const { Wrapper::new() }; SLOTS];
-static STATS: [Wrapper; SLOTS] = [const { Wrapper::new() }; SLOTS];
+pub static HITS: [Wrapper; SLOTS] = [const { Wrapper::new() }; SLOTS];
+pub static STATS: [Wrapper; SLOTS] = [const { Wrapper::new() }; SLOTS];
 
-struct Wrapper {
+pub struct Wrapper {
     data: [AtomicI64; 3],
     values: Mutex<Vec<i64>>,
+    label: OnceLock<&'static str>,
 }
 
 impl Wrapper {
@@ -20,6 +21,7 @@ impl Wrapper {
         Self {
             data: [AtomicI64::new(0), AtomicI64::new(0), AtomicI64::new(0)],
             values: Mutex::new(Vec::new()),
+            label: OnceLock::new(),
         }
     }
 
@@ -88,6 +90,20 @@ impl Wrapper {
     }
 }
 
+pub fn slot_for(slots: &[Wrapper; SLOTS], label: &'static str) -> usize {
+    if let Some((slot, _)) = slots.iter().enumerate().find(|(_, entry)| entry.label.get() == Some(&label)) {
+        return slot;
+    }
+
+    for (slot, entry) in slots.iter().enumerate() {
+        if entry.label.set(label).is_ok() || entry.label.get() == Some(&label) {
+            return slot;
+        }
+    }
+
+    panic!("debug slot limit exceeded");
+}
+
 pub fn dbg_hit(condition: bool, slot: usize) -> bool {
     assert!(slot < SLOTS);
 
@@ -109,18 +125,64 @@ pub fn dbg_stats<T: Into<i64> + Copy>(value: T, slot: usize) -> T {
     value
 }
 
+fn grouped(n: i64) -> String {
+    let sign = if n < 0 { "-" } else { "" };
+    let digits = n.unsigned_abs().to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3 + sign.len());
+
+    for (i, ch) in digits.chars().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            out.push('\'');
+        }
+        out.push(ch);
+    }
+
+    let mut out: String = out.chars().rev().collect();
+    if !sign.is_empty() {
+        out.insert(0, '-');
+    }
+
+    out
+}
+
+#[macro_export]
+macro_rules! dbg_hit {
+    ($condition:expr) => {
+        $crate::misc::dbg_hit(
+            $condition,
+            $crate::misc::slot_for(
+                &$crate::misc::HITS,
+                concat!("[", file!(), ":", line!(), ":", column!(), "] (", stringify!($condition), ")"),
+            ),
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! dbg_stats {
+    ($value:expr) => {
+        $crate::misc::dbg_stats(
+            $value,
+            $crate::misc::slot_for(
+                &$crate::misc::STATS,
+                concat!("[", file!(), ":", line!(), ":", column!(), "] (", stringify!($value), ")"),
+            ),
+        )
+    };
+}
+
 pub fn dbg_print() {
-    for (i, slot) in HITS.iter().enumerate() {
+    for slot in &HITS {
         if slot.get(0) > 0 {
             let total = slot.get(0);
             let hits = slot.get(1);
             let rate = hits as f64 / total as f64 * 100.0;
-
-            println!("Hit #{i}: Total {total}, Hits {hits}, Hit Rate (%) {rate:.5}");
+            let label = slot.label.get().copied().unwrap_or("<unknown>");
+            println!("{label} {} / {} ({rate:.5}%)", grouped(hits), grouped(total));
         }
     }
 
-    for (i, slot) in STATS.iter().enumerate() {
+    for slot in &STATS {
         if slot.get(0) > 0 {
             let total = slot.get(0);
             let mean = slot.get(1) as f64 / total as f64;
@@ -130,9 +192,10 @@ pub fn dbg_print() {
             let gmd = slot.gini_mean_difference();
             let min = slot.min();
             let max = slot.max();
-
+            let label = slot.label.get().copied().unwrap_or("<unknown>");
             println!(
-                "Stats #{i}: Total {total}, Mean {mean:.5}, Median {median:.5}, Std Dev {stddev:.5}, GMD {gmd:.5}, Min {min}, Max {max}"
+                "{label} Total {}, Mean {mean:.5}, Median {median:.5}, SD {stddev:.5}, GMD {gmd:.5}, Min {min}, Max {max}",
+                grouped(total)
             );
         }
     }
