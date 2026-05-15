@@ -117,11 +117,11 @@ impl PstAccumulator {
                 let add2 = pst_index(piece.color(), PieceType::Rook, rook_to, king, pov);
                 let sub2 = pst_index(piece.color(), PieceType::Rook, rook_from, king, pov);
 
-                self.add2_sub2(prev, add1, add2, sub1, sub2, pov, parameters);
+                self.apply_delta(prev, [add1, add2], [sub1, sub2], pov, parameters);
             }
             MoveKind::EnPassant => {
                 let sub2 = pst_index(!piece.color(), PieceType::Pawn, mv.to() ^ 8, king, pov);
-                self.add1_sub2(prev, add1, sub1, sub2, pov, parameters);
+                self.apply_delta(prev, [add1], [sub1, sub2], pov, parameters);
             }
             MoveKind::Capture
             | MoveKind::PromotionCaptureN
@@ -129,71 +129,34 @@ impl PstAccumulator {
             | MoveKind::PromotionCaptureR
             | MoveKind::PromotionCaptureQ => {
                 let sub2 = pst_index(!piece.color(), captured.piece_type(), mv.to(), king, pov);
-                self.add1_sub2(prev, add1, sub1, sub2, pov, parameters);
+                self.apply_delta(prev, [add1], [sub1, sub2], pov, parameters);
             }
-            _ => self.add1_sub1(prev, add1, sub1, pov, parameters),
+            _ => self.apply_delta(prev, [add1], [sub1], pov, parameters),
         }
 
         self.accurate[pov] = true;
     }
 
-    fn add1_sub1(&mut self, prev: &Self, add1: PstFeature, sub1: PstFeature, pov: Color, parameters: &Parameters) {
-        let vacc = self.values[pov].as_mut_ptr();
-        let vprev = prev.values[pov].as_ptr();
-
-        let vadd1 = parameters.ft_piece_weights[add1 as usize].as_ptr();
-        let vsub1 = parameters.ft_piece_weights[sub1 as usize].as_ptr();
-
-        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
-            unsafe {
-                let mut v = *vprev.add(i).cast();
-                v = simd::add_i16(v, simd::sub_i16(*vadd1.add(i).cast(), *vsub1.add(i).cast()));
-
-                *vacc.add(i).cast() = v;
-            }
-        }
-    }
-
-    fn add1_sub2(
-        &mut self, prev: &Self, add1: PstFeature, sub1: PstFeature, sub2: PstFeature, pov: Color,
-        parameters: &Parameters,
+    fn apply_delta<const ADDS: usize, const SUBS: usize>(
+        &mut self, prev: &Self, adds: [PstFeature; ADDS], subs: [PstFeature; SUBS], pov: Color, parameters: &Parameters,
     ) {
         let vacc = self.values[pov].as_mut_ptr();
         let vprev = prev.values[pov].as_ptr();
 
-        let vadd1 = parameters.ft_piece_weights[add1 as usize].as_ptr();
-        let vsub1 = parameters.ft_piece_weights[sub1 as usize].as_ptr();
-        let vsub2 = parameters.ft_piece_weights[sub2 as usize].as_ptr();
+        let adds = adds.map(|add| parameters.ft_piece_weights[add as usize].as_ptr());
+        let subs = subs.map(|sub| parameters.ft_piece_weights[sub as usize].as_ptr());
 
         for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
+            // SAFETY: the loop walks the fixed L1 buffer in lane-sized steps.
             unsafe {
                 let mut v = *vprev.add(i).cast();
-                v = simd::add_i16(v, *vadd1.add(i).cast());
-                v = simd::sub_i16(v, simd::add_i16(*vsub1.add(i).cast(), *vsub2.add(i).cast()));
+                for weights in adds {
+                    v = simd::add_i16(v, *weights.add(i).cast());
+                }
 
-                *vacc.add(i).cast() = v;
-            }
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn add2_sub2(
-        &mut self, prev: &Self, add1: PstFeature, add2: PstFeature, sub1: PstFeature, sub2: PstFeature, pov: Color,
-        parameters: &Parameters,
-    ) {
-        let vacc = self.values[pov].as_mut_ptr();
-        let vprev = prev.values[pov].as_ptr();
-
-        let vadd1 = parameters.ft_piece_weights[add1 as usize].as_ptr();
-        let vadd2 = parameters.ft_piece_weights[add2 as usize].as_ptr();
-        let vsub1 = parameters.ft_piece_weights[sub1 as usize].as_ptr();
-        let vsub2 = parameters.ft_piece_weights[sub2 as usize].as_ptr();
-
-        for i in (0..L1_SIZE).step_by(simd::I16_LANES) {
-            unsafe {
-                let mut v = *vprev.add(i).cast();
-                v = simd::add_i16(v, simd::add_i16(*vadd1.add(i).cast(), *vadd2.add(i).cast()));
-                v = simd::sub_i16(v, simd::add_i16(*vsub1.add(i).cast(), *vsub2.add(i).cast()));
+                for weights in subs {
+                    v = simd::sub_i16(v, *weights.add(i).cast());
+                }
 
                 *vacc.add(i).cast() = v;
             }
