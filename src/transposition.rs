@@ -233,7 +233,7 @@ impl TranspositionTable {
                     }
 
                     let is_exact = candidate.flags.bound() == Bound::Exact;
-                    let bound_bonus = (is_exact as i32) << 2;
+                    let bound_bonus = (is_exact as i32) * 4;
                     let quality = candidate.depth() - (4 * candidate.relative_age(tt_age)) + bound_bonus;
                     if quality < lowest_quality {
                         replacement_index = Some(index);
