@@ -663,6 +663,7 @@ fn search<NODE: NodeType>(
         td.stack[ply].mv = Move::NULL;
         singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
         td.stack[ply].excluded = Move::NULL;
+        td.stack[ply].tt_pv = tt_pv;
 
         if td.shared.status.get() == Status::STOPPED {
             return Score::ZERO;
