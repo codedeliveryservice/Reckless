@@ -506,7 +506,7 @@ fn search<NODE: NodeType>(
     // Razoring
     if !NODE::PV
         && !in_check
-        && estimated_score < alpha - 265 - 267 * depth * depth
+        && eval < alpha - 265 - 267 * depth * depth
         && alpha < 2048
         && !tt_move.is_quiet()
         && tt_bound != Bound::Lower
@@ -518,7 +518,7 @@ fn search<NODE: NodeType>(
     if !tt_pv
         && !in_check
         && !excluded
-        && estimated_score
+        && eval
             >= beta
                 + (1189 * depth * depth / 128 - 96 * improvement / 1024
                     + 23 * depth
@@ -527,9 +527,8 @@ fn search<NODE: NodeType>(
                     - 19)
                     .max(1)
         && !is_loss(beta)
-        && !is_win(estimated_score)
     {
-        return lerp(estimated_score, beta, 0.63);
+        return lerp(eval, beta, 0.63);
     }
 
     // Null Move Pruning (NMP)
