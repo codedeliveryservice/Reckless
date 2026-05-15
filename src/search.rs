@@ -430,14 +430,8 @@ fn search<NODE: NodeType>(
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
     // the current alpha-beta window; otherwise, retain the unbounded evaluation
-    let estimated_score = if !in_check
-        && !excluded
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score < eval,
-            Bound::Lower => tt_score > eval,
-            _ => true,
-        } {
+    let estimated_score = if !in_check && !excluded && is_valid(tt_score) && tt_bound != Bound::Upper && tt_score > eval
+    {
         tt_score
     } else {
         eval
