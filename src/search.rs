@@ -1390,6 +1390,6 @@ fn undo_move(td: &mut ThreadData, mv: Move) {
     td.board.undo_move(mv);
 }
 
-const fn lerp(a: i32, b: i32, t: f32) -> i32 {
+fn lerp(a: i32, b: i32, t: f32) -> i32 {
     t.mul_add((b - a) as f32, a as f32) as i32
 }
