@@ -547,6 +547,7 @@ fn search<NODE: NodeType>(
         && ply as i32 >= td.nmp_min_ply
         && td.board.material() > 624
         && !is_loss(beta)
+        && !is_win(estimated_score)
         && !(tt_bound == Bound::Lower
             && tt_move.is_capture()
             && td.board.piece_on(tt_move.to()).value() >= PieceType::Knight.value())
