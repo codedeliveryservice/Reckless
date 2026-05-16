@@ -16,7 +16,7 @@ pub enum Color {
 }
 
 // Only step east/west one step at a time
-pub fn shift_dir(mut bb: u64, dir: i8) -> u64 {
+pub const fn shift_dir(mut bb: u64, dir: i8) -> u64 {
     let file_offset = dir & 0x7;
 
     if file_offset == FILE_B {

@@ -203,7 +203,7 @@ impl NumaConfig {
         self.highest_cpu_index = self.node_by_cpu.keys().copied().max().unwrap_or(0);
     }
 
-    fn from_system_numa() -> Self {
+    const fn from_system_numa() -> Self {
         let mut cfg = NumaConfig::empty();
 
         #[cfg(all(target_os = "linux", not(target_os = "android")))]
