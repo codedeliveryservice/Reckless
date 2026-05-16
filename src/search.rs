@@ -527,8 +527,10 @@ fn search<NODE: NodeType>(
                     - 19)
                     .max(1)
         && !is_loss(beta)
-        && !is_win(estimated_score)
     {
+        if is_win(estimated_score) {
+            return estimated_score;
+        }
         return lerp(estimated_score, beta, 0.63);
     }
 
