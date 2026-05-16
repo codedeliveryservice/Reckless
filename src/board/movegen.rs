@@ -71,21 +71,24 @@ impl super::Board {
             Bitboard::ALL
         };
 
-        let pinned = self.pinned(self.side_to_move());
+        let pinned = self.pinned(stm);
 
-        self.collect_pawn_moves::<T>(list, target, pinned); //bad noisy/quiet boundary
+        self.collect_pawn_moves::<T>(list, target, pinned); //broken noisy/quiet boundary
 
         target &= kind_target;
 
-        let knights = self.colored_pieces(stm, PieceType::Knight);
-        let bishops = self.colored_pieces(stm, PieceType::Bishop);
-        let rooks = self.colored_pieces(stm, PieceType::Rook);
-        let queens = self.colored_pieces(stm, PieceType::Queen);
+        for knight in self.colored_pieces(stm, PieceType::Knight) & !pinned {
+            list.push_setwise(knight, knight_attacks(knight) & target, move_kind);
+        }
 
-        self.collect::<T, _>(list, target, knights, move_kind, pinned, knight_attacks);
-        self.collect::<T, _>(list, target, bishops, move_kind, pinned, |sq| bishop_attacks(sq, occupancies));
-        self.collect::<T, _>(list, target, rooks, move_kind, pinned, |sq| rook_attacks(sq, occupancies));
-        self.collect::<T, _>(list, target, queens, move_kind, pinned, |sq| queen_attacks(sq, occupancies));
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Bishop),
+            move_kind, pinned, |sq| bishop_attacks(sq, occupancies));
+
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Rook),
+            move_kind, pinned, |sq| rook_attacks(sq, occupancies));
+
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Queen),
+            move_kind, pinned, |sq| queen_attacks(sq, occupancies));
 
         if T::KIND == Kind::Quiet {
             self.collect_castling(list);
@@ -120,7 +123,7 @@ impl super::Board {
             && (self.castling_threat[kind] & self.all_threats()).is_empty()
             && !self.pinned(stm).contains(self.castling_rooks[kind])
         {
-            let king = self.king_square(self.side_to_move());
+            let king = self.king_square(stm);
             list.push(king, kind.landing_square(), MoveKind::Castling);
         }
     }
