@@ -102,7 +102,7 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
         for from in bb {
-            let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal};
+            let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal };
             list.push_setwise(from, attacks(from) & target, kind);
         }
     }
@@ -111,7 +111,7 @@ impl super::Board {
         &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
     ) {
         let king = self.king_square(self.side_to_move());
-        let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal};
+        let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal };
         for from in bb {
             let pin_mask = ray_pass(king, from);
             list.push_setwise(from, attacks(from) & target & pin_mask, kind);
