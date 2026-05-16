@@ -185,7 +185,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.print_uci_info(depth);
         }
 
-        if (td.root_moves[0].score - average[td.pv_index]).abs() < 12 {
+        if (td.root_moves[0].score - average[0]).abs() < 12 {
             eval_stability += 1;
         } else {
             eval_stability = 0;
