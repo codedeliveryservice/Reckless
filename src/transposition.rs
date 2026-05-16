@@ -111,16 +111,16 @@ struct Cluster {
 }
 
 impl Cluster {
-    fn key(&self, index: usize) -> u16 {
+    const fn key(&self, index: usize) -> u16 {
         verification_key(self.keys >> (index * 16))
     }
 
-    fn set_key(&mut self, index: usize, key: u16) {
+    const fn set_key(&mut self, index: usize, key: u16) {
         self.keys &= !(0xFFFF << (index * 16));
         self.keys |= (key as u64) << (index * 16);
     }
 
-    fn lookup_key(&self, key: u16) -> usize {
+    const fn lookup_key(&self, key: u16) -> usize {
         let bits = 0x0001_0001_0001_0001;
         let needle = key as u64 * bits;
         let zeros = self.keys ^ needle;
