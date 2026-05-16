@@ -12,8 +12,6 @@ macro_rules! define {
 macro_rules! define {
     {$($type:ident $name:ident: $value:expr; )*} => {
         pub fn set_parameter(name: &str, value: &str) {
-            let _ = value;
-
             match name {
                 $(stringify!($name) => unsafe { parameters::$name = value.parse().unwrap() },)*
                 _ => panic!("Unknown tunable parameter: {name}"),
@@ -34,5 +32,3 @@ macro_rules! define {
         }
     };
 }
-
-define! {}
