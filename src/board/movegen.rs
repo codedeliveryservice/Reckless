@@ -81,14 +81,17 @@ impl super::Board {
             list.push_setwise(knight, knight_attacks(knight) & target, move_kind);
         }
 
-        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Bishop),
-            move_kind, pinned, |sq| bishop_attacks(sq, occupancies));
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Bishop), move_kind, pinned, |sq| {
+            bishop_attacks(sq, occupancies)
+        });
 
-        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Rook),
-            move_kind, pinned, |sq| rook_attacks(sq, occupancies));
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Rook), move_kind, pinned, |sq| {
+            rook_attacks(sq, occupancies)
+        });
 
-        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Queen),
-            move_kind, pinned, |sq| queen_attacks(sq, occupancies));
+        self.collect::<T, _>(list, target, self.colored_pieces(stm, PieceType::Queen), move_kind, pinned, |sq| {
+            queen_attacks(sq, occupancies)
+        });
 
         if T::KIND == Kind::Quiet {
             self.collect_castling(list);
