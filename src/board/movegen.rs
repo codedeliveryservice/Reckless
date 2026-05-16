@@ -56,7 +56,7 @@ impl super::Board {
         let stm = self.side_to_move();
         let occupancies = self.occupancies();
         let kind_target = if T::KIND == Kind::Quiet { !occupancies } else { self.colors(!stm) };
-        let move_kind = if T::KIND == Kind::Quiet { MoveKind::Normal } else { MoveKind::Capture};
+        let move_kind = if T::KIND == Kind::Quiet { MoveKind::Normal } else { MoveKind::Capture };
 
         let king_sq = self.king_square(stm);
         list.push_setwise(king_sq, king_attacks(king_sq) & !self.all_threats() & kind_target, move_kind);
@@ -93,7 +93,8 @@ impl super::Board {
     }
 
     fn collect<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
-        &self, list: &mut MoveList, target: Bitboard, pieces: Bitboard, move_kind: MoveKind, pinned: Bitboard, attacks: F,
+        &self, list: &mut MoveList, target: Bitboard, pieces: Bitboard, move_kind: MoveKind, pinned: Bitboard,
+        attacks: F,
     ) {
         for from in pieces & !pinned {
             list.push_setwise(from, attacks(from) & target, move_kind);
