@@ -159,6 +159,6 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
     }
 }
 
-fn tb_en_passant_square(board: &Board) -> u32 {
+const fn tb_en_passant_square(board: &Board) -> u32 {
     board.en_passant() as u32 & 0x3F
 }
