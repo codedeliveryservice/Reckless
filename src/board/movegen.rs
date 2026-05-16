@@ -99,20 +99,20 @@ impl super::Board {
     }
 
     fn collect_unpinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
-        &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
+        &self, list: &mut MoveList, target: Bitboard, pieces: Bitboard, attacks: F,
     ) {
-        for from in bb {
-            let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal };
+        let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal };
+        for from in pieces {
             list.push_setwise(from, attacks(from) & target, kind);
         }
     }
 
     fn collect_pinned<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
-        &self, list: &mut MoveList, target: Bitboard, bb: Bitboard, attacks: F,
+        &self, list: &mut MoveList, target: Bitboard, pieces: Bitboard, attacks: F,
     ) {
         let king = self.king_square(self.side_to_move());
         let kind = if T::KIND == Kind::Noisy { MoveKind::Capture } else { MoveKind::Normal };
-        for from in bb {
+        for from in pieces {
             let pin_mask = ray_pass(king, from);
             list.push_setwise(from, attacks(from) & target & pin_mask, kind);
         }
