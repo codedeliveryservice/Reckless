@@ -6,24 +6,10 @@ use crate::{
     types::{Bitboard, CastlingKind, File, MoveKind, MoveList, PieceType, Square},
 };
 
-#[derive(Eq, PartialEq)]
-enum Kind {
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum MovegenKind {
     Quiet,
     Noisy,
-}
-
-trait MoveGenerator {
-    const KIND: Kind;
-}
-
-struct Quiet;
-impl MoveGenerator for Quiet {
-    const KIND: Kind = Kind::Quiet;
-}
-
-struct Noisy;
-impl MoveGenerator for Noisy {
-    const KIND: Kind = Kind::Noisy;
 }
 
 impl super::Board {
@@ -45,18 +31,18 @@ impl super::Board {
     }
 
     pub fn append_quiet_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<Quiet>(list);
+        self.generate_moves(list, MovegenKind::Quiet);
     }
 
     pub fn append_noisy_moves(&self, list: &mut MoveList) {
-        self.generate_moves::<Noisy>(list);
+        self.generate_moves(list, MovegenKind::Noisy);
     }
 
-    fn generate_moves<T: MoveGenerator>(&self, list: &mut MoveList) {
+    fn generate_moves(&self, list: &mut MoveList, mgkind: MovegenKind) {
         let stm = self.side_to_move();
         let occupancies = self.occupancies();
-        let kind_target = if T::KIND == Kind::Quiet { !occupancies } else { self.colors(!stm) };
-        let move_kind = if T::KIND == Kind::Quiet { MoveKind::Normal } else { MoveKind::Capture };
+        let kind_target = if mgkind == MovegenKind::Quiet { !occupancies } else { self.colors(!stm) };
+        let move_kind = if mgkind == MovegenKind::Quiet { MoveKind::Normal } else { MoveKind::Capture };
 
         let king_sq = self.king_square(stm);
         list.push_setwise(king_sq, king_attacks(king_sq) & !self.all_threats() & kind_target, move_kind);
@@ -73,7 +59,7 @@ impl super::Board {
 
         let pinned = self.pinned(stm);
 
-        self.collect_pawn_moves::<T>(list, target, pinned); //broken noisy/quiet boundary
+        self.collect_pawn_moves(list, target, pinned, mgkind); //broken noisy/quiet boundary
 
         target &= kind_target;
 
@@ -85,16 +71,16 @@ impl super::Board {
         let rooks = self.colored_pieces(stm, PieceType::Rook);
         let queens = self.colored_pieces(stm, PieceType::Queen);
 
-        self.collect::<T, _>(list, target, bishops, move_kind, pinned, |sq| bishop_attacks(sq, occupancies));
-        self.collect::<T, _>(list, target, rooks, move_kind, pinned, |sq| rook_attacks(sq, occupancies));
-        self.collect::<T, _>(list, target, queens, move_kind, pinned, |sq| queen_attacks(sq, occupancies));
+        self.collect::<_>(list, target, bishops, move_kind, pinned, |sq| bishop_attacks(sq, occupancies));
+        self.collect::<_>(list, target, rooks, move_kind, pinned, |sq| rook_attacks(sq, occupancies));
+        self.collect::<_>(list, target, queens, move_kind, pinned, |sq| queen_attacks(sq, occupancies));
 
-        if T::KIND == Kind::Quiet {
+        if mgkind == MovegenKind::Quiet {
             self.collect_castling(list);
         }
     }
 
-    fn collect<T: MoveGenerator, F: Fn(Square) -> Bitboard>(
+    fn collect<F: Fn(Square) -> Bitboard>(
         &self, list: &mut MoveList, target: Bitboard, pieces: Bitboard, move_kind: MoveKind, pinned: Bitboard,
         attacks: F,
     ) {
@@ -127,7 +113,7 @@ impl super::Board {
         }
     }
 
-    fn collect_pawn_moves<T: MoveGenerator>(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard) {
+    fn collect_pawn_moves(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, mgkind: MovegenKind) {
         let stm = self.side_to_move();
         let up = Square::UP[stm];
         let pawns = self.colored_pieces(stm, PieceType::Pawn);
@@ -138,7 +124,7 @@ impl super::Board {
         let pushable_pawns = pawns & (!pinned | Bitboard::file(self.king_square(stm).file()));
         let promotions = (pushable_pawns & seventh_rank).shift(up) & empty;
 
-        if T::KIND == Kind::Quiet {
+        if mgkind == MovegenKind::Quiet {
             let non_promotions = pushable_pawns & !seventh_rank;
             let single_pushes = non_promotions.shift(up) & empty;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
@@ -150,7 +136,7 @@ impl super::Board {
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionN);
         }
 
-        if T::KIND == Kind::Noisy {
+        if mgkind == MovegenKind::Noisy {
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
 
             let up_right = Square::UP[stm] + Square::RIGHT;
