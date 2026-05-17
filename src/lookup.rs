@@ -70,10 +70,6 @@ pub fn relative_diagonal(color: Color, sq: Square) -> Bitboard {
     unsafe { Bitboard(*DIAGONALS[color as usize].get_unchecked(sq as usize)) }
 }
 
-pub fn relative_anti_diagonal(color: Color, sq: Square) -> Bitboard {
-    unsafe { Bitboard(*DIAGONALS[!color as usize].get_unchecked(sq as usize)) }
-}
-
 pub fn attacks(piece: Piece, square: Square, occupancies: Bitboard) -> Bitboard {
     match piece.piece_type() {
         PieceType::Pawn => pawn_attacks(square, piece.color()),

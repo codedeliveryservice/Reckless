@@ -1,6 +1,6 @@
 use crate::{
     lookup::{
-        between, bishop_attacks, king_attacks, knight_attacks, queen_attacks, ray_pass, relative_anti_diagonal,
+        between, bishop_attacks, king_attacks, knight_attacks, queen_attacks, ray_pass,
         relative_diagonal, rook_attacks,
     },
     types::{Bitboard, CastlingKind, File, MoveKind, MoveList, PieceType, Square},
@@ -52,7 +52,7 @@ impl super::Board {
         }
 
         let mut target = if self.in_check() {
-            between(self.king_square(stm), self.checkers().lsb()) | self.checkers()
+            between(king_sq, self.checkers().lsb()) | self.checkers()
         } else {
             Bitboard::ALL
         };
@@ -108,8 +108,7 @@ impl super::Board {
             && (self.castling_threat[kind] & self.all_threats()).is_empty()
             && !self.pinned(stm).contains(self.castling_rooks[kind])
         {
-            let king = self.king_square(stm);
-            list.push(king, kind.landing_square(), MoveKind::Castling);
+            list.push(self.king_square(stm), kind.landing_square(), MoveKind::Castling);
         }
     }
 
@@ -120,8 +119,9 @@ impl super::Board {
         let seventh_rank = Bitboard::SEVENTH_RANK[stm];
         let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
+        let king_sq = self.king_square(stm);
 
-        let pushable_pawns = pawns & (!pinned | Bitboard::file(self.king_square(stm).file()));
+        let pushable_pawns = pawns & (!pinned | Bitboard::file(king_sq.file()));
         let promotions = (pushable_pawns & seventh_rank).shift(up) & empty;
 
         if mgkind == MovegenKind::Quiet {
@@ -139,10 +139,10 @@ impl super::Board {
         if mgkind == MovegenKind::Noisy {
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
 
-            let up_right = Square::UP[stm] + Square::RIGHT;
-            let up_left = Square::UP[stm] + Square::LEFT;
-            let right_pin_mask = relative_diagonal(stm, self.king_square(stm));
-            let left_pin_mask = relative_anti_diagonal(stm, self.king_square(stm));
+            let up_right = up + Square::RIGHT;
+            let up_left = up + Square::LEFT;
+            let right_pin_mask = relative_diagonal(stm, king_sq);
+            let left_pin_mask = relative_diagonal(!stm, king_sq);
             let right_pawns = pawns & (!pinned | right_pin_mask) & !Bitboard::file(File::H);
             let left_pawns = pawns & (!pinned | left_pin_mask) & !Bitboard::file(File::A);
             let target = target & self.colors(!stm);
