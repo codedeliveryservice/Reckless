@@ -177,10 +177,8 @@ impl Board {
             self.add_piece(new_mover, from);
 
             if mv.is_capture() {
-                let captured = if mv.is_en_passant() {
-                    Some(Piece::new(!stm, PieceType::Pawn))
-                } else { self.state.captured };
-
+                let captured =
+                    if mv.is_en_passant() { Some(Piece::new(!stm, PieceType::Pawn)) } else { self.state.captured };
                 self.add_piece(captured.expect("REASON"), mv.capture_sq());
             }
         }
