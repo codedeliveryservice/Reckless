@@ -1,7 +1,6 @@
 use crate::{
     lookup::{
-        between, bishop_attacks, king_attacks, knight_attacks, queen_attacks, ray_pass,
-        relative_diagonal, rook_attacks,
+        between, bishop_attacks, king_attacks, knight_attacks, queen_attacks, ray_pass, relative_diagonal, rook_attacks,
     },
     types::{Bitboard, CastlingKind, File, MoveKind, MoveList, PieceType, Square},
 };
@@ -51,12 +50,8 @@ impl super::Board {
             return;
         }
 
-        let mut target = if self.in_check() {
-            between(king_sq, self.checkers().lsb()) | self.checkers()
-        } else {
-            Bitboard::ALL
-        };
-
+        let mut target =
+            if self.in_check() { between(king_sq, self.checkers().lsb()) | self.checkers() } else { Bitboard::ALL };
         let pinned = self.pinned(stm);
 
         self.collect_pawn_moves(list, target, pinned, mgkind); //broken noisy/quiet boundary
