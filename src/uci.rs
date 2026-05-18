@@ -82,7 +82,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
             // Non-UCI commands
             ["compiler"] => compiler(),
             ["eval"] => eval(threads.main_thread(), &board),
-            ["d"] => println!("{}", board),
+            ["d"] => println!("{board}"),
             ["bench", args @ ..] => match mode {
                 Mode::Uci => tools::bench::<true>(args),
                 Mode::Cli => tools::bench::<false>(args),
@@ -340,7 +340,7 @@ fn eval(td: &mut ThreadData, board: &Board) {
             let sq = Square::from_rank_file(rank, file);
             let piece = board.piece_on(sq);
             let piece_str = if piece == Piece::None { " ".to_string() } else { piece.to_string() };
-            print!("  {:^3}  |", piece_str);
+            print!("  {piece_str:^3}  |");
         }
         println!();
 
@@ -351,7 +351,7 @@ fn eval(td: &mut ThreadData, board: &Board) {
                 None => print!("       |"),
                 Some(v) => {
                     let val = v as f32 / 100.0;
-                    print!("{:+6.2} |", val);
+                    print!("{val:+6.2} |");
                 }
             }
         }
@@ -372,16 +372,16 @@ fn eval(td: &mut ThreadData, board: &Board) {
         let total = white_score as f32 / 100.0;
 
         if bucket == used_bucket {
-            println!("|  {:<2}        | {:+7.2}    | <-- this bucket is used", bucket, total);
+            println!("|  {bucket:<2}        | {total:+7.2}    | <-- this bucket is used");
         } else {
-            println!("|  {:<2}        | {:+7.2}    |", bucket, total);
+            println!("|  {bucket:<2}        | {total:+7.2}    |");
         }
     }
     println!("+------------+------------+");
 
     let final_eval = td.nnue.evaluate(board);
     let final_total = (if side == Color::White { final_eval } else { -final_eval }) as f32 / 100.0;
-    println!("\nNNUE evaluation        {:+.2} (White side)", final_total);
+    println!("\nNNUE evaluation        {final_total:+.2} (White side)");
 }
 
 fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
