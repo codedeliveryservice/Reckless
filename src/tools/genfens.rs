@@ -10,7 +10,7 @@ use crate::{
     board::{Board, NullBoardObserver},
     numa::NumaReplicatedAccessToken,
     search::{self, Report},
-    thread::{SharedContext, Status, ThreadData},
+    thread::{RootMove, SharedContext, Status, ThreadData},
     time::{Limits, TimeManager},
     types::{Move, is_decisive, normalize_to_cp},
 };
@@ -19,7 +19,7 @@ const RANDOM_PLIES: &[usize] = &[4, 5];
 
 const VALIDATION_ABS_MIN_CP: i32 = 50;
 const VALIDATION_ABS_MAX_CP: i32 = 150;
-const VALIDATION_LIMITS: Limits = Limits::Nodes(40_000);
+const VALIDATION_LIMITS: Limits = Limits::Nodes(20_000);
 
 const OPENING_SEARCH_LIMITS: Limits = Limits::Nodes(4_000);
 const OPENING_MULTIPV_LINES: usize = 4;
@@ -82,13 +82,7 @@ fn choose_move(rng: &mut StdRng, td: &mut ThreadData) -> Option<Move> {
         return None;
     }
 
-    td.time_manager = TimeManager::new(OPENING_SEARCH_LIMITS, 0, 0);
-
-    td.multi_pv = OPENING_MULTIPV_LINES;
-    td.shared.nodes.reset();
-    td.shared.status.set(Status::RUNNING);
-
-    search::start(td, Report::None, 1);
+    start_search(td, OPENING_MULTIPV_LINES, OPENING_SEARCH_LIMITS);
 
     let candidates = td.root_moves.iter().filter(|rm| !is_decisive(rm.score)).map(|rm| rm.mv).collect::<Vec<_>>();
     if candidates.is_empty() {
@@ -100,12 +94,18 @@ fn choose_move(rng: &mut StdRng, td: &mut ThreadData) -> Option<Move> {
 }
 
 fn validation_score(td: &mut ThreadData) -> i32 {
-    td.time_manager = TimeManager::new(VALIDATION_LIMITS, 0, 0);
+    start_search(td, 1, VALIDATION_LIMITS);
+    td.root_moves[0].score
+}
+
+fn start_search(td: &mut ThreadData, multi_pv: usize, limits: Limits) {
+    td.time_manager = TimeManager::new(limits, 0, 0);
+    td.multi_pv = multi_pv;
 
     td.shared.nodes.reset();
     td.shared.status.set(Status::RUNNING);
 
-    search::start(td, Report::None, 1);
+    td.root_moves = td.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
 
-    td.root_moves[0].score
+    search::start(td, Report::None, 1);
 }
