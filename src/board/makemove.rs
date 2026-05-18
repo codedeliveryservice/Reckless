@@ -44,7 +44,8 @@ impl Board {
             self.state.en_passant = Square::None;
         }
 
-        self.state.captured = None;
+        let captured = self.piece_on(to);
+        self.state.captured = Some(captured);
         self.state.recapture_square = to;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
@@ -54,7 +55,6 @@ impl Board {
         }
         self.state.plies_from_null += 1;
 
-        let captured = self.piece_on(to);
         if captured != Piece::None && !mv.is_castling() {
             self.remove_piece(piece, from);
             observer.on_piece_change(self, piece, from, false);
