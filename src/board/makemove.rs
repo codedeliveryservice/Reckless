@@ -10,7 +10,6 @@ impl Board {
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
-        self.state.recapture_square = Square::None;
 
         self.update_threats();
 
@@ -46,7 +45,6 @@ impl Board {
 
         let captured = self.piece_on(to);
         self.state.captured = Some(captured);
-        self.state.recapture_square = to;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
