@@ -79,8 +79,8 @@ pub fn speedtest(args: &[&str]) {
     println!("Compiler Version:  {}", env!("COMPILER_VERSION"));
     println!("Compiler Target:   {}", env!("COMPILER_TARGET"));
     println!("Compiler Features: {}", env!("COMPILER_FEATURES"));
-    println!("Threads:           {}", threads);
-    println!("Hash (MiB):        {}", hash);
+    println!("Threads:           {threads}");
+    println!("Hash (MiB):        {hash}");
 
     let shared = Arc::new(SharedContext::default());
     shared.tt.resize(threads, hash);
@@ -114,8 +114,8 @@ pub fn speedtest(args: &[&str]) {
     let seconds = time.elapsed().as_secs_f64();
     let nps = nodes as f64 / seconds;
 
-    println!("Total nodes:       {}", nodes);
-    println!("Total time (sec):  {:.2}", seconds);
+    println!("Total nodes:       {nodes}");
+    println!("Total time (sec):  {seconds:.2}");
     println!("Nodes/second:      {}", nps as u64);
 
     crate::misc::dbg_print();
