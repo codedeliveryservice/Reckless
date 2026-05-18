@@ -45,7 +45,7 @@ impl Board {
         }
 
         self.state.captured = None;
-        self.state.recapture_square = Square::None;
+        self.state.recapture_square = to;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
@@ -67,7 +67,6 @@ impl Board {
 
             self.state.material -= captured.value();
             self.state.captured = Some(captured);
-            self.state.recapture_square = to;
         } else if !mv.is_castling() {
             self.remove_piece(piece, from);
             self.add_piece(piece, to);
