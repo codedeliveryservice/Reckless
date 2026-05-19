@@ -53,7 +53,23 @@ impl Board {
             self.state.halfmove_clock += 1;
         }
 
-        if captured != Piece::None && !mv.is_castling() {
+        if mv.is_castling() {
+            let (rook_from, rook_to) = self.get_castling_rook(to);
+            let rook = Piece::new(stm, PieceType::Rook);
+
+            self.remove_piece(rook, rook_from);
+            observer.on_piece_change(self, rook, rook_from, false);
+
+            self.remove_piece(piece, from);
+            self.add_piece(piece, to);
+            observer.on_piece_move(self, piece, from, to);
+
+            self.add_piece(rook, rook_to);
+            observer.on_piece_change(self, rook, rook_to, true);
+
+            self.update_hash(rook, rook_from);
+            self.update_hash(rook, rook_to);
+        } else if captured != Piece::None {
             self.remove_piece(piece, from);
             observer.on_piece_change(self, piece, from, false);
 
@@ -65,7 +81,7 @@ impl Board {
 
             self.state.material -= captured.value();
             self.state.captured = Some(captured);
-        } else if !mv.is_castling() {
+        } else {
             self.remove_piece(piece, from);
             self.add_piece(piece, to);
             observer.on_piece_move(self, piece, from, to);
@@ -89,23 +105,6 @@ impl Board {
 
                 self.state.material -= captured.value();
                 self.state.captured = Some(captured);
-            }
-            MoveKind::Castling => {
-                let (rook_from, rook_to) = self.get_castling_rook(to);
-                let rook = Piece::new(stm, PieceType::Rook);
-
-                self.remove_piece(rook, rook_from);
-                observer.on_piece_change(self, rook, rook_from, false);
-
-                self.remove_piece(piece, from);
-                self.add_piece(piece, to);
-                observer.on_piece_move(self, piece, from, to);
-
-                self.add_piece(rook, rook_to);
-                observer.on_piece_change(self, rook, rook_to, true);
-
-                self.update_hash(rook, rook_from);
-                self.update_hash(rook, rook_to);
             }
             _ if mv.is_promotion() => {
                 let promotion = Piece::new(stm, mv.promo_piece_type());
