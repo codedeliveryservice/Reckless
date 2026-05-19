@@ -45,13 +45,13 @@ impl Board {
 
         let captured = self.piece_on(to);
         self.state.captured = Some(captured);
+        self.state.plies_from_null += 1;
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
         } else {
             self.state.halfmove_clock += 1;
         }
-        self.state.plies_from_null += 1;
 
         if captured != Piece::None && !mv.is_castling() {
             self.remove_piece(piece, from);
@@ -88,6 +88,7 @@ impl Board {
                 self.update_hash(captured, to ^ 8);
 
                 self.state.material -= captured.value();
+                self.state.captured = Some(captured);
             }
             MoveKind::Castling => {
                 let (rook_from, rook_to) = self.get_castling_rook(to);
@@ -174,9 +175,7 @@ impl Board {
             self.add_piece(new_mover, from);
 
             if mv.is_capture() {
-                let captured =
-                    if mv.is_en_passant() { Some(Piece::new(!stm, PieceType::Pawn)) } else { self.state.captured };
-                self.add_piece(captured.expect("REASON"), mv.capture_sq());
+                self.add_piece(self.captured_piece().expect("REASON"), mv.capture_sq());
             }
         }
 
