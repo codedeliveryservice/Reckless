@@ -10,7 +10,6 @@ impl Board {
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
-        self.state.recapture_square = Square::None;
 
         self.update_threats();
 
@@ -44,8 +43,8 @@ impl Board {
             self.state.en_passant = Square::None;
         }
 
-        self.state.captured = None;
-        self.state.recapture_square = Square::None;
+        let captured = self.piece_on(to);
+        self.state.captured = Some(captured);
 
         if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
             self.state.halfmove_clock = 0;
@@ -54,7 +53,6 @@ impl Board {
         }
         self.state.plies_from_null += 1;
 
-        let captured = self.piece_on(to);
         if captured != Piece::None && !mv.is_castling() {
             self.remove_piece(piece, from);
             observer.on_piece_change(self, piece, from, false);
@@ -67,7 +65,6 @@ impl Board {
 
             self.state.material -= captured.value();
             self.state.captured = Some(captured);
-            self.state.recapture_square = to;
         } else if !mv.is_castling() {
             self.remove_piece(piece, from);
             self.add_piece(piece, to);

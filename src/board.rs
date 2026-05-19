@@ -34,7 +34,6 @@ struct InternalState {
     plies_from_null: usize,
     repetition: i32,
     captured: Option<Piece>,
-    recapture_square: Square,
     piece_threats: [Bitboard; PieceType::NUM],
     all_threats: Bitboard,
     pinned: [Bitboard; Color::NUM],
@@ -126,10 +125,6 @@ impl Board {
 
     pub const fn captured_piece(&self) -> Option<Piece> {
         self.state.captured
-    }
-
-    pub const fn recapture_square(&self) -> Square {
-        self.state.recapture_square
     }
 
     pub const fn en_passant(&self) -> Square {
