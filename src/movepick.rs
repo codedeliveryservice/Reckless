@@ -164,7 +164,11 @@ impl MovePicker {
             let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
             let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
 
-            let p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+            let mut p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+
+            // Add advanced attacks on anything
+            p |= Bitboard::HOME_ROWS[!side] | Bitboard::SEVENTH_RANK[side];
+
             let n = knight_attacks_setwise(knight_vulnerable) & !threats;
             let b = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
             let r = Bitboard::file(td.board.king_square(!side).file()) & !threats;
