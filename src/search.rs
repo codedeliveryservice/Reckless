@@ -573,7 +573,7 @@ fn search<NODE: NodeType>(
             return Score::ZERO;
         }
 
-        if score >= beta && !is_win(score) {
+        if !is_win(score) && (score >= beta || (is_valid(tt_score) && score >= tt_score && tt_bound == Bound::Lower)) {
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
