@@ -296,7 +296,7 @@ impl Network {
         let baseline = self.evaluate(board);
 
         let mut board_without = board.clone();
-        board_without.remove_piece(piece, sq);
+        board_without.remove_piece(sq);
 
         self.full_refresh(&board_without);
         let without = self.evaluate(&board_without);

@@ -209,10 +209,12 @@ impl Board {
         self.pieces[piece.piece_type()].set(square);
     }
 
-    pub fn remove_piece(&mut self, piece: Piece, square: Square) {
+    pub fn remove_piece(&mut self, square: Square) -> Piece {
+        let piece = self.mailbox[square];
         self.mailbox[square] = Piece::None;
         self.colors[piece.color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
+        piece
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {

@@ -31,7 +31,6 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
-        let pt = piece.piece_type();
         let stm = self.side_to_move;
 
         self.state_stack.push(self.state);
@@ -47,7 +46,7 @@ impl Board {
         self.state.captured = Some(captured);
         self.state.plies_from_null += 1;
 
-        if mv.kind() == MoveKind::Capture || pt == PieceType::Pawn {
+        if mv.kind() == MoveKind::Capture || piece.piece_type() == PieceType::Pawn {
             self.state.halfmove_clock = 0;
         } else {
             self.state.halfmove_clock += 1;
@@ -55,12 +54,10 @@ impl Board {
 
         if mv.is_castling() {
             let (rook_from, rook_to) = self.get_castling_rook(to);
-            let rook = Piece::new(stm, PieceType::Rook);
-
-            self.remove_piece(rook, rook_from);
+            let rook = self.remove_piece(rook_from);
             observer.on_piece_change(self, rook, rook_from, false);
 
-            self.remove_piece(piece, from);
+            self.remove_piece(from);
             self.add_piece(piece, to);
             observer.on_piece_move(self, piece, from, to);
 
@@ -70,10 +67,10 @@ impl Board {
             self.update_hash(rook, rook_from);
             self.update_hash(rook, rook_to);
         } else if captured != Piece::None {
-            self.remove_piece(piece, from);
+            self.remove_piece(from);
             observer.on_piece_change(self, piece, from, false);
 
-            self.remove_piece(captured, to);
+            self.remove_piece(to);
             self.add_piece(piece, to);
             observer.on_piece_mutate(self, captured, piece, to);
 
@@ -82,7 +79,7 @@ impl Board {
             self.state.material -= captured.value();
             self.state.captured = Some(captured);
         } else {
-            self.remove_piece(piece, from);
+            self.remove_piece(from);
             self.add_piece(piece, to);
             observer.on_piece_move(self, piece, from, to);
         }
@@ -96,9 +93,7 @@ impl Board {
                 self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
             }
             MoveKind::EnPassant => {
-                let captured = Piece::new(!stm, PieceType::Pawn);
-
-                self.remove_piece(captured, to ^ 8);
+                let captured = self.remove_piece(to ^ 8);
                 observer.on_piece_change(self, captured, to ^ 8, false);
 
                 self.update_hash(captured, to ^ 8);
@@ -109,7 +104,7 @@ impl Board {
             _ if mv.is_promotion() => {
                 let promotion = Piece::new(stm, mv.promo_piece_type());
 
-                self.remove_piece(piece, to);
+                self.remove_piece(to);
                 self.add_piece(promotion, to);
                 observer.on_piece_mutate(self, piece, promotion, to);
 
@@ -157,27 +152,21 @@ impl Board {
 
         let from = mv.from();
         let to = mv.to();
-        let mover = self.piece_on(to);
+        let mover = self.remove_piece(to);
         let stm = self.side_to_move;
 
         if mv.is_castling() {
             let (rook_from, rook_to) = self.get_castling_rook(to);
-
-            self.remove_piece(Piece::new(stm, PieceType::Rook), rook_to);
-            self.remove_piece(mover, to);
-
+            self.remove_piece(rook_to);
             self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
             self.add_piece(mover, from);
         } else {
-            self.remove_piece(mover, to);
-            let new_mover = if mv.is_promotion() { Piece::new(stm, PieceType::Pawn) } else { mover };
-            self.add_piece(new_mover, from);
+            self.add_piece(if mv.is_promotion() { Piece::new(stm, PieceType::Pawn) } else { mover }, from);
 
             if mv.is_capture() {
-                self.add_piece(self.captured_piece().expect("REASON"), mv.capture_sq());
+                self.add_piece(self.captured_piece().expect("Empty capture."), mv.capture_sq());
             }
         }
-
         self.state = self.state_stack.pop().unwrap();
     }
 }
