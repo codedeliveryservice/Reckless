@@ -565,7 +565,13 @@ fn search<NODE: NodeType>(
         td.board.make_null_move();
         td.shared.tt.prefetch(td.board.hash());
 
-        let score = -search::<NonPV>(td, -beta, -beta + 1, depth - r, false, ply + 1);
+        let bound = if is_valid(tt_score) && beta > tt_score && tt_bound == Bound::Lower && depth - 2 <= tt_depth {
+            tt_score
+        } else {
+            beta
+        };
+
+        let score = -search::<NonPV>(td, -bound, -bound + 1, depth - r, false, ply + 1);
 
         td.board.undo_null_move();
 
@@ -573,20 +579,20 @@ fn search<NODE: NodeType>(
             return Score::ZERO;
         }
 
-        if score >= beta && !is_win(score) {
+        if score >= bound && !is_win(score) {
             if td.nmp_min_ply > 0 || depth < 16 {
                 return score;
             }
 
             td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+            let verified_score = search::<NonPV>(td, bound - 1, bound, depth - r, false, ply);
             td.nmp_min_ply = 0;
 
             if td.shared.status.get() == Status::STOPPED {
                 return Score::ZERO;
             }
 
-            if verified_score >= beta {
+            if verified_score >= bound {
                 return score;
             }
         }
@@ -734,6 +740,7 @@ fn search<NODE: NodeType>(
             if !in_check
                 && !td.board.is_direct_check(mv)
                 && is_quiet
+                && !is_win(beta)
                 && move_count >= (2697 + 77 * improvement / 16 + 1510 * depth * depth + 70 * history / 1024) / 1024
             {
                 skip_quiets = true;
