@@ -734,6 +734,7 @@ fn search<NODE: NodeType>(
             if !in_check
                 && !td.board.is_direct_check(mv)
                 && is_quiet
+                && !is_win(beta)
                 && move_count >= (2697 + 77 * improvement / 16 + 1510 * depth * depth + 70 * history / 1024) / 1024
             {
                 skip_quiets = true;
