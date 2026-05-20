@@ -260,6 +260,10 @@ impl Board {
         self.state.repetition != 0 && self.state.repetition < ply
     }
 
+    pub const fn is_repetition(&self) -> bool {
+        self.state.repetition != 0
+    }
+
     pub fn draw_by_fifty_move_rule(&self) -> bool {
         self.halfmove_clock() >= 100 && (!self.in_check() || self.has_legal_moves())
     }
