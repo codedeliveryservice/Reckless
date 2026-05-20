@@ -816,6 +816,8 @@ fn search<NODE: NodeType>(
             reduction += 459 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 286 * (is_valid(tt_score) && tt_depth < depth) as i32;
 
+            reduction += (-238 * improvement / 128).clamp(-256, 600);
+
             if is_quiet {
                 reduction += 1971;
                 reduction -= 179 * history / 1024;
@@ -840,7 +842,7 @@ fn search<NODE: NodeType>(
             }
 
             if !improving {
-                reduction += (414 - 238 * improvement / 128).min(1014);
+                reduction += 414;
             }
 
             if td.board.in_check() {
@@ -888,6 +890,8 @@ fn search<NODE: NodeType>(
 
             reduction -= 2382 * correction_value.abs() / 1024;
 
+            reduction += (-232 * improvement / 128).clamp(-256, 1024);
+
             if is_quiet {
                 reduction += 1385;
                 reduction -= 136 * history / 1024;
@@ -907,7 +911,7 @@ fn search<NODE: NodeType>(
             }
 
             if !improving {
-                reduction += (402 - 232 * improvement / 128).min(1426);
+                reduction += 402;
             }
 
             if td.stack[ply + 1].cutoff_count > 2 {
