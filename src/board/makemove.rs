@@ -152,7 +152,7 @@ impl Board {
 
         let from = mv.from();
         let to = mv.to();
-        let mut mover = self.remove_piece(to);
+        let mover = self.remove_piece(to);
         let stm = self.side_to_move;
 
         if mv.is_castling() {
@@ -161,16 +161,12 @@ impl Board {
             self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
             self.add_piece(mover, from);
         } else {
-            if mv.is_promotion() {
-                mover = Piece::new(stm, PieceType::Pawn);
-            }
-            self.add_piece(mover, from);
+            self.add_piece(if mv.is_promotion() { Piece::new(stm, PieceType::Pawn) } else { mover }, from);
 
             if mv.is_capture() {
                 self.add_piece(self.captured_piece().expect("Empty capture."), mv.capture_sq());
             }
         }
-
         self.state = self.state_stack.pop().unwrap();
     }
 }
