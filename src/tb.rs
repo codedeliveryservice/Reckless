@@ -117,7 +117,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             0,
             ep_square,
             td.board.side_to_move() == Color::White,
-            td.board.is_repetition(),
+            td.board.has_repeated(),
             true,
             tb_ptr,
         );
