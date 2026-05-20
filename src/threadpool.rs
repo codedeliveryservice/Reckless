@@ -106,7 +106,11 @@ impl ThreadPool {
                 t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
 
             #[cfg(feature = "syzygy")]
-            if t1.board.castling().raw() == 0 && t1.board.occupancies().popcount() <= tb::size() {
+            if t1.board.castling().raw() == 0
+                && t1.board.occupancies().popcount() <= tb::size()
+                && !t1.board.draw_by_fifty_move_rule()
+                && !t1.board.draw_by_material()
+            {
                 tb::rank_rootmoves(t1);
             }
 

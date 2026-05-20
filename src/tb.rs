@@ -125,8 +125,11 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
         if dtz_success != 0 {
             let c_rootmoves: &TbRootMoves = &*tb_ptr;
             update_rootmoves(&mut td.root_moves, c_rootmoves);
-            td.shared.stop_probing_tb.store(true, Ordering::Relaxed);
             td.shared.root_in_tb.store(true, Ordering::Relaxed);
+
+            let best_rank = td.root_moves[0].tb_rank;
+            let is_decisive = best_rank >= 99900 || best_rank <= -99900;
+            td.shared.stop_probing_tb.store(is_decisive, Ordering::Relaxed);
             return;
         }
 
@@ -153,8 +156,9 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             update_rootmoves(&mut td.root_moves, c_rootmoves);
             td.shared.root_in_tb.store(true, Ordering::Relaxed);
 
-            // Keep probing in search if DTZ is not available and we are winning
-            td.shared.stop_probing_tb.store(td.root_moves[0].tb_score <= Score::ZERO, Ordering::Relaxed);
+            let best_rank = td.root_moves[0].tb_rank;
+            let is_decisive = best_rank >= 99900 || best_rank <= -99900;
+            td.shared.stop_probing_tb.store(is_decisive && td.root_moves[0].tb_score > Score::ZERO, Ordering::Relaxed);
         }
     }
 }
