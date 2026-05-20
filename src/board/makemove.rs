@@ -152,24 +152,22 @@ impl Board {
 
         let from = mv.from();
         let to = mv.to();
-        let mover = self.piece_on(to);
+        let mut mover = self.remove_piece(to);
         let stm = self.side_to_move;
 
         if mv.is_castling() {
             let (rook_from, rook_to) = self.get_castling_rook(to);
-
             self.remove_piece(rook_to);
-            self.remove_piece(to);
-
             self.add_piece(Piece::new(stm, PieceType::Rook), rook_from);
             self.add_piece(mover, from);
         } else {
-            self.remove_piece(to);
-            let new_mover = if mv.is_promotion() { Piece::new(stm, PieceType::Pawn) } else { mover };
-            self.add_piece(new_mover, from);
+            if mv.is_promotion() {
+                mover = Piece::new(stm, PieceType::Pawn);
+            }
+            self.add_piece(mover, from);
 
             if mv.is_capture() {
-                self.add_piece(self.captured_piece().expect("REASON"), mv.capture_sq());
+                self.add_piece(self.captured_piece().expect("Empty capture."), mv.capture_sq());
             }
         }
 
