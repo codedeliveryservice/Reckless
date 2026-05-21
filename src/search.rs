@@ -890,13 +890,13 @@ fn search<NODE: NodeType>(
 
             reduction -= 2382 * correction_value.abs() / 1024;
 
-            reduction += (-232 * improvement / 128).clamp(-256, 1024);
+            reduction += (-232 * improvement / 128).clamp(-384, 1024);
 
             if is_quiet {
-                reduction += 1385;
+                reduction += 1485;
                 reduction -= 136 * history / 1024;
             } else {
-                reduction += 1049;
+                reduction += 1149;
                 reduction -= 55 * history / 1024;
             }
 
