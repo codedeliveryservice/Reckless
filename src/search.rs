@@ -700,6 +700,10 @@ fn search<NODE: NodeType>(
             extension = -2;
         }
     }
+    // Low Depth Singular Extensions (LDSE)
+    else if depth <= 7 && !in_check && cut_node && estimated_score <= alpha - 25 {
+        extension = 1;
+    }
 
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
