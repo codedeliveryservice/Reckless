@@ -116,6 +116,7 @@ impl Board {
             _ => (),
         }
 
+        self.advance_fullmove_counter();
         self.side_to_move = !self.side_to_move;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
@@ -149,6 +150,7 @@ impl Board {
 
     pub fn undo_move(&mut self, mv: Move) {
         self.side_to_move = !self.side_to_move;
+        self.retreat_fullmove_counter();
 
         let from = mv.from();
         let to = mv.to();

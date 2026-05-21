@@ -199,6 +199,10 @@ impl Board {
         self.fullmove_number += self.side_to_move() as usize;
     }
 
+    pub const fn retreat_fullmove_counter(&mut self) {
+        self.fullmove_number -= self.side_to_move() as usize;
+    }
+
     pub const fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
     }
