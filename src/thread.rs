@@ -231,10 +231,20 @@ impl ThreadData {
             let mut upperbound = root_move.upperbound;
             let mut lowerbound = root_move.lowerbound;
 
-            if self.shared.root_in_tb.load(Ordering::Relaxed) && score.abs() <= Score::TB_WIN {
-                score = root_move.tb_score;
-                upperbound = false;
-                lowerbound = false;
+            if self.shared.root_in_tb.load(Ordering::Relaxed) {
+                // Cursed win/loss due to 50-move rule
+                let is_cursed = root_move.tb_rank > 0 && root_move.tb_rank < 900
+                    || root_move.tb_rank < 0 && root_move.tb_rank > -900;
+
+                if is_cursed {
+                    upperbound = false;
+                    lowerbound = false;
+                    score = 0;
+                } else if score.abs() <= Score::TB_WIN {
+                    upperbound = false;
+                    lowerbound = false;
+                    score = root_move.tb_score;
+                }
             }
 
             let mut formatted_score = match score.abs() {

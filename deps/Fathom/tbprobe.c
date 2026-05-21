@@ -40,7 +40,6 @@ SOFTWARE.
 #include "tbprobe.h"
 
 #define TB_PIECES 7
-#define MAX_DTZ 100000
 #define TB_HASHBITS  (TB_PIECES < 7 ?  11 : 12)
 #define TB_MAX_PIECE (TB_PIECES < 7 ? 254 : 650)
 #define TB_MAX_PAWN  (TB_PIECES < 7 ? 256 : 861)
@@ -2266,7 +2265,7 @@ static int root_probe_dtz(const Pos *pos, bool hasRepeated, bool useRule50, stru
 
   // The border between draw and win lies at rank 1 or rank 900, depending
   // on whether the 50-move rule is used.
-  int bound = useRule50 ? (MAX_DTZ - 100) : 1;
+  int bound = useRule50 ? 900 : 1;
 
   // Probe, rank and score each move.
   TbMove rootMoves[TB_MAX_MOVES];
@@ -2302,18 +2301,13 @@ static int root_probe_dtz(const Pos *pos, bool hasRepeated, bool useRule50, stru
     // Note that moves ranked 900 have dtz + cnt50 == 100, which in rare
     // cases may be insufficient to win as dtz may be one off (see the
     // comments before TB_probe_dtz()).
-    int r =  v > 0 ? (v + cnt50 <= 99 && !hasRepeated ? MAX_DTZ : MAX_DTZ - (v + cnt50))
-           : v < 0 ? (-v * 2 + cnt50 < 100 ? -MAX_DTZ : -MAX_DTZ + (-v + cnt50))
+    int r =  v > 0 ? (v + cnt50 <= 99 && !hasRepeated ? 1000 : 1000 - (v + cnt50))
+           : v < 0 ? (-v * 2 + cnt50 < 100 ? -1000 : -1000 + (-v + cnt50))
            : 0;
     m->tbRank = r;
 
-    // Determine the score to be displayed for this move. Assign at least
-    // 1 cp to cursed wins and let it grow to 49 cp as the position gets
-    // closer to a real win.
     m->tbScore =  r >= bound ? TB_VALUE_MATE - TB_MAX_MATE_PLY - 1
-                : r >  0     ? max( 3, r - (MAX_DTZ - 200)) * TB_VALUE_PAWN / 200
-                : r == 0     ? TB_VALUE_DRAW
-                : r > -bound ? min(-3, r + (MAX_DTZ - 200)) * TB_VALUE_PAWN / 200
+                : r > -bound ? TB_VALUE_DRAW
                 :             -TB_VALUE_MATE + TB_MAX_MATE_PLY + 1;
   }
   return 1;
@@ -2324,7 +2318,7 @@ static int root_probe_dtz(const Pos *pos, bool hasRepeated, bool useRule50, stru
 // A return value of 0 means that not all probes were successful.
 int root_probe_wdl(const Pos *pos, bool useRule50, struct TbRootMoves *rm)
 {
-  static int WdlToRank[] = { -MAX_DTZ, -MAX_DTZ + 101, 0, MAX_DTZ - 101, MAX_DTZ };
+  static int WdlToRank[] = { -1000, -899, 0, 899, 1000 };
   static Value WdlToValue[] = {
     -TB_VALUE_MATE + TB_MAX_MATE_PLY + 1,
     TB_VALUE_DRAW - 2,
