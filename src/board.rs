@@ -243,8 +243,11 @@ impl Board {
         }
 
         // Here on, there are exactly 2 non-king minors
+
+        // Here, each side has one minor
         if self.colored_pieces2(stm, PieceType::Bishop, PieceType::Knight).popcount() == 1 {
-            return true;
+            //If a king is in a corner, don't auto draw.
+            return (Bitboard::CORNERS & self.pieces(PieceType::King)).is_empty();
         }
 
         if self.pieces(PieceType::Knight) != Bitboard(0) {
