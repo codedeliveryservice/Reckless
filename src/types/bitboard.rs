@@ -13,8 +13,10 @@ impl Bitboard {
     pub const ALL: Self = Self(0xFFFFFFFFFFFFFFFF);
     pub const LIGHT_SQUARES: Self = Self(0x55AA55AA55AA55AA);
     pub const SEVENTH_RANK: [Bitboard; 2] = [Self::rank(Rank::R7), Self::rank(Rank::R2)];
+    pub const SIXTH_RANK: [Bitboard; 2] = [Self::rank(Rank::R6), Self::rank(Rank::R3)];
     pub const THIRD_RANK: [Bitboard; 2] = [Self::rank(Rank::R3), Self::rank(Rank::R6)];
     pub const HOME_ROWS: [Bitboard; 2] = [Self::rank(Rank::R1), Self::rank(Rank::R8)];
+    pub const LEVER_RANKS: [Bitboard; 2] = [Self(0x0000FFFF00000000), Self(0x00000000FFFF0000)];
 
     /// Creates a bitboard with all bits set in the specified rank.
     pub const fn rank(rank: Rank) -> Self {

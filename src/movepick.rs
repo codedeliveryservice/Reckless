@@ -146,6 +146,12 @@ impl MovePicker {
         let occupancies = td.board.occupancies();
         let pawn_threats = td.board.piece_threats(PieceType::Pawn);
 
+        let non_pawn_threats = td.board.piece_threats(PieceType::Knight)
+            | td.board.piece_threats(PieceType::Bishop)
+            | td.board.piece_threats(PieceType::Rook)
+            | td.board.piece_threats(PieceType::Queen)
+            | td.board.piece_threats(PieceType::King);
+
         let threatened = {
             let minor_threats =
                 pawn_threats | td.board.piece_threats(PieceType::Knight) | td.board.piece_threats(PieceType::Bishop);
@@ -164,7 +170,11 @@ impl MovePicker {
             let queen_orth_vulnerable = td.board.colored_pieces(!side, PieceType::Bishop) & !threats;
             let queen_diag_vulnerable = td.board.colored_pieces(!side, PieceType::Rook) & !threats;
 
-            let p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+            let mut p = pawn_attacks_setwise(td.board.colors(!side), !side) & !threats;
+
+            // Add advanced pawn attacks to pawn offense
+            p |= pawn_threats & Bitboard::LEVER_RANKS[side] & !non_pawn_threats;
+
             let n = knight_attacks_setwise(knight_vulnerable) & !threats;
             let b = bishop_attacks_setwise(bishop_vulnerable, occupancies) & !threats;
             let r = Bitboard::file(td.board.king_square(!side).file()) & !threats;
