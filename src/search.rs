@@ -1138,7 +1138,7 @@ fn search<NODE: NodeType>(
     best_score
 }
 
-fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: isize) -> i32 {
+fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, mut beta: i32, ply: isize) -> i32 {
     debug_assert!(!NODE::ROOT);
     debug_assert!(ply as usize <= MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
@@ -1170,6 +1170,14 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     if ply as usize >= MAX_PLY - 1 {
         return if in_check { draw(td) } else { td.nnue.evaluate(&td.board) };
+    }
+
+    // Mate Distance Pruning (MDP)
+    alpha = alpha.max(mated_in(ply));
+    beta = beta.min(mate_in(ply + 1));
+
+    if alpha >= beta {
+        return alpha;
     }
 
     let hash = td.board.hash();
