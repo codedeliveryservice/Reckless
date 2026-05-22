@@ -367,6 +367,30 @@ fn search<NODE: NodeType>(
                 return tt_score;
             }
         }
+
+        if !NODE::ROOT
+            && NODE::PV
+            && !excluded
+            && tt_depth > depth
+            && is_valid(tt_score)
+            && !is_decisive(tt_score)
+            && !is_decisive(alpha)
+            && !is_decisive(beta)
+        {
+            match tt_bound {
+                Bound::Lower => alpha = alpha.max(tt_score),
+                Bound::Upper => beta = beta.min(tt_score),
+                _ => {}
+            }
+
+            if alpha >= beta {
+                match tt_bound {
+                    Bound::Upper => alpha = beta - 1,
+                    Bound::Lower => beta = alpha + 1,
+                    _ => {}
+                }
+            }
+        }
     }
 
     // Tablebases Probe
