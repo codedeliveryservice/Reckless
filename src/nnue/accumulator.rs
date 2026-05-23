@@ -12,13 +12,13 @@ pub use threats::ThreatAccumulator;
 
 #[derive(Clone)]
 pub struct AccumulatorCache {
-    entries: Box<[[[CacheEntry; INPUT_BUCKETS]; 2]; 2]>,
+    entries: Box<[[[CacheEntry; INPUT_BUCKETS]; 2]]>,
 }
 
 impl AccumulatorCache {
     pub fn new(parameters: &Parameters) -> Self {
         Self {
-            entries: Box::new([[[CacheEntry::new(parameters); INPUT_BUCKETS]; 2]; 2]),
+            entries: vec![[[CacheEntry::new(parameters); INPUT_BUCKETS]; 2]; 2].into_boxed_slice(),
         }
     }
 }
