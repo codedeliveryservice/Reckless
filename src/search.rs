@@ -456,7 +456,7 @@ fn search<NODE: NodeType>(
         eval = tt_score;
     }
 
-    td.stack[ply].eval = eval;
+    td.stack[ply].eval = if is_valid(eval) { eval } else { td.stack[ply - 2].eval };
     td.stack[ply].tt_move = tt_move;
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
