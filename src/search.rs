@@ -409,7 +409,7 @@ fn search<NODE: NodeType>(
     let correction_value = eval_correction(td, ply);
 
     let raw_eval;
-    let mut eval;
+    let eval;
 
     // Evaluation
     if in_check {
@@ -443,20 +443,7 @@ fn search<NODE: NodeType>(
         eval
     };
 
-    // Use the bounded TT entry score for evaluation when in check
-    if in_check
-        && !is_decisive(tt_score)
-        && is_valid(tt_score)
-        && match tt_bound {
-            Bound::Upper => tt_score <= alpha,
-            Bound::Lower => tt_score >= beta,
-            _ => true,
-        }
-    {
-        eval = tt_score;
-    }
-
-    td.stack[ply].eval = if is_valid(eval) { eval } else { td.stack[ply - 2].eval };
+    td.stack[ply].eval = if !in_check { eval } else { td.stack[ply - 2].eval };
     td.stack[ply].tt_move = tt_move;
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
@@ -1254,7 +1241,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
             }
 
             // Static Exchange Evaluation Pruning (SEE Pruning)
-            if is_valid(eval) && !td.board.see(mv, (alpha - eval) / 8 - correction_value.abs().min(71) - 77) {
+            if !in_check && !td.board.see(mv, (alpha - eval) / 8 - correction_value.abs().min(71) - 77) {
                 continue;
             }
         }
