@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
@@ -15,14 +11,16 @@ use crate::{
     types::{Move, is_decisive, normalize_to_cp},
 };
 
-const RANDOM_PLIES: &[usize] = &[4, 5];
+const POSITIONS: &str = include_str!("./chess324.fen");
 
-const VALIDATION_ABS_MIN_CP: i32 = 50;
+const RANDOM_PLIES: &[usize] = &[7, 8];
+
+const VALIDATION_ABS_MIN_CP: i32 = 25;
 const VALIDATION_ABS_MAX_CP: i32 = 150;
 const VALIDATION_LIMITS: Limits = Limits::Nodes(20_000);
 
 const OPENING_SEARCH_LIMITS: Limits = Limits::Nodes(4_000);
-const OPENING_MULTIPV_LINES: usize = 4;
+const OPENING_MULTIPV_LINES: usize = 6;
 
 pub fn genfens() {
     let args = std::env::args().nth(1).unwrap();
@@ -30,10 +28,8 @@ pub fn genfens() {
 
     let count = args[1].parse::<u64>().unwrap();
     let seed = args[3].parse::<u64>().unwrap();
-    let book = args[5].to_string();
 
-    let reader = File::open(&book).unwrap();
-    let lines = BufReader::new(reader).lines().map(Result::unwrap).collect::<Vec<_>>();
+    let lines = POSITIONS.lines().map(|line| line.trim().to_string()).collect::<Vec<_>>();
 
     let shared = Arc::new(SharedContext::default());
     let token = NumaReplicatedAccessToken::new(0);
