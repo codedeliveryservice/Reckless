@@ -491,16 +491,7 @@ fn search<NODE: NodeType>(
         && is_valid(tt_score)
         && !is_decisive(tt_score);
 
-    let improvement = if in_check {
-        0
-    } else if is_valid(td.stack[ply - 2].eval) {
-        eval - td.stack[ply - 2].eval
-    } else if is_valid(td.stack[ply - 4].eval) {
-        eval - td.stack[ply - 4].eval
-    } else {
-        0
-    };
-
+    let improvement = if !in_check && is_valid(td.stack[ply - 2].eval) { eval - td.stack[ply - 2].eval } else { 0 };
     let improving = improvement > 0;
 
     // Razoring
