@@ -719,6 +719,9 @@ fn search<NODE: NodeType>(
 
         let is_quiet = mv.is_quiet();
 
+        let conthist4 = td.conthist(ply, 4, mv);
+        let conthist6 = td.conthist(ply, 6, mv);
+
         let history = if is_quiet {
             td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
         } else {
@@ -806,6 +809,8 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 reduction += 1971;
                 reduction -= 179 * history / 1024;
+                reduction -= 128 * conthist4 / 1024;
+                reduction -= 128 * conthist6 / 1024;
             } else {
                 reduction += 1424;
                 reduction -= 107 * history / 1024;
@@ -878,6 +883,8 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 reduction += 1385;
                 reduction -= 136 * history / 1024;
+                reduction -= 128 * conthist4 / 1024;
+                reduction -= 128 * conthist6 / 1024;
             } else {
                 reduction += 1049;
                 reduction -= 55 * history / 1024;
