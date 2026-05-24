@@ -146,15 +146,14 @@ impl super::Board {
 
             let target = target & self.colors(!stm);
 
-            let up_right = up + Square::RIGHT;
-            let right_pin_mask = relative_diagonal(stm, king_sq);
-            let right_pawns = pawns & (!pinned | right_pin_mask) & !Bitboard::file(File::H);
-            self.collect_pawn_captures(list, right_pawns, up_right, target, seventh_rank);
+            let dirs = [up + Square::RIGHT, up + Square::LEFT];
+            let pin_masks = [relative_diagonal(stm, king_sq), relative_diagonal(!stm, king_sq)];
+            let shift_masks = [!Bitboard::file(File::H), !Bitboard::file(File::A)];
 
-            let up_left = up + Square::LEFT;
-            let left_pin_mask = relative_diagonal(!stm, king_sq);
-            let left_pawns = pawns & (!pinned | left_pin_mask) & !Bitboard::file(File::A);
-            self.collect_pawn_captures(list, left_pawns, up_left, target, seventh_rank);
+            for i in 0..2 {
+                let the_pawns = pawns & (!pinned | pin_masks[i]) & shift_masks[i];
+                self.collect_pawn_captures(list, the_pawns, dirs[i], target, seventh_rank);
+            }
         }
     }
 }
