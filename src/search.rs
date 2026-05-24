@@ -698,6 +698,9 @@ fn search<NODE: NodeType>(
     let mut quiet_moves = ArrayVec::<Move, 32>::new();
     let mut noisy_moves = ArrayVec::<Move, 32>::new();
 
+    let mut quiet_history_sum = 0;
+    let mut quiet_history_count = 0;
+
     let mut move_count = 0;
     let mut move_picker = MovePicker::new(tt_move, None);
     let mut skip_quiets = false;
@@ -720,7 +723,14 @@ fn search<NODE: NodeType>(
         let is_quiet = mv.is_quiet();
 
         let history = if is_quiet {
-            td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
+            let value = td.quiet_history.get(td.board.all_threats(), stm, mv)
+                + td.conthist(ply, 1, mv)
+                + td.conthist(ply, 2, mv);
+
+            quiet_history_sum += value;
+            quiet_history_count += 1;
+
+            value
         } else {
             let captured = td.board.type_on(mv.to());
             td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
@@ -806,6 +816,7 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 reduction += 1971;
                 reduction -= 179 * history / 1024;
+                reduction -= 179 * (quiet_history_sum / quiet_history_count - history) / 1024;
             } else {
                 reduction += 1424;
                 reduction -= 107 * history / 1024;
