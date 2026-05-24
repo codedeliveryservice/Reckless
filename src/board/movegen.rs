@@ -92,18 +92,14 @@ impl super::Board {
 
     fn collect_castling(&self, list: &mut MoveList) {
         let stm = self.side_to_move();
-        self.collect_castling_kind(list, CastlingKind::KINDS[stm][0]); //queenside
-        self.collect_castling_kind(list, CastlingKind::KINDS[stm][1]); //kingside
-    }
-
-    fn collect_castling_kind(&self, list: &mut MoveList, kind: CastlingKind) {
-        let stm = self.side_to_move();
-        if self.castling().is_allowed(kind)
-            && (self.castling_path[kind] & self.occupancies()).is_empty()
-            && (self.castling_threat[kind] & self.all_threats()).is_empty()
-            && !self.pinned(stm).contains(self.castling_rooks[kind])
-        {
-            list.push(self.king_square(stm), kind.landing_square(), MoveKind::Castling);
+        for kind in [CastlingKind::KINDS[stm][0], CastlingKind::KINDS[stm][1]] {
+            if self.castling().is_allowed(kind)
+                && (self.castling_path[kind] & self.occupancies()).is_empty()
+                && (self.castling_threat[kind] & self.all_threats()).is_empty()
+                && !self.pinned(stm).contains(self.castling_rooks[kind])
+            {
+                list.push(self.king_square(stm), kind.landing_square(), MoveKind::Castling);
+            }
         }
     }
 
