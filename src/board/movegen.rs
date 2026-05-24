@@ -103,6 +103,18 @@ impl super::Board {
         }
     }
 
+    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, dir: i8, target: Bitboard, seventh_rank: Bitboard) {
+        let promos = (pawns & seventh_rank).shift(dir);
+        list.push_promotion_capture_setwise(dir, promos & target);
+        let captures = (pawns & !seventh_rank).shift(dir);
+        list.push_pawns_setwise(dir, captures & target, MoveKind::Capture);
+
+        let ep = self.en_passant();
+        if ep != Square::None && pawns.contains(ep.shift(-dir)) {
+            list.push(ep.shift(-dir), self.en_passant(), MoveKind::EnPassant);
+        }
+    }
+
     fn collect_pawn_moves(&self, list: &mut MoveList, target: Bitboard, pinned: Bitboard, mgkind: MovegenKind) {
         let stm = self.side_to_move();
         let up = Square::UP[stm];
@@ -130,34 +142,17 @@ impl super::Board {
         if mgkind == MovegenKind::Noisy {
             list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionQ);
 
-            let up_right = up + Square::RIGHT;
-            let up_left = up + Square::LEFT;
-            let right_pin_mask = relative_diagonal(stm, king_sq);
-            let left_pin_mask = relative_diagonal(!stm, king_sq);
-            let right_pawns = pawns & (!pinned | right_pin_mask) & !Bitboard::file(File::H);
-            let left_pawns = pawns & (!pinned | left_pin_mask) & !Bitboard::file(File::A);
             let target = target & self.colors(!stm);
 
-            let right = (right_pawns & seventh_rank).shift(up_right);
-            let left = (left_pawns & seventh_rank).shift(up_left);
+            let up_right = up + Square::RIGHT;
+            let right_pin_mask = relative_diagonal(stm, king_sq);
+            let right_pawns = pawns & (!pinned | right_pin_mask) & !Bitboard::file(File::H);
+            self.collect_pawn_captures(list, right_pawns, up_right, target, seventh_rank);
 
-            list.push_promotion_capture_setwise(up_right, right & target);
-            list.push_promotion_capture_setwise(up_left, left & target);
-
-            let right_captures = (right_pawns & !seventh_rank).shift(up_right);
-            let left_captures = (left_pawns & !seventh_rank).shift(up_left);
-
-            list.push_pawns_setwise(up_right, right_captures & target, MoveKind::Capture);
-            list.push_pawns_setwise(up_left, left_captures & target, MoveKind::Capture);
-
-            if self.en_passant() != Square::None {
-                let ep = self.en_passant().to_bb();
-                let right_attacker = right_pawns & ep.shift(-up_right);
-                let left_attacker = left_pawns & ep.shift(-up_left);
-                for pawn in right_attacker | left_attacker {
-                    list.push(pawn, self.en_passant(), MoveKind::EnPassant);
-                }
-            }
+            let up_left = up + Square::LEFT;
+            let left_pin_mask = relative_diagonal(!stm, king_sq);
+            let left_pawns = pawns & (!pinned | left_pin_mask) & !Bitboard::file(File::A);
+            self.collect_pawn_captures(list, left_pawns, up_left, target, seventh_rank);
         }
     }
 }
