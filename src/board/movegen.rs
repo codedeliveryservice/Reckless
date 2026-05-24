@@ -103,7 +103,9 @@ impl super::Board {
         }
     }
 
-    fn collect_pawn_captures(&self, list: &mut MoveList, pawns: Bitboard, dir: i8, target: Bitboard, seventh_rank: Bitboard) {
+    fn collect_pawn_captures(
+        &self, list: &mut MoveList, pawns: Bitboard, dir: i8, target: Bitboard, seventh_rank: Bitboard,
+    ) {
         let promos = (pawns & seventh_rank).shift(dir);
         list.push_promotion_capture_setwise(dir, promos & target);
         let captures = (pawns & !seventh_rank).shift(dir);
