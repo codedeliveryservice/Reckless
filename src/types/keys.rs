@@ -44,6 +44,8 @@ impl Keys {
 
     #[cfg(not(target_feature = "avx2"))]
     fn update_piece(&mut self, piece: Piece, piece_key: u64) {
+        use crate::types::PieceType;
+
         self.full ^= piece_key;
 
         match piece.piece_type() {
@@ -71,8 +73,8 @@ impl Keys {
         unsafe {
             let ptr = self as *mut Keys as *mut __m256i;
             let keys = _mm256_loadu_si256(ptr);
-            let key = _mm256_and_si256(_mm256_set1_epi64(key as i64), PIECE_MASK[piece]);
-            _mm256_storeu_si256(ptr, _mm256_xor_si256(keys, key));
+            let piece_key = _mm256_and_si256(_mm256_set1_epi64x(piece_key as i64), PIECE_MASK[piece]);
+            _mm256_storeu_si256(ptr, _mm256_xor_si256(keys, piece_key));
         }
     }
 
@@ -90,23 +92,23 @@ impl Keys {
 }
 
 #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-type PieceMask = __m256i;
+type PieceMask = std::arch::x86_64::__m256i;
 #[cfg(target_feature = "avx512f")]
 type PieceMask = u8;
 
 #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-const PAWN: __m256i = unsafe { std::arch::x86_64::_mm256_set_epi64x(0, 0, -1, -1) };
+const PAWN: PieceMask = unsafe { std::mem::transmute::<[i64; 4], PieceMask>([-1, -1, 0, 0]) };
 #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-const WHITE_NON_PAWN: __m256i = unsafe { std::arch::x86_64::_mm256_set_epi64x(0, -1, 0, -1) };
+const WHITE_NON_PAWN: PieceMask = unsafe { std::mem::transmute::<[i64; 4], PieceMask>([-1, 0, -1, 0]) };
 #[cfg(all(target_feature = "avx2", not(target_feature = "avx512f")))]
-const BLACK_NON_PAWN: __m256i = unsafe { std::arch::x86_64::_mm256_set_epi64x(-1, 0, 0, -1) };
+const BLACK_NON_PAWN: PieceMask = unsafe { std::mem::transmute::<[i64; 4], PieceMask>([-1, 0, 0, -1]) };
 
 #[cfg(target_feature = "avx512f")]
-const PAWN: u8 = 0b0011;
+const PAWN: PieceMask = 0b0011;
 #[cfg(target_feature = "avx512f")]
-const WHITE_NON_PAWN: u8 = 0b0101;
+const WHITE_NON_PAWN: PieceMask = 0b0101;
 #[cfg(target_feature = "avx512f")]
-const BLACK_NON_PAWN: u8 = 0b1001;
+const BLACK_NON_PAWN: PieceMask = 0b1001;
 
 #[cfg(all(target_feature = "avx2"))]
 const PIECE_MASK: [PieceMask; 12] = [
