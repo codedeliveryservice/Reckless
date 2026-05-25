@@ -530,7 +530,7 @@ impl Board {
         let pawns = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
 
         for attacker in pawns {
-            let occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb() ^ attacker.to_bb());
+            let occ = self.occupancies() ^ pushed_pawn.to_bb() ^ attacker.to_bb();
             let king_attackers = occ & self.attackers_to(king, occ) & self.colors(!stm);
 
             if king_attackers.is_empty() {
