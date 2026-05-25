@@ -19,7 +19,6 @@ const _: () = assert!(std::mem::size_of::<InternalEntry>() == 8);
 pub struct Entry {
     pub mv: Move,
     pub score: i32,
-    pub raw_eval: i32,
     pub depth: i32,
     pub bound: Bound,
     pub tt_pv: bool,
@@ -190,7 +189,6 @@ impl TranspositionTable {
             let hit = Entry {
                 depth: entry.depth(),
                 score: score_from_tt(entry.score as i32, ply, halfmove_clock),
-                raw_eval: entry.raw_eval as i32,
                 bound: entry.flags.bound(),
                 tt_pv: entry.flags.tt_pv(),
                 mv: entry.mv,
@@ -204,8 +202,7 @@ impl TranspositionTable {
 
     #[allow(clippy::too_many_arguments)]
     pub fn write(
-        &self, hash: u64, depth: i32, raw_eval: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool,
-        force: bool,
+        &self, hash: u64, depth: i32, mut score: i32, bound: Bound, mv: Move, ply: isize, tt_pv: bool, force: bool,
     ) {
         // Used for checking if an entry exists
         debug_assert!(depth != TtDepth::NONE);
@@ -261,7 +258,6 @@ impl TranspositionTable {
 
         entry.offset_depth = TtDepth::to_tt(depth);
         entry.score = score as i16;
-        entry.raw_eval = raw_eval as i16;
         entry.flags = Flags::new(bound, tt_pv, tt_age);
         cluster.set_key(replacement_index, key);
     }

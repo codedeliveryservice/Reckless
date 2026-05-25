@@ -392,7 +392,7 @@ fn search<NODE: NodeType>(
             || (bound == Bound::Upper && score <= alpha)
         {
             let depth = (depth + 6).min(MAX_PLY as i32 - 1);
-            td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(hash, depth, score, bound, Move::NULL, ply, tt_pv, false);
             return score;
         }
 
@@ -408,24 +408,20 @@ fn search<NODE: NodeType>(
 
     let correction_value = eval_correction(td, ply);
 
-    let raw_eval;
     let eval;
 
     // Evaluation
     if in_check {
-        raw_eval = Score::NONE;
         eval = Score::NONE;
     } else if excluded {
-        raw_eval = Score::NONE;
         eval = td.stack[ply].eval;
-    } else if let Some(entry) = &entry {
-        raw_eval = if is_valid(entry.raw_eval) { entry.raw_eval } else { td.nnue.evaluate(&td.board) };
-        eval = correct_eval(td, raw_eval, correction_value);
     } else {
-        raw_eval = td.nnue.evaluate(&td.board);
+        let raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
 
-        td.shared.tt.write(hash, TtDepth::SOME, raw_eval, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        if entry.is_none() {
+            td.shared.tt.write(hash, TtDepth::SOME, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
+        }
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -631,7 +627,7 @@ fn search<NODE: NodeType>(
             }
 
             if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
+                td.shared.tt.write(hash, probcut_depth + 1, score, Bound::Lower, mv, ply, tt_pv, false);
 
                 if is_decisive(score) {
                     return score;
@@ -998,7 +994,7 @@ fn search<NODE: NodeType>(
                 alpha = score;
 
                 if !(NODE::ROOT && td.pv_index > 0) && mv != tt_move {
-                    td.shared.tt.write(hash, depth, raw_eval, score, Bound::Lower, mv, ply, true, false);
+                    td.shared.tt.write(hash, depth, score, Bound::Lower, mv, ply, true, false);
                 }
             }
         }
@@ -1110,7 +1106,7 @@ fn search<NODE: NodeType>(
     }
 
     if !(excluded || NODE::ROOT && td.pv_index > 0) {
-        td.shared.tt.write(hash, depth, raw_eval, best_score, bound, best_move, ply, tt_pv, NODE::PV);
+        td.shared.tt.write(hash, depth, best_score, bound, best_move, ply, tt_pv, NODE::PV);
     }
 
     if !(in_check
@@ -1186,21 +1182,17 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    let raw_eval;
+    let correction_value = eval_correction(td, ply);
+
     let eval;
     let mut best_score;
-    let correction_value = eval_correction(td, ply);
 
     // Evaluation
     if in_check {
-        raw_eval = Score::NONE;
         eval = Score::NONE;
         best_score = -Score::INFINITE;
     } else {
-        raw_eval = match &entry {
-            Some(entry) if is_valid(entry.raw_eval) => entry.raw_eval,
-            _ => td.nnue.evaluate(&td.board),
-        };
+        let raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
         best_score = eval;
 
@@ -1223,7 +1215,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
 
         if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
+            td.shared.tt.write(hash, TtDepth::SOME, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
         }
 
         return best_score;
@@ -1304,7 +1296,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
     let bound = if best_score >= beta { Bound::Lower } else { Bound::Upper };
 
-    td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, bound, best_move, ply, tt_pv, false);
+    td.shared.tt.write(hash, TtDepth::SOME, best_score, bound, best_move, ply, tt_pv, false);
 
     debug_assert!(alpha < beta);
     debug_assert!(-Score::INFINITE < best_score && best_score < Score::INFINITE);
