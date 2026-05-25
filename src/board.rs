@@ -5,8 +5,8 @@ use crate::{
     },
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     types::{
-        Bitboard, Castling, CastlingKind, Color, File, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square,
-        ZOBRIST, ZobristInfo,
+        Bitboard, Castling, CastlingKind, Color, File, Keys, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType,
+        Square, ZOBRIST,
     },
 };
 
@@ -24,7 +24,7 @@ mod see;
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
 struct InternalState {
-    zobrist_info: ZobristInfo,
+    keys: Keys,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -81,15 +81,15 @@ impl Board {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
         // identical to the transposition table.
-        self.state.zobrist_info.full_key() ^ ZOBRIST.halfmove_clock[self.halfmove_clock_bucket()]
+        self.state.keys.full() ^ ZOBRIST.halfmove_clock[self.halfmove_clock_bucket()]
     }
 
     pub const fn pawn_key(&self) -> u64 {
-        self.state.zobrist_info.pawn_key()
+        self.state.keys.pawn()
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
-        self.state.zobrist_info.non_pawn_key(color)
+        self.state.keys.non_pawn(color)
     }
 
     pub const fn pinned(&self, color: Color) -> Bitboard {
@@ -220,7 +220,7 @@ impl Board {
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
-        self.state.zobrist_info.toggle(piece.color(), piece.piece_type(), square as usize);
+        self.state.keys.toggle(piece, square);
     }
 
     /// Checks for a material draw
@@ -283,23 +283,23 @@ impl Board {
             return false;
         }
 
-        let current_key = self.state.zobrist_info.full_key();
+        let current_key = self.state.keys.full();
         let stack = &self.state_stack;
         let len = stack.len();
 
         let mut index = len - 1;
-        let mut other = current_key ^ stack[index].zobrist_info.full_key() ^ ZOBRIST.side;
+        let mut other = current_key ^ stack[index].keys.full() ^ ZOBRIST.side;
 
         for compared_ply in (3..=half_moves).step_by(2) {
             index -= 1;
-            other ^= stack[index].zobrist_info.full_key() ^ stack[index - 1].zobrist_info.full_key() ^ ZOBRIST.side;
+            other ^= stack[index].keys.full() ^ stack[index - 1].keys.full() ^ ZOBRIST.side;
             index -= 1;
 
             if other != 0 {
                 continue;
             }
 
-            let diff = current_key ^ stack[index].zobrist_info.full_key();
+            let diff = current_key ^ stack[index].keys.full();
             let mut cuckoo_index = h1(diff);
 
             if cuckoo(cuckoo_index) != diff {
@@ -483,7 +483,7 @@ impl Board {
     }
 
     pub fn update_hash_keys(&mut self) {
-        self.state.zobrist_info = ZobristInfo::zero();
+        self.state.keys = Keys::zero();
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
@@ -494,14 +494,14 @@ impl Board {
         }
 
         if self.en_passant() != Square::None {
-            self.state.zobrist_info.update_fullkey(ZOBRIST.en_passant[self.en_passant()]);
+            self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
         }
 
         if self.side_to_move() == Color::White {
-            self.state.zobrist_info.update_fullkey(ZOBRIST.side);
+            self.state.keys.update_full(ZOBRIST.side);
         }
 
-        self.state.zobrist_info.update_fullkey(ZOBRIST.castling[self.state.castling]);
+        self.state.keys.update_full(ZOBRIST.castling[self.state.castling]);
     }
 
     fn is_en_passant_valid(&self) -> bool {
@@ -534,7 +534,7 @@ impl Board {
             return;
         }
 
-        self.state.zobrist_info.update_fullkey(ZOBRIST.en_passant[self.en_passant()]);
+        self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
         self.state.en_passant = Square::None;
     }
 

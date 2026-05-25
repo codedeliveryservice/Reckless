@@ -6,7 +6,7 @@ impl Board {
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
-        self.state.zobrist_info.update_fullkey(ZOBRIST.side ^ ZOBRIST.castling[self.state.castling]);
+        self.state.keys.update_full(ZOBRIST.side ^ ZOBRIST.castling[self.state.castling]);
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
@@ -14,7 +14,7 @@ impl Board {
         self.update_threats();
 
         if self.en_passant() != Square::None {
-            self.state.zobrist_info.update_fullkey(ZOBRIST.en_passant[self.en_passant()]);
+            self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
             self.state.en_passant = Square::None;
         }
     }
@@ -35,10 +35,10 @@ impl Board {
 
         self.state_stack.push(self.state);
 
-        self.state.zobrist_info.update_fullkey(ZOBRIST.castling[self.state.castling] ^ ZOBRIST.side);
+        self.state.keys.update_full(ZOBRIST.castling[self.state.castling] ^ ZOBRIST.side);
 
         if self.en_passant() != Square::None {
-            self.state.zobrist_info.update_fullkey(ZOBRIST.en_passant[self.en_passant()]);
+            self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
             self.state.en_passant = Square::None;
         }
 
@@ -90,7 +90,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 self.state.en_passant = to ^ 8;
-                self.state.zobrist_info.update_fullkey(ZOBRIST.en_passant[self.en_passant()]);
+                self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
             }
             MoveKind::EnPassant => {
                 let captured = self.remove_piece(to ^ 8);
@@ -120,7 +120,7 @@ impl Board {
         self.side_to_move = !self.side_to_move;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
-        self.state.zobrist_info.update_fullkey(ZOBRIST.castling[self.state.castling]);
+        self.state.keys.update_full(ZOBRIST.castling[self.state.castling]);
 
         self.update_threats();
         self.update_en_passant();
@@ -138,7 +138,7 @@ impl Board {
 
                 let stp = &self.state_stack[idx as usize];
 
-                if stp.zobrist_info.full_key() == self.state.zobrist_info.full_key() {
+                if stp.keys.full() == self.state.keys.full() {
                     self.state.repetition = if stp.repetition != 0 { -(i as i32) } else { i as i32 };
                     break;
                 }
