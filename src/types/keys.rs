@@ -5,7 +5,7 @@ use crate::types::{Castling, Color, Piece, PieceType, Square, ZOBRIST};
 pub struct Keys {
     pub full: u64,
     pub pawn: u64,
-    pub non_pawn: [u64; 2],
+    pub non_pawn: [u64; Color::NUM],
 }
 
 impl Keys {
