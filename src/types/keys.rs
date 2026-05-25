@@ -1,4 +1,4 @@
-use crate::types::{Color, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Castling, Color, Piece, PieceType, Square, ZOBRIST};
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -9,25 +9,6 @@ pub struct Keys {
 }
 
 impl Keys {
-    pub const fn zero() -> Self {
-        Self { full: 0, pawn: 0, non_pawn: [0; 2] }
-    }
-
-    pub fn update_full(&mut self, value: u64) {
-        self.full ^= value;
-    }
-
-    pub fn toggle(&mut self, piece: Piece, sq: Square) {
-        let piece_key = ZOBRIST.pieces[piece as usize][sq as usize];
-
-        self.full ^= piece_key;
-
-        match piece.piece_type() {
-            PieceType::Pawn => self.pawn ^= piece_key,
-            _ => self.non_pawn[piece.color() as usize] ^= piece_key,
-        }
-    }
-
     pub fn full(&self) -> u64 {
         self.full
     }
@@ -38,5 +19,28 @@ impl Keys {
 
     pub const fn non_pawn(&self, color: Color) -> u64 {
         self.non_pawn[color as usize]
+    }
+
+    pub fn toggle(&mut self, piece: Piece, sq: Square) {
+        let piece_key = ZOBRIST.pieces[piece][sq];
+
+        self.full ^= piece_key;
+
+        match piece.piece_type() {
+            PieceType::Pawn => self.pawn ^= piece_key,
+            _ => self.non_pawn[piece.color()] ^= piece_key,
+        }
+    }
+
+    pub fn toggle_side(&mut self) {
+        self.full ^= ZOBRIST.side;
+    }
+
+    pub fn toggle_castling(&mut self, castling: Castling) {
+        self.full ^= ZOBRIST.castling[castling];
+    }
+
+    pub fn toggle_en_passant(&mut self, en_passant: Square) {
+        self.full ^= ZOBRIST.en_passant[en_passant];
     }
 }

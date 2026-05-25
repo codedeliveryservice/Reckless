@@ -483,7 +483,7 @@ impl Board {
     }
 
     pub fn update_hash_keys(&mut self) {
-        self.state.keys = Keys::zero();
+        self.state.keys = Keys::default();
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
@@ -494,14 +494,14 @@ impl Board {
         }
 
         if self.en_passant() != Square::None {
-            self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
+            self.state.keys.toggle_en_passant(self.en_passant());
         }
 
         if self.side_to_move() == Color::White {
-            self.state.keys.update_full(ZOBRIST.side);
+            self.state.keys.toggle_side();
         }
 
-        self.state.keys.update_full(ZOBRIST.castling[self.state.castling]);
+        self.state.keys.toggle_castling(self.state.castling);
     }
 
     fn is_en_passant_valid(&self) -> bool {
@@ -534,7 +534,7 @@ impl Board {
             return;
         }
 
-        self.state.keys.update_full(ZOBRIST.en_passant[self.en_passant()]);
+        self.state.keys.toggle_en_passant(self.en_passant());
         self.state.en_passant = Square::None;
     }
 
