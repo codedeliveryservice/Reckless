@@ -418,10 +418,6 @@ fn search<NODE: NodeType>(
     } else {
         let raw_eval = td.nnue.evaluate(&td.board);
         eval = correct_eval(td, raw_eval, correction_value);
-
-        if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, Score::NONE, Bound::None, Move::NULL, ply, tt_pv, false);
-        }
     }
 
     // Prefer the TT entry to tighten the evaluation when its bound aligns with
@@ -1213,11 +1209,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         if !is_decisive(best_score) && !is_decisive(beta) {
             best_score = lerp(best_score, beta, 0.69);
         }
-
-        if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
-        }
-
         return best_score;
     }
 
