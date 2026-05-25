@@ -516,7 +516,13 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
     }
 
-    fn is_en_passant_valid(&self) -> bool {
+    /// We verify is self.state.enpassant is valid, and remove it if it is not.
+    /// This must be called after pinners and checkers have been updated.
+    fn validate_en_passant(&mut self) {
+        if self.en_passant() == Square::None {
+            return;
+        }
+
         let stm = self.side_to_move();
         let king = self.king_square(stm);
         let pushed_pawn = self.en_passant() ^ 8;
@@ -528,22 +534,8 @@ impl Board {
             let king_attackers = occ & self.attackers_to(king, occ) & self.colors(!stm);
 
             if king_attackers.is_empty() {
-                return true;
+                return; //return true;
             }
-        }
-
-        false
-    }
-
-    /// We verify is self.state.enpassant is valid, and remove it if it is not.
-    /// This must be called after pinners and checkers have been updated.
-    fn update_en_passant(&mut self) {
-        if self.en_passant() == Square::None {
-            return;
-        }
-
-        if self.is_en_passant_valid() {
-            return;
         }
 
         self.state.key ^= ZOBRIST.en_passant[self.en_passant()];

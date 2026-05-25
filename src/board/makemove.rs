@@ -123,7 +123,7 @@ impl Board {
         self.state.key ^= ZOBRIST.castling[self.state.castling];
 
         self.update_threats();
-        self.update_en_passant();
+        self.validate_en_passant();
 
         self.state.repetition = 0;
 
