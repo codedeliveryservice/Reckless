@@ -1,12 +1,13 @@
 use super::{Board, BoardObserver};
-use crate::types::{Move, MoveKind, Piece, PieceType, Square, ZOBRIST};
+use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
     pub fn make_null_move(&mut self) {
         self.side_to_move = !self.side_to_move;
         self.state_stack.push(self.state);
 
-        self.state.key ^= ZOBRIST.side ^ ZOBRIST.castling[self.state.castling];
+        self.state.keys.toggle_side();
+        self.state.keys.toggle_castling(self.state.castling);
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
@@ -14,7 +15,7 @@ impl Board {
         self.update_threats();
 
         if self.en_passant() != Square::None {
-            self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
+            self.state.keys.toggle_en_passant(self.en_passant());
             self.state.en_passant = Square::None;
         }
     }
@@ -35,10 +36,11 @@ impl Board {
 
         self.state_stack.push(self.state);
 
-        self.state.key ^= ZOBRIST.castling[self.state.castling] ^ ZOBRIST.side;
+        self.state.keys.toggle_side();
+        self.state.keys.toggle_castling(self.state.castling);
 
         if self.en_passant() != Square::None {
-            self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
+            self.state.keys.toggle_en_passant(self.en_passant());
             self.state.en_passant = Square::None;
         }
 
@@ -90,7 +92,7 @@ impl Board {
         match mv.kind() {
             MoveKind::DoublePush => {
                 self.state.en_passant = to ^ 8;
-                self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
+                self.state.keys.toggle_en_passant(self.en_passant());
             }
             MoveKind::EnPassant => {
                 let captured = self.remove_piece(to ^ 8);
@@ -120,7 +122,7 @@ impl Board {
         self.side_to_move = !self.side_to_move;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.keys.toggle_castling(self.state.castling);
 
         self.update_threats();
         self.validate_en_passant();
@@ -138,7 +140,7 @@ impl Board {
 
                 let stp = &self.state_stack[idx as usize];
 
-                if stp.key == self.state.key {
+                if stp.keys.full() == self.state.keys.full() {
                     self.state.repetition = if stp.repetition != 0 { -(i as i32) } else { i as i32 };
                     break;
                 }

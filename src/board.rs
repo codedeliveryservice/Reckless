@@ -5,8 +5,8 @@ use crate::{
     },
     setwise::{bishop_attacks_setwise, knight_attacks_setwise, pawn_attacks_setwise, rook_attacks_setwise},
     types::{
-        Bitboard, Castling, CastlingKind, Color, File, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType, Square,
-        ZOBRIST,
+        Bitboard, Castling, CastlingKind, Color, File, Keys, Move, PAWN_HOME_RANK, PROMO_RANK, Piece, PieceType,
+        Square, ZOBRIST,
     },
 };
 
@@ -24,9 +24,7 @@ mod see;
 /// Implements the `Copy` trait for efficient memory duplication via bitwise copying.
 #[derive(Copy, Clone, Default)]
 struct InternalState {
-    key: u64,
-    pawn_key: u64,
-    non_pawn_keys: [u64; Color::NUM],
+    keys: Keys,
     en_passant: Square,
     castling: Castling,
     halfmove_clock: u8,
@@ -83,15 +81,15 @@ impl Board {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
         // identical to the transposition table.
-        self.state.key ^ ZOBRIST.halfmove_clock[self.halfmove_clock_bucket()]
+        self.state.keys.full() ^ ZOBRIST.halfmove_clock[self.halfmove_clock_bucket()]
     }
 
     pub const fn pawn_key(&self) -> u64 {
-        self.state.pawn_key
+        self.state.keys.pawn()
     }
 
     pub const fn non_pawn_key(&self, color: Color) -> u64 {
-        self.state.non_pawn_keys[color as usize]
+        self.state.keys.non_pawn(color)
     }
 
     pub const fn pinned(&self, color: Color) -> Bitboard {
@@ -222,15 +220,7 @@ impl Board {
     }
 
     pub fn update_hash(&mut self, piece: Piece, square: Square) {
-        let key = ZOBRIST.pieces[piece][square];
-
-        self.state.key ^= key;
-
-        if piece.piece_type() == PieceType::Pawn {
-            self.state.pawn_key ^= key;
-        } else {
-            self.state.non_pawn_keys[piece.color()] ^= key;
-        }
+        self.state.keys.toggle(piece, square);
     }
 
     /// Checks for a material draw
@@ -293,23 +283,23 @@ impl Board {
             return false;
         }
 
-        let current_key = self.state.key;
+        let current_key = self.state.keys.full();
         let stack = &self.state_stack;
         let len = stack.len();
 
         let mut index = len - 1;
-        let mut other = current_key ^ stack[index].key ^ ZOBRIST.side;
+        let mut other = current_key ^ stack[index].keys.full() ^ ZOBRIST.side;
 
         for compared_ply in (3..=half_moves).step_by(2) {
             index -= 1;
-            other ^= stack[index].key ^ stack[index - 1].key ^ ZOBRIST.side;
+            other ^= stack[index].keys.full() ^ stack[index - 1].keys.full() ^ ZOBRIST.side;
             index -= 1;
 
             if other != 0 {
                 continue;
             }
 
-            let diff = current_key ^ stack[index].key;
+            let diff = current_key ^ stack[index].keys.full();
             let mut cuckoo_index = h1(diff);
 
             if cuckoo(cuckoo_index) != diff {
@@ -493,9 +483,7 @@ impl Board {
     }
 
     pub fn update_hash_keys(&mut self) {
-        self.state.key = 0;
-        self.state.pawn_key = 0;
-        self.state.non_pawn_keys = [0; Color::NUM];
+        self.state.keys = Keys::default();
 
         for piece in 0..Piece::NUM {
             let piece = Piece::from_index(piece);
@@ -506,14 +494,14 @@ impl Board {
         }
 
         if self.en_passant() != Square::None {
-            self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
+            self.state.keys.toggle_en_passant(self.en_passant());
         }
 
         if self.side_to_move() == Color::White {
-            self.state.key ^= ZOBRIST.side;
+            self.state.keys.toggle_side();
         }
 
-        self.state.key ^= ZOBRIST.castling[self.state.castling];
+        self.state.keys.toggle_castling(self.state.castling);
     }
 
     /// We verify is self.state.enpassant is valid, and remove it if it is not.
@@ -526,19 +514,18 @@ impl Board {
         let stm = self.side_to_move();
         let king = self.king_square(stm);
         let pushed_pawn = self.en_passant() ^ 8;
+        let ep_occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb());
 
         let pawns = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
 
         for attacker in pawns {
-            let occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb() ^ attacker.to_bb());
-            let king_attackers = occ & self.attackers_to(king, occ) & self.colors(!stm);
-
-            if king_attackers.is_empty() {
-                return; //return true;
+            let occ = ep_occ ^ attacker.to_bb();
+            if (occ & self.attackers_to(king, occ) & self.colors(!stm)).is_empty() {
+                return;
             }
         }
 
-        self.state.key ^= ZOBRIST.en_passant[self.en_passant()];
+        self.state.keys.toggle_en_passant(self.en_passant());
         self.state.en_passant = Square::None;
     }
 
