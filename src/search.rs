@@ -830,6 +830,10 @@ fn search<NODE: NodeType>(
                 reduction += (414 - 238 * improvement / 128).min(1014);
             }
 
+            if is_quiet && !is_decisive(alpha) && move_count > 1 {
+                reduction += 3 * ((alpha - estimated_score).clamp(-64, 96));
+            }
+
             if td.board.in_check() {
                 reduction -= 939;
             }
