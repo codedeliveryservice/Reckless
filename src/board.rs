@@ -520,9 +520,8 @@ impl Board {
 
         for attacker in attackers {
             let occ = ep_occ ^ attacker.to_bb();
-            let slide_attackers =
-                (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
-              | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
+            let slide_attackers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
+                | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
 
             if (slide_attackers & self.colors(!stm)).is_empty() {
                 return;
