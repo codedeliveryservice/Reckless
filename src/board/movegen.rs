@@ -104,12 +104,12 @@ impl super::Board {
     }
 
     fn collect_pawn_captures(
-        &self, list: &mut MoveList, pawns: Bitboard, dir: i8, target: Bitboard, seventh_rank: Bitboard,
+        &self, list: &mut MoveList, pawns: Bitboard, dir: i8, target: Bitboard,
     ) {
-        let promos = (pawns & seventh_rank).shift(dir);
-        list.push_promotion_capture_setwise(dir, promos & target);
-        let captures = (pawns & !seventh_rank).shift(dir);
-        list.push_pawns_setwise(dir, captures & target, MoveKind::Capture);
+        let captures = pawns.shift(dir) & target;
+        let promos = captures & Bitboard::BOTH_HOME_ROWS;
+        list.push_promotion_capture_setwise(dir, promos);
+        list.push_pawns_setwise(dir, captures ^ promos, MoveKind::Capture);
 
         let ep = self.en_passant();
         if ep != Square::None && pawns.contains(ep.shift(-dir)) {
@@ -152,7 +152,7 @@ impl super::Board {
 
             for i in 0..2 {
                 let the_pawns = pawns & (!pinned | pin_masks[i]) & shift_masks[i];
-                self.collect_pawn_captures(list, the_pawns, dirs[i], target, seventh_rank);
+                self.collect_pawn_captures(list, the_pawns, dirs[i], target);
             }
         }
     }
