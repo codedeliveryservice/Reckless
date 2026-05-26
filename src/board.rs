@@ -516,11 +516,15 @@ impl Board {
         let pushed_pawn = self.en_passant() ^ 8;
         let ep_occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb());
 
-        let pawns = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
+        let attackers = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
 
-        for attacker in pawns {
+        for attacker in attackers {
             let occ = ep_occ ^ attacker.to_bb();
-            if (occ & self.attackers_to(king, occ) & self.colors(!stm)).is_empty() {
+            let slide_attackers =
+                (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
+              | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
+
+            if (slide_attackers & self.colors(!stm)).is_empty() {
                 return;
             }
         }
