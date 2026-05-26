@@ -126,7 +126,7 @@ impl super::Board {
         let king_sq = self.king_square(stm);
 
         let pushed_pawns = (pawns & (!pinned | Bitboard::file(king_sq.file()))).shift(up) & empty;
-        let promotions = pushed_pawns & Bitboard::BOTH_HOME_ROWS;
+        let promotions = pushed_pawns & Bitboard::BOTH_HOME_ROWS & target;
 
         if mgkind == MovegenKind::Quiet {
             let single_pushes = pushed_pawns ^ promotions;
@@ -134,9 +134,9 @@ impl super::Board {
 
             list.push_pawns_setwise(up, single_pushes & target, MoveKind::Normal);
             list.push_pawns_setwise(up * 2, double_pushes & target, MoveKind::DoublePush);
-            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionR);
-            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionB);
-            list.push_pawns_setwise(up, promotions & target, MoveKind::PromotionN);
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionR);
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionB);
+            list.push_pawns_setwise(up, promotions, MoveKind::PromotionN);
         }
 
         if mgkind == MovegenKind::Noisy {
