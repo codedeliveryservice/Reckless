@@ -121,18 +121,15 @@ impl super::Board {
         let stm = self.side_to_move();
         let up = Square::UP[stm];
         let pawns = self.colored_pieces(stm, PieceType::Pawn);
-        let seventh_rank = Bitboard::SEVENTH_RANK[stm];
         let third_rank = Bitboard::THIRD_RANK[stm];
         let empty = !self.occupancies();
         let king_sq = self.king_square(stm);
 
-        let pushable_pawns = pawns & (!pinned | Bitboard::file(king_sq.file()));
-        //let promotions = (pushable_pawns & seventh_rank).shift(up) & empty;
-        let promotions = (pawns & (!pinned | Bitboard::file(king_sq.file()))).shift(up) & empty & Bitboard::BOTH_HOME_ROWS;
+        let pushed_pawns = (pawns & (!pinned | Bitboard::file(king_sq.file()))).shift(up) & empty;
+        let promotions = pushed_pawns & Bitboard::BOTH_HOME_ROWS;
 
         if mgkind == MovegenKind::Quiet {
-            let non_promotions = pushable_pawns & !seventh_rank;
-            let single_pushes = non_promotions.shift(up) & empty;
+            let single_pushes = pushed_pawns ^ promotions;
             let double_pushes = (single_pushes & third_rank).shift(up) & empty;
 
             list.push_pawns_setwise(up, single_pushes & target, MoveKind::Normal);
