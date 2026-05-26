@@ -127,7 +127,8 @@ impl super::Board {
         let king_sq = self.king_square(stm);
 
         let pushable_pawns = pawns & (!pinned | Bitboard::file(king_sq.file()));
-        let promotions = (pushable_pawns & seventh_rank).shift(up) & empty;
+        //let promotions = (pushable_pawns & seventh_rank).shift(up) & empty;
+        let promotions = (pawns & (!pinned | Bitboard::file(king_sq.file()))).shift(up) & empty & Bitboard::BOTH_HOME_ROWS;
 
         if mgkind == MovegenKind::Quiet {
             let non_promotions = pushable_pawns & !seventh_rank;
