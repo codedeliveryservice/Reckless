@@ -49,9 +49,9 @@ impl Board {
         self.state.plies_from_null += 1;
 
         if mv.kind() == MoveKind::Capture || piece.piece_type() == PieceType::Pawn {
-            self.state.fmr_clock = 0;
+            self.state.fiftymove_clock = 0;
         } else {
-            self.state.fmr_clock += 1;
+            self.state.fiftymove_clock += 1;
         }
 
         if mv.is_castling() {
@@ -123,7 +123,7 @@ impl Board {
 
         self.state.repetition = 0;
 
-        let end = self.state.plies_from_null.min(self.fmr_clock() as usize);
+        let end = self.state.plies_from_null.min(self.fiftymove_clock() as usize);
 
         if end >= 4 {
             let mut idx = self.state_stack.len() as isize - 4;

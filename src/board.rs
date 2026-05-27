@@ -27,7 +27,7 @@ struct InternalState {
     keys: Keys,
     en_passant: Square,
     castling: Castling,
-    fmr_clock: u8,
+    fiftymove_clock: u8,
     material: i32,
     plies_from_null: usize,
     repetition: i32,
@@ -72,15 +72,15 @@ impl Board {
         Color::new((self.halfmove_number & 1) as u8)
     }
 
-    pub fn fmr_clock_bucket(&self) -> usize {
-        (self.fmr_clock().saturating_sub(8) as usize / 8).min(15)
+    pub fn fiftymove_clock_bucket(&self) -> usize {
+        (self.fiftymove_clock().saturating_sub(8) as usize / 8).min(15)
     }
 
     pub fn hash(&self) -> u64 {
         // To mitigate Graph History Interaction (GHI) problems, the hash key is changed
         // every 8 plies to distinguish between positions that would otherwise appear
         // identical to the transposition table.
-        self.state.keys.full() ^ ZOBRIST.fmr_clock[self.fmr_clock_bucket()]
+        self.state.keys.full() ^ ZOBRIST.fiftymove_clock[self.fiftymove_clock_bucket()]
     }
 
     pub const fn pawn_key(&self) -> u64 {
@@ -132,8 +132,8 @@ impl Board {
         self.state.castling
     }
 
-    pub const fn fmr_clock(&self) -> u8 {
-        self.state.fmr_clock
+    pub const fn fiftymove_clock(&self) -> u8 {
+        self.state.fiftymove_clock
     }
 
     pub const fn material(&self) -> i32 {
@@ -249,12 +249,12 @@ impl Board {
     }
 
     pub fn has_repeated(&self) -> bool {
-        let end = self.state.plies_from_null.min(self.state.fmr_clock as usize);
+        let end = self.state.plies_from_null.min(self.state.fiftymove_clock as usize);
         self.state_stack.iter().rev().take(end.saturating_sub(3)).any(|s| s.repetition != 0)
     }
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
-        self.fmr_clock() >= 100 && (!self.in_check() || self.has_legal_moves())
+        self.fiftymove_clock() >= 100 && (!self.in_check() || self.has_legal_moves())
     }
 
     /// Checks if the position is a known draw by material, fifty-move or repetition.
@@ -269,7 +269,7 @@ impl Board {
     ///
     /// <http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf>
     pub fn upcoming_repetition(&self, ply: usize) -> bool {
-        let half_moves = self.state.plies_from_null.min(self.state.fmr_clock as usize);
+        let half_moves = self.state.plies_from_null.min(self.state.fiftymove_clock as usize);
         if half_moves < 3 {
             return false;
         }

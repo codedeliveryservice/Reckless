@@ -329,7 +329,7 @@ fn search<NODE: NodeType>(
     let mut depth = depth.min(MAX_PLY as i32 - 1);
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.fmr_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.fiftymove_clock(), ply);
 
     let mut tt_depth = 0;
     let mut tt_move = Move::NULL;
@@ -365,7 +365,7 @@ fn search<NODE: NodeType>(
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
             }
 
-            if td.board.fmr_clock() < 90 {
+            if td.board.fiftymove_clock() < 90 {
                 return tt_score;
             }
         }
@@ -376,7 +376,7 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT
         && !excluded
         && !td.shared.stop_probing_tb.load(Ordering::Relaxed)
-        && td.board.fmr_clock() == 0
+        && td.board.fiftymove_clock() == 0
         && td.board.castling().raw() == 0
         && td.board.occupancies().popcount() <= tb::size()
         && let Some(outcome) = tb::probe(&td.board)
@@ -1169,7 +1169,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     }
 
     let hash = td.board.hash();
-    let entry = td.shared.tt.read(hash, td.board.fmr_clock(), ply);
+    let entry = td.shared.tt.read(hash, td.board.fiftymove_clock(), ply);
 
     let mut tt_score = Score::NONE;
     let mut tt_bound = Bound::None;
@@ -1321,7 +1321,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
 
 fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
     let stm = td.board.side_to_move();
-    let bucket = td.board.fmr_clock_bucket();
+    let bucket = td.board.fiftymove_clock_bucket();
     let corrhist = td.corrhist();
 
     (corrhist.pawn.get(stm, td.board.pawn_key(), bucket)
@@ -1342,7 +1342,7 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
 
 fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
-    let bucket = td.board.fmr_clock_bucket();
+    let bucket = td.board.fiftymove_clock_bucket();
     let corrhist = td.corrhist();
     let bonus = (146 * depth * diff / 128).clamp(-4449, 2659);
 
