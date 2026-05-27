@@ -159,3 +159,9 @@ impl Move {
         output
     }
 }
+
+impl Default for Move {
+    fn default() -> Self {
+        Move::NULL
+    }
+}
