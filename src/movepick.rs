@@ -89,9 +89,9 @@ impl<T: MovePickerType> MovePicker<T> {
                 let entry = self.get_best_entry();
 
                 let threshold = match T::TYPE {
-                    Type::Normal => -entry.score / 45 + 111,
-                    Type::QSearch => -entry.score / 45 + 111,
-                    Type::ProbCut => -entry.score / 45 + 256,
+                    Type::Normal => 111 - entry.score / 45,
+                    Type::QSearch => 111 - entry.score / 45,
+                    Type::ProbCut => (256 - entry.score / 45).max(128),
                 };
 
                 if (self.tt_move.is_quiet() && self.noisy_count > 2) || !td.board.see(entry.mv, threshold) {
