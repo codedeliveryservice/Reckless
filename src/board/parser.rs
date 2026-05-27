@@ -54,7 +54,7 @@ impl Board {
         board.set_castling(parts.next().unwrap());
 
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
-        board.state.halfmove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
+        board.state.fmr_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
 
         board.update_threats();
@@ -150,7 +150,7 @@ impl Board {
         fen.push(' ');
         fen.push_str(&self.state.en_passant.to_string());
         fen.push(' ');
-        fen.push_str(&self.state.halfmove_clock.to_string());
+        fen.push_str(&self.state.fmr_clock.to_string());
         fen.push(' ');
         fen.push_str(&self.fullmove_number.to_string());
         fen
