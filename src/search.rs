@@ -781,7 +781,7 @@ fn search<NODE: NodeType>(
                 (-7 * depth * depth - 31 * depth - 32 * history / 1024 + 16).min(0)
             };
 
-            if !td.board.see(mv, threshold) {
+            if (!in_check || !is_quiet) && !td.board.see(mv, threshold) {
                 continue;
             }
         }
