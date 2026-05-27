@@ -84,38 +84,33 @@ impl Board {
             self.remove_piece(from);
             self.add_piece(piece, to);
             observer.on_piece_move(self, piece, from, to);
+
+            if mv.is_en_passant() {
+                let captured = self.remove_piece(to ^ 8);
+                observer.on_piece_change(self, captured, to ^ 8, false);
+                self.update_hash(captured, to ^ 8);
+                self.state.material -= captured.value();
+                self.state.captured = Some(captured);
+            } else if mv.is_double_push() {
+                self.state.en_passant = to ^ 8;
+                self.state.keys.toggle_en_passant(self.en_passant());
+            }
         }
 
         self.update_hash(piece, from);
         self.update_hash(piece, to);
 
-        match mv.kind() {
-            MoveKind::DoublePush => {
-                self.state.en_passant = to ^ 8;
-                self.state.keys.toggle_en_passant(self.en_passant());
-            }
-            MoveKind::EnPassant => {
-                let captured = self.remove_piece(to ^ 8);
-                observer.on_piece_change(self, captured, to ^ 8, false);
+        if mv.is_promotion() {
+            let promotion = Piece::new(stm, mv.promo_piece_type());
 
-                self.update_hash(captured, to ^ 8);
+            self.remove_piece(to);
+            self.add_piece(promotion, to);
+            observer.on_piece_mutate(self, piece, promotion, to);
 
-                self.state.material -= captured.value();
-                self.state.captured = Some(captured);
-            }
-            _ if mv.is_promotion() => {
-                let promotion = Piece::new(stm, mv.promo_piece_type());
+            self.update_hash(piece, to);
+            self.update_hash(promotion, to);
 
-                self.remove_piece(to);
-                self.add_piece(promotion, to);
-                observer.on_piece_mutate(self, piece, promotion, to);
-
-                self.update_hash(piece, to);
-                self.update_hash(promotion, to);
-
-                self.state.material += promotion.value() - PieceType::Pawn.value();
-            }
-            _ => (),
+            self.state.material += promotion.value() - PieceType::Pawn.value();
         }
 
         self.advance_fullmove_counter();
