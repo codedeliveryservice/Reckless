@@ -55,7 +55,8 @@ impl Board {
 
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.fmr_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
-        board.fullmove_number = parts.next().unwrap_or_default().parse().unwrap_or_default();
+        let fullmove_number: usize = parts.next().unwrap_or_default().parse().unwrap_or_default();
+        board.halfmove_number = (2 * fullmove_number) + board.side_to_move() as usize;
 
         board.update_threats();
         board.update_hash_keys();
@@ -152,7 +153,7 @@ impl Board {
         fen.push(' ');
         fen.push_str(&self.state.fmr_clock.to_string());
         fen.push(' ');
-        fen.push_str(&self.fullmove_number.to_string());
+        fen.push_str(&self.fullmove_number().to_string());
         fen
     }
 

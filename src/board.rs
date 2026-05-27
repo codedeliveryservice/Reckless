@@ -48,7 +48,7 @@ pub struct Board {
     mailbox: [Piece; Square::NUM],
     state: InternalState,
     state_stack: Vec<InternalState>,
-    fullmove_number: usize,
+    halfmove_number: usize,
     castling_rights: [u8; Square::NUM],
     castling_path: [Bitboard; 16],
     castling_threat: [Bitboard; 16],
@@ -70,7 +70,7 @@ impl Board {
     }
 
     pub const fn fullmove_number(&self) -> usize {
-        self.fullmove_number
+        self.halfmove_number / 2
     }
 
     pub fn fmr_clock_bucket(&self) -> usize {
@@ -193,13 +193,13 @@ impl Board {
         self.mailbox[mv.from()]
     }
 
-    pub const fn advance_fullmove_counter(&mut self) {
-        self.fullmove_number += self.side_to_move() as usize;
-    }
+    //pub const fn advance_fullmove_counter(&mut self) {
+        //self.fullmove_number += self.side_to_move() as usize;
+    //}
 
-    pub const fn retreat_fullmove_counter(&mut self) {
-        self.fullmove_number -= self.side_to_move() as usize;
-    }
+    //pub const fn retreat_fullmove_counter(&mut self) {
+        //self.fullmove_number -= self.side_to_move() as usize;
+    //}
 
     pub const fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
@@ -564,7 +564,7 @@ impl Default for Board {
             colors: [Bitboard::default(); Color::NUM],
             mailbox: [Piece::None; Square::NUM],
             state_stack: Vec::with_capacity(2048),
-            fullmove_number: 0,
+            halfmove_number: 0,
             castling_rights: [0b1111; Square::NUM],
             castling_path: [Bitboard::default(); 16],
             castling_threat: [Bitboard::default(); 16],
