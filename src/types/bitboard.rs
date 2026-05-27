@@ -12,7 +12,7 @@ pub struct Bitboard(pub u64);
 impl Bitboard {
     pub const ALL: Self = Self(0xFFFFFFFFFFFFFFFF);
     pub const LIGHT_SQUARES: Self = Self(0x55AA55AA55AA55AA);
-    pub const SEVENTH_RANK: [Bitboard; 2] = [Self::rank(Rank::R7), Self::rank(Rank::R2)];
+    pub const BOTH_HOME_ROWS: Self = Self(0xFF000000000000FF);
     pub const SIXTH_RANK: [Bitboard; 2] = [Self::rank(Rank::R6), Self::rank(Rank::R3)];
     pub const THIRD_RANK: [Bitboard; 2] = [Self::rank(Rank::R3), Self::rank(Rank::R6)];
     pub const HOME_ROWS: [Bitboard; 2] = [Self::rank(Rank::R1), Self::rank(Rank::R8)];
