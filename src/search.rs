@@ -4,7 +4,7 @@ use crate::{
     evaluation::correct_eval,
     movepick::{MovePicker, Stage},
     stack::Stack,
-    thread::{RootMove, Status, ThreadData},
+    thread::{PlyArray, RootMove, Status, ThreadData},
     time::Limits,
     transposition::{Bound, TtDepth},
     types::{
@@ -125,6 +125,8 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
 
             loop {
                 td.stack = Stack::new();
+                td.cutoff_count = PlyArray::default();
+                td.excluded = PlyArray::default();
                 td.root_delta = beta - alpha;
 
                 // Root Search
@@ -269,7 +271,7 @@ fn search<NODE: NodeType>(
 
     let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
-    let excluded = td.stack[ply].excluded.is_present();
+    let excluded = td.excluded[ply].is_present();
 
     if !NODE::ROOT && NODE::PV {
         td.pv_table.clear(ply as usize);
@@ -448,7 +450,7 @@ fn search<NODE: NodeType>(
     td.stack[ply].tt_pv = tt_pv;
     td.stack[ply].reduction = 0;
     td.stack[ply].move_count = 0;
-    td.stack[ply + 2].cutoff_count = 0;
+    td.cutoff_count[ply + 2] = 0;
 
     // Quiet move ordering using eval difference
     if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
@@ -528,7 +530,7 @@ fn search<NODE: NodeType>(
             >= beta
                 + (-9 * depth + 108 * tt_pv as i32
                     - 96 * improvement / 1024
-                    - 18 * (td.stack[ply + 1].cutoff_count < 2) as i32
+                    - 18 * (td.cutoff_count[ply + 1] < 2) as i32
                     + 320)
                     .max(2)
         && ply as i32 >= td.nmp_min_ply
@@ -600,7 +602,7 @@ fn search<NODE: NodeType>(
                 break;
             }
 
-            if mv == td.stack[ply].excluded {
+            if mv == td.excluded[ply] {
                 continue;
             }
 
@@ -653,10 +655,10 @@ fn search<NODE: NodeType>(
         let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
-        td.stack[ply].excluded = tt_move;
+        td.excluded[ply] = tt_move;
         td.stack[ply].mv = Move::NULL;
         singular_score = search::<NonPV>(td, singular_beta - 1, singular_beta, singular_depth, cut_node, ply);
-        td.stack[ply].excluded = Move::NULL;
+        td.excluded[ply] = Move::NULL;
         td.stack[ply].tt_pv = tt_pv;
 
         if td.shared.status.get() == Status::STOPPED {
@@ -705,7 +707,7 @@ fn search<NODE: NodeType>(
     let mut tt_move_score = Score::NONE;
 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets, ply) {
-        if mv == td.stack[ply].excluded {
+        if mv == td.excluded[ply] {
             continue;
         }
 
@@ -732,7 +734,8 @@ fn search<NODE: NodeType>(
                 && !td.board.is_direct_check(mv)
                 && is_quiet
                 && !is_win(beta)
-                && move_count >= (2697 + 77 * improvement / 16 + 1510 * depth * depth + 70 * history / 1024) / 1024
+                && move_count as i32
+                    >= (2697 + 77 * improvement / 16 + 1510 * depth * depth + 70 * history / 1024) / 1024
             {
                 skip_quiets = true;
                 continue;
@@ -838,7 +841,7 @@ fn search<NODE: NodeType>(
                 reduction -= 939;
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
+            if td.cutoff_count[ply + 1] > 2 {
                 reduction += 992;
                 reduction += 384 * (!NODE::PV && !cut_node) as i32;
             }
@@ -901,7 +904,7 @@ fn search<NODE: NodeType>(
                 reduction += (402 - 232 * improvement / 128).min(1426);
             }
 
-            if td.stack[ply + 1].cutoff_count > 2 {
+            if td.cutoff_count[ply + 1] > 2 {
                 reduction += 1454;
                 reduction += 256 * (!NODE::PV && !cut_node) as i32;
             }
@@ -995,7 +998,7 @@ fn search<NODE: NodeType>(
 
                 if score >= beta {
                     bound = Bound::Lower;
-                    td.stack[ply].cutoff_count += 1;
+                    td.cutoff_count[ply] += 1;
                     break;
                 }
 
@@ -1074,7 +1077,7 @@ fn search<NODE: NodeType>(
         let prior_move = td.stack[ply - 1].mv;
         if prior_move.is_quiet() {
             let factor = 88
-                + (17 * td.stack[ply - 1].move_count).min(229)
+                + (17 * td.stack[ply - 1].move_count as i32).min(229)
                 + 110 * (prior_move == td.stack[ply - 1].tt_move) as i32
                 + 144 * (!in_check && best_score <= eval - 97) as i32
                 + 306 * (is_valid(td.stack[ply - 1].eval) && best_score <= -td.stack[ply - 1].eval - 136) as i32;

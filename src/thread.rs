@@ -1,6 +1,9 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering},
+use std::{
+    ops::{Index, IndexMut},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering},
+    },
 };
 
 use crate::{
@@ -132,6 +135,29 @@ impl Default for SharedContext {
     }
 }
 
+pub struct PlyArray<T, const N: usize> {
+    data: [T; N],
+}
+
+impl<T, const N: usize> Index<isize> for PlyArray<T, N> {
+    type Output = T;
+    fn index(&self, index: isize) -> &T {
+        &self.data[(index + 8) as usize]
+    }
+}
+
+impl<T, const N: usize> IndexMut<isize> for PlyArray<T, N> {
+    fn index_mut(&mut self, index: isize) -> &mut T {
+        &mut self.data[(index + 8) as usize]
+    }
+}
+
+impl<T: Copy + Default, const N: usize> Default for PlyArray<T, N> {
+    fn default() -> Self {
+        Self { data: [T::default(); N] }
+    }
+}
+
 pub struct ThreadData {
     pub id: usize,
     pub shared: Arc<SharedContext>,
@@ -158,6 +184,8 @@ pub struct ThreadData {
     pub pv_index: usize,
     pub pv_start: usize,
     pub pv_end: usize,
+    pub cutoff_count: PlyArray<i32, { MAX_PLY + 16 }>,
+    pub excluded: PlyArray<Move, { MAX_PLY + 16 }>,
 }
 
 impl ThreadData {
@@ -191,6 +219,8 @@ impl ThreadData {
             pv_index: 0,
             pv_start: 0,
             pv_end: 0,
+            cutoff_count: PlyArray::default(),
+            excluded: PlyArray::default(),
         }
     }
 
