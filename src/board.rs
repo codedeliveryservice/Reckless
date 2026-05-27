@@ -42,7 +42,6 @@ struct InternalState {
 
 #[derive(Clone)]
 pub struct Board {
-    side_to_move: Color,
     pieces: [Bitboard; PieceType::NUM],
     colors: [Bitboard; Color::NUM],
     mailbox: [Piece; Square::NUM],
@@ -65,12 +64,19 @@ impl Board {
         self.frc
     }
 
-    pub const fn side_to_move(&self) -> Color {
-        self.side_to_move
-    }
-
     pub const fn fullmove_number(&self) -> usize {
         self.halfmove_number / 2
+    }
+
+    pub fn side_to_move(&self) -> Color {
+        //let color1 = self.side_to_move;
+        //let color2 = Color::new((self.halfmove_number & 1) as u8);
+
+        //if color1 != color2 {
+            //println!("DIFF!");
+        //}
+
+        Color::new((self.halfmove_number & 1) as u8)
     }
 
     pub fn fmr_clock_bucket(&self) -> usize {
@@ -192,14 +198,6 @@ impl Board {
     pub fn moved_piece(&self, mv: Move) -> Piece {
         self.mailbox[mv.from()]
     }
-
-    //pub const fn advance_fullmove_counter(&mut self) {
-        //self.fullmove_number += self.side_to_move() as usize;
-    //}
-
-    //pub const fn retreat_fullmove_counter(&mut self) {
-        //self.fullmove_number -= self.side_to_move() as usize;
-    //}
 
     pub const fn set_frc(&mut self, frc: bool) {
         self.frc = frc;
@@ -558,7 +556,6 @@ impl Board {
 impl Default for Board {
     fn default() -> Self {
         Self {
-            side_to_move: Color::White,
             state: InternalState::default(),
             pieces: [Bitboard::default(); PieceType::NUM],
             colors: [Bitboard::default(); Color::NUM],

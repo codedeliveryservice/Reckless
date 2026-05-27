@@ -45,7 +45,7 @@ impl Board {
             }
         }
 
-        board.side_to_move = match parts.next() {
+        let side_to_move = match parts.next() {
             Some("w") => Color::White,
             Some("b") => Color::Black,
             _ => return Err(ParseFenError::InvalidActiveColor),
@@ -56,7 +56,11 @@ impl Board {
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.fmr_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();
         let fullmove_number: usize = parts.next().unwrap_or_default().parse().unwrap_or_default();
-        board.halfmove_number = (2 * fullmove_number) + board.side_to_move() as usize;
+        board.halfmove_number = (2 * fullmove_number) + side_to_move as usize;
+
+        if Color::new((board.halfmove_number & 1) as u8) != board.side_to_move() {
+            println!("BAD PARSE.");
+        }
 
         board.update_threats();
         board.update_hash_keys();
@@ -145,7 +149,7 @@ impl Board {
         }
 
         fen.push(' ');
-        fen.push_str(&self.side_to_move.to_string());
+        fen.push_str(&self.side_to_move().to_string());
         fen.push(' ');
         fen.push_str(&self.state.castling.to_string(self));
         fen.push(' ');
