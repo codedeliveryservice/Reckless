@@ -504,34 +504,28 @@ impl Board {
         self.state.keys.toggle_castling(self.state.castling);
     }
 
-    fn is_en_passant_valid(&self) -> bool {
-        let stm = self.side_to_move();
-        let king = self.king_square(stm);
-        let pushed_pawn = self.en_passant() ^ 8;
-
-        let pawns = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
-
-        for attacker in pawns {
-            let occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb() ^ attacker.to_bb());
-            let king_attackers = occ & self.attackers_to(king, occ) & self.colors(!stm);
-
-            if king_attackers.is_empty() {
-                return true;
-            }
-        }
-
-        false
-    }
-
     /// We verify is self.state.enpassant is valid, and remove it if it is not.
     /// This must be called after pinners and checkers have been updated.
-    fn update_en_passant(&mut self) {
+    fn validate_en_passant(&mut self) {
         if self.en_passant() == Square::None {
             return;
         }
 
-        if self.is_en_passant_valid() {
-            return;
+        let stm = self.side_to_move();
+        let king = self.king_square(stm);
+        let pushed_pawn = self.en_passant() ^ 8;
+        let ep_occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb());
+
+        let attackers = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
+
+        for attacker in attackers {
+            let occ = ep_occ ^ attacker.to_bb();
+            let slide_attackers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
+                | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
+
+            if (slide_attackers & self.colors(!stm)).is_empty() {
+                return;
+            }
         }
 
         self.state.keys.toggle_en_passant(self.en_passant());
