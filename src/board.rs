@@ -69,13 +69,6 @@ impl Board {
     }
 
     pub fn side_to_move(&self) -> Color {
-        //let color1 = self.side_to_move;
-        //let color2 = Color::new((self.halfmove_number & 1) as u8);
-
-        //if color1 != color2 {
-            //println!("DIFF!");
-        //}
-
         Color::new((self.halfmove_number & 1) as u8)
     }
 

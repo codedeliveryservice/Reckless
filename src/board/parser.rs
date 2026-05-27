@@ -58,10 +58,6 @@ impl Board {
         let fullmove_number: usize = parts.next().unwrap_or_default().parse().unwrap_or_default();
         board.halfmove_number = (2 * fullmove_number) + side_to_move as usize;
 
-        if Color::new((board.halfmove_number & 1) as u8) != board.side_to_move() {
-            println!("BAD PARSE.");
-        }
-
         board.update_threats();
         board.update_hash_keys();
         board.validate_en_passant();
