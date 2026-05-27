@@ -587,62 +587,6 @@ fn search<NODE: NodeType>(
         }
     }
 
-    // ProbCut
-    let mut probcut_beta = beta + 282 - 80 * improving as i32;
-
-    if cut_node
-        && !is_win(beta)
-        && if is_valid(tt_score) { tt_score >= probcut_beta && !is_decisive(tt_score) } else { eval >= beta }
-        && !tt_move.is_quiet()
-    {
-        let mut move_picker = MovePicker::new(Move::NULL, Some(probcut_beta - eval));
-
-        while let Some(mv) = move_picker.next::<NODE>(td, true, ply) {
-            if move_picker.stage() == Stage::BadNoisy {
-                break;
-            }
-
-            if mv == td.excluded[ply] {
-                continue;
-            }
-
-            make_move(td, ply, mv);
-
-            let mut score = -qsearch::<NonPV>(td, -probcut_beta, -probcut_beta + 1, ply + 1);
-
-            let base_depth = (depth - 4).max(0);
-            let mut probcut_depth = (base_depth - (score - probcut_beta) / 305).clamp(0, base_depth);
-
-            if score >= probcut_beta && probcut_depth > 0 {
-                let adjusted_beta = (probcut_beta + 256 * (base_depth - probcut_depth)).min(Score::INFINITE);
-
-                score = -search::<NonPV>(td, -adjusted_beta, -adjusted_beta + 1, probcut_depth, false, ply + 1);
-
-                if score < adjusted_beta && probcut_beta < adjusted_beta {
-                    probcut_depth = base_depth;
-                    score = -search::<NonPV>(td, -probcut_beta, -probcut_beta + 1, probcut_depth, false, ply + 1);
-                } else {
-                    probcut_beta = adjusted_beta;
-                }
-            }
-
-            undo_move(td, mv);
-
-            if td.shared.status.get() == Status::STOPPED {
-                return Score::ZERO;
-            }
-
-            if score >= probcut_beta {
-                td.shared.tt.write(hash, probcut_depth + 1, raw_eval, score, Bound::Lower, mv, ply, tt_pv, false);
-
-                if is_decisive(score) {
-                    return score;
-                }
-                return lerp(score, beta, 0.24);
-            }
-        }
-    }
-
     // Singular Extensions (SE)
     let mut extension = 0;
     let mut singular_score = Score::NONE;
