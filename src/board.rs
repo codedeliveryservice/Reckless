@@ -505,7 +505,7 @@ impl Board {
         let stm = self.side_to_move();
         let king = self.king_square(stm);
         let pushed_pawn = self.en_passant() ^ 8;
-        let ep_occ = self.en_passant().to_bb() | (self.occupancies() ^ pushed_pawn.to_bb());
+        let ep_occ = self.occupancies() ^ self.en_passant().to_bb() ^ pushed_pawn.to_bb();
 
         let attackers = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
 
