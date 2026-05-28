@@ -151,7 +151,7 @@ impl Board {
         fen.push(' ');
         fen.push_str(&self.state.en_passant.to_string());
         fen.push(' ');
-        fen.push_str(&self.state.fiftymove_clock.to_string());
+        fen.push_str(&self.fiftymove_clock().to_string());
         fen.push(' ');
         fen.push_str(&self.fullmove_number().to_string());
         fen

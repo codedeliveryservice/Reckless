@@ -336,18 +336,18 @@ pub struct Parameters {
 }
 
 impl Parameters {
-    fn embedded() -> &'static Parameters {
+    fn embedded() -> &'static Self {
         static EMBEDDED: Parameters = unsafe { std::mem::transmute(*include_bytes!(env!("MODEL"))) };
         &EMBEDDED
     }
 
     fn allocate_owned() -> Arc<Self> {
-        let mut boxed = Box::<std::mem::MaybeUninit<Parameters>>::new(std::mem::MaybeUninit::uninit());
+        let mut boxed = Box::<std::mem::MaybeUninit<Self>>::new(std::mem::MaybeUninit::uninit());
         let ptr = boxed.as_mut_ptr();
         std::mem::forget(boxed);
 
         unsafe {
-            std::ptr::copy_nonoverlapping(Self::embedded() as *const Parameters, ptr, 1);
+            std::ptr::copy_nonoverlapping(Self::embedded() as *const Self, ptr, 1);
             Arc::from(Box::from_raw(ptr))
         }
     }
