@@ -715,11 +715,13 @@ fn search<NODE: NodeType>(
             continue;
         }
 
-        move_count += 1;
         current_search_count = 0;
+
+        move_count += 1;
         td.stack[ply].move_count = move_count;
 
         let is_quiet = mv.is_quiet();
+        let is_direct_check = td.board.is_direct_check(mv);
 
         let history = if is_quiet {
             td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
@@ -731,7 +733,7 @@ fn search<NODE: NodeType>(
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
             if !in_check
-                && !td.board.is_direct_check(mv)
+                && !is_direct_check
                 && is_quiet
                 && !is_win(beta)
                 && move_count as i32
@@ -749,7 +751,7 @@ fn search<NODE: NodeType>(
                 + 542 * correction_value.abs() / 1024
                 - 135;
 
-            if !in_check && is_quiet && depth < 16 && futility_value <= alpha && !td.board.is_direct_check(mv) {
+            if !in_check && !is_direct_check && is_quiet && depth < 16 && futility_value <= alpha {
                 if !is_decisive(best_score) && best_score < futility_value {
                     best_score = futility_value;
                 }
@@ -761,10 +763,10 @@ fn search<NODE: NodeType>(
             let noisy_futility_value = eval + 80 * depth + 71 * history / 1024 + 24;
 
             if !in_check
+                && !is_direct_check
                 && depth < 11
                 && move_picker.stage() == Stage::BadNoisy
                 && noisy_futility_value <= alpha
-                && !td.board.is_direct_check(mv)
             {
                 if !is_decisive(best_score) && best_score < noisy_futility_value {
                     best_score = noisy_futility_value;
@@ -1193,10 +1195,11 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
+    let correction_value = eval_correction(td, ply);
+
     let raw_eval;
     let eval;
     let mut best_score;
-    let correction_value = eval_correction(td, ply);
 
     // Evaluation
     if in_check {

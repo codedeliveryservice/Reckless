@@ -43,7 +43,7 @@ impl ThreadPool {
     }
 
     pub fn set_count(&mut self, threads: usize) {
-        let threads = threads.clamp(1, ThreadPool::available_threads());
+        let threads = threads.clamp(1, Self::available_threads());
         let shared = self.vector[0].shared.clone();
 
         shared.numa_context.set_thread_count(threads);
