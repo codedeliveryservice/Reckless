@@ -3,7 +3,7 @@ use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
     pub fn make_null_move(&mut self) {
-        self.side_to_move = !self.side_to_move;
+        self.halfmove_number += 1;
         self.state_stack.push(self.state);
 
         self.state.keys.toggle_side();
@@ -21,7 +21,7 @@ impl Board {
     }
 
     pub fn undo_null_move(&mut self) {
-        self.side_to_move = !self.side_to_move();
+        self.halfmove_number -= 1;
         self.state = self.state_stack.pop().unwrap();
     }
 
@@ -32,7 +32,7 @@ impl Board {
         let from = mv.from();
         let to = mv.to();
         let piece = self.piece_on(from);
-        let stm = self.side_to_move;
+        let stm = self.side_to_move();
 
         self.state_stack.push(self.state);
 
@@ -49,9 +49,9 @@ impl Board {
         self.state.plies_from_null += 1;
 
         if mv.kind() == MoveKind::Capture || piece.piece_type() == PieceType::Pawn {
-            self.state.halfmove_clock = 0;
+            self.state.fiftymove_clock = 0;
         } else {
-            self.state.halfmove_clock += 1;
+            self.state.fiftymove_clock += 1;
         }
 
         if mv.is_castling() {
@@ -113,8 +113,7 @@ impl Board {
             self.state.material += promotion.value() - PieceType::Pawn.value();
         }
 
-        self.advance_fullmove_counter();
-        self.side_to_move = !self.side_to_move;
+        self.halfmove_number += 1;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.keys.toggle_castling(self.state.castling);
@@ -124,7 +123,7 @@ impl Board {
 
         self.state.repetition = 0;
 
-        let end = self.state.plies_from_null.min(self.halfmove_clock() as usize);
+        let end = self.state.plies_from_null.min(self.fiftymove_clock() as usize);
 
         if end >= 4 {
             let mut idx = self.state_stack.len() as isize - 4;
@@ -146,13 +145,12 @@ impl Board {
     }
 
     pub fn undo_move(&mut self, mv: Move) {
-        self.side_to_move = !self.side_to_move;
-        self.retreat_fullmove_counter();
+        self.halfmove_number -= 1;
 
         let from = mv.from();
         let to = mv.to();
         let mover = self.remove_piece(to);
-        let stm = self.side_to_move;
+        let stm = self.side_to_move();
 
         if mv.is_castling() {
             let (rook_from, rook_to) = self.get_castling_rook(to);

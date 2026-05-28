@@ -6,7 +6,7 @@ pub struct Zobrist {
     pub en_passant: [u64; 64],
     pub castling: [u64; 16],
     pub side: u64,
-    pub halfmove_clock: [u64; 16],
+    pub fiftymove_clock: [u64; 16],
 }
 
 pub const ZOBRIST: Zobrist = {
