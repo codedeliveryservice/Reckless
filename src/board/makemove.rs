@@ -2,9 +2,16 @@ use super::{Board, BoardObserver};
 use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
+
+    fn increment_stack(&mut self) {
+
+        self.state_stack.push(self.state);
+    }
+
     pub fn make_null_move(&mut self) {
         self.halfmove_number += 1;
-        self.state_stack.push(self.state);
+
+        self.increment_stack();
 
         self.state.keys.toggle_side();
         self.state.keys.toggle_castling(self.state.castling);
@@ -34,7 +41,7 @@ impl Board {
         let piece = self.piece_on(from);
         let stm = self.side_to_move();
 
-        self.state_stack.push(self.state);
+        self.increment_stack();
 
         self.state.keys.toggle_side();
         self.state.keys.toggle_castling(self.state.castling);
