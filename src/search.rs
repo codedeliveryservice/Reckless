@@ -219,19 +219,19 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
         let multiplier = || {
             let nodes = {
                 let fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
-                (2.7641 - 2.2683 * fraction).max(0.5641)
+                (nodes1() - nodes2() * fraction).max(nodes3())
             };
 
             let score_trend = {
                 let difference = (td.previous_best_score - td.root_moves[0].score) as f32;
-                (0.7386 + 0.0499 * difference).clamp(0.7961, 1.4722)
+                (score1() + score2() * difference).clamp(score3(), score4())
             };
 
-            let pv_stability = (1.2915 - 0.0507 * pv_stability as f32).max(0.8068);
+            let pv_stability = (pv1() - pv2() * pv_stability as f32).max(pv3());
 
-            let eval_stability = (1.2048 - 0.0417 * eval_stability as f32).max(0.8327);
+            let eval_stability = (ev1() - ev2() * eval_stability as f32).max(ev3());
 
-            let best_move_stability = 1.0724 + (0.2160 * td.best_move_changes as f32).ln_1p();
+            let best_move_stability = bm1() + (bm2() * td.best_move_changes as f32).ln_1p();
 
             nodes * pv_stability * eval_stability * score_trend * best_move_stability
         };
