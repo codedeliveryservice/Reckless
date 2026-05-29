@@ -453,7 +453,13 @@ fn search<NODE: NodeType>(
     td.cutoff_count[ply + 2] = 0;
 
     // Quiet move ordering using eval difference
-    if !NODE::ROOT && !in_check && !excluded && td.stack[ply - 1].mv.is_quiet() && is_valid(td.stack[ply - 1].eval) {
+    if !NODE::ROOT
+        && !in_check
+        && !excluded
+        && td.stack[ply - 1].mv.is_quiet()
+        && is_valid(td.stack[ply - 1].eval)
+        && (depth < 7 || entry.is_none())
+    {
         let value = 880 * (-(eval + td.stack[ply - 1].eval)) / 128;
         let bonus = value.clamp(-133, 361);
 
