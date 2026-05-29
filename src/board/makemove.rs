@@ -4,11 +4,15 @@ use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 impl Board {
 
     fn increment_stack(&mut self) {
-
         self.halfmove_number += 1;
         self.state_stack.push(self.state);
         self.state.keys.toggle_side();
         self.state.keys.toggle_castling(self.state.castling);
+
+        if self.en_passant() != Square::None {
+            self.state.keys.toggle_en_passant(self.en_passant());
+            self.state.en_passant = Square::None;
+        }
     }
 
     pub fn make_null_move(&mut self) {
@@ -20,11 +24,6 @@ impl Board {
         self.state.captured = None;
 
         self.update_threats();
-
-        if self.en_passant() != Square::None {
-            self.state.keys.toggle_en_passant(self.en_passant());
-            self.state.en_passant = Square::None;
-        }
     }
 
     pub fn undo_null_move(&mut self) {
@@ -42,11 +41,6 @@ impl Board {
         let stm = self.side_to_move();
 
         self.increment_stack();
-
-        if self.en_passant() != Square::None {
-            self.state.keys.toggle_en_passant(self.en_passant());
-            self.state.en_passant = Square::None;
-        }
 
         let captured = self.piece_on(to);
         self.state.captured = Some(captured);
