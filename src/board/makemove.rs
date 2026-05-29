@@ -5,11 +5,11 @@ impl Board {
 
     fn increment_stack(&mut self) {
 
+        self.halfmove_number += 1;
         self.state_stack.push(self.state);
     }
 
     pub fn make_null_move(&mut self) {
-        self.halfmove_number += 1;
 
         self.increment_stack();
 
@@ -119,8 +119,6 @@ impl Board {
 
             self.state.material += promotion.value() - PieceType::Pawn.value();
         }
-
-        self.halfmove_number += 1;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.keys.toggle_castling(self.state.castling);
