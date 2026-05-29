@@ -153,7 +153,7 @@ pub fn convert_pgn(file_name: &str, adversarial: bool, writer: &mut BinpackWrite
                 _ => panic!(),
             };
 
-            let score = match commentary.split_whitespace().next().and_then(|v| v.parse::<f32>().ok()) {
+            let score = match commentary.split('/').next().and_then(|v| v.parse::<f32>().ok()) {
                 Some(v) if !adversarial || internal_board.side_to_move() == player => (100.0 * v) as i32,
                 Some(_) => {
                     nnue.full_refresh(&internal_board);
