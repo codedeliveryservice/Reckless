@@ -7,14 +7,14 @@ impl Board {
 
         self.halfmove_number += 1;
         self.state_stack.push(self.state);
+        self.state.keys.toggle_side();
+        self.state.keys.toggle_castling(self.state.castling);
     }
 
     pub fn make_null_move(&mut self) {
 
         self.increment_stack();
 
-        self.state.keys.toggle_side();
-        self.state.keys.toggle_castling(self.state.castling);
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
@@ -42,9 +42,6 @@ impl Board {
         let stm = self.side_to_move();
 
         self.increment_stack();
-
-        self.state.keys.toggle_side();
-        self.state.keys.toggle_castling(self.state.castling);
 
         if self.en_passant() != Square::None {
             self.state.keys.toggle_en_passant(self.en_passant());
