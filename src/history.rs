@@ -11,13 +11,22 @@ fn apply_bonus<const MAX: i32>(entry: &mut i16, bonus: i32) {
     *entry += (bonus - bonus.abs() * (*entry) as i32 / MAX) as i16;
 }
 
+fn apply_bonus_asymmetric<const MIN: i32, const MAX: i32>(entry: &mut i16, bonus: i32) {
+    debug_assert!(MIN <= 0 && MAX >= 0);
+
+    let bonus = bonus.clamp(MIN, MAX);
+    let scale = if bonus >= 0 { MAX } else { -MIN };
+    *entry += (bonus - bonus.abs() * (*entry) as i32 / scale) as i16;
+}
+
 pub struct QuietHistory {
     // [side_to_move][from_threatened][to_threatened][from][to]
     entries: Box<[[[FromToHistory<i16>; 2]; 2]; 2]>,
 }
 
 impl QuietHistory {
-    const MAX_HISTORY: i32 = 8192;
+    const MIN: i32 = -11264;
+    const MAX: i32 = 8192;
 
     pub fn get(&self, threats: Bitboard, stm: Color, mv: Move) -> i32 {
         self.entries[stm][threats.contains(mv.from()) as usize][threats.contains(mv.to()) as usize][mv.from()][mv.to()]
@@ -27,7 +36,7 @@ impl QuietHistory {
     pub fn update(&mut self, threats: Bitboard, stm: Color, mv: Move, bonus: i32) {
         let entry = &mut self.entries[stm][threats.contains(mv.from()) as usize][threats.contains(mv.to()) as usize]
             [mv.from()][mv.to()];
-        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+        apply_bonus_asymmetric::<{ Self::MIN }, { Self::MAX }>(entry, bonus);
     }
 }
 
