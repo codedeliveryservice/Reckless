@@ -4,15 +4,16 @@ use crate::{
     types::{Piece, Square},
 };
 
-#[cfg(target_feature = "avx512vbmi2")]
-mod avx512;
-#[cfg(target_feature = "avx512vbmi2")]
-use avx512::*;
-
-#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
-mod avx2;
-#[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
-use avx2::*;
+cfg_select! {
+    target_feature = "avx512vbmi2" => {
+        mod avx512;
+        use avx512::*;
+    }
+    target_feature = "avx2" => {
+        mod avx2;
+        use avx2::*;
+    }
+}
 
 const RAY_PERMUTATIONS: [[u8; 64]; 64] = {
     const OFFSETS: [u8; 64] = [
@@ -107,10 +108,10 @@ const RAY_SLIDERS_MASK: [u8; 64] = {
 };
 
 pub fn push_threats_on_change(accum: &mut ThreatAccumulator, board: &Board, piece: Piece, square: Square, add: bool) {
-    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
-    let board = unsafe { board.mailbox_vector_avx2() };
-    #[cfg(target_feature = "avx512vbmi2")]
-    let board = unsafe { board.mailbox_vector_avx512() };
+    let board = unsafe { cfg_select! {
+        target_feature = "avx512vbmi2" => board.mailbox_vector_avx512()
+        target_feature = "avx2" => board.mailbox_avx2()
+    } };
 
     let (perm, valid) = ray_permutation(square);
     let (pboard, rays) = board_to_rays(perm, valid, board);
@@ -128,10 +129,10 @@ pub fn push_threats_on_change(accum: &mut ThreatAccumulator, board: &Board, piec
 }
 
 pub fn push_threats_on_move(accum: &mut ThreatAccumulator, board: &Board, piece: Piece, src: Square, dst: Square) {
-    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
-    let board = unsafe { board.mailbox_vector_avx2() };
-    #[cfg(target_feature = "avx512vbmi2")]
-    let board = unsafe { board.mailbox_vector_avx512() };
+    let board = unsafe { cfg_select! {
+        target_feature = "avx512vbmi2" => board.mailbox_vector_avx512()
+        target_feature = "avx2" => board.mailbox_avx2()
+    } };
 
     let (src_perm, src_valid) = ray_permutation(src);
     let (dst_perm, dst_valid) = ray_permutation(dst);
@@ -173,10 +174,10 @@ pub fn push_threats_on_move(accum: &mut ThreatAccumulator, board: &Board, piece:
 pub fn push_threats_on_mutate(
     accum: &mut ThreatAccumulator, board: &Board, old_piece: Piece, new_piece: Piece, square: Square,
 ) {
-    #[cfg(all(target_feature = "avx2", not(target_feature = "avx512vbmi2")))]
-    let board = unsafe { board.mailbox_vector_avx2() };
-    #[cfg(target_feature = "avx512vbmi2")]
-    let board = unsafe { board.mailbox_vector_avx512() };
+    let board = unsafe { cfg_select! {
+        target_feature = "avx512vbmi2" => board.mailbox_vector_avx512()
+        target_feature = "avx2" => board.mailbox_avx2()
+    } };
 
     let (perm, valid) = ray_permutation(square);
     let (pboard, rays) = board_to_rays(perm, valid, board);
