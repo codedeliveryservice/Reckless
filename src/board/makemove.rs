@@ -2,22 +2,24 @@ use super::{Board, BoardObserver};
 use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
-    pub fn make_null_move(&mut self) {
+    fn increment_stack(&mut self) {
         self.halfmove_number += 1;
         self.state_stack.push(self.state);
-
         self.state.keys.toggle_side();
         self.state.keys.toggle_castling(self.state.castling);
-        self.state.plies_from_null = 0;
-        self.state.repetition = 0;
-        self.state.captured = None;
-
-        self.update_threats();
 
         if self.en_passant() != Square::None {
             self.state.keys.toggle_en_passant(self.en_passant());
             self.state.en_passant = Square::None;
         }
+    }
+
+    pub fn make_null_move(&mut self) {
+        self.increment_stack();
+        self.state.plies_from_null = 0;
+        self.state.repetition = 0;
+        self.state.captured = None;
+        self.update_threats();
     }
 
     pub fn undo_null_move(&mut self) {
@@ -34,15 +36,7 @@ impl Board {
         let piece = self.piece_on(from);
         let stm = self.side_to_move();
 
-        self.state_stack.push(self.state);
-
-        self.state.keys.toggle_side();
-        self.state.keys.toggle_castling(self.state.castling);
-
-        if self.en_passant() != Square::None {
-            self.state.keys.toggle_en_passant(self.en_passant());
-            self.state.en_passant = Square::None;
-        }
+        self.increment_stack();
 
         let captured = self.piece_on(to);
         self.state.captured = Some(captured);
@@ -112,8 +106,6 @@ impl Board {
 
             self.state.material += promotion.value() - PieceType::Pawn.value();
         }
-
-        self.halfmove_number += 1;
 
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.keys.toggle_castling(self.state.castling);
