@@ -808,14 +808,16 @@ fn search<NODE: NodeType>(
         if depth >= 2 && move_count >= 2 {
             let mut reduction = 256 * depth.ilog2() as i32;
 
+            reduction -= (238 * improvement / 128).clamp(-600, 300);
             reduction -= 3403 * correction_value.abs() / 1024;
+
             reduction += 1405 * (bound == Bound::Exact) as i32;
 
             reduction += 459 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 286 * (is_valid(tt_score) && tt_depth < depth) as i32;
 
             if is_quiet {
-                reduction += 1971;
+                reduction += 2071;
                 reduction -= 179 * history / 1024;
             } else {
                 reduction += 1424;
@@ -835,10 +837,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1810;
                 reduction += 2113 * tt_move.is_null() as i32;
-            }
-
-            if !improving {
-                reduction += (414 - 238 * improvement / 128).min(1014);
             }
 
             if is_quiet && !is_decisive(alpha) && move_count > 1 {
@@ -888,6 +886,7 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count >= 2 {
             let mut reduction = 243 * depth.ilog2() as i32;
 
+            reduction -= (232 * improvement / 128).clamp(-1024, 384);
             reduction -= 2382 * correction_value.abs() / 1024;
 
             if is_quiet {
