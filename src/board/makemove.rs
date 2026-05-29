@@ -2,7 +2,6 @@ use super::{Board, BoardObserver};
 use crate::types::{Move, MoveKind, Piece, PieceType, Square};
 
 impl Board {
-
     fn increment_stack(&mut self) {
         self.halfmove_number += 1;
         self.state_stack.push(self.state);
@@ -16,13 +15,10 @@ impl Board {
     }
 
     pub fn make_null_move(&mut self) {
-
         self.increment_stack();
-
         self.state.plies_from_null = 0;
         self.state.repetition = 0;
         self.state.captured = None;
-
         self.update_threats();
     }
 
