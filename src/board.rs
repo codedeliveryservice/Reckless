@@ -501,25 +501,28 @@ impl Board {
         debug_assert!(!self.all_threats().is_empty());
 
         let ep = self.en_passant();
-        if ep != Square::None {
-            let stm = self.side_to_move();
-            let king = self.king_square(stm);
-            let ep_occ = self.occupancies() ^ ep.to_bb() ^ (ep ^ 8).to_bb();
-            let ep_takers = pawn_attacks(ep, !stm) & self.colored_pieces(stm, PieceType::Pawn);
-
-            for ep_taker in ep_takers {
-                let occ = ep_occ ^ ep_taker.to_bb();
-                let checkers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
-                    | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
-
-                if (checkers & self.colors(!stm)).is_empty() {
-                    return; //ep capture is allowed
-                }
-            }
-
-            self.state.keys.toggle_en_passant(ep);
-            self.state.en_passant = Square::None;
+        if ep == Square::None {
+            return;
         }
+
+        let stm = self.side_to_move();
+        let king = self.king_square(stm);
+        let ep_occ = self.occupancies() ^ ep.to_bb() ^ (ep ^ 8).to_bb();
+        let ep_takers = pawn_attacks(ep, !stm) & self.colored_pieces(stm, PieceType::Pawn);
+
+        for ep_taker in ep_takers {
+            let occ = ep_occ ^ ep_taker.to_bb();
+            let checkers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
+                | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
+
+            if (checkers & self.colors(!stm)).is_empty() {
+                // En passant capture is allowed
+                return;
+            }
+        }
+
+        self.state.keys.toggle_en_passant(ep);
+        self.state.en_passant = Square::None;
     }
 
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
