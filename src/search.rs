@@ -808,17 +808,19 @@ fn search<NODE: NodeType>(
         if depth >= 2 && move_count >= 2 {
             let mut reduction = 256 * depth.ilog2() as i32;
 
+            reduction -= (300 * improvement / 128).clamp(-800, 200);
             reduction -= 3403 * correction_value.abs() / 1024;
+
             reduction += 1405 * (bound == Bound::Exact) as i32;
 
             reduction += 459 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 286 * (is_valid(tt_score) && tt_depth < depth) as i32;
 
             if is_quiet {
-                reduction += 1971;
+                reduction += 2171;
                 reduction -= 179 * history / 1024;
             } else {
-                reduction += 1424;
+                reduction += 1724;
                 reduction -= 107 * history / 1024;
             }
 
@@ -835,10 +837,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1810;
                 reduction += 2113 * tt_move.is_null() as i32;
-            }
-
-            if !improving {
-                reduction += (414 - 238 * improvement / 128).min(1014);
             }
 
             if is_quiet && !is_decisive(alpha) && move_count > 1 {
@@ -888,13 +886,14 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count >= 2 {
             let mut reduction = 243 * depth.ilog2() as i32;
 
+            reduction -= (300 * improvement / 128).clamp(-1024, 200);
             reduction -= 2382 * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 1385;
+                reduction += 1685;
                 reduction -= 136 * history / 1024;
             } else {
-                reduction += 1049;
+                reduction += 1349;
                 reduction -= 55 * history / 1024;
             }
 
@@ -906,10 +905,6 @@ fn search<NODE: NodeType>(
             if !tt_pv && cut_node {
                 reduction += 1366;
                 reduction += 2045 * tt_move.is_null() as i32;
-            }
-
-            if !improving {
-                reduction += (402 - 232 * improvement / 128).min(1426);
             }
 
             if td.cutoff_count[ply + 1] > 2 {
