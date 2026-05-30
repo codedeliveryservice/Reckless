@@ -839,7 +839,7 @@ fn search<NODE: NodeType>(
                 reduction += 2113 * tt_move.is_null() as i32;
             }
 
-            if is_quiet && !is_decisive(alpha) && move_count > 1 {
+            if is_quiet {
                 reduction += 3 * ((alpha - estimated_score).clamp(-64, 96));
             }
 
