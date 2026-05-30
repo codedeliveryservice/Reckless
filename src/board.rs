@@ -498,28 +498,30 @@ impl Board {
     /// We verify is self.state.enpassant is valid, and remove it if it is not.
     /// This must be called after pinners and checkers have been updated.
     fn validate_en_passant(&mut self) {
-        if self.en_passant() == Square::None {
+        debug_assert!(!self.all_threats().is_empty());
+
+        let ep = self.en_passant();
+        if ep == Square::None {
             return;
         }
 
         let stm = self.side_to_move();
         let king = self.king_square(stm);
-        let pushed_pawn = self.en_passant() ^ 8;
-        let ep_occ = self.occupancies() ^ self.en_passant().to_bb() ^ pushed_pawn.to_bb();
+        let ep_occ = self.occupancies() ^ ep.to_bb() ^ (ep ^ 8).to_bb();
+        let ep_takers = pawn_attacks(ep, !stm) & self.colored_pieces(stm, PieceType::Pawn);
 
-        let attackers = pawn_attacks(self.en_passant(), !stm) & self.colored_pieces(stm, PieceType::Pawn);
-
-        for attacker in attackers {
-            let occ = ep_occ ^ attacker.to_bb();
-            let slide_attackers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
+        for ep_taker in ep_takers {
+            let occ = ep_occ ^ ep_taker.to_bb();
+            let checkers = (rook_attacks(king, occ) & self.pieces2(PieceType::Rook, PieceType::Queen))
                 | (bishop_attacks(king, occ) & self.pieces2(PieceType::Bishop, PieceType::Queen));
 
-            if (slide_attackers & self.colors(!stm)).is_empty() {
+            if (checkers & self.colors(!stm)).is_empty() {
+                // En passant capture is allowed
                 return;
             }
         }
 
-        self.state.keys.toggle_en_passant(self.en_passant());
+        self.state.keys.toggle_en_passant(ep);
         self.state.en_passant = Square::None;
     }
 
