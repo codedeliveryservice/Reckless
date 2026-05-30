@@ -812,20 +812,20 @@ fn search<NODE: NodeType>(
         if depth >= 2 && move_count >= 2 {
             let mut reduction = lmr1() * depth.ilog2() as i32;
 
-            reduction -= (300 * improvement / 128).clamp(-800, 200);
-            reduction -= 3403 * correction_value.abs() / 1024;
+            reduction -= (lmr18() * improvement / 128).clamp(-lmr19(), lmr20());
+            reduction -= lmr3() * correction_value.abs() / 1024;
 
-            reduction += 1405 * (bound == Bound::Exact) as i32;
+            reduction += lmr4() * (bound == Bound::Exact) as i32;
 
             reduction += lmr5() * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += lmr6() * (is_valid(tt_score) && tt_depth < depth) as i32;
 
             if is_quiet {
-                reduction += 2171;
-                reduction -= 179 * history / 1024;
+                reduction += lmr7();
+                reduction -= lmr8() * history / 1024;
             } else {
-                reduction += 1724;
-                reduction -= 107 * history / 1024;
+                reduction += lmr9();
+                reduction -= lmr10() * history / 1024;
             }
 
             if NODE::PV {
@@ -890,15 +890,15 @@ fn search<NODE: NodeType>(
         else if !NODE::PV || move_count >= 2 {
             let mut reduction = fds1() * depth.ilog2() as i32;
 
-            reduction -= (300 * improvement / 128).clamp(-1024, 200);
-            reduction -= 2382 * correction_value.abs() / 1024;
+            reduction -= (fds12() * improvement / 128).clamp(-fds13(), fds14());
+            reduction -= fds3() * correction_value.abs() / 1024;
 
             if is_quiet {
-                reduction += 1685;
-                reduction -= 136 * history / 1024;
+                reduction += fds4();
+                reduction -= fds5() * history / 1024;
             } else {
-                reduction += 1349;
-                reduction -= 55 * history / 1024;
+                reduction += fds6();
+                reduction -= fds7() * history / 1024;
             }
 
             if tt_pv {
