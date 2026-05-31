@@ -819,6 +819,7 @@ fn search<NODE: NodeType>(
             if is_quiet {
                 reduction += 2171;
                 reduction -= 179 * history / 1024;
+                reduction += 3 * ((alpha - estimated_score).clamp(-64, 96));
             } else {
                 reduction += 1724;
                 reduction -= 107 * history / 1024;
@@ -832,15 +833,9 @@ fn search<NODE: NodeType>(
                 reduction -= 368;
                 reduction -= 570 * (is_valid(tt_score) && tt_score > alpha) as i32;
                 reduction -= 722 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if !tt_pv && cut_node {
+            } else if cut_node {
                 reduction += 1810;
                 reduction += 2113 * tt_move.is_null() as i32;
-            }
-
-            if is_quiet {
-                reduction += 3 * ((alpha - estimated_score).clamp(-64, 96));
             }
 
             if td.board.in_check() {
@@ -900,9 +895,7 @@ fn search<NODE: NodeType>(
             if tt_pv {
                 reduction -= 924;
                 reduction -= 1075 * (is_valid(tt_score) && tt_depth >= depth) as i32;
-            }
-
-            if !tt_pv && cut_node {
+            } else if cut_node {
                 reduction += 1366;
                 reduction += 2045 * tt_move.is_null() as i32;
             }
