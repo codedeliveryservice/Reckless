@@ -242,10 +242,14 @@ impl Board {
         (self.pieces(PieceType::Bishop) & Bitboard::LIGHT_SQUARES).popcount() != 1
     }
 
+    pub const fn twofold_repetition(&self) -> bool {
+        self.state.repetition != 0
+    }
+
     /// Checks if the position has repeated once earlier but strictly
     /// after the root, or repeated twice before or at the root.
     pub const fn draw_by_repetition(&self, ply: i32) -> bool {
-        self.state.repetition != 0 && self.state.repetition < ply
+        self.twofold_repetition() && self.state.repetition < ply
     }
 
     pub fn has_repeated(&self) -> bool {

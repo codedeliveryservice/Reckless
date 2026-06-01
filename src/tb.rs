@@ -164,12 +164,20 @@ pub fn normalize_draw_ranks(td: &mut ThreadData) {
         return;
     }
 
+    let ply = 1;
+
     for i in 0..td.root_moves.len() {
         let mv = td.root_moves[i].mv;
         td.board.make_move(mv, &mut NullBoardObserver);
-        let draw = td.board.is_draw(1);
+        let twofold = td.board.twofold_repetition();
+        let threefold = td.board.draw_by_repetition(ply);
         td.board.undo_move(mv);
-        if draw {
+
+        if twofold && td.root_moves[i].tb_rank > 900 {
+            td.root_moves[i].tb_rank -= 1;
+        }
+
+        if threefold {
             td.root_moves[i].tb_rank = 0;
             td.root_moves[i].tb_score = Score::ZERO;
         }
