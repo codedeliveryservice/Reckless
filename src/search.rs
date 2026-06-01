@@ -692,7 +692,7 @@ fn search<NODE: NodeType>(
         }
         // Negative Extensions
         else if tt_score >= beta || cut_node {
-            extension = -2;
+            extension = -3;
         }
     }
     // Low Depth Singular Extensions (LDSE)
