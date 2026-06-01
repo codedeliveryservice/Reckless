@@ -106,8 +106,10 @@ impl ThreadPool {
                 t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
 
             #[cfg(feature = "syzygy")]
-            if t1.board.castling().raw() == 0 && t1.board.occupancies().popcount() <= tb::size() {
+            if t1.board.castling().raw() == 0 && t1.board.occupancies().popcount() <= tb::size() && !t1.board.is_draw(0)
+            {
                 tb::rank_rootmoves(t1);
+                tb::normalize_draw_ranks(t1);
             }
 
             let tm = time_manager.clone();
