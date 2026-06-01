@@ -5,7 +5,7 @@ use crate::{
         TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbRootMove, TbRootMoves, tb_init, tb_probe_root_dtz,
         tb_probe_root_wdl, tb_probe_wdl,
     },
-    board::Board,
+    board::{Board, NullBoardObserver},
     thread::{RootMove, ThreadData},
     types::{Color, MAX_PLY, PieceType, Score},
 };
@@ -157,6 +157,25 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
             td.shared.stop_probing_tb.store(td.root_moves[0].tb_score <= Score::ZERO, Ordering::Relaxed);
         }
     }
+}
+
+pub fn normalize_draw_ranks(td: &mut ThreadData) {
+    if !td.shared.root_in_tb.load(Ordering::Relaxed) {
+        return;
+    }
+
+    for i in 0..td.root_moves.len() {
+        let mv = td.root_moves[i].mv;
+        td.board.make_move(mv, &mut NullBoardObserver);
+        let draw = td.board.is_draw(1);
+        td.board.undo_move(mv);
+        if draw {
+            td.root_moves[i].tb_rank = 0;
+            td.root_moves[i].tb_score = Score::ZERO;
+        }
+    }
+
+    td.root_moves.sort_by_key(|rm| std::cmp::Reverse(rm.tb_rank));
 }
 
 const fn tb_en_passant_square(board: &Board) -> u32 {

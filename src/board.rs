@@ -250,7 +250,10 @@ impl Board {
 
     pub fn has_repeated(&self) -> bool {
         let end = self.state.plies_from_null.min(self.fiftymove_clock() as usize);
-        self.state_stack.iter().rev().take(end.saturating_sub(3)).any(|s| s.repetition != 0)
+        std::iter::once(&self.state)
+            .chain(self.state_stack.iter().rev())
+            .take(end.saturating_sub(3))
+            .any(|s| s.repetition != 0)
     }
 
     pub fn draw_by_fifty_move_rule(&self) -> bool {
