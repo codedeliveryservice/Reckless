@@ -1055,7 +1055,13 @@ fn search<NODE: NodeType>(
 
         for &mv in noisy_moves.iter() {
             let captured_type = td.board.type_on(mv.to());
-            td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured_type, -noisy_malus);
+            td.noisy_history.update(
+                td.board.all_threats(),
+                td.board.moved_piece(mv),
+                mv.to(),
+                captured_type,
+                -noisy_malus,
+            );
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
