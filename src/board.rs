@@ -200,6 +200,7 @@ impl Board {
         self.mailbox[square] = piece;
         self.colors[piece.color()].set(square);
         self.pieces[piece.piece_type()].set(square);
+        self.update_hash(piece, square);
     }
 
     pub fn remove_piece(&mut self, square: Square) -> Piece {
@@ -207,6 +208,7 @@ impl Board {
         self.mailbox[square] = Piece::None;
         self.colors[piece.color()].clear(square);
         self.pieces[piece.piece_type()].clear(square);
+        self.update_hash(piece, square);
         piece
     }
 
