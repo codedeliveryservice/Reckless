@@ -732,8 +732,8 @@ fn search<NODE: NodeType>(
         let history = if is_quiet {
             td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
         } else {
-            let captured = td.board.type_on(mv.to());
-            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured)
+            let captured_type = td.board.type_on(mv.to());
+            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured_type)
         };
 
         if !NODE::ROOT && !is_loss(best_score) {
@@ -1054,8 +1054,8 @@ fn search<NODE: NodeType>(
         }
 
         for &mv in noisy_moves.iter() {
-            let captured = td.board.type_on(mv.to());
-            td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured, -noisy_malus);
+            let captured_type = td.board.type_on(mv.to());
+            td.noisy_history.update(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured_type, -noisy_malus);
         }
 
         if !NODE::ROOT && td.stack[ply - 1].mv.is_quiet() && td.stack[ply - 1].move_count < 2 {
@@ -1088,14 +1088,14 @@ fn search<NODE: NodeType>(
                 td.continuation_history.update(entry.conthist, td.stack[ply - 1].piece, prior_move.to(), bonus);
             }
         } else if prior_move.is_noisy() {
-            let captured = td.board.captured_piece().unwrap_or_default().piece_type();
+            let captured_type = td.board.captured_piece().piece_type();
             let bonus = (59 * depth).min(526);
 
             td.noisy_history.update(
                 td.board.prior_threats(),
                 td.board.piece_on(prior_move.to()),
                 prior_move.to(),
-                captured,
+                captured_type,
                 bonus,
             );
         }

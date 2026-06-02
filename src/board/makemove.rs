@@ -18,7 +18,7 @@ impl Board {
     pub fn make_null_move(&mut self) {
         self.increment_stack();
         self.state.plies_from_null = 0;
-        self.state.captured = None;
+        self.state.captured = Piece::None;
         self.update_threats();
     }
 
@@ -39,7 +39,7 @@ impl Board {
         self.increment_stack();
 
         let captured = self.piece_on(to);
-        self.state.captured = Some(captured);
+        self.state.captured = captured;
         self.state.plies_from_null += 1;
 
         if mv.kind() == MoveKind::Capture || piece.piece_type() == PieceType::Pawn {
@@ -77,7 +77,7 @@ impl Board {
                 let captured = self.remove_piece(to ^ 8);
                 observer.on_piece_change(self, captured, to ^ 8, false);
                 self.state.material -= captured.value();
-                self.state.captured = Some(captured);
+                self.state.captured = captured;
             } else if mv.is_double_push() {
                 self.state.en_passant = to ^ 8;
                 self.state.keys.toggle_en_passant(self.en_passant());
@@ -138,7 +138,7 @@ impl Board {
             self.add_piece(if mv.is_promotion() { Piece::new(stm, PieceType::Pawn) } else { mover }, from);
 
             if mv.is_capture() {
-                self.add_piece(self.captured_piece().expect("Empty capture."), mv.capture_sq());
+                self.add_piece(self.captured_piece(), mv.capture_sq());
             }
         }
         self.state = self.state_stack.pop().unwrap();
