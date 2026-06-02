@@ -59,9 +59,6 @@ impl Board {
 
             self.add_piece(rook, rook_to);
             observer.on_piece_change(self, rook, rook_to, true);
-
-            self.update_hash(rook, rook_from);
-            self.update_hash(rook, rook_to);
         } else if captured != Piece::None {
             self.remove_piece(from);
             observer.on_piece_change(self, piece, from, false);
@@ -69,8 +66,6 @@ impl Board {
             self.remove_piece(to);
             self.add_piece(piece, to);
             observer.on_piece_mutate(self, captured, piece, to);
-
-            self.update_hash(captured, to);
 
             self.state.material -= captured.value();
             self.state.captured = Some(captured);
@@ -82,7 +77,6 @@ impl Board {
             if mv.is_en_passant() {
                 let captured = self.remove_piece(to ^ 8);
                 observer.on_piece_change(self, captured, to ^ 8, false);
-                self.update_hash(captured, to ^ 8);
                 self.state.material -= captured.value();
                 self.state.captured = Some(captured);
             } else if mv.is_double_push() {
@@ -91,18 +85,12 @@ impl Board {
             }
         }
 
-        self.update_hash(piece, from);
-        self.update_hash(piece, to);
-
         if mv.is_promotion() {
             let promotion = Piece::new(stm, mv.promo_piece_type());
 
             self.remove_piece(to);
             self.add_piece(promotion, to);
             observer.on_piece_mutate(self, piece, promotion, to);
-
-            self.update_hash(piece, to);
-            self.update_hash(promotion, to);
 
             self.state.material += promotion.value() - PieceType::Pawn.value();
         }
