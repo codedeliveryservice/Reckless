@@ -7,6 +7,7 @@ impl Board {
         self.state_stack.push(self.state);
         self.state.keys.toggle_side();
         self.state.keys.toggle_castling(self.state.castling);
+        self.state.repetition = 0;
 
         if self.en_passant() != Square::None {
             self.state.keys.toggle_en_passant(self.en_passant());
@@ -17,7 +18,6 @@ impl Board {
     pub fn make_null_move(&mut self) {
         self.increment_stack();
         self.state.plies_from_null = 0;
-        self.state.repetition = 0;
         self.state.captured = None;
         self.update_threats();
     }
@@ -100,8 +100,6 @@ impl Board {
 
         self.update_threats();
         self.validate_en_passant();
-
-        self.state.repetition = 0;
 
         let end = self.state.plies_from_null.min(self.fiftymove_clock() as usize);
 
