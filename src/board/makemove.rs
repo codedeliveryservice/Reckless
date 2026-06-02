@@ -68,7 +68,6 @@ impl Board {
             observer.on_piece_mutate(self, captured, piece, to);
 
             self.state.material -= captured.value();
-            self.state.captured = Some(captured);
         } else {
             self.remove_piece(from);
             self.add_piece(piece, to);
