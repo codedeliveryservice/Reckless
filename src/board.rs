@@ -31,7 +31,7 @@ struct InternalState {
     material: i32,
     plies_from_null: usize,
     repetition: i32,
-    captured: Option<Piece>,
+    captured: Piece,
     piece_threats: [Bitboard; PieceType::NUM],
     all_threats: Bitboard,
     pinned: [Bitboard; Color::NUM],
@@ -120,7 +120,7 @@ impl Board {
         self.state_stack[self.state_stack.len() - 1].all_threats
     }
 
-    pub const fn captured_piece(&self) -> Option<Piece> {
+    pub const fn captured_piece(&self) -> Piece {
         self.state.captured
     }
 
