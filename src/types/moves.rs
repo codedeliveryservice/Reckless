@@ -117,9 +117,7 @@ impl Move {
 
     #[cfg(feature = "syzygy")]
     pub fn to_tb_move(self) -> crate::bindings::TbMove {
-        let promo_pt = if self.is_promotion() {
-            PieceType::King as u16 - self.promo_piece_type() as u16
-        } else { 0 };
+        let promo_pt = if self.is_promotion() { PieceType::King as u16 - self.promo_piece_type() as u16 } else { 0 };
 
         self.fromto() | (promo_pt << 12)
     }
