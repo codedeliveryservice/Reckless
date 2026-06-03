@@ -178,15 +178,6 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             td.completed_depth = depth;
         }
 
-        if report == Report::Full
-            && !(is_loss(td.root_moves[0].display_score) && td.shared.status.get() == Status::STOPPED)
-            && (td.shared.status.get() == Status::STOPPED
-                || td.pv_index + 1 == td.multi_pv
-                || td.shared.nodes.aggregate() > 10_000_000)
-        {
-            td.print_uci_info(depth);
-        }
-
         if (td.root_moves[0].score - average[0]).abs() < 12 {
             eval_stability += 1;
         } else {
@@ -199,16 +190,40 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             pv_stability = 0;
         }
 
-        if td.root_moves[0].score != -Score::INFINITE
+        let last_score = last_best_rootmove.score;
+
+        let is_forgotten_mate = last_score != -Score::INFINITE
+            && is_decisive(last_score)
+            && (td.root_moves[0].score.abs() < last_score.abs()
+                || td.root_moves[0].upperbound
+                || td.root_moves[0].lowerbound);
+
+        let is_aborted_loss = td.shared.status.get() == Status::STOPPED
+            && td.root_moves[0].score != -Score::INFINITE
             && is_loss(td.root_moves[0].score)
-            && td.shared.status.get() == Status::STOPPED
-        {
+            && !td.root_moves[0].upperbound
+            && !td.root_moves[0].lowerbound;
+
+        if is_aborted_loss || is_forgotten_mate {
             if let Some(pos) = td.root_moves.iter().position(|rm| rm.mv == last_best_rootmove.mv) {
                 td.root_moves.remove(pos);
                 td.root_moves.insert(0, last_best_rootmove.clone());
+                td.root_moves[0].upperbound = false;
+                td.root_moves[0].lowerbound = false;
+            } else if is_aborted_loss {
+                td.root_moves[0].lowerbound = true;
             }
-        } else {
+        } else if td.shared.status.get() != Status::STOPPED {
             last_best_rootmove = td.root_moves[0].clone();
+        }
+
+        if report == Report::Full
+            && !(is_loss(td.root_moves[0].display_score) && td.shared.status.get() == Status::STOPPED)
+            && (td.shared.status.get() == Status::STOPPED
+                || td.pv_index + 1 == td.multi_pv
+                || td.shared.nodes.aggregate() > 10_000_000)
+        {
+            td.print_uci_info(depth);
         }
 
         if td.shared.status.get() == Status::STOPPED {
