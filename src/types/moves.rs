@@ -49,6 +49,10 @@ impl Move {
         Square::new(((self.0 >> 6) & 0b0011_1111) as u8)
     }
 
+    pub const fn fromto(self) -> u16 {
+        self.0 & 0x0FFF
+    }
+
     pub const fn kind(self) -> MoveKind {
         unsafe { mem::transmute((self.0 >> 12) as u8) }
     }
@@ -112,28 +116,12 @@ impl Move {
     }
 
     #[cfg(feature = "syzygy")]
-    pub const fn to_tb_move(self) -> crate::bindings::TbMove {
-        const fn promo_bits(pt: PieceType) -> crate::bindings::TbMove {
-            match pt {
-                PieceType::Queen => 1,
-                PieceType::Rook => 2,
-                PieceType::Bishop => 3,
-                PieceType::Knight => 4,
-                _ => unreachable!(),
-            }
-        }
+    pub fn to_tb_move(self) -> crate::bindings::TbMove {
+        let promo_pt = if self.is_promotion() {
+            PieceType::King as u16 - self.promo_piece_type() as u16
+        } else { 0 };
 
-        let from = self.from() as u16;
-        let to = self.to() as u16;
-
-        let base = (from << 6) | to;
-
-        if self.is_promotion() {
-            let promo = promo_bits(self.promo_piece_type()) & 0x7;
-            base | (promo << 12)
-        } else {
-            base
-        }
+        self.fromto() | (promo_pt << 12)
     }
 
     pub fn to_uci(self, board: &Board) -> String {
