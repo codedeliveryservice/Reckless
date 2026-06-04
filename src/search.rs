@@ -147,7 +147,11 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
                     s if s >= beta => {
                         alpha = (beta - delta).max(alpha);
                         beta = (score + delta).min(Score::INFINITE);
-                        reduction += 1;
+                        if !is_decisive(score) {
+                            reduction += 1;
+                        } else {
+                            reduction = reduction.min(1)
+                        }
                         delta += 60 * delta / 128;
                     }
                     _ => {
