@@ -65,17 +65,10 @@ impl Move {
         self.is_present() && !self.is_noisy()
     }
 
+    // Sneaky bit-twidling.  If we just look at the last 3 bits (& 7), anything
+    // greater than Castling is a queen push promotion or a capture.
     pub const fn is_noisy(self) -> bool {
-        matches!(
-            self.kind(),
-            MoveKind::Capture
-                | MoveKind::EnPassant
-                | MoveKind::PromotionQ
-                | MoveKind::PromotionCaptureN
-                | MoveKind::PromotionCaptureB
-                | MoveKind::PromotionCaptureR
-                | MoveKind::PromotionCaptureQ
-        )
+        (self.kind() as u8 & 7) > MoveKind::Castling as u8
     }
 
     pub const fn is_special(self) -> bool {
