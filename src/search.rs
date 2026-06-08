@@ -254,23 +254,31 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             nodes * pv_stability * eval_stability * score_trend * best_move_stability
         };
 
-        if td.time_manager.soft_limit(td, multiplier) {
-            if !soft_stop_voted {
-                soft_stop_voted = true;
+        if td.time_manager.use_time_management() {
+            if td.time_manager.soft_limit(td, multiplier) {
+                if !soft_stop_voted {
+                    soft_stop_voted = true;
 
-                let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
-                let majority = (thread_count * 65).div_ceil(100);
-                if votes >= majority {
-                    td.shared.status.set(Status::STOPPED);
+                    let votes = td.shared.soft_stop_votes.fetch_add(1, Ordering::AcqRel) + 1;
+                    let majority = (thread_count * 65).div_ceil(100);
+                    if votes >= majority {
+                        td.shared.status.set(Status::STOPPED);
+                    }
                 }
+            } else if soft_stop_voted {
+                soft_stop_voted = false;
+                td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
             }
-        } else if soft_stop_voted {
-            soft_stop_voted = false;
-            td.shared.soft_stop_votes.fetch_sub(1, Ordering::AcqRel);
         }
 
         if td.shared.status.get() == Status::STOPPED {
             break;
+        }
+    }
+
+    if matches!(td.time_manager.limits(), Limits::Infinite) {
+        while td.shared.status.get() != Status::STOPPED {
+            std::hint::spin_loop();
         }
     }
 

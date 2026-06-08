@@ -91,4 +91,8 @@ impl TimeManager {
     pub fn limits(&self) -> Limits {
         self.limits.clone()
     }
+
+    pub fn use_time_management(&self) -> bool {
+        matches!(self.limits, Limits::Fischer(..) | Limits::Cyclic(..) | Limits::Time(_))
+    }
 }
