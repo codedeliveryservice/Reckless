@@ -8,6 +8,7 @@ pub enum Limits {
     Depth(i32),
     Time(u64),
     Nodes(u64),
+    Mate(u64),
     Fischer(u64, u64),
     Cyclic(u64, u64, u64),
 }
@@ -69,7 +70,7 @@ impl TimeManager {
 
     pub fn soft_limit(&self, td: &ThreadData, multiplier: impl Fn() -> f32) -> bool {
         match self.limits {
-            Limits::Infinite | Limits::Depth(_) => false,
+            Limits::Infinite | Limits::Depth(_) | Limits::Mate(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() >= maximum,
             Limits::Time(maximum) => self.start_time.elapsed() >= Duration::from_millis(maximum),
             _ => self.start_time.elapsed() >= Duration::from_secs_f32(self.soft_bound.as_secs_f32() * multiplier()),
@@ -82,7 +83,7 @@ impl TimeManager {
         }
 
         match self.limits {
-            Limits::Infinite | Limits::Depth(_) => false,
+            Limits::Infinite | Limits::Depth(_) | Limits::Mate(_) => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
             _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }

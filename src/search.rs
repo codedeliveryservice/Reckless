@@ -234,6 +234,14 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
+        if td.id == 0
+            && let Limits::Mate(moves) = td.time_manager.limits()
+            && Score::MATE - td.root_moves[0].score.abs() <= moves as i32 * 2
+        {
+            td.shared.status.set(Status::STOPPED);
+            break;
+        }
+
         let multiplier = || {
             let nodes = {
                 let fraction = td.root_moves[0].nodes as f32 / td.nodes() as f32;
