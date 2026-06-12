@@ -20,7 +20,9 @@ fn main() {
     generate_engine_version();
 
     #[cfg(feature = "syzygy")]
-    generate_syzygy_binding();
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() != Ok("wasm32") {
+        generate_syzygy_binding();
+    }
 
     if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
         download_network();

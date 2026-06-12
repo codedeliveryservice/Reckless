@@ -399,6 +399,7 @@ unsafe fn deallocate(ptr: *mut Cluster, len: usize) {
 }
 
 unsafe fn parallel_clear<T: std::marker::Send>(threads: usize, ptr: *mut T, len: usize) {
+    #[cfg(not(target_arch = "wasm32"))]
     std::thread::scope(|scope| {
         let slice = std::slice::from_raw_parts_mut(ptr, len);
 
@@ -407,4 +408,10 @@ unsafe fn parallel_clear<T: std::marker::Send>(threads: usize, ptr: *mut T, len:
             scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
         }
     });
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = threads;
+        ptr.write_bytes(0, len);
+    }
 }

@@ -172,12 +172,21 @@ impl NumaConfig {
     }
 
     pub fn execute_on_numa_node<F: FnOnce() + Send + 'static>(&self, n: NumaIndex, f: F) {
-        let cfg = self.clone();
-        let handle = thread::spawn(move || {
-            cfg.bind_current_thread_to_numa_node(n);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let cfg = self.clone();
+            let handle = thread::spawn(move || {
+                cfg.bind_current_thread_to_numa_node(n);
+                f();
+            });
+            handle.join().unwrap();
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = n;
             f();
-        });
-        handle.join().unwrap();
+        }
     }
 
     fn add_cpu_to_node(&mut self, node: NumaIndex, cpu: CpuIndex) {

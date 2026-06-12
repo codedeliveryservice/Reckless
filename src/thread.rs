@@ -6,6 +6,17 @@ use std::{
     },
 };
 
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+    pub static WASM_CALLBACK: std::cell::RefCell<Option<js_sys::Function>> =
+        const { std::cell::RefCell::new(None) };
+    pub static WASM_DISPATCH: std::cell::RefCell<Option<js_sys::Function>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(target_arch = "wasm32")]
+pub static WORKERS_REMAINING: AtomicUsize = AtomicUsize::new(0);
+
 use crate::{
     board::Board,
     history::{ContinuationCorrectionHistory, ContinuationHistory, CorrectionHistory, NoisyHistory, QuietHistory},
@@ -17,6 +28,45 @@ use crate::{
     transposition::TranspositionTable,
     types::{MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
 };
+
+pub trait UciWriter: Send {
+    fn write_line(&mut self, line: &str);
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    fn take(&mut self) -> String {
+        String::new()
+    }
+}
+
+pub struct StdoutWriter;
+
+impl UciWriter for StdoutWriter {
+    fn write_line(&mut self, line: &str) {
+        println!("{line}");
+    }
+}
+
+#[derive(Default)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub struct BufferWriter {
+    pub buffer: String,
+}
+
+impl UciWriter for BufferWriter {
+    fn write_line(&mut self, line: &str) {
+        self.buffer.push_str(line);
+        self.buffer.push('\n');
+        #[cfg(target_arch = "wasm32")]
+        WASM_CALLBACK.with(|cb| {
+            if let Some(f) = &*cb.borrow() {
+                let _ = f.call1(&wasm_bindgen::JsValue::NULL, &wasm_bindgen::JsValue::from_str(line));
+            }
+        });
+    }
+
+    fn take(&mut self) -> String {
+        std::mem::take(&mut self.buffer)
+    }
+}
 
 #[repr(align(64))]
 struct AlignedAtomicU64 {
@@ -186,6 +236,7 @@ pub struct ThreadData {
     pub pv_end: usize,
     pub cutoff_count: PlyArray<i32, { MAX_PLY + 16 }>,
     pub excluded: PlyArray<Move, { MAX_PLY + 16 }>,
+    pub writer: Box<dyn UciWriter>,
 }
 
 impl ThreadData {
@@ -221,6 +272,10 @@ impl ThreadData {
             pv_end: 0,
             cutoff_count: PlyArray::default(),
             excluded: PlyArray::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+            writer: Box::new(StdoutWriter),
+            #[cfg(target_arch = "wasm32")]
+            writer: Box::new(BufferWriter::default()),
         }
     }
 
@@ -236,7 +291,7 @@ impl ThreadData {
         self.continuation_history.get(self.stack[ply - index].conthist, self.board.piece_on(mv.from()), mv.to())
     }
 
-    pub fn print_uci_info(&self, depth: i32) {
+    pub fn print_uci_info(&mut self, depth: i32) {
         if self.root_moves.is_empty() {
             self.print_uci_no_move();
             return;
@@ -297,7 +352,7 @@ impl ThreadData {
                 formatted_score.push_str(" lowerbound");
             }
 
-            print!(
+            let mut line = format!(
                 "info depth {depth} seldepth {} multipv {} score {formatted_score} nodes {} time {ms} nps {nps:.0} hashfull {} tbhits {} pv",
                 root_move.sel_depth,
                 pv_index + 1,
@@ -306,20 +361,20 @@ impl ThreadData {
                 self.shared.tb_hits.aggregate(),
             );
 
-            print!(" {}", root_move.mv.to_uci(&self.board));
+            line.push_str(&format!(" {}", root_move.mv.to_uci(&self.board)));
             for mv in root_move.pv.line() {
-                print!(" {}", mv.to_uci(&self.board));
+                line.push_str(&format!(" {}", mv.to_uci(&self.board)));
             }
 
-            println!();
+            self.writer.write_line(&line);
         }
     }
 
-    fn print_uci_no_move(&self) {
+    fn print_uci_no_move(&mut self) {
         if self.board.in_check() {
-            println!("info depth 0 score mate 0");
+            self.writer.write_line("info depth 0 score mate 0");
         } else {
-            println!("info depth 0 score cp 0");
+            self.writer.write_line("info depth 0 score cp 0");
         }
     }
 }
