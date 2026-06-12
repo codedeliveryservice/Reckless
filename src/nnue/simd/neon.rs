@@ -88,23 +88,26 @@ unsafe fn dot_bytes(u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
     vpaddq_s32(sums_low, sums_high)
 }
 
-#[cfg(target_feature = "dotprod")]
-pub unsafe fn dpbusd(mut i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
-    // Nightly only equivalent:
-    // vdotq_s32(i32s, vreinterpretq_s8_s32(u8s), i8s)
-    std::arch::asm!(
-        "sdot {acc:v}.4s, {src1:v}.16b, {src2:v}.16b",
-        acc  = inout(vreg) i32s,
-        src1 = in(vreg) u8s,
-        src2 = in(vreg) i8s,
-        options(pure, nomem, nostack)
-    );
-    i32s
-}
-
-#[cfg(not(target_feature = "dotprod"))]
-pub unsafe fn dpbusd(i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
-    vaddq_s32(i32s, dot_bytes(u8s, i8s))
+cfg_select! {
+    target_feature = "dotprod" => {
+        pub unsafe fn dpbusd(mut i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
+            // Nightly only equivalent:
+            // vdotq_s32(i32s, vreinterpretq_s8_s32(u8s), i8s)
+            std::arch::asm!(
+                "sdot {acc:v}.4s, {src1:v}.16b, {src2:v}.16b",
+                acc  = inout(vreg) i32s,
+                src1 = in(vreg) u8s,
+                src2 = in(vreg) i8s,
+                options(pure, nomem, nostack)
+            );
+            i32s
+        }
+    }
+    _ => {
+        pub unsafe fn dpbusd(i32s: int32x4_t, u8s: int32x4_t, i8s: int8x16_t) -> int32x4_t {
+            vaddq_s32(i32s, dot_bytes(u8s, i8s))
+        }
+    }
 }
 
 pub unsafe fn double_dpbusd(
