@@ -1,5 +1,5 @@
 use std::{
-    ops::Index,
+    ops::{Index, IndexMut},
     sync::{
         Arc, Condvar, Mutex,
         atomic::Ordering,
@@ -7,6 +7,9 @@ use std::{
     },
     thread::Scope,
 };
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
 
 #[cfg(feature = "syzygy")]
 use crate::tb;
@@ -90,6 +93,57 @@ impl ThreadPool {
             x.store((self.main_thread().previous_best_score + 32768) as u32, Ordering::Release);
         });
 
+        #[cfg(target_arch = "wasm32")]
+        {
+            let thread_count = self.vector.len();
+
+            shared.root_in_tb.store(false, Ordering::Relaxed);
+            shared.stop_probing_tb.store(false, Ordering::Relaxed);
+
+            {
+                let t1 = &mut self.vector[0];
+                t1.board = (*board).clone();
+                t1.root_moves =
+                    t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
+                t1.multi_pv = multi_pv;
+                t1.time_manager = time_manager.clone();
+            }
+
+            let root_moves = self.vector[0].root_moves.clone();
+            for (index, t) in self.vector[1..].iter_mut().enumerate() {
+                t.id = index + 1;
+                t.time_manager = time_manager.clone();
+                t.board = (*board).clone();
+                t.root_moves = root_moves.clone();
+            }
+
+            let (t1, rest) = self.vector.split_first_mut().unwrap();
+            let n_workers = rest.len();
+
+            if n_workers > 0 {
+                crate::thread::WORKERS_REMAINING.store(n_workers, Ordering::Release);
+                crate::thread::WASM_DISPATCH.with(|d| {
+                    if let Some(f) = &*d.borrow() {
+                        let ptrs = js_sys::Array::new();
+                        for t in rest.iter() {
+                            ptrs.push(&JsValue::from(t as *const ThreadData as u32));
+                        }
+                        let _ = f.call2(&JsValue::NULL, &ptrs.into(), &JsValue::from(thread_count as u32));
+                    }
+                });
+            }
+
+            search::start(t1, report, thread_count);
+            shared.status.set(Status::STOPPED);
+
+            if n_workers > 0 {
+                while crate::thread::WORKERS_REMAINING.load(Ordering::Acquire) > 0 {
+                    std::hint::spin_loop();
+                }
+            }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
         std::thread::scope(|scope| {
             let mut handlers = Vec::new();
 
@@ -157,11 +211,19 @@ impl Index<usize> for ThreadPool {
     }
 }
 
+impl IndexMut<usize> for ThreadPool {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.vector[index]
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub struct WorkerThread {
     handle: std::thread::JoinHandle<()>,
     comms: WorkSender,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl WorkerThread {
     pub fn join(self) {
         drop(self.comms); // Drop the sender to signal the worker thread to finish
@@ -224,6 +286,7 @@ pub trait ScopeExt<'scope, 'env> {
         F: FnOnce() + Send + 'scope;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     fn spawn_into<'comms, F>(&'scope self, f: F, thread: &'scope WorkerThread) -> ReceiverHandle<'scope>
     where
@@ -251,6 +314,7 @@ impl<'scope, 'env> ScopeExt<'scope, 'env> for Scope<'scope, 'env> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn make_worker_thread() -> WorkerThread {
     let (sender, receiver) = make_work_channel();
 
@@ -268,10 +332,12 @@ fn make_worker_thread() -> WorkerThread {
     WorkerThread { handle, comms: sender }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
     std::iter::repeat_with(make_worker_thread).take(num_threads).collect()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<ThreadData> {
     std::thread::scope(|scope| -> Vec<ThreadData> {
         let cfg = shared.numa_context.get_numa_config();
@@ -310,4 +376,23 @@ fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread])
 
         thread_data
     })
+}
+
+#[cfg(target_arch = "wasm32")]
+pub struct WorkerThread;
+
+#[cfg(target_arch = "wasm32")]
+impl WorkerThread {
+    pub fn join(self) {}
+}
+
+#[cfg(target_arch = "wasm32")]
+fn make_worker_threads(num_threads: usize) -> Vec<WorkerThread> {
+    std::iter::repeat_with(|| WorkerThread).take(num_threads).collect()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn make_thread_data(shared: Arc<SharedContext>, worker_threads: &[WorkerThread]) -> Vec<ThreadData> {
+    let token = NumaReplicatedAccessToken::new(0);
+    worker_threads.iter().map(|_| ThreadData::new(shared.clone(), token)).collect()
 }

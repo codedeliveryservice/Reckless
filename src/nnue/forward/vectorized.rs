@@ -156,7 +156,7 @@ pub unsafe fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, para
     simd::horizontal_sum(output) + parameters.l3_biases[bucket]
 }
 
-#[cfg(all(not(target_feature = "neon"), not(target_feature = "avx512vbmi2")))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_feature = "neon"), not(target_feature = "avx512vbmi2")))]
 pub unsafe fn find_nnz(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
 ) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
@@ -251,6 +251,49 @@ pub unsafe fn find_nnz(
 
         count += entry.count;
         base = vaddq_s16(base, increment);
+    }
+
+    (indexes, count)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub unsafe fn find_nnz(
+    ft_out: &Aligned<[u8; L1_SIZE]>, nnz_table: &[SparseEntry],
+) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
+    use std::arch::wasm32::*;
+
+    let mut indexes = Aligned::new([0u16; L1_SIZE / 4]);
+    let mut count = 0;
+
+    let increment = i16x8_splat(8);
+    let mut base = i16x8_splat(0);
+    let zero = i8x16_splat(0);
+
+    for i in (0..L1_SIZE).step_by(64) {
+        let v0 = *ft_out.as_ptr().add(i).cast::<v128>();
+        let v1 = *ft_out.as_ptr().add(i + 16).cast::<v128>();
+        let v2 = *ft_out.as_ptr().add(i + 32).cast::<v128>();
+        let v3 = *ft_out.as_ptr().add(i + 48).cast::<v128>();
+
+        let half0 = i16x8_narrow_i32x4(v0, v1);
+        let half1 = i16x8_narrow_i32x4(v2, v3);
+        let packed = u8x16_narrow_i16x8(half0, half1);
+
+        let mask = i8x16_bitmask(v128_not(i8x16_eq(packed, zero))) as usize;
+
+        let base_hi = i16x8_add(base, increment);
+
+        let entry_lo = nnz_table.get_unchecked(mask & 0xFF);
+        let store = indexes.as_mut_ptr().add(count) as *mut v128;
+        v128_store(store, i16x8_add(base, v128_load(entry_lo.indexes.as_ptr() as *const v128)));
+        count += entry_lo.count;
+
+        let entry_hi = nnz_table.get_unchecked(mask >> 8);
+        let store = indexes.as_mut_ptr().add(count) as *mut v128;
+        v128_store(store, i16x8_add(base_hi, v128_load(entry_hi.indexes.as_ptr() as *const v128)));
+        count += entry_hi.count;
+
+        base = i16x8_add(base_hi, increment);
     }
 
     (indexes, count)

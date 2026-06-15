@@ -23,6 +23,15 @@ endif
 rule:
 	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
 
+wasm:
+	unset RUSTFLAGS && rustup run nightly \
+		cargo build -Z build-std=panic_abort,std \
+		--lib --target wasm32-unknown-unknown --release --no-default-features
+	wasm-bindgen target/wasm32-unknown-unknown/release/reckless.wasm --target web --out-dir pkg
+	wasm-opt -O3 --enable-simd --enable-threads --enable-relaxed-simd \
+		pkg/reckless_bg.wasm -o pkg/reckless_bg.wasm
+
+
 x64-check:
 	RUSTFLAGS="-C target-cpu=x86-64" cargo check --target x86_64-unknown-linux-gnu --no-default-features
 	RUSTFLAGS="-C target-cpu=x86-64-v3" cargo check --target x86_64-unknown-linux-gnu --no-default-features

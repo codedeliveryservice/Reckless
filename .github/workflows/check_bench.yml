@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           echo "RUSTFLAGS:" $RUSTFLAGS
-          cargo +nightly -Z target-applies-to-host rustc --release -- --emit link=reckless
+          cargo +nightly -Z target-applies-to-host rustc --release --bin reckless -- --emit link=reckless
           measured_bench=$("$SDE_PATH/sde" ${{ matrix.sde_flag }} -- ./reckless bench | tail -1 | cut "--delimiter= " -f 2 -)
           echo "measured_bench=$measured_bench" >> $GITHUB_ENV
           echo "Measured Bench: $measured_bench"

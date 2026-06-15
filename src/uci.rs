@@ -37,6 +37,7 @@ impl Default for Settings {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn message_loop(mut buffer: VecDeque<String>) {
     let shared = Arc::new(SharedContext::default());
     let mut settings = Settings::default();
@@ -109,6 +110,7 @@ pub fn message_loop(mut buffer: VecDeque<String>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<String> {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -240,7 +242,8 @@ fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc
     }
 
     if best != 0 {
-        threads[best].print_uci_info(threads[best].completed_depth);
+        let depth = threads[best].completed_depth;
+        threads[best].print_uci_info(depth);
     }
 
     println!("bestmove {}", threads[best].root_moves[0].mv.to_uci(board));

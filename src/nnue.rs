@@ -15,14 +15,30 @@ use crate::{
 };
 
 mod forward {
-    #[cfg(any(target_feature = "avx2", target_feature = "neon"))]
+    #[cfg(any(
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    ))]
     mod vectorized;
-    #[cfg(any(target_feature = "avx2", target_feature = "neon"))]
+    #[cfg(any(
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    ))]
     pub use vectorized::*;
 
-    #[cfg(not(any(target_feature = "avx2", target_feature = "neon")))]
+    #[cfg(not(any(
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    )))]
     mod scalar;
-    #[cfg(not(any(target_feature = "avx2", target_feature = "neon")))]
+    #[cfg(not(any(
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    )))]
     pub use scalar::*;
 }
 
@@ -42,9 +58,24 @@ mod simd {
     #[cfg(all(target_feature = "neon", not(any(target_feature = "avx2", target_feature = "avx512f"))))]
     pub use neon::*;
 
-    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2", target_feature = "neon")))]
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    mod wasm;
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    pub use wasm::*;
+
+    #[cfg(not(any(
+        target_feature = "avx512f",
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    )))]
     mod scalar;
-    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2", target_feature = "neon")))]
+    #[cfg(not(any(
+        target_feature = "avx512f",
+        target_feature = "avx2",
+        target_feature = "neon",
+        all(target_arch = "wasm32", target_feature = "simd128"),
+    )))]
     pub use scalar::*;
 }
 
