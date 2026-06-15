@@ -21,7 +21,7 @@ else
 endif
 
 rule:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release --bin reckless -- -C target-cpu=native --emit link=$(NAME)
 
 wasm:
 	unset RUSTFLAGS && rustup run nightly \
