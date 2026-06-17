@@ -735,6 +735,11 @@ fn search<NODE: NodeType>(
         extension = 1;
     }
 
+    // Internal Iterative Reductions (IIR)
+    if depth >= 4 && tt_move.is_null() && !excluded {
+        depth -= 1;
+    }
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
@@ -1261,10 +1266,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     if best_score >= beta {
         if !is_decisive(best_score) && !is_decisive(beta) {
             best_score = lerp(best_score, beta, 0.8256);
-        }
-
-        if entry.is_none() {
-            td.shared.tt.write(hash, TtDepth::SOME, raw_eval, best_score, Bound::Lower, Move::NULL, ply, tt_pv, false);
         }
 
         return best_score;
