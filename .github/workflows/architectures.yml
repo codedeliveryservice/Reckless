@@ -72,3 +72,25 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
           CONFIG: ${{ matrix.config }}
+
+  wasm32:
+    runs-on: ubuntu-latest
+    name: wasm32
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Rust nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Install wasm tools
+        run: |
+          curl -sSL https://github.com/WebAssembly/binaryen/releases/download/version_130/binaryen-version_130-x86_64-linux.tar.gz | tar xz
+          echo "$PWD/binaryen-version_130/bin" >> $GITHUB_PATH
+          cargo install wasm-bindgen-cli --version 0.2.123
+
+      - name: Build wasm32
+        run: make wasm
