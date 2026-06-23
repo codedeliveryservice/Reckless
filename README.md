@@ -64,14 +64,15 @@ To build Reckless from source, make sure you have:
 Once installed, you can build it with:
 
 ```bash
-cargo rustc --release -- -C target-cpu=native
-# ./target/release/reckless
+make
+# ./reckless
 ```
 
-To build without Syzygy tablebase support and Clang dependency, add the `--no-default-features` flag:
+To build without Syzygy tablebase support and Clang dependency:
 
 ```bash
-cargo rustc --release --no-default-features -- -C target-cpu=native
+make no-syzygy
+# ./reckless
 ```
 
 #### PGO builds
