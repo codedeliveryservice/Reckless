@@ -24,10 +24,10 @@ endif
 .PHONY: all no-syzygy pgo wasm x64-check checkdeps clean help
 
 all: ## Build the engine
-	cargo rustc --release --bin $(EXE) -- --emit link=$(NAME)
+	cargo rustc --release --bin reckless -- --emit link=$(NAME)
 
 no-syzygy: ## Build without syzygy support
-	cargo rustc --release --bin $(EXE) --no-default-features -- --emit link=$(NAME)
+	cargo rustc --release --bin reckless --no-default-features -- --emit link=$(NAME)
 
 pgo: ## Build with profile-guided optimization
 	cargo pgo instrument
