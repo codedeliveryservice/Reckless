@@ -1414,6 +1414,7 @@ fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, 
 }
 
 fn make_move(td: &mut ThreadData, ply: isize, mv: Move) {
+    td.shared.tt.prefetch(td.board.key_after(mv));
     td.stack[ply].mv = mv;
     td.stack[ply].piece = td.board.moved_piece(mv);
     td.stack[ply].conthist =
