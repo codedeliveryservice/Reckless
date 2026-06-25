@@ -83,6 +83,28 @@ impl Board {
         self.state.keys.full() ^ ZOBRIST.fiftymove_clock[self.fiftymove_clock_bucket()]
     }
 
+    pub fn key_after(&self, mv: Move) -> u64 {
+        let from = mv.from();
+        let to = mv.to();
+        let piece = self.piece_on(from);
+        let captured = self.piece_on(to);
+
+        let mut key = self.state.keys.full() ^ ZOBRIST.side ^ ZOBRIST.pieces[piece][from] ^ ZOBRIST.pieces[piece][to];
+
+        if captured != Piece::None {
+            key ^= ZOBRIST.pieces[captured][to];
+        }
+
+        let fiftymove_clock = if captured != Piece::None || piece.piece_type() == PieceType::Pawn {
+            0
+        } else {
+            self.fiftymove_clock() + 1
+        };
+        let bucket = (fiftymove_clock.saturating_sub(8) as usize / 8).min(15);
+
+        key ^ ZOBRIST.fiftymove_clock[bucket]
+    }
+
     pub const fn pawn_key(&self) -> u64 {
         self.state.keys.pawn()
     }
