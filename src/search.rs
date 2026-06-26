@@ -850,6 +850,7 @@ fn search<NODE: NodeType>(
 
             reduction += 464 * (is_valid(tt_score) && tt_score <= alpha) as i32;
             reduction += 326 * (is_valid(tt_score) && tt_depth < depth) as i32;
+            reduction += 1024 * is_win(beta) as i32;
 
             if is_quiet {
                 reduction += 2171;
