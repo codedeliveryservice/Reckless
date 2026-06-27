@@ -279,7 +279,10 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             }
         }
 
-        if td.shared.status.get() == Status::STOPPED {
+        if td.shared.status.get() == Status::STOPPED
+            || (!matches!(td.time_manager.limits(), Limits::Infinite)
+                && (td.root_moves[td.multi_pv - 1].score >= mate_in(3) || td.root_moves[0].score == mated_in(2)))
+        {
             break;
         }
     }
