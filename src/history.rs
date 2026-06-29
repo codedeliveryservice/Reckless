@@ -105,6 +105,33 @@ impl Default for QuietHistory {
     }
 }
 
+pub struct PawnHistory {
+    // [pawn_key_bucket][piece][to]
+    entries: Box<[PieceToHistory<i16>; Self::SIZE]>,
+}
+
+impl PawnHistory {
+    const MAX_HISTORY: i32 = 8192;
+
+    const SIZE: usize = 512;
+    const MASK: usize = Self::SIZE - 1;
+
+    pub fn get(&self, pawn_key: u64, piece: Piece, to: Square) -> i32 {
+        self.entries[pawn_key as usize & Self::MASK][piece][to] as i32
+    }
+
+    pub fn update(&mut self, pawn_key: u64, piece: Piece, to: Square, bonus: i32) {
+        let entry = &mut self.entries[pawn_key as usize & Self::MASK][piece][to];
+        apply_bonus::<{ Self::MAX_HISTORY }>(entry, bonus);
+    }
+}
+
+impl Default for PawnHistory {
+    fn default() -> Self {
+        Self { entries: zeroed_box() }
+    }
+}
+
 pub struct NoisyHistory {
     // [piece][to][captured_piece_type][to_threatened]
     entries: Box<PieceToHistory<[[i16; 2]; 7]>>,

@@ -143,6 +143,7 @@ impl MovePicker {
     fn score_quiet(&mut self, td: &ThreadData, ply: isize) {
         let threats = td.board.all_threats();
         let side = td.board.side_to_move();
+        let pawn_key = td.board.pawn_key();
         let occupancies = td.board.occupancies();
         let pawn_threats = td.board.piece_threats(PieceType::Pawn);
 
@@ -198,6 +199,7 @@ impl MovePicker {
             let pt = td.board.type_on(mv.from());
 
             entry.score = 1763 * td.quiet_history.get(threats, side, mv) / 1024
+                + 1024 * td.pawn_history.get(pawn_key, td.board.moved_piece(mv), mv.to()) / 1024
                 + 1614 * td.conthist(ply, 1, mv) / 1024
                 + 1066 * td.conthist(ply, 2, mv) / 1024
                 + 1086 * td.conthist(ply, 4, mv) / 1024
