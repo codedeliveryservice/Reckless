@@ -737,7 +737,7 @@ fn search<NODE: NodeType>(
 
     // Internal Iterative Deepening (IID)
     if !NODE::ROOT && NODE::PV && depth >= 8 && !in_check && !excluded && tt_move.is_null() {
-        let _ = search::<NonPV>(td, alpha, alpha + 1, (3 * depth - 7) / 4, true, ply);
+        let _ = search::<PV>(td, alpha, beta, (3 * depth - 7) / 4, cut_node, ply);
 
         if let Some(entry) = td.shared.tt.read(hash, td.board.fiftymove_clock(), ply) {
             tt_move = entry.mv;
