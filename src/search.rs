@@ -735,6 +735,15 @@ fn search<NODE: NodeType>(
         extension = 1;
     }
 
+    // Internal Iterative Deepening (IID)
+    if !NODE::ROOT && NODE::PV && depth >= 8 && !in_check && !excluded && tt_move.is_null() {
+        let _ = search::<PV>(td, alpha, beta, (768 * depth - 1792) / 1024, cut_node, ply);
+
+        if let Some(entry) = td.shared.tt.read(hash, td.board.fiftymove_clock(), ply) {
+            tt_move = entry.mv;
+        }
+    }
+
     let mut best_move = Move::NULL;
     let mut bound = Bound::Upper;
 
