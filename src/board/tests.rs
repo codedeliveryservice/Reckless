@@ -44,3 +44,10 @@ assert_perft!(
     position_5: "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", [44, 1486, 62379, 2103487],
     position_6: "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", [46, 2079, 89890, 3894594],
 );
+
+// Test cases from https://www.chessprogramming.org/Chess960_Perft_Results
+assert_perft!(
+    chess960_1: "bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9", [21, 528, 12189, 326672, 8146062],
+    chess960_2: "1nbbnrkr/p1p1ppp1/3p4/1p3P1p/3Pq2P/8/PPP1P1P1/QNBBNRKR w HFhf - 0 9", [28, 1120, 31058, 1171749, 34030312],
+    chess960_3: "bqnr1kr1/pppppp1p/6p1/5n2/4B3/3N2PP/PbPPPP2/BQNR1KR1 w GDgd - 2 9", [31, 1132, 36559, 1261476, 43256823],
+);
