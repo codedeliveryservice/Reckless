@@ -363,7 +363,8 @@ impl Board {
             if mv.is_castling() {
                 let kind = CastlingKind::KINDS[stm][(to.file() == File::G) as usize];
 
-                return self.castling().is_allowed(kind)
+                return to == kind.landing_square()
+                    && self.castling().is_allowed(kind)
                     && (self.castling_path[kind] & self.occupancies()).is_empty()
                     && (self.castling_threat[kind] & self.all_threats()).is_empty()
                     && !self.pinned(stm).contains(self.castling_rooks[kind]);
