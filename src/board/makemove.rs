@@ -6,7 +6,6 @@ impl Board {
         self.halfmove_number += 1;
         self.state_stack.push(self.state);
         self.state.keys.toggle_side();
-        self.state.keys.toggle_castling(self.state.castling);
         self.state.repetition = 0;
 
         if self.en_passant() != Square::None {
@@ -94,6 +93,7 @@ impl Board {
             self.state.material += promotion.value() - PieceType::Pawn.value();
         }
 
+        self.state.keys.toggle_castling(self.state.castling);
         self.state.castling.raw &= self.castling_rights[from] & self.castling_rights[to];
         self.state.keys.toggle_castling(self.state.castling);
 
