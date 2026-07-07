@@ -51,3 +51,24 @@ assert_perft!(
     chess960_2: "1nbbnrkr/p1p1ppp1/3p4/1p3P1p/3Pq2P/8/PPP1P1P1/QNBBNRKR w HFhf - 0 9", [28, 1120, 31058, 1171749, 34030312],
     chess960_3: "bqnr1kr1/pppppp1p/6p1/5n2/4B3/3N2PP/PbPPPP2/BQNR1KR1 w GDgd - 2 9", [31, 1132, 36559, 1261476, 43256823],
 );
+
+fn frc_board(fen: &str) -> Board {
+    let mut board = Board::from_fen(fen).unwrap();
+    board.set_frc(true); // Match UCI_Chess960 mode, in which to_fen emits Shredder castling.
+    board
+}
+
+#[test]
+fn to_fen_emits_shredder_castling_for_frc() {
+    prepare_lut();
+
+    // FRC positions whose rooks sit on non-standard files, so to_fen must emit
+    // Shredder castling (rook-file letters) rather than KQkq. Fixtures reuse the
+    // Chess960 perft positions above.
+    for fen in [
+        "bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9",
+        "bqnr1kr1/pppppp1p/6p1/5n2/4B3/3N2PP/PbPPPP2/BQNR1KR1 w GDgd - 2 9",
+    ] {
+        assert_eq!(frc_board(fen).to_fen(), fen);
+    }
+}
