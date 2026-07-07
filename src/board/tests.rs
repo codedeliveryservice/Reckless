@@ -72,3 +72,40 @@ fn to_fen_emits_shredder_castling_for_frc() {
         assert_eq!(frc_board(fen).to_fen(), fen);
     }
 }
+
+fn assert_hash_consistent(board: &Board) {
+    let mut recomputed = board.clone();
+    recomputed.update_hash_keys();
+    assert_eq!(board.hash(), recomputed.hash(), "incremental hash diverged from recomputation:\n{board}");
+}
+
+fn hash_perft(board: &mut Board, depth: usize) {
+    assert_hash_consistent(board);
+    if depth == 0 {
+        return;
+    }
+    for entry in board.generate_all_moves().iter() {
+        let mv = entry.mv;
+        board.make_move(mv, &mut NullBoardObserver);
+        hash_perft(board, depth - 1);
+        board.undo_move(mv);
+    }
+}
+
+#[test]
+fn incremental_hash_matches_recomputation() {
+    prepare_lut();
+
+    for fen in [
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+        "bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9",
+    ] {
+        let mut board = Board::from_fen(fen).unwrap();
+        hash_perft(&mut board, 3);
+
+        board.make_null_move();
+        assert_hash_consistent(&board);
+        board.undo_null_move();
+    }
+}
