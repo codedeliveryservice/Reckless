@@ -51,7 +51,7 @@ impl Board {
             _ => return Err(ParseFenError::InvalidActiveColor),
         };
 
-        board.set_castling(parts.next().unwrap());
+        board.set_castling(parts.next().unwrap_or_default());
 
         board.state.en_passant = parts.next().unwrap_or_default().try_into().unwrap_or_default();
         board.state.fiftymove_clock = parts.next().unwrap_or_default().parse().unwrap_or_default();

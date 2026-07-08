@@ -109,3 +109,14 @@ fn incremental_hash_matches_recomputation() {
         board.undo_null_move();
     }
 }
+
+#[test]
+fn from_fen_accepts_missing_optional_fields() {
+    prepare_lut();
+
+    assert!(Board::from_fen("4k3/8/8/8/8/8/8/4K3 w").is_ok());
+    assert!(Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w").is_ok());
+
+    assert!(Board::from_fen("").is_err());
+    assert!(Board::from_fen("4k3/8/8/8/8/8/8/4K3").is_err());
+}
