@@ -96,7 +96,7 @@ pub fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters:
 
     // We do the horizontal reduction via recursive halving, as that's what `_mm512_reduce_add_ps` does. Any other SIMD
     // implementation (e.g. NEON) must ensure the same order of operations.
-    let mut stride = 8;
+    let mut stride = LANES / 2;
     while stride > 0 {
         for i in 0..stride {
             sums[i] += sums[i + stride];
