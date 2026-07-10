@@ -21,7 +21,20 @@ else
 	PGO_MOVE := move /Y "target\$(TARGET)\release\$(EXE).exe" "$(NAME)"
 endif
 
-.PHONY: all no-syzygy pgo wasm x64-check checkdeps clean help
+# Wasm build flags. The two targets below differ only in relaxed-simd:
+# some engines fuse relaxed_madd (matches native avx2) and some don't,
+# so the relaxed build is engine-dependent while the strict one isn't.
+WASM_FEATURES  := +atomics,+bulk-memory,+simd128
+WASM_LINK_ARGS := -C link-arg=--shared-memory \
+	-C link-arg=--max-memory=1073741824 \
+	-C link-arg=--import-memory \
+	-C link-arg=--export=__wasm_init_tls \
+	-C link-arg=--export=__tls_size \
+	-C link-arg=--export=__tls_align \
+	-C link-arg=--export=__tls_base \
+	-C link-arg=--export=__heap_base
+
+.PHONY: all no-syzygy pgo wasm wasm-strict x64-check checkdeps clean help
 
 all: ## Build the engine
 	cargo rustc --release --bin reckless -- --emit link=$(NAME)
@@ -35,13 +48,23 @@ pgo: ## Build with profile-guided optimization
 	cargo pgo optimize
 	$(PGO_MOVE)
 
-wasm: ## Build the WebAssembly target
-	RUSTFLAGS= rustup run nightly \
+wasm: ## Build the WebAssembly target (relaxed-simd)
+	RUSTFLAGS="-C target-feature=$(WASM_FEATURES),+relaxed-simd $(WASM_LINK_ARGS)" \
+		rustup run nightly \
 		cargo build -Z build-std=panic_abort,std \
 		--lib --target wasm32-unknown-unknown --release --no-default-features
 	wasm-bindgen target/wasm32-unknown-unknown/release/reckless.wasm --target web --out-dir pkg
 	wasm-opt -O3 --enable-simd --enable-threads --enable-relaxed-simd \
 		pkg/reckless_bg.wasm -o pkg/reckless_bg.wasm
+
+wasm-strict: ## Build the WebAssembly target (no relaxed-simd, same output on every engine)
+	RUSTFLAGS="-C target-feature=$(WASM_FEATURES) $(WASM_LINK_ARGS)" \
+		rustup run nightly \
+		cargo build -Z build-std=panic_abort,std \
+		--lib --target wasm32-unknown-unknown --release --no-default-features
+	wasm-bindgen target/wasm32-unknown-unknown/release/reckless.wasm --target web --out-dir pkg-strict
+	wasm-opt -O3 --enable-simd --enable-threads \
+		pkg-strict/reckless_bg.wasm -o pkg-strict/reckless_bg.wasm
 
 x64-check: ## Check compilation for x86-64 v1-v4
 	RUSTFLAGS="-C target-cpu=x86-64" cargo check --target x86_64-unknown-linux-gnu --no-default-features

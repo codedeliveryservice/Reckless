@@ -16,15 +16,6 @@ rustflags = ["-C", "target-cpu=native"]
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-cpu=native"]
 
-[target.wasm32-unknown-unknown]
-rustflags = [
-    "-C", "target-feature=+atomics,+bulk-memory,+simd128,+relaxed-simd",
-    "-C", "link-arg=--shared-memory",
-    "-C", "link-arg=--max-memory=1073741824",
-    "-C", "link-arg=--import-memory",
-    "-C", "link-arg=--export=__wasm_init_tls",
-    "-C", "link-arg=--export=__tls_size",
-    "-C", "link-arg=--export=__tls_align",
-    "-C", "link-arg=--export=__tls_base",
-    "-C", "link-arg=--export=__heap_base",
-]
+# wasm32 rustflags live in the Makefile (wasm / wasm-strict targets). RUSTFLAGS
+# overrides this file completely, so a second variant here would mean keeping
+# two copies of the link-args in sync.

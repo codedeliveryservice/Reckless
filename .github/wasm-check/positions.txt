@@ -1,0 +1,14 @@
+# Positions for the wasm-vs-native eval comparison. Mixed openings, tactics
+# and endgames; with the current network a few of these sit right on the
+# rounding boundary between the fused and non-fused madd families, which is
+# what the 1cp tolerance covers.
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+2b1kb1r/rp2pp1p/p2p3n/2qPP1pP/2B5/P1P5/1B1KQPn1/RN4NR b k - 0 17
+1rb1kb1r/2p1n2p/p3ppp1/1p1q2N1/PP1n4/8/R1PPNPPP/2BQKB1R w Kk - 0 12
+rnb1k1nr/pp1p1p1p/3b3R/2p1p1P1/P7/1PNq1PK1/1B2P1P1/2RQ1BN1 b kq - 2 12
+r1bqkbnr/pppppppp/n7/8/8/P1P3PB/1P1PPP1P/RNBQK1NR b KQkq - 0 4
+rn1qkb1r/pb1ppppp/1pp2n2/5Q2/8/N7/PPPP1PPP/R1B1KBNR w KQkq - 2 7
+rnb2b1r/1B3k1n/p2p4/2p2p1P/P1pP2p1/R1Q4N/1PP2P1P/3K3R w - - 2 22
+2bqk2r/r1p1ppb1/2n3pn/p2p3p/pP2PB2/2KP1PPN/2P4P/RN2QB1R w k - 2 14
+r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8

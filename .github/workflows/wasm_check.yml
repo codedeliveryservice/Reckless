@@ -1,0 +1,52 @@
+name: Wasm Eval Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  wasm-eval:
+    runs-on: ubuntu-latest
+    name: wasm strict eval vs native
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Rust nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Install wasm tools
+        run: |
+          curl -sSL https://github.com/WebAssembly/binaryen/releases/download/version_130/binaryen-version_130-x86_64-linux.tar.gz | tar xz
+          echo "$PWD/binaryen-version_130/bin" >> $GITHUB_PATH
+          cargo install wasm-bindgen-cli --version 0.2.123
+
+      - name: Build strict wasm
+        run: make wasm-strict
+
+      - name: Build native reference
+        run: cargo build --release --no-default-features
+
+      # The strict build and native sit in different f32 rounding families
+      # (non-fused vs fused madd), measured at most 1cp apart. Comparing
+      # against a native binary built in the same job means nothing is
+      # pinned, so network updates need no fixture regeneration.
+      - name: Compare wasm evals against native
+        run: node .github/wasm-check/check.mjs pkg-strict target/release/reckless .github/wasm-check/positions.txt
+
+      # A relaxed-simd leak into the strict build would fuse madd and match
+      # native exactly, so the eval comparison alone cannot catch it. The
+      # instruction scan does. wasm-opt runs on its own line so a failure
+      # there fails the step instead of counting as zero matches.
+      - name: Check the strict build has no relaxed opcodes
+        run: |
+          wasm-opt --print pkg-strict/reckless_bg.wasm > strict.wat
+          count=$(grep -c 'relaxed_' strict.wat || true)
+          echo "relaxed instructions: $count"
+          test "$count" -eq 0
