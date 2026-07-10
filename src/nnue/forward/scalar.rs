@@ -55,7 +55,10 @@ pub unsafe fn propagate_l1(
     let mut output = Aligned::new([0.0; L2_SIZE]);
 
     for i in 0..L2_SIZE {
-        output[i] = (pre_activations[i] as f32 * DEQUANT_MULTIPLIER + parameters.l1_biases[bucket][i]).clamp(0.0, 1.0);
+        // Starting from here, we move into float space, so order of operations is critical for staying semantically
+        // identical to the vectorized inference. In particular, using FMA instead of separate mul+add matters here and below.
+        output[i] =
+            (pre_activations[i] as f32).mul_add(DEQUANT_MULTIPLIER, parameters.l1_biases[bucket][i]).clamp(0.0, 1.0);
     }
 
     output
@@ -64,27 +67,44 @@ pub unsafe fn propagate_l1(
 pub fn propagate_l2(
     l1_out: &Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
 ) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = Aligned::new([0.0; L3_SIZE]);
+    // Note: It is important that we initialize the accumulator to the biases, and don't add the biases
+    // afterward, to preserve the same order of operations as the vector implementation.
+    let mut output = Aligned::new(parameters.l2_biases[bucket]);
 
     for i in 0..L2_SIZE {
         for j in 0..L3_SIZE {
-            output[j] += parameters.l2_weights[bucket][i][j] * l1_out[i];
+            output[j] = parameters.l2_weights[bucket][i][j].mul_add(l1_out[i], output[j]);
         }
     }
 
     for i in 0..L3_SIZE {
-        output[i] += parameters.l2_biases[bucket][i];
         output[i] = output[i].clamp(0.0, 1.0);
     }
     output
 }
 
 pub fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
-    let mut output = 0.0;
-    for i in 0..L3_SIZE {
-        output = parameters.l3_weights[bucket][i].mul_add(l2_out[i], output);
+    // For cross platform compatibility, we always sum-reduce into a 16-element "vector", and then horizontally reduce that.
+    const LANES: usize = 16;
+
+    let mut sums = [0.0; LANES];
+    for i in (0..L3_SIZE).step_by(LANES) {
+        for j in 0..LANES {
+            sums[j] = parameters.l3_weights[bucket][i + j].mul_add(l2_out[i + j], sums[j]);
+        }
     }
-    output + parameters.l3_biases[bucket]
+
+    // We do the horizontal reduction via recursive halving, as that's what `_mm512_reduce_add_ps` does. Any other SIMD
+    // implementation (e.g. NEON) must ensure the same order of operations.
+    let mut stride = 8;
+    while stride > 0 {
+        for i in 0..stride {
+            sums[i] += sums[i + stride];
+        }
+        stride /= 2;
+    }
+
+    sums[0] + parameters.l3_biases[bucket]
 }
 
 pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {
