@@ -98,7 +98,7 @@ impl Board {
         let fiftymove_clock = if captured != Piece::None || piece.piece_type() == PieceType::Pawn {
             0
         } else {
-            self.fiftymove_clock() + 1
+            self.fiftymove_clock().saturating_add(1)
         };
         let bucket = (fiftymove_clock.saturating_sub(8) as usize / 8).min(15);
 

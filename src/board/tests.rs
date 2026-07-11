@@ -120,3 +120,21 @@ fn from_fen_accepts_missing_optional_fields() {
     assert!(Board::from_fen("").is_err());
     assert!(Board::from_fen("4k3/8/8/8/8/8/8/4K3").is_err());
 }
+
+#[test]
+fn halfmove_clock_saturates_instead_of_overflowing() {
+    prepare_lut();
+
+    let board = Board::from_fen("4k3/8/8/8/8/8/8/4K3 w - - 200 1").unwrap();
+    assert_eq!(board.fiftymove_clock(), 200);
+    let _ = board.hash();
+
+    let mut board = Board::from_fen("4k3/8/8/8/8/8/8/4K3 w - - 255 1").unwrap();
+    assert_eq!(board.fiftymove_clock(), 255);
+
+    let mv = board.generate_all_moves().iter().next().unwrap().mv;
+    let _ = board.key_after(mv);
+    board.make_move(mv, &mut NullBoardObserver);
+    assert_eq!(board.fiftymove_clock(), 255);
+    let _ = board.hash();
+}

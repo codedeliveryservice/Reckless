@@ -44,7 +44,7 @@ impl Board {
         if mv.kind() == MoveKind::Capture || piece.piece_type() == PieceType::Pawn {
             self.state.fiftymove_clock = 0;
         } else {
-            self.state.fiftymove_clock += 1;
+            self.state.fiftymove_clock = self.state.fiftymove_clock.saturating_add(1);
         }
 
         if mv.is_castling() {
