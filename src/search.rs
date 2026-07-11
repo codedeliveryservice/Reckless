@@ -595,7 +595,7 @@ fn search<NODE: NodeType>(
         td.board.make_null_move();
         td.shared.tt.prefetch(td.board.hash());
 
-        let bound = if is_valid(tt_score) && beta > tt_score && tt_bound == Bound::Lower && depth - 2 <= tt_depth {
+        let bound = if is_valid(tt_score) && beta > tt_score && tt_bound == Bound::Upper && depth - 2 <= tt_depth {
             tt_score
         } else {
             beta
@@ -614,8 +614,10 @@ fn search<NODE: NodeType>(
                 return score;
             }
 
-            td.nmp_min_ply = ply as i32 + 3 * (depth - r) / 4;
-            let verified_score = search::<NonPV>(td, beta - 1, beta, depth - r, false, ply);
+            let reduced_depth = if score < beta { depth / 2 } else { depth - r };
+
+            td.nmp_min_ply = ply as i32 + 3 * reduced_depth / 4;
+            let verified_score = search::<NonPV>(td, beta - 1, beta, reduced_depth, false, ply);
             td.nmp_min_ply = 0;
 
             if td.shared.status.get() == Status::STOPPED {
