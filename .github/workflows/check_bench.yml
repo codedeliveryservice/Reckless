@@ -18,8 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The x86-64 baseline takes the scalar NNUE path, which the other
-          # rows don't cover. Nehalem also confirms it needs nothing past SSE4.2.
           - name: Generic (x86-64)
             sde_flag: -nhm
             rustflags: "-C target-cpu=x86-64"
