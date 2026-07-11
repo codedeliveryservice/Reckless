@@ -1,6 +1,6 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, Parameters, SparseEntry,
+        Aligned, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, Parameters, SparseEntry, TAIL_ACT_QUANT, TAIL_SHIFT,
         accumulator::{PstAccumulator, ThreatAccumulator},
         simd,
     },
@@ -54,10 +54,10 @@ pub unsafe fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm:
 
 pub unsafe fn propagate_l1(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
-) -> Aligned<[f32; L2_SIZE]> {
+) -> Aligned<[i32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
-    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
+    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::I32_LANES]);
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
 
@@ -73,11 +73,11 @@ pub unsafe fn propagate_l1(
         let weights1 = parameters.l1_weights[bucket].as_ptr().add(index1 * L2_SIZE * CHUNKS);
         let weights2 = parameters.l1_weights[bucket].as_ptr().add(index2 * L2_SIZE * CHUNKS);
 
-        for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
+        for j in (0..L2_SIZE).step_by(simd::I32_LANES) {
             let weights1 = *weights1.add(j * CHUNKS).cast();
             let weights2 = *weights2.add(j * CHUNKS).cast();
 
-            let vector = &mut pre_activations[j / simd::F32_LANES];
+            let vector = &mut pre_activations[j / simd::I32_LANES];
             *vector = simd::double_dpbusd(*vector, input1, weights1, input2, weights2);
         }
     }
@@ -87,73 +87,72 @@ pub unsafe fn propagate_l1(
         let input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = parameters.l1_weights[bucket].as_ptr().add(index * L2_SIZE * CHUNKS);
 
-        for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
+        for j in (0..L2_SIZE).step_by(simd::I32_LANES) {
             let weights = *weights.add(j * CHUNKS).cast();
-            let vector = &mut pre_activations[j / simd::F32_LANES];
+            let vector = &mut pre_activations[j / simd::I32_LANES];
             *vector = simd::dpbusd(*vector, input, weights);
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
+    let mut output = Aligned::new([0i32; L2_SIZE]);
 
-    let zero = simd::zero_f32();
-    let one = simd::splat_f32(1.0);
-    let dequant = simd::splat_f32(DEQUANT_MULTIPLIER);
-
-    for i in (0..L2_SIZE).step_by(simd::F32_LANES) {
-        let biases = *parameters.l1_biases[bucket].as_ptr().add(i).cast();
-        let vector = simd::mul_add_f32(simd::convert_to_f32(pre_activations[i / simd::F32_LANES]), dequant, biases);
-        *output.as_mut_ptr().add(i).cast() = simd::clamp_f32(vector, zero, one);
+    for i in (0..L2_SIZE).step_by(simd::I32_LANES) {
+        *output.as_mut_ptr().add(i).cast() = pre_activations[i / simd::I32_LANES];
     }
 
     output
 }
 
 pub unsafe fn propagate_l2(
-    l1_out: &Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
-) -> Aligned<[f32; L3_SIZE]> {
-    let mut output = Aligned::new(parameters.l2_biases[bucket]);
+    l1_out: &Aligned<[i16; L2_SIZE]>, bucket: usize, parameters: &Parameters,
+) -> Aligned<[i16; L3_SIZE]> {
+    const ACCUMULATORS: usize = L3_SIZE / simd::I32_LANES;
 
-    for i in 0..L2_SIZE {
-        let input = simd::splat_f32(l1_out[i]);
-        let weights = parameters.l2_weights[bucket][i].as_ptr();
+    let pairs = std::slice::from_raw_parts(l1_out.as_ptr().cast::<i32>(), L2_SIZE / 2);
 
-        for j in (0..L3_SIZE).step_by(simd::F32_LANES) {
-            let weights = *weights.add(j).cast();
-            let vector = output.as_mut_ptr().add(j).cast();
-            *vector = simd::mul_add_f32(weights, input, *vector);
+    let mut accumulators = [simd::zeroed(); ACCUMULATORS];
+    for (k, accumulator) in accumulators.iter_mut().enumerate() {
+        *accumulator = *parameters.l2_biases[bucket].as_ptr().add(k * simd::I32_LANES).cast();
+    }
+
+    for p in 0..L2_SIZE / 2 {
+        let input = simd::splat_i32(*pairs.get_unchecked(p));
+        let row = parameters.l2_weights[bucket][p].as_ptr();
+
+        for (k, accumulator) in accumulators.iter_mut().enumerate() {
+            let weights = *row.add(k * simd::I16_LANES).cast();
+            *accumulator = simd::add_i32(*accumulator, simd::madd_i16(input, weights));
         }
     }
 
-    let zero = simd::zero_f32();
-    let one = simd::splat_f32(1.0);
+    let mut output = Aligned::new([0; L3_SIZE]);
 
-    for i in (0..L3_SIZE).step_by(simd::F32_LANES) {
-        let vector = output.as_mut_ptr().add(i).cast();
-        *vector = simd::clamp_f32(*vector, zero, one);
+    let zero = simd::splat_i32(0);
+    let one = simd::splat_i32(TAIL_ACT_QUANT);
+    let half = simd::splat_i32(1 << (TAIL_SHIFT - 1));
+
+    for k in (0..ACCUMULATORS).step_by(2) {
+        let a = simd::shift_right_i32::<{ TAIL_SHIFT }>(simd::add_i32(accumulators[k], half));
+        let b = simd::shift_right_i32::<{ TAIL_SHIFT }>(simd::add_i32(accumulators[k + 1], half));
+
+        let packed = simd::pack_i32(simd::clamp_i32(a, zero, one), simd::clamp_i32(b, zero, one));
+        *output.as_mut_ptr().add(k * simd::I32_LANES).cast() = packed;
     }
 
     output
 }
 
-pub unsafe fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
-    const LANES: usize = 16 / simd::F32_LANES;
+pub unsafe fn propagate_l3(l2_out: &Aligned<[i16; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> i32 {
+    let mut accumulator = simd::zeroed();
 
-    let input = l2_out.as_ptr();
-    let weights = parameters.l3_weights[bucket].as_ptr();
+    for i in (0..L3_SIZE).step_by(simd::I16_LANES) {
+        let input = *l2_out.as_ptr().add(i).cast();
+        let weights = *parameters.l3_weights[bucket].as_ptr().add(i).cast();
 
-    let mut output = [simd::zero_f32(); LANES];
-
-    for (lane, result) in output.iter_mut().enumerate() {
-        for i in (0..L3_SIZE).step_by(LANES * simd::F32_LANES) {
-            let a = *weights.add(i + lane * simd::F32_LANES).cast();
-            let b = *input.add(i + lane * simd::F32_LANES).cast();
-
-            *result = simd::mul_add_f32(a, b, *result);
-        }
+        accumulator = simd::add_i32(accumulator, simd::madd_i16(input, weights));
     }
 
-    simd::horizontal_sum(output) + parameters.l3_biases[bucket]
+    simd::horizontal_sum_i32(accumulator) + parameters.l3_biases[bucket]
 }
 
 #[cfg(all(not(target_arch = "wasm32"), not(target_feature = "neon"), not(target_feature = "avx512vbmi2")))]

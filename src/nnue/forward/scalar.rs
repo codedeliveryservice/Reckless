@@ -1,6 +1,6 @@
 use crate::{
     nnue::{
-        Aligned, DEQUANT_MULTIPLIER, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, Parameters, SparseEntry,
+        Aligned, FT_QUANT, FT_SHIFT, L1_SIZE, L2_SIZE, L3_SIZE, Parameters, SparseEntry, TAIL_ACT_QUANT, TAIL_SHIFT,
         accumulator::{PstAccumulator, ThreatAccumulator},
     },
     types::Color,
@@ -26,10 +26,10 @@ pub fn activate_ft(pst: &PstAccumulator, threat: &ThreatAccumulator, stm: Color)
 
 pub unsafe fn propagate_l1(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
-) -> Aligned<[f32; L2_SIZE]> {
+) -> Aligned<[i32; L2_SIZE]> {
     const CHUNKS: usize = 4;
 
-    let mut pre_activations = [0i32; L2_SIZE];
+    let mut pre_activations = Aligned::new([0i32; L2_SIZE]);
 
     let packed = std::slice::from_raw_parts(ft_out.as_ptr() as *const i32, L1_SIZE / CHUNKS);
 
@@ -52,59 +52,42 @@ pub unsafe fn propagate_l1(
         }
     }
 
-    let mut output = Aligned::new([0.0; L2_SIZE]);
-
-    for i in 0..L2_SIZE {
-        // Starting from here, we move into float space, so order of operations is critical for staying semantically
-        // identical to the vectorized inference. In particular, using FMA instead of separate mul+add matters here and below.
-        output[i] =
-            (pre_activations[i] as f32).mul_add(DEQUANT_MULTIPLIER, parameters.l1_biases[bucket][i]).clamp(0.0, 1.0);
-    }
-
-    output
+    pre_activations
 }
 
 pub fn propagate_l2(
-    l1_out: &Aligned<[f32; L2_SIZE]>, bucket: usize, parameters: &Parameters,
-) -> Aligned<[f32; L3_SIZE]> {
-    // Note: It is important that we initialize the accumulator to the biases, and don't add the biases
-    // afterward, to preserve the same order of operations as the vector implementation.
-    let mut output = Aligned::new(parameters.l2_biases[bucket]);
+    l1_out: &Aligned<[i16; L2_SIZE]>, bucket: usize, parameters: &Parameters,
+) -> Aligned<[i16; L3_SIZE]> {
+    let mut accumulators = parameters.l2_biases[bucket];
 
-    for i in 0..L2_SIZE {
+    for p in 0..L2_SIZE / 2 {
+        let a = l1_out[2 * p] as i32;
+        let b = l1_out[2 * p + 1] as i32;
+        let row = &parameters.l2_weights[bucket][p];
+
         for j in 0..L3_SIZE {
-            output[j] = parameters.l2_weights[bucket][i][j].mul_add(l1_out[i], output[j]);
+            accumulators[j] += a * row[2 * j] as i32 + b * row[2 * j + 1] as i32;
         }
     }
 
-    for i in 0..L3_SIZE {
-        output[i] = output[i].clamp(0.0, 1.0);
+    let mut output = Aligned::new([0; L3_SIZE]);
+
+    for j in 0..L3_SIZE {
+        let activation = (accumulators[j] + (1 << (TAIL_SHIFT - 1))) >> TAIL_SHIFT;
+        output[j] = activation.clamp(0, TAIL_ACT_QUANT) as i16;
     }
+
     output
 }
 
-pub fn propagate_l3(l2_out: &Aligned<[f32; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> f32 {
-    // For cross platform compatibility, we always sum-reduce into a 16-element "vector", and then horizontally reduce that.
-    const LANES: usize = 16;
+pub fn propagate_l3(l2_out: &Aligned<[i16; L3_SIZE]>, bucket: usize, parameters: &Parameters) -> i32 {
+    let mut accumulator = 0;
 
-    let mut sums = [0.0; LANES];
-    for i in (0..L3_SIZE).step_by(LANES) {
-        for j in 0..LANES {
-            sums[j] = parameters.l3_weights[bucket][i + j].mul_add(l2_out[i + j], sums[j]);
-        }
+    for i in 0..L3_SIZE {
+        accumulator += l2_out[i] as i32 * parameters.l3_weights[bucket][i] as i32;
     }
 
-    // We do the horizontal reduction via recursive halving, as that's what `_mm512_reduce_add_ps` does. Any other SIMD
-    // implementation (e.g. NEON) must ensure the same order of operations.
-    let mut stride = LANES / 2;
-    while stride > 0 {
-        for i in 0..stride {
-            sums[i] += sums[i + stride];
-        }
-        stride /= 2;
-    }
-
-    sums[0] + parameters.l3_biases[bucket]
+    accumulator + parameters.l3_biases[bucket]
 }
 
 pub unsafe fn find_nnz(ft_out: &Aligned<[u8; L1_SIZE]>, _: &[SparseEntry]) -> (Aligned<[u16; L1_SIZE / 4]>, usize) {

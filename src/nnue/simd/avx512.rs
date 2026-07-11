@@ -1,8 +1,6 @@
 use std::{arch::x86_64::*, mem::size_of};
 
-pub const F32_LANES: usize = size_of::<__m512>() / size_of::<f32>();
 pub const I16_LANES: usize = size_of::<__m512i>() / size_of::<i16>();
-#[allow(unused)]
 pub const I32_LANES: usize = size_of::<__m512i>() / size_of::<i32>();
 pub const MUL_HI_SHIFT: u32 = 0;
 
@@ -54,24 +52,28 @@ pub unsafe fn splat_i32(a: i32) -> __m512i {
     _mm512_set1_epi32(a)
 }
 
-pub unsafe fn zero_f32() -> __m512 {
-    _mm512_setzero_ps()
+pub unsafe fn madd_i16(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_madd_epi16(a, b)
 }
 
-pub unsafe fn splat_f32(a: f32) -> __m512 {
-    _mm512_set1_ps(a)
+pub unsafe fn add_i32(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_add_epi32(a, b)
 }
 
-pub unsafe fn mul_add_f32(a: __m512, b: __m512, c: __m512) -> __m512 {
-    _mm512_fmadd_ps(a, b, c)
+pub unsafe fn shift_right_i32<const SHIFT: u32>(a: __m512i) -> __m512i {
+    _mm512_srai_epi32::<SHIFT>(a)
 }
 
-pub unsafe fn convert_to_f32(a: __m512i) -> __m512 {
-    _mm512_cvtepi32_ps(a)
+pub unsafe fn clamp_i32(x: __m512i, min: __m512i, max: __m512i) -> __m512i {
+    _mm512_max_epi32(_mm512_min_epi32(x, max), min)
 }
 
-pub unsafe fn clamp_f32(x: __m512, min: __m512, max: __m512) -> __m512 {
-    _mm512_max_ps(_mm512_min_ps(x, max), min)
+pub unsafe fn pack_i32(a: __m512i, b: __m512i) -> __m512i {
+    permute(_mm512_packs_epi32(a, b))
+}
+
+pub unsafe fn horizontal_sum_i32(x: __m512i) -> i32 {
+    _mm512_reduce_add_epi32(x)
 }
 
 #[cfg(target_feature = "avx512vnni")]
@@ -97,10 +99,6 @@ pub unsafe fn double_dpbusd(i32s: __m512i, u8s1: __m512i, i8s1: __m512i, u8s2: _
     let pairwise2 = _mm512_maddubs_epi16(u8s2, i8s2);
     let widened = _mm512_madd_epi16(_mm512_add_epi16(pairwise1, pairwise2), _mm512_set1_epi16(1));
     _mm512_add_epi32(i32s, widened)
-}
-
-pub unsafe fn horizontal_sum(x: [__m512; 1]) -> f32 {
-    _mm512_reduce_add_ps(x[0])
 }
 
 pub unsafe fn nnz_bitmask(x: __m512i) -> u16 {

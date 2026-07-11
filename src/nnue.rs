@@ -1,4 +1,5 @@
 mod accumulator;
+mod tail;
 
 pub use accumulator::threats::initialize;
 
@@ -96,7 +97,12 @@ const FT_SHIFT: u32 = 9;
 #[cfg(not(target_feature = "avx512f"))]
 const FT_SHIFT: i32 = 9;
 
-const DEQUANT_MULTIPLIER: f32 = (1 << FT_SHIFT) as f32 / (FT_QUANT * FT_QUANT * L1_QUANT) as f32;
+#[cfg(target_feature = "avx512f")]
+const TAIL_SHIFT: u32 = 14;
+#[cfg(not(target_feature = "avx512f"))]
+const TAIL_SHIFT: i32 = 14;
+
+const TAIL_ACT_QUANT: i32 = 1 << 12;
 
 #[rustfmt::skip]
 const INPUT_BUCKETS_LAYOUT: [u8; 64] = [
@@ -292,11 +298,12 @@ impl Network {
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
 
-            let l1_out = forward::propagate_l1(&ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l1_pre = forward::propagate_l1(&ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l1_out = tail::activate_l1(&l1_pre, bucket, parameters);
             let l2_out = forward::propagate_l2(&l1_out, bucket, parameters);
             let l3_out = forward::propagate_l3(&l2_out, bucket, parameters);
 
-            (l3_out * NETWORK_SCALE as f32) as i32
+            tail::scale_output(l3_out)
         }
     }
 
@@ -310,10 +317,11 @@ impl Network {
             let ft_out =
                 forward::activate_ft(&self.pst_stack[self.index], &self.threat_stack[self.index], board.side_to_move());
             let (nnz_indexes, nnz_count) = forward::find_nnz(&ft_out, &self.nnz_table);
-            let l1_out = forward::propagate_l1(&ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l1_pre = forward::propagate_l1(&ft_out, &nnz_indexes[..nnz_count], bucket, parameters);
+            let l1_out = tail::activate_l1(&l1_pre, bucket, parameters);
             let l2_out = forward::propagate_l2(&l1_out, bucket, parameters);
             let l3_out = forward::propagate_l3(&l2_out, bucket, parameters);
-            (l3_out * NETWORK_SCALE as f32) as i32
+            tail::scale_output(l3_out)
         }
     }
 
@@ -353,17 +361,20 @@ impl BoardObserver for Network {
     }
 }
 
+// The tail is quantized by the build script; l2 weights come with the input
+// pairs (2p, 2p + 1) interleaved per output, so the scalar and madd paths
+// both walk them in memory order.
 #[repr(C)]
 pub struct Parameters {
     ft_threat_weights: Aligned<[[i8; L1_SIZE]; 66864]>,
     ft_piece_weights: Aligned<[[i16; L1_SIZE]; INPUT_BUCKETS * 768]>,
     ft_biases: Aligned<[i16; L1_SIZE]>,
     l1_weights: Aligned<[[i8; L2_SIZE * L1_SIZE]; OUTPUT_BUCKETS]>,
-    l1_biases: Aligned<[[f32; L2_SIZE]; OUTPUT_BUCKETS]>,
-    l2_weights: Aligned<[[[f32; L3_SIZE]; L2_SIZE]; OUTPUT_BUCKETS]>,
-    l2_biases: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
-    l3_weights: Aligned<[[f32; L3_SIZE]; OUTPUT_BUCKETS]>,
-    l3_biases: Aligned<[f32; OUTPUT_BUCKETS]>,
+    l1_biases: Aligned<[[i64; L2_SIZE]; OUTPUT_BUCKETS]>,
+    l2_weights: Aligned<[[[i16; L3_SIZE * 2]; L2_SIZE / 2]; OUTPUT_BUCKETS]>,
+    l2_biases: Aligned<[[i32; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_weights: Aligned<[[i16; L3_SIZE]; OUTPUT_BUCKETS]>,
+    l3_biases: Aligned<[i32; OUTPUT_BUCKETS]>,
 }
 
 impl Parameters {

@@ -1,6 +1,5 @@
 use std::{arch::x86_64::*, mem::size_of};
 
-pub const F32_LANES: usize = size_of::<__m256>() / size_of::<f32>();
 pub const I32_LANES: usize = size_of::<__m256i>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<__m256i>() / size_of::<i16>();
 pub const MUL_HI_SHIFT: i32 = 0;
@@ -53,24 +52,31 @@ pub unsafe fn splat_i32(a: i32) -> __m256i {
     _mm256_set1_epi32(a)
 }
 
-pub unsafe fn zero_f32() -> __m256 {
-    _mm256_setzero_ps()
+pub unsafe fn madd_i16(a: __m256i, b: __m256i) -> __m256i {
+    _mm256_madd_epi16(a, b)
 }
 
-pub unsafe fn splat_f32(a: f32) -> __m256 {
-    _mm256_set1_ps(a)
+pub unsafe fn add_i32(a: __m256i, b: __m256i) -> __m256i {
+    _mm256_add_epi32(a, b)
 }
 
-pub unsafe fn mul_add_f32(a: __m256, b: __m256, c: __m256) -> __m256 {
-    _mm256_fmadd_ps(a, b, c)
+pub unsafe fn shift_right_i32<const SHIFT: i32>(a: __m256i) -> __m256i {
+    _mm256_srai_epi32::<SHIFT>(a)
 }
 
-pub unsafe fn convert_to_f32(a: __m256i) -> __m256 {
-    _mm256_cvtepi32_ps(a)
+pub unsafe fn clamp_i32(x: __m256i, min: __m256i, max: __m256i) -> __m256i {
+    _mm256_max_epi32(_mm256_min_epi32(x, max), min)
 }
 
-pub unsafe fn clamp_f32(x: __m256, min: __m256, max: __m256) -> __m256 {
-    _mm256_max_ps(_mm256_min_ps(x, max), min)
+pub unsafe fn pack_i32(a: __m256i, b: __m256i) -> __m256i {
+    permute(_mm256_packs_epi32(a, b))
+}
+
+pub unsafe fn horizontal_sum_i32(x: __m256i) -> i32 {
+    let sum128 = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extracti128_si256::<1>(x));
+    let sum64 = _mm_add_epi32(sum128, _mm_unpackhi_epi64(sum128, sum128));
+    let sum32 = _mm_add_epi32(sum64, _mm_shuffle_epi32::<1>(sum64));
+    _mm_cvtsi128_si32(sum32)
 }
 
 pub unsafe fn dpbusd(i32s: __m256i, u8s: __m256i, i8s: __m256i) -> __m256i {
@@ -84,22 +90,6 @@ pub unsafe fn double_dpbusd(i32s: __m256i, u8s1: __m256i, i8s1: __m256i, u8s2: _
     let pairwise2 = _mm256_maddubs_epi16(u8s2, i8s2);
     let widened = _mm256_madd_epi16(_mm256_add_epi16(pairwise1, pairwise2), _mm256_set1_epi16(1));
     _mm256_add_epi32(i32s, widened)
-}
-
-pub unsafe fn horizontal_sum(x: [__m256; 2]) -> f32 {
-    let vec = _mm256_add_ps(x[0], x[1]);
-
-    let hi128 = _mm256_extractf128_ps::<1>(vec);
-    let lo128 = _mm256_castps256_ps128(vec);
-    let sum128 = _mm_add_ps(lo128, hi128);
-
-    let hi64 = _mm_movehl_ps(sum128, sum128);
-    let sum64 = _mm_add_ps(sum128, hi64);
-
-    let hi32 = _mm_shuffle_ps::<1>(sum64, sum64);
-    let sum32 = _mm_add_ss(sum64, hi32);
-
-    _mm_cvtss_f32(sum32)
 }
 
 pub unsafe fn nnz_bitmask(x: __m256i) -> u16 {

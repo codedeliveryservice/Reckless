@@ -1,6 +1,6 @@
 use std::{arch::aarch64::*, mem::size_of};
 
-pub const F32_LANES: usize = size_of::<float32x4_t>() / size_of::<f32>();
+pub const I32_LANES: usize = size_of::<int32x4_t>() / size_of::<i32>();
 pub const I16_LANES: usize = size_of::<int16x8_t>() / size_of::<i16>();
 pub const MUL_HI_SHIFT: i32 = 1;
 
@@ -55,24 +55,32 @@ pub unsafe fn splat_i32(a: i32) -> int32x4_t {
     vdupq_n_s32(a)
 }
 
-pub unsafe fn zero_f32() -> float32x4_t {
-    vdupq_n_f32(0.0)
+pub unsafe fn madd_i16(a: int32x4_t, b: int16x8_t) -> int32x4_t {
+    let a = vreinterpretq_s16_s32(a);
+
+    let low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
+    let high = vmull_high_s16(a, b);
+    vpaddq_s32(low, high)
 }
 
-pub unsafe fn splat_f32(a: f32) -> float32x4_t {
-    vdupq_n_f32(a)
+pub unsafe fn add_i32(a: int32x4_t, b: int32x4_t) -> int32x4_t {
+    vaddq_s32(a, b)
 }
 
-pub unsafe fn mul_add_f32(a: float32x4_t, b: float32x4_t, c: float32x4_t) -> float32x4_t {
-    vfmaq_f32(c, a, b)
+pub unsafe fn shift_right_i32<const SHIFT: i32>(a: int32x4_t) -> int32x4_t {
+    vshrq_n_s32::<SHIFT>(a)
 }
 
-pub unsafe fn convert_to_f32(a: int32x4_t) -> float32x4_t {
-    vcvtq_f32_s32(a)
+pub unsafe fn clamp_i32(x: int32x4_t, min: int32x4_t, max: int32x4_t) -> int32x4_t {
+    vmaxq_s32(vminq_s32(x, max), min)
 }
 
-pub unsafe fn clamp_f32(x: float32x4_t, min: float32x4_t, max: float32x4_t) -> float32x4_t {
-    vmaxq_f32(vminq_f32(x, max), min)
+pub unsafe fn pack_i32(a: int32x4_t, b: int32x4_t) -> int16x8_t {
+    vcombine_s16(vqmovn_s32(a), vqmovn_s32(b))
+}
+
+pub unsafe fn horizontal_sum_i32(x: int32x4_t) -> i32 {
+    vaddvq_s32(x)
 }
 
 #[allow(unused)]
@@ -111,18 +119,6 @@ pub unsafe fn double_dpbusd(
     i32s: int32x4_t, u8s1: int32x4_t, i8s1: int8x16_t, u8s2: int32x4_t, i8s2: int8x16_t,
 ) -> int32x4_t {
     dpbusd(dpbusd(i32s, u8s1, i8s1), u8s2, i8s2)
-}
-
-pub unsafe fn horizontal_sum(x: [float32x4_t; 4]) -> f32 {
-    // The reduction order is important to prevent rounding differences
-    // with the AVX2/512 implementations
-    let sum02 = vaddq_f32(x[0], x[2]);
-    let sum13 = vaddq_f32(x[1], x[3]);
-    let sum = vaddq_f32(sum02, sum13);
-
-    let pair = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
-
-    vget_lane_f32::<0>(pair) + vget_lane_f32::<1>(pair)
 }
 
 pub unsafe fn nnz_bitmask(x: int32x4_t) -> u16 {

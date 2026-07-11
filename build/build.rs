@@ -9,6 +9,7 @@ use std::{
 mod attacks;
 mod magics;
 mod maps;
+mod quantize;
 
 const BASE_URL: &str = "https://github.com/codedeliveryservice/RecklessNetworks/releases/download/networks";
 const NETWORK_NAME: &str = "v60-7f587dfb.nnue";
@@ -24,14 +25,9 @@ fn main() {
         generate_syzygy_binding();
     }
 
-    if !Path::new("networks").join(NETWORK_NAME).exists() && env::var("EVALFILE").is_err() {
-        download_network();
-    }
-
     println!("cargo:rerun-if-env-changed=EVALFILE");
     println!("cargo:rerun-if-changed=.git/HEAD");
     println!("cargo:rerun-if-changed=.git/logs/HEAD");
-    println!("cargo:rerun-if-changed=networks/{NETWORK_NAME}");
 }
 
 #[cfg(feature = "syzygy")]
@@ -62,7 +58,16 @@ fn generate_model_env() {
         path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
     }
 
-    println!("cargo:rustc-env=MODEL={}", path.display());
+    if !path.exists() && env::var("EVALFILE").is_err() {
+        download_network();
+    }
+
+    // The engine embeds the quantized image verbatim, so convert the f32 tail here.
+    let quantized = Path::new(&env::var("OUT_DIR").unwrap()).join("quantized.nnue");
+    quantize::quantize_model(&path, &quantized);
+
+    println!("cargo:rustc-env=MODEL={}", quantized.display());
+    println!("cargo:rerun-if-changed={}", path.display());
 }
 
 fn generate_attack_maps() {
