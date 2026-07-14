@@ -95,7 +95,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             rm.previous_score = rm.score;
         }
 
-        let mut delta = 23;
+        let mut delta = 23 - eval_stability.min(pv_stability).min(7);
         let mut reduction = 0;
 
         for index in 0..td.multi_pv {
