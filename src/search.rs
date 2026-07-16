@@ -1005,7 +1005,7 @@ fn search<NODE: NodeType>(
 
                 root_move.score = score;
                 root_move.sel_depth = td.sel_depth;
-                root_move.pv.commit_full_root_pv(&td.pv_table, 1);
+                root_move.pv.commit_from_pv(&td.pv_table, 1);
 
                 if move_count > 1 && td.pv_index == 0 {
                     td.best_move_changes += 1;
