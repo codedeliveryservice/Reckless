@@ -393,7 +393,7 @@ pub struct RootMove {
     pub lowerbound: bool,
     pub sel_depth: i32,
     pub nodes: u64,
-    pub pv: PrincipalVariationTable,
+    pub pv: RootPV,
     pub tb_rank: i32,
     pub tb_score: i32,
 }
@@ -409,7 +409,7 @@ impl Default for RootMove {
             lowerbound: false,
             sel_depth: 0,
             nodes: 0,
-            pv: PrincipalVariationTable::default(),
+            pv: RootPV::default(),
             tb_rank: 0,
             tb_score: 0,
         }
@@ -423,10 +423,6 @@ pub struct PrincipalVariationTable {
 }
 
 impl PrincipalVariationTable {
-    pub fn line(&self) -> &[Move] {
-        &self.table[0][..self.len[0]]
-    }
-
     pub const fn clear(&mut self, ply: usize) {
         self.len[ply] = 0;
     }
@@ -439,12 +435,6 @@ impl PrincipalVariationTable {
             self.table[ply][i + 1] = self.table[ply + 1][i];
         }
     }
-
-    pub fn commit_full_root_pv(&mut self, src: &Self, start_ply: usize) {
-        let len = src.len[start_ply].min(MAX_PLY + 1);
-        self.len[0] = len;
-        self.table[0][..len].copy_from_slice(&src.table[start_ply][..len]);
-    }
 }
 
 impl Default for PrincipalVariationTable {
@@ -453,5 +443,29 @@ impl Default for PrincipalVariationTable {
             table: vec![[Move::NULL; MAX_PLY + 1]; MAX_PLY + 1].into_boxed_slice(),
             len: [0; MAX_PLY + 1],
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct RootPV {
+    table: Box<[Move; MAX_PLY + 1]>,
+    len: usize,
+}
+
+impl RootPV {
+    pub fn line(&self) -> &[Move] {
+        &self.table[..self.len]
+    }
+
+    pub fn commit_from_pv(&mut self, src: &PrincipalVariationTable, ply: usize) {
+        let len = src.len[ply].min(MAX_PLY + 1);
+        self.len = len;
+        self.table[..len].copy_from_slice(&src.table[ply][..len]);
+    }
+}
+
+impl Default for RootPV {
+    fn default() -> Self {
+        Self { table: Box::new([Move::NULL; MAX_PLY + 1]), len: 0 }
     }
 }
