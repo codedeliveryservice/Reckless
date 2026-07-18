@@ -334,7 +334,7 @@ fn eval(td: &mut ThreadData, board: &Board) {
 
     let side = board.side_to_move();
 
-    println!("NNUE derived piece values");
+    println!("NNUE derived piece values:");
     println!("+-------+-------+-------+-------+-------+-------+-------+-------+");
     for rank in (0..8).rev() {
         print!("|");
@@ -352,7 +352,8 @@ fn eval(td: &mut ThreadData, board: &Board) {
             match td.nnue.piece_contribution(board, sq) {
                 None => print!("       |"),
                 Some(v) => {
-                    let val = v as f32 / 100.0;
+                    let white_relative = if side == Color::White { v } else { -v };
+                    let val = white_relative as f32 / 100.0;
                     print!("{val:+6.2} |");
                 }
             }
@@ -363,10 +364,10 @@ fn eval(td: &mut ThreadData, board: &Board) {
 
     let used_bucket = crate::nnue::OUTPUT_BUCKETS_LAYOUT[board.occupancies().popcount()];
 
-    println!("\nNNUE output buckets (White side)");
-    println!("+------------+------------+");
-    println!("|   Bucket   |   Total    |");
-    println!("+------------+------------+");
+    println!("\nNNUE output buckets (White's POV):");
+    println!("+-------------+------------+");
+    println!("|   Buckets   |   Total    |");
+    println!("+-------------+------------+");
 
     for bucket in 0..8 {
         let raw_score = td.nnue.eval_with_bucket(board, bucket);
@@ -374,16 +375,16 @@ fn eval(td: &mut ThreadData, board: &Board) {
         let total = white_score as f32 / 100.0;
 
         if bucket == used_bucket {
-            println!("|  {bucket:<2}        | {total:+7.2}    | <-- this bucket is used");
+            println!("|  >   {bucket:<7}| {total:+7.2}    |");
         } else {
-            println!("|  {bucket:<2}        | {total:+7.2}    |");
+            println!("|{bucket:^13}| {total:+7.2}    |");
         }
     }
-    println!("+------------+------------+");
+    println!("+-------------+------------+");
 
     let final_eval = td.nnue.evaluate(board);
     let final_total = (if side == Color::White { final_eval } else { -final_eval }) as f32 / 100.0;
-    println!("\nNNUE evaluation        {final_total:+.2} (White side)");
+    println!("\nNNUE evaluation        {final_total:+.2} (White's POV)");
 }
 
 fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
