@@ -263,7 +263,7 @@ fn parse_cpu_indices(cpu_ids: &str) -> Vec<usize> {
             let (a, b) = s.split_once('-').unwrap_or((s, s));
             let start = a.parse::<usize>().ok()?;
             let end = b.parse::<usize>().ok()?;
-            
+
             Some(start..=end)
         })
         .flatten()
