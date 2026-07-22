@@ -256,26 +256,18 @@ impl NumaConfig {
 }
 
 fn parse_cpu_indices(cpu_ids: &str) -> Vec<usize> {
-    if cpu_ids.is_empty() {
-        return Vec::new();
-    }
+    cpu_ids
+        .split(',')
+        .filter(|s| !s.is_empty())
+        .filter_map(|s| {
+            let (a, b) = s.split_once('-').unwrap_or((s, s));
+            let start = a.parse::<usize>().ok()?;
+            let end = b.parse::<usize>().ok()?;
 
-    let mut indices = Vec::new();
-    for segment in cpu_ids.split(',').filter(|s| !s.is_empty()) {
-        let parts: Vec<_> = segment.split('-').collect();
-        match parts.len() {
-            1 => indices.push(parts[0].parse::<usize>().unwrap()),
-            2 => {
-                let first = parts[0].parse::<usize>().unwrap();
-                let last = parts[1].parse::<usize>().unwrap();
-                for cpu in first..=last {
-                    indices.push(cpu);
-                }
-            }
-            _ => {}
-        }
-    }
-    indices
+            Some(start..=end)
+        })
+        .flatten()
+        .collect()
 }
 
 fn remove_whitespace(s: String) -> String {
