@@ -693,8 +693,9 @@ fn search<NODE: NodeType>(
     if !NODE::ROOT && !excluded && potential_singularity {
         debug_assert!(is_valid(tt_score));
 
-        let singular_margin = if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
-            + depth * (tt_pv && !NODE::PV) as i32;
+        let singular_margin = (if tt_bound == Bound::Exact { (depth as u32).div_ceil(4) as i32 } else { depth }
+            + depth * (tt_pv && !NODE::PV) as i32)
+            + (td.move_history(ply, tt_move) / 1024).clamp(-depth / 4, depth / 4);
         let singular_beta = tt_score - singular_margin;
         let singular_depth = (depth - 1) / 2;
 
@@ -766,12 +767,7 @@ fn search<NODE: NodeType>(
         let is_quiet = mv.is_quiet();
         let is_direct_check = td.board.is_direct_check(mv);
 
-        let history = if is_quiet {
-            td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
-        } else {
-            let captured_type = td.board.type_on(mv.to());
-            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), captured_type)
-        };
+        let history = td.move_history(ply, mv);
 
         if !NODE::ROOT && !is_loss(best_score) {
             // Late Move Pruning (LMP)
@@ -1191,7 +1187,6 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
         }
     }
 
-    let stm = td.board.side_to_move();
     let in_check = td.board.in_check();
 
     if NODE::PV {
@@ -1295,11 +1290,7 @@ fn qsearch<NODE: NodeType>(td: &mut ThreadData, mut alpha: i32, beta: i32, ply: 
     while let Some(mv) = move_picker.next::<NODE>(td, skip_quiets(best_score), ply) {
         move_count += 1;
 
-        let history = if mv.is_quiet() {
-            td.quiet_history.get(td.board.all_threats(), stm, mv) + td.conthist(ply, 1, mv) + td.conthist(ply, 2, mv)
-        } else {
-            td.noisy_history.get(td.board.all_threats(), td.board.moved_piece(mv), mv.to(), td.board.type_on(mv.to()))
-        };
+        let history = td.move_history(ply, mv);
 
         if !is_loss(best_score) {
             // Late Move Pruning (LMP)

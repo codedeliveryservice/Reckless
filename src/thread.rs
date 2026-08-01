@@ -295,6 +295,21 @@ impl ThreadData {
         self.continuation_history.get(self.stack[ply - index].conthist, self.board.piece_on(mv.from()), mv.to())
     }
 
+    pub fn move_history(&self, ply: isize, mv: Move) -> i32 {
+        if mv.is_quiet() {
+            self.quiet_history.get(self.board.all_threats(), self.board.side_to_move(), mv)
+                + self.conthist(ply, 1, mv)
+                + self.conthist(ply, 2, mv)
+        } else {
+            self.noisy_history.get(
+                self.board.all_threats(),
+                self.board.moved_piece(mv),
+                mv.to(),
+                self.board.type_on(mv.to()),
+            )
+        }
+    }
+
     pub fn print_uci_info(&mut self, depth: i32) {
         if self.root_moves.is_empty() {
             self.print_uci_no_move();
