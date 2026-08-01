@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["syzygy"]
+default = ["syzygy", "spsa"]
 syzygy = []
 spsa = []
 
