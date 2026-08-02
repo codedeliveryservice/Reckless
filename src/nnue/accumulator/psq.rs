@@ -40,14 +40,7 @@ impl PstAccumulator {
         let mut subs = ArrayVec::<PstFeature, 64>::new();
 
         for color in [Color::White, Color::Black] {
-            for piece_type in [
-                PieceType::Pawn,
-                PieceType::Knight,
-                PieceType::Bishop,
-                PieceType::Rook,
-                PieceType::Queen,
-                PieceType::King,
-            ] {
+            for piece_type in PieceType::ALL {
                 let pieces = board.colored_pieces(color, piece_type);
                 let to_add = pieces & !(entry.pieces[piece_type] & entry.colors[color]);
                 let to_sub = !pieces & (entry.pieces[piece_type] & entry.colors[color]);

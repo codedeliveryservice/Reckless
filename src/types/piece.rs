@@ -131,6 +131,8 @@ pub enum PieceType {
 impl PieceType {
     pub const NUM: usize = 6;
 
+    pub const ALL: [Self; Self::NUM] = [Self::Pawn, Self::Knight, Self::Bishop, Self::Rook, Self::Queen, Self::King];
+
     pub const fn new(value: usize) -> Self {
         unsafe { std::mem::transmute(value as u8) }
     }
