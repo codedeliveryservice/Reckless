@@ -142,7 +142,7 @@ Along with the standard UCI commands, Reckless supports additional commands for 
 
 - [Code contributors](https://github.com/codedeliveryservice/Reckless/graphs/contributors) who help develop and improve Reckless
 - [Hardware contributors](https://recklesschess.space/users/) providing compute resources
-- [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Cute Chess](https://github.com/cutechess/cutechess)
+- [OpenBench](https://github.com/AndyGrant/OpenBench) is the primary testing framework powered by [Fastchess](https://github.com/Disservin/fastchess)
 - [Bullet](https://github.com/jw1912/bullet) is the NNUE trainer
 - [Stockfish](https://github.com/official-stockfish/Stockfish), [PlentyChess](https://github.com/Yoshie2000/PlentyChess), [Ethereal](https://github.com/AndyGrant/Ethereal), [Berserk](https://github.com/jhonnold/berserk), and many other open source chess engines
 - Members of the [Stockfish Discord server](https://discord.gg/GWDRS3kU6R)
