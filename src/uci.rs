@@ -120,9 +120,9 @@ fn spawn_listener(shared: Arc<SharedContext>) -> std::sync::mpsc::Receiver<Strin
 
             if std::io::stdin().read_line(&mut message).unwrap() == 0 {
                 // EOF received
-                if shared.status.get() != Status::RUNNING {
-                    let _ = tx.send("quit".to_string());
-                }
+                shared.status.set(Status::STOPPED);
+                let _ = tx.send("quit".to_string());
+                break;
             }
 
             match message.trim_end() {
