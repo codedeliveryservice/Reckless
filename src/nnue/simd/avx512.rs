@@ -79,16 +79,15 @@ pub unsafe fn dpbusd(i32s: __m512i, u8s: __m512i, i8s: __m512i) -> __m512i {
     _mm512_dpbusd_epi32(i32s, u8s, i8s)
 }
 
+pub unsafe fn add_i32(a: __m512i, b: __m512i) -> __m512i {
+    _mm512_add_epi32(a, b)
+}
+
 #[cfg(not(target_feature = "avx512vnni"))]
 pub unsafe fn dpbusd(i32s: __m512i, u8s: __m512i, i8s: __m512i) -> __m512i {
     let pairwise = _mm512_maddubs_epi16(u8s, i8s);
     let widened = _mm512_madd_epi16(pairwise, _mm512_set1_epi16(1));
     _mm512_add_epi32(i32s, widened)
-}
-
-#[cfg(target_feature = "avx512vnni")]
-pub unsafe fn double_dpbusd(i32s: __m512i, u8s1: __m512i, i8s1: __m512i, u8s2: __m512i, i8s2: __m512i) -> __m512i {
-    _mm512_dpbusd_epi32(_mm512_dpbusd_epi32(i32s, u8s1, i8s1), u8s2, i8s2)
 }
 
 #[cfg(not(target_feature = "avx512vnni"))]
