@@ -56,10 +56,13 @@ pub unsafe fn propagate_l1(
     ft_out: &Aligned<[u8; L1_SIZE]>, nnz: &[u16], bucket: usize, parameters: &Parameters,
 ) -> Aligned<[f32; L2_SIZE]> {
     const CHUNKS: usize = 4;
+    const L2_LANES: usize = L2_SIZE / simd::F32_LANES;
 
-    let mut pre_activations = Aligned::new([simd::zeroed(); L2_SIZE / simd::F32_LANES]);
-
+    let mut pre_activations = Aligned::new([simd::zeroed(); L2_LANES]);
     let packed = std::slice::from_raw_parts(ft_out.as_ptr().cast::<i32>(), L1_SIZE / CHUNKS);
+
+    #[cfg(target_feature = "avx512vnni")]
+    let mut pre_b = Aligned::new([simd::zeroed(); L2_LANES]);
 
     let mut pairs = nnz.chunks_exact(2);
 
@@ -77,9 +80,24 @@ pub unsafe fn propagate_l1(
             let weights1 = *weights1.add(j * CHUNKS).cast();
             let weights2 = *weights2.add(j * CHUNKS).cast();
 
-            let vector = &mut pre_activations[j / simd::F32_LANES];
-            *vector = simd::double_dpbusd(*vector, input1, weights1, input2, weights2);
+            let lane = j / simd::F32_LANES;
+
+            #[cfg(target_feature = "avx512vnni")]
+            {
+                pre_activations[lane] = simd::dpbusd(pre_activations[lane], input1, weights1);
+                pre_b[lane] = simd::dpbusd(pre_b[lane], input2, weights2);
+            }
+
+            #[cfg(not(target_feature = "avx512vnni"))]
+            {
+                pre_activations[lane] = simd::double_dpbusd(pre_activations[lane], input1, weights1, input2, weights2);
+            }
         }
+    }
+
+    #[cfg(target_feature = "avx512vnni")]
+    for lane in 0..L2_LANES {
+        pre_activations[lane] = simd::add_i32(pre_activations[lane], pre_b[lane]);
     }
 
     if let Some(last) = pairs.remainder().first() {
@@ -89,8 +107,8 @@ pub unsafe fn propagate_l1(
 
         for j in (0..L2_SIZE).step_by(simd::F32_LANES) {
             let weights = *weights.add(j * CHUNKS).cast();
-            let vector = &mut pre_activations[j / simd::F32_LANES];
-            *vector = simd::dpbusd(*vector, input, weights);
+            let lane = j / simd::F32_LANES;
+            pre_activations[lane] = simd::dpbusd(pre_activations[lane], input, weights);
         }
     }
 
