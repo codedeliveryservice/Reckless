@@ -29,14 +29,8 @@ pub struct TimeManager {
 
 impl TimeManager {
     pub fn new(limits: Limits, fullmove_number: usize, move_overhead: u64) -> Self {
-        let soft;
-        let hard;
-
-        match limits {
-            Limits::Time(ms) => {
-                soft = ms;
-                hard = ms;
-            }
+        let (soft, hard) = match limits {
+            Limits::Time(ms) => (ms, ms),
             Limits::Fischer(main, inc) => {
                 let soft_scale = 0.0594 - 0.0492 * (-0.0386 * fullmove_number as f64).exp();
                 let hard_scale = 0.7281;
@@ -44,21 +38,16 @@ impl TimeManager {
                 let soft_bound = (soft_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
                 let hard_bound = (hard_scale * main.saturating_sub(move_overhead) as f64 + 0.75 * inc as f64) as u64;
 
-                soft = soft_bound.min(main.saturating_sub(move_overhead));
-                hard = hard_bound.min(main.saturating_sub(move_overhead));
+                (soft_bound.min(main.saturating_sub(move_overhead)), hard_bound.min(main.saturating_sub(move_overhead)))
             }
             Limits::Cyclic(main, inc, moves) => {
                 let main = main.saturating_sub(move_overhead);
                 let base = (main as f64 / moves as f64) + 0.75 * inc as f64;
 
-                soft = ((1.0 * base) as u64).min(main + inc);
-                hard = ((5.0 * base) as u64).min(main + inc);
+                (((1.0 * base) as u64).min(main + inc), ((5.0 * base) as u64).min(main + inc))
             }
-            _ => {
-                soft = u64::MAX;
-                hard = u64::MAX;
-            }
-        }
+            _ => (u64::MAX, u64::MAX),
+        };
 
         Self {
             limits,

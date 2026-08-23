@@ -67,20 +67,14 @@ impl Board {
 
     fn set_castling(&mut self, rights: &str) {
         for right in rights.chars() {
-            if !matches!(right.to_ascii_uppercase(), 'A'..='H' | 'K' | 'Q') {
-                continue;
-            }
-
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
             let king_from = self.king_square(color);
-            let mut search_step = right.to_ascii_uppercase() as i8 - b'A' as i8 - king_from.file() as i8;
-
-            if right.eq_ignore_ascii_case(&'K') {
-                search_step = Square::RIGHT;
-            }
-            if right.eq_ignore_ascii_case(&'Q') {
-                search_step = Square::LEFT;
-            }
+            let search_step = match right.to_ascii_uppercase() {
+                'K' => Square::RIGHT,
+                'Q' => Square::LEFT,
+                c @ 'A'..='H' => c as i8 - b'A' as i8 - king_from.file() as i8,
+                _ => continue,
+            };
 
             let rook_from =
                 (ray_pass(king_from, king_from.shift(search_step)) & self.colored_pieces(color, PieceType::Rook)).lsb();
