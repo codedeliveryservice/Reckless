@@ -796,8 +796,7 @@ fn search<NODE: NodeType>(
                 && !is_direct_check
                 && is_quiet
                 && !is_win(beta)
-                && move_count as i32
-                    >= (2818 + 78 * improvement / 16 + 1351 * depth * depth + 74 * history / 1024) / 1024
+                && move_count >= (2818 + 78 * improvement / 16 + 1351 * depth * depth + 74 * history / 1024) / 1024
             {
                 skip_quiets = true;
                 continue;
@@ -853,7 +852,7 @@ fn search<NODE: NodeType>(
 
         let initial_nodes = td.nodes();
 
-        make_move(td, ply, mv, move_count as i32);
+        make_move(td, ply, mv, move_count);
 
         let mut new_depth = depth - 1 + if move_count == 1 { extension } else { 0 };
         let mut score = Score::ZERO;
