@@ -17,13 +17,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [1.88.0, stable]
+        rust: [1.88.0, 1.97.0]
 
     steps:
       - uses: actions/checkout@v5
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
