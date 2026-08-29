@@ -193,6 +193,11 @@ impl TranspositionTable {
         };
 
         let key = verification_key(hash);
+
+        if key.0 == 0 {
+            return None;
+        }
+
         let index = cluster.lookup_key(key);
 
         if index < cluster.entries.len() {
@@ -227,6 +232,11 @@ impl TranspositionTable {
         };
 
         let key = verification_key(hash);
+
+        if key.0 == 0 {
+            return;
+        }
+
         let tt_age = self.age();
 
         let replacement_index = {
