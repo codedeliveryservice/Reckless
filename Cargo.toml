@@ -4,6 +4,7 @@ version = "0.10.0-dev"
 edition = "2024"
 build = "build/build.rs"
 publish = false
+rust-version = "1.88.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -1421,7 +1421,7 @@ fn eval_correction(td: &ThreadData, ply: isize) -> i32 {
         / 64
 }
 
-fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: isize) {
+fn update_correction_histories(td: &ThreadData, depth: i32, diff: i32, ply: isize) {
     let stm = td.board.side_to_move();
     let bucket = td.board.fiftymove_clock_bucket();
     let corrhist = td.corrhist();
@@ -1451,7 +1451,7 @@ fn update_correction_histories(td: &mut ThreadData, depth: i32, diff: i32, ply: 
     }
 }
 
-fn update_continuation_histories(td: &mut ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
+fn update_continuation_histories(td: &ThreadData, ply: isize, piece: Piece, sq: Square, bonus: i32) {
     for offset in [1, 2, 4, 6] {
         let entry = &td.stack[ply - offset];
         if entry.mv.is_present() {
