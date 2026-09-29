@@ -632,6 +632,11 @@ fn search<NODE: NodeType>(
         }
     }
 
+    // Internal Iterative Reduction
+    if !NODE::PV && depth >= 6 && tt_move == Move::NULL {
+        depth -= 1;
+    }
+
     // ProbCut
     let mut probcut_beta = beta + 254 - 85 * improving as i32;
 
