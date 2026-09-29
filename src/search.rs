@@ -401,6 +401,17 @@ fn search<NODE: NodeType>(
                 update_continuation_histories(td, ply, td.board.moved_piece(tt_move), tt_move.to(), cont_bonus);
             }
 
+            // Extra penalty for early quiet moves of the previous ply
+            if tt_move.is_present()
+                && tt_score >= beta
+                && td.stack[ply - 1].mv.is_present()
+                && td.stack[ply - 1].move_count < 5
+                && !td.stack[ply - 1].mv.is_capture()
+            {
+                let sq = td.stack[ply - 1].mv.to();
+                update_continuation_histories(td, ply - 1, td.board.piece_on(sq), sq, -2210);
+            }
+
             if td.board.fiftymove_clock() < 90 {
                 return tt_score;
             }
@@ -630,6 +641,11 @@ fn search<NODE: NodeType>(
                 return score;
             }
         }
+    }
+
+    // Internal Iterative Reduction
+    if !NODE::PV && depth >= 6 && tt_move == Move::NULL {
+        depth -= 1;
     }
 
     // ProbCut
