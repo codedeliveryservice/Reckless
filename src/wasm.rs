@@ -73,7 +73,7 @@ impl Engine {
     fn run_search(&mut self, limits: Limits, multi_pv: usize, on_info: Option<JsFunction>) {
         crate::thread::WASM_CALLBACK.with(|c| *c.borrow_mut() = on_info);
         let tm = TimeManager::new(limits, self.board.fullmove_number(), 0);
-        self.threads.execute_searches(tm, Report::Full, multi_pv, &self.board, &self.shared);
+        self.threads.execute_searches(tm, Report::Full, multi_pv, None, &self.board, &self.shared);
         crate::thread::WASM_CALLBACK.with(|c| *c.borrow_mut() = None);
     }
 
