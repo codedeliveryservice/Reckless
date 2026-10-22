@@ -13,10 +13,12 @@ env:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    env:
+      CFLAGS: -fno-profile-generate -fno-profile-use
 
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.97.0
 
       - run: |
           rustup component add llvm-tools
@@ -31,10 +33,12 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    env:
+      CFLAGS: -fno-profile-generate -fno-profile-use
 
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.97.0
 
       - run: |
           rustup component add llvm-tools

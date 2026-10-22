@@ -19,6 +19,7 @@ use crate::{
     search::{self, Report},
     thread::{RootMove, SharedContext, Status, ThreadData},
     time::TimeManager,
+    types::Move,
 };
 
 pub struct ThreadPool {
@@ -80,8 +81,8 @@ impl ThreadPool {
     }
 
     pub fn execute_searches(
-        &mut self, time_manager: TimeManager, report: Report, multi_pv: usize, board: &Board,
-        shared: &Arc<SharedContext>,
+        &mut self, time_manager: TimeManager, report: Report, multi_pv: usize, search_moves: Option<&[Move]>,
+        board: &Board, shared: &Arc<SharedContext>,
     ) {
         shared.tt.increment_age();
 
@@ -105,6 +106,9 @@ impl ThreadPool {
                 t1.board = (*board).clone();
                 t1.root_moves =
                     t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
+                if let Some(moves) = search_moves {
+                    t1.root_moves.retain(|rm| moves.contains(&rm.mv));
+                }
                 t1.multi_pv = multi_pv;
                 t1.time_manager = time_manager.clone();
             }
@@ -158,6 +162,9 @@ impl ThreadPool {
             t1.board = (*board).clone();
             t1.root_moves =
                 t1.board.generate_all_moves().iter().map(|v| RootMove { mv: v.mv, ..Default::default() }).collect();
+            if let Some(moves) = search_moves {
+                t1.root_moves.retain(|rm| moves.contains(&rm.mv));
+            }
 
             #[cfg(feature = "syzygy")]
             if t1.board.castling().raw() == 0 && t1.board.occupancies().popcount() <= tb::size() && !t1.board.is_draw(0)
