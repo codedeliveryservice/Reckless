@@ -411,8 +411,18 @@ fn parse_search_moves(board: &Board, tokens: &[&str]) -> Result<Option<Vec<Move>
     for &token in tokens.iter().skip(index + 1).take_while(|&&token| {
         !matches!(
             token,
-            "searchmoves" | "ponder" | "wtime" | "btime" | "winc" | "binc" | "movestogo"
-                | "depth" | "nodes" | "mate" | "movetime" | "infinite"
+            "searchmoves"
+                | "ponder"
+                | "wtime"
+                | "btime"
+                | "winc"
+                | "binc"
+                | "movestogo"
+                | "depth"
+                | "nodes"
+                | "mate"
+                | "movetime"
+                | "infinite"
         )
     }) {
         let Some(mv) = legal_moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == token) else {
