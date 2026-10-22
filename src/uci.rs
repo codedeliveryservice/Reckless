@@ -186,10 +186,23 @@ fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
 }
 
 fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc<SharedContext>, tokens: &[&str]) {
+    let search_moves = match parse_search_moves(board, tokens) {
+        Ok(moves) => moves,
+        Err(error) => {
+            eprintln!("{error}");
+            return;
+        }
+    };
+
+    if search_moves.as_ref().is_some_and(Vec::is_empty) {
+        println!("bestmove (none)");
+        return;
+    }
+
     let limits = parse_limits(board.side_to_move(), tokens);
     let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
 
-    threads.execute_searches(time_manager, settings.report, settings.multi_pv, board, shared);
+    threads.execute_searches(time_manager, settings.report, settings.multi_pv, search_moves.as_deref(), board, shared);
 
     if threads[0].root_moves.is_empty() {
         println!("bestmove (none)");
@@ -387,6 +400,40 @@ fn eval(td: &mut ThreadData, board: &Board) {
     println!("\nNNUE evaluation        {final_total:+.2} (White's POV)");
 }
 
+fn parse_search_moves(board: &Board, tokens: &[&str]) -> Result<Option<Vec<Move>>, String> {
+    let Some(index) = tokens.iter().position(|&token| token == "searchmoves") else {
+        return Ok(None);
+    };
+
+    let legal_moves = board.generate_all_moves();
+    let mut moves = Vec::new();
+
+    for &token in tokens.iter().skip(index + 1).take_while(|&&token| {
+        !matches!(
+            token,
+            "searchmoves"
+                | "ponder"
+                | "wtime"
+                | "btime"
+                | "winc"
+                | "binc"
+                | "movestogo"
+                | "depth"
+                | "nodes"
+                | "mate"
+                | "movetime"
+                | "infinite"
+        )
+    }) {
+        let Some(mv) = legal_moves.iter().map(|entry| entry.mv).find(|mv| mv.to_uci(board) == token) else {
+            return Err(format!("Invalid searchmove: '{token}'"));
+        };
+        moves.push(mv);
+    }
+
+    Ok(Some(moves))
+}
+
 fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     if let ["infinite"] = tokens {
         return Limits::Infinite;
@@ -396,7 +443,7 @@ fn parse_limits(color: Color, tokens: &[&str]) -> Limits {
     let mut inc = None;
     let mut moves = None;
 
-    for chunk in tokens.chunks(2) {
+    for chunk in tokens.windows(2) {
         if let [name, value] = *chunk {
             let Ok(value) = value.parse::<u64>() else {
                 continue;
