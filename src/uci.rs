@@ -24,6 +24,7 @@ struct Settings {
     multi_pv: usize,
     move_overhead: u64,
     report: Report,
+    use_soft_nodes: bool,
 }
 
 impl Default for Settings {
@@ -33,6 +34,7 @@ impl Default for Settings {
             multi_pv: 1,
             move_overhead: 100,
             report: Report::Full,
+            use_soft_nodes: false,
         }
     }
 }
@@ -155,6 +157,7 @@ fn uci() {
     println!("option name Threads type spin default 1 min 1 max {}", ThreadPool::available_threads());
     println!("option name MoveOverhead type spin default 100 min 0 max 2000");
     println!("option name Minimal type check default false");
+    println!("option name UseSoftNodes type check default false");
     println!("option name Clear Hash type button");
     println!("option name UCI_Chess960 type check default false");
     println!("option name MultiPV type spin default 1 min 1 max {MAX_MOVES}");
@@ -200,7 +203,8 @@ fn go(threads: &mut ThreadPool, settings: &Settings, board: &Board, shared: &Arc
     }
 
     let limits = parse_limits(board.side_to_move(), tokens);
-    let time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    let mut time_manager = TimeManager::new(limits, board.fullmove_number(), settings.move_overhead);
+    time_manager.set_soft_nodes(settings.use_soft_nodes);
 
     threads.execute_searches(time_manager, settings.report, settings.multi_pv, search_moves.as_deref(), board, shared);
 
@@ -303,6 +307,10 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             "false" => settings.report = Report::Full,
             _ => eprintln!("Invalid value: '{v}'"),
         },
+        ["name", "UseSoftNodes", "value", v] => {
+            settings.use_soft_nodes = v.parse().unwrap_or_default();
+            println!("info string set UseSoftNodes to {v}");
+        }
         ["name", "Clear", "Hash"] => {
             shared.tt.clear(threads.len());
             println!("info string Hash cleared");

@@ -262,7 +262,7 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             nodes * pv_stability * eval_stability * score_trend * best_move_stability
         };
 
-        if td.time_manager.use_time_management() {
+        if td.time_manager.use_soft_stop() {
             if td.time_manager.soft_limit(td, multiplier) {
                 if !soft_stop_voted {
                     soft_stop_voted = true;

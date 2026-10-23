@@ -25,6 +25,7 @@ pub struct TimeManager {
     start_time: Instant,
     soft_bound: Duration,
     hard_bound: Duration,
+    use_soft_nodes: bool,
 }
 
 impl TimeManager {
@@ -54,7 +55,12 @@ impl TimeManager {
             start_time: Instant::now(),
             soft_bound: Duration::from_millis(soft.saturating_sub(TIME_OVERHEAD_MS)),
             hard_bound: Duration::from_millis(hard.saturating_sub(TIME_OVERHEAD_MS)),
+            use_soft_nodes: false,
         }
+    }
+
+    pub fn set_soft_nodes(&mut self, flag: bool) {
+        self.use_soft_nodes = flag;
     }
 
     pub fn elapsed(&self) -> Duration {
@@ -77,6 +83,7 @@ impl TimeManager {
 
         match self.limits {
             Limits::Infinite | Limits::Depth(_) | Limits::Mate(_) => false,
+            Limits::Nodes(_) if self.use_soft_nodes => false,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
             _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
@@ -84,6 +91,10 @@ impl TimeManager {
 
     pub fn limits(&self) -> Limits {
         self.limits.clone()
+    }
+
+    pub fn use_soft_stop(&self) -> bool {
+        self.use_time_management() || (self.use_soft_nodes && matches!(self.limits, Limits::Nodes(_)))
     }
 
     pub fn use_time_management(&self) -> bool {
