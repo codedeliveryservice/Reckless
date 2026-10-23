@@ -64,9 +64,9 @@ pub unsafe fn propagate_l1(
     #[cfg(target_feature = "avx512vnni")]
     let mut pre_b = Aligned::new([simd::zeroed(); L2_LANES]);
 
-    let mut pairs = nnz.chunks_exact(2);
+    let (pairs, remainder) = nnz.as_chunks::<2>();
 
-    for pair in &mut pairs {
+    for pair in pairs {
         let index1 = *pair.get_unchecked(0) as usize;
         let index2 = *pair.get_unchecked(1) as usize;
 
@@ -100,7 +100,7 @@ pub unsafe fn propagate_l1(
         pre_activations[lane] = simd::add_i32(pre_activations[lane], pre_b[lane]);
     }
 
-    if let Some(last) = pairs.remainder().first() {
+    if let Some(last) = remainder.first() {
         let index = *last as usize;
         let input = simd::splat_i32(*packed.get_unchecked(index));
         let weights = parameters.l1_weights[bucket].as_ptr().add(index * L2_SIZE * CHUNKS);
