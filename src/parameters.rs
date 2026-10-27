@@ -1,4 +1,5 @@
-#[allow(unused_macros)]
+#![allow(unused_macros)]
+
 #[cfg(not(feature = "spsa"))]
 macro_rules! define {
     {$($type:ident $name:ident: $value:expr; )*} => {

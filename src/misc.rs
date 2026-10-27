@@ -81,8 +81,8 @@ impl Wrapper {
     }
 
     fn reset(&self) {
-        for i in 0..self.data.len() {
-            self.data[i].store(0, Ordering::Relaxed);
+        for i in self.data.iter().take(self.data.len()) {
+            i.store(0, Ordering::Relaxed);
         }
         self.values.lock().unwrap().clear();
     }

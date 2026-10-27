@@ -94,11 +94,11 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
 
         // Helper to copy back from C struct and sort
         let update_rootmoves = |root_moves: &mut Vec<RootMove>, c_rootmoves: &TbRootMoves| {
-            for i in 0..c_rootmoves.size as usize {
-                let tb_move = c_rootmoves.moves[i].move_;
+            for i in c_rootmoves.moves.iter().take(c_rootmoves.size as usize) {
+                let tb_move = i.move_;
                 if let Some(rm) = root_moves.iter_mut().find(|rm| rm.mv.to_tb_move() == tb_move) {
-                    rm.tb_score = c_rootmoves.moves[i].tbScore;
-                    rm.tb_rank = c_rootmoves.moves[i].tbRank;
+                    rm.tb_score = i.tbScore;
+                    rm.tb_rank = i.tbRank;
                 }
             }
             root_moves.sort_by_key(|rm| std::cmp::Reverse(rm.tb_rank));
