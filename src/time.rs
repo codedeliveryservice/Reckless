@@ -83,7 +83,7 @@ impl TimeManager {
 
         match self.limits {
             Limits::Infinite | Limits::Depth(_) | Limits::Mate(_) => false,
-            Limits::Nodes(_) if self.use_soft_nodes => false,
+            Limits::Nodes(maximum) if self.use_soft_nodes => td.shared.nodes.get(td.id) >= 8 * maximum,
             Limits::Nodes(maximum) => td.shared.nodes.aggregate() > maximum,
             _ => td.nodes() & 2047 == 2047 && self.start_time.elapsed() >= self.hard_bound,
         }
