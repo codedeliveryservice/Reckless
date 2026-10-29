@@ -94,7 +94,7 @@ pub fn rank_rootmoves(td: &mut ThreadData) {
 
         // Helper to copy back from C struct and sort
         let update_rootmoves = |root_moves: &mut Vec<RootMove>, c_rootmoves: &TbRootMoves| {
-            for i in c_rootmoves.moves.iter().take(c_rootmoves.size as usize) {
+            for i in c_rootmoves.moves.iter() {
                 let tb_move = i.move_;
                 if let Some(rm) = root_moves.iter_mut().find(|rm| rm.mv.to_tb_move() == tb_move) {
                     rm.tb_score = i.tbScore;
