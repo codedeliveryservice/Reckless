@@ -456,6 +456,14 @@ struct TbHashEntry {
 static int tbNumPiece, tbNumPawn;
 static int numWdl, numDtm, numDtz;
 
+struct TbCounters tb_get_file_counters(void) {
+    struct TbCounters counters;
+    counters.wdl = &numWdl;
+    counters.dtm = &numDtm;
+    counters.dtz = &numDtz;
+    return counters;
+}
+
 static struct PieceEntry *pieceEntry;
 static struct PawnEntry *pawnEntry;
 static struct TbHashEntry tbHash[1 << TB_HASHBITS];

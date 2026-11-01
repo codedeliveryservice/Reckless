@@ -392,6 +392,15 @@ extern uint64_t tb_pawn_attacks(unsigned _square, bool _color);
 
 #endif
 
+struct TbCounters {
+    const int *wdl;
+    const int *dtm;
+    const int *dtz;
+};
+
+struct TbCounters tb_get_file_counters(void);
+
+
 #ifdef __cplusplus
 }
 #endif
