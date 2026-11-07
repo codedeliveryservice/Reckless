@@ -2,8 +2,8 @@ use std::{ffi, mem, ptr, sync::atomic::Ordering};
 
 use crate::{
     bindings::{
-        TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbRootMove, TbRootMoves, tb_init, tb_probe_root_dtz,
-        tb_probe_root_wdl, tb_probe_wdl,
+        TB_DRAW, TB_LARGEST, TB_LOSS, TB_MAX_MOVES, TB_WIN, TbRootMove, TbRootMoves, tb_get_file_counters, tb_init,
+        tb_probe_root_dtz, tb_probe_root_wdl, tb_probe_wdl,
     },
     board::{Board, NullBoardObserver},
     thread::{RootMove, ThreadData},
@@ -25,6 +25,16 @@ pub fn initialize(path: &str) -> Option<usize> {
     unsafe {
         tb_init(cpath.as_ptr());
         SIZE = TB_LARGEST as usize;
+
+        let counters = tb_get_file_counters();
+
+        let num_wdl = *counters.wdl;
+        let num_dtm = *counters.dtm;
+        let num_dtz = *counters.dtz;
+
+        if num_wdl > 0 || num_dtm > 0 || num_dtz > 0 {
+            println!("info string Found {} WDL, {} DTM and {} DTZ tablebase files.", num_wdl, num_dtm, num_dtz);
+        }
     };
 
     match size() {
