@@ -30,6 +30,14 @@ mod uci;
 #[cfg(feature = "syzygy")]
 mod tb;
 
+#[cfg(all(feature = "syzygy", feature = "chesstb"))]
+compile_error!(
+    "features `syzygy` and `chesstb` exclude each other: build with `--no-default-features --features chesstb`"
+);
+
+#[cfg(feature = "chesstb")]
+mod chesstb;
+
 #[cfg(feature = "syzygy")]
 #[allow(warnings)]
 mod bindings;

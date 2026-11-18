@@ -13,11 +13,12 @@ use crate::{
     },
 };
 
+#[cfg(feature = "chesstb")]
+use crate::chesstb;
 #[cfg(feature = "syzygy")]
-use crate::{
-    tb,
-    types::{tb_loss_in, tb_win_in},
-};
+use crate::tb;
+#[cfg(any(feature = "syzygy", feature = "chesstb"))]
+use crate::types::{tb_loss_in, tb_win_in};
 
 #[allow(unused_imports)]
 use crate::misc::{dbg_hit, dbg_stats};
@@ -234,9 +235,20 @@ pub fn start(td: &mut ThreadData, report: Report, thread_count: usize) {
             break;
         }
 
+        // A root table mate is as good a proof as search's.
+        #[cfg(feature = "chesstb")]
+        let mate_score = match &td.root_moves[0] {
+            rm if td.shared.root_in_tb.load(Ordering::Relaxed) && rm.tb_score.abs() >= Score::MATE_IN_MAX => {
+                rm.tb_score
+            }
+            rm => rm.score,
+        };
+        #[cfg(not(feature = "chesstb"))]
+        let mate_score = td.root_moves[0].score;
+
         if td.id == 0
             && let Limits::Mate(moves) = td.time_manager.limits()
-            && Score::MATE - td.root_moves[0].score.abs() <= moves as i32 * 2
+            && Score::MATE - mate_score.abs() <= moves as i32 * 2
         {
             td.shared.status.set(Status::STOPPED);
             break;
@@ -357,7 +369,7 @@ fn search<NODE: NodeType>(
         }
     }
 
-    #[cfg(feature = "syzygy")]
+    #[cfg(any(feature = "syzygy", feature = "chesstb"))]
     let mut max_score = Score::INFINITE;
 
     let mut best_score = -Score::INFINITE;
@@ -424,6 +436,64 @@ fn search<NODE: NodeType>(
             tb::GameOutcome::Loss => (tb_loss_in(ply), Bound::Upper),
             tb::GameOutcome::Draw => (Score::ZERO, Bound::Exact),
         };
+
+        if bound == Bound::Exact
+            || (bound == Bound::Lower && score >= beta)
+            || (bound == Bound::Upper && score <= alpha)
+        {
+            let depth = (depth + 6).min(MAX_PLY as i32 - 1);
+            td.shared.tt.write(hash, depth, Score::NONE, score, bound, Move::NULL, ply, tt_pv, false);
+            return score;
+        }
+
+        if NODE::PV {
+            if bound == Bound::Lower {
+                best_score = score;
+                alpha = alpha.max(best_score);
+            } else {
+                max_score = score;
+            }
+        }
+    }
+
+    // Tablebases Probe, castling positions included
+    #[cfg(feature = "chesstb")]
+    if !NODE::ROOT
+        && !excluded
+        && !td.shared.stop_probing_tb.load(Ordering::Relaxed)
+        && td.board.fiftymove_clock() == 0
+        && chesstb::probes_at(td.board.occupancies().popcount(), depth)
+        && let Some(wdl) = chesstb::probe_wdl(&mut td.board)
+    {
+        td.shared.tb_hits.increment(td.id);
+
+        let config = chesstb::search_config();
+        let draw_score = config.use_rule50 as i32;
+        let (mut score, mut bound) = if wdl < -draw_score {
+            (tb_loss_in(ply), Bound::Upper)
+        } else if wdl > draw_score {
+            (tb_win_in(ply), Bound::Lower)
+        } else {
+            (2 * wdl * draw_score, Bound::Exact)
+        };
+
+        // Where the class can't decide the node (the window wants the mate),
+        // read the distance, from ChessTBMateProbeDepth where the subtree
+        // outweighs a block decode. An exact mate from the TT is reused; the
+        // TT drops a mate longer than the plies the clock leaves, so such a
+        // node reads the distance again.
+        if bound != Bound::Exact && (if bound == Bound::Lower { score < beta } else { score > alpha }) {
+            if tt_bound == Bound::Exact && is_valid(tt_score) && tt_score.abs() >= Score::MATE_IN_MAX {
+                (score, bound) = (tt_score, Bound::Exact);
+            } else if depth >= config.mate_probe_depth {
+                let (dtm, dtm50) = chesstb::probe_dtm(&mut td.board, config.use_rule50);
+                let plies = if config.use_rule50 { dtm50 } else { dtm };
+                if plies != 0 && ply as i32 + plies.abs() < MAX_PLY as i32 {
+                    score = if plies > 0 { mate_in(ply + plies as isize) } else { mated_in(ply - plies as isize) };
+                    bound = Bound::Exact;
+                }
+            }
+        }
 
         if bound == Bound::Exact
             || (bound == Bound::Lower && score >= beta)
@@ -1182,7 +1252,7 @@ fn search<NODE: NodeType>(
 
     tt_pv |= !NODE::ROOT && bound == Bound::Upper && move_count > 2 && td.stack[ply - 1].tt_pv;
 
-    #[cfg(feature = "syzygy")]
+    #[cfg(any(feature = "syzygy", feature = "chesstb"))]
     if NODE::PV {
         best_score = best_score.min(max_score);
     }

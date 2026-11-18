@@ -162,6 +162,9 @@ fn uci() {
     #[cfg(feature = "syzygy")]
     println!("option name SyzygyPath type string default");
 
+    #[cfg(feature = "chesstb")]
+    crate::chesstb::print_options();
+
     #[cfg(feature = "spsa")]
     crate::parameters::print_options();
 
@@ -177,6 +180,10 @@ fn compiler() {
 fn reset(threads: &mut ThreadPool, shared: &Arc<SharedContext>) {
     threads.clear();
     shared.tt.clear(threads.len());
+
+    // Drops the mapped tables.
+    #[cfg(feature = "chesstb")]
+    crate::chesstb::reinitialize();
 
     for corrhist in shared.history.all() {
         corrhist.pawn.clear();
@@ -317,6 +324,8 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
         }
         ["name", "MoveOverhead", "value", v] => {
             settings.move_overhead = v.parse().unwrap();
+            #[cfg(feature = "chesstb")]
+            crate::chesstb::set_move_overhead(settings.move_overhead);
             println!("info string set MoveOverhead to {v} ms");
         }
         #[cfg(feature = "syzygy")]
@@ -324,6 +333,14 @@ fn set_option(threads: &mut ThreadPool, settings: &mut Settings, shared: &Arc<Sh
             Some(size) => println!("info string Loaded Syzygy tablebases with {size} pieces"),
             None => eprintln!("Failed to load Syzygy tablebases"),
         },
+        #[cfg(feature = "chesstb")]
+        ["name", "ChessTBPath", "value"] => crate::chesstb::initialize_and_report(""),
+        #[cfg(feature = "chesstb")]
+        ["name", name, "value", v] if name.starts_with("ChessTB") => {
+            if !crate::chesstb::set_option(name, v) {
+                eprintln!("Invalid value for {name}: '{v}'");
+            }
+        }
         ["name", "UCI_Chess960", "value", v] => {
             settings.frc = v.parse().unwrap_or_default();
             println!("info string set UCI_Chess960 to {v}");

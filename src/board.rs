@@ -553,6 +553,22 @@ impl Board {
         self.state.en_passant = Square::None;
     }
 
+    /// The rook that castling `kind` moves.
+    #[cfg(feature = "chesstb")]
+    pub fn castling_rook(&self, kind: CastlingKind) -> Square {
+        self.castling_rooks[kind]
+    }
+
+    /// An ordered digest of the keys a repetition check can see from here.
+    #[cfg(feature = "chesstb")]
+    pub fn history_digest(&self) -> u64 {
+        let end = self.state.plies_from_null.min(self.fiftymove_clock() as usize);
+        std::iter::once(&self.state)
+            .chain(self.state_stack.iter().rev())
+            .take(end + 1)
+            .fold(0u64, |h, s| h.wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(s.keys.full()))
+    }
+
     pub fn get_castling_rook(&self, king_to: Square) -> (Square, Square) {
         match king_to {
             Square::G1 => (self.castling_rooks[CastlingKind::WhiteKingside], Square::F1),

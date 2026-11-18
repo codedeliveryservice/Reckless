@@ -21,13 +21,16 @@ else
 	PGO_MOVE := move /Y "target\$(TARGET)\release\$(EXE).exe" "$(NAME)"
 endif
 
-.PHONY: all no-syzygy pgo wasm x64-check checkdeps clean help
+.PHONY: all no-syzygy chesstb pgo wasm x64-check checkdeps clean help
 
 all: ## Build the engine
 	cargo rustc --release --bin reckless -- --emit link=$(NAME)
 
 no-syzygy: ## Build without syzygy support
 	cargo rustc --release --bin reckless --no-default-features -- --emit link=$(NAME)
+
+chesstb: ## Build with ChessTB tablebases instead of Syzygy
+	cargo rustc --release --bin reckless --no-default-features --features chesstb -- --emit link=$(NAME)
 
 pgo: ## Build with profile-guided optimization
 	cargo pgo instrument
