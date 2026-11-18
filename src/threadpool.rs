@@ -173,6 +173,10 @@ impl ThreadPool {
                 tb::normalize_draw_ranks(t1);
             }
 
+            // Castling roots included; the ranker sees the clock and repetitions.
+            #[cfg(feature = "chesstb")]
+            crate::chesstb::rank_root_moves(t1);
+
             let tm = time_manager.clone();
             let root_moves = t1.root_moves.clone();
 

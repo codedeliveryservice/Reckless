@@ -31,6 +31,9 @@ use crate::{
     types::{MAX_MOVES, MAX_PLY, Move, Score, normalize_to_cp},
 };
 
+#[cfg(feature = "chesstb")]
+use crate::types::is_decisive;
+
 pub trait UciWriter: Send {
     fn write_line(&mut self, line: &str);
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
@@ -306,7 +309,11 @@ impl ThreadData {
         let ms = elapsed.as_millis();
 
         for pv_index in 0..self.multi_pv {
+            #[cfg(not(feature = "chesstb"))]
             let root_move = &self.root_moves[pv_index];
+            // A copy: extending its PV needs the board.
+            #[cfg(feature = "chesstb")]
+            let root_move = &self.root_moves[pv_index].clone();
 
             let updated = root_move.score != -Score::INFINITE;
 
@@ -320,6 +327,39 @@ impl ThreadData {
             let mut upperbound = root_move.upperbound;
             let mut lowerbound = root_move.lowerbound;
 
+            #[cfg(feature = "chesstb")]
+            let mut pv_line: Vec<Move> =
+                std::iter::once(root_move.mv).chain(root_move.pv.line().iter().copied()).collect();
+
+            // A root table mate stands over search's; below the root,
+            // extend_pv makes a TB score exact and continues search's mates.
+            #[cfg(feature = "chesstb")]
+            {
+                let is_mate = |s: i32| s.abs() >= Score::MATE_IN_MAX;
+                let root_in_tb = self.shared.root_in_tb.load(Ordering::Relaxed);
+                let root_mate = root_in_tb && is_mate(root_move.tb_score);
+                let is_tb_score = root_in_tb && (!is_mate(score) || root_mate);
+                let table_mate = root_mate || (!root_in_tb && is_mate(score));
+                if is_tb_score {
+                    upperbound = false;
+                    lowerbound = false;
+                    score = root_move.tb_score;
+                }
+
+                // Inexact flags indicate an unreliable PV. The extension only
+                // changes what is printed, and one probe can outlast Move
+                // Overhead, so a clock-limited search skips it.
+                if updated
+                    && !self.time_manager.use_time_management()
+                    && is_decisive(score)
+                    && (!is_mate(score) || table_mate)
+                    && (!(root_move.upperbound || root_move.lowerbound) || is_tb_score)
+                {
+                    crate::chesstb::extend_pv(&mut self.board, &mut pv_line, &mut score, self.multi_pv);
+                }
+            }
+
+            #[cfg(not(feature = "chesstb"))]
             if self.shared.root_in_tb.load(Ordering::Relaxed) {
                 // Cursed win/loss due to 50-move rule
                 let is_cursed = root_move.tb_rank > 0 && root_move.tb_rank < 900
@@ -365,8 +405,16 @@ impl ThreadData {
                 self.shared.tb_hits.aggregate(),
             );
 
-            line.push_str(&format!(" {}", root_move.mv.to_uci(&self.board)));
-            for mv in root_move.pv.line() {
+            #[cfg(not(feature = "chesstb"))]
+            {
+                line.push_str(&format!(" {}", root_move.mv.to_uci(&self.board)));
+                for mv in root_move.pv.line() {
+                    line.push_str(&format!(" {}", mv.to_uci(&self.board)));
+                }
+            }
+
+            #[cfg(feature = "chesstb")]
+            for mv in &pv_line {
                 line.push_str(&format!(" {}", mv.to_uci(&self.board)));
             }
 

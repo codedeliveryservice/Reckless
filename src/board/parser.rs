@@ -69,15 +69,15 @@ impl Board {
         for right in rights.chars() {
             let color = if right.is_uppercase() { Color::White } else { Color::Black };
             let king_from = self.king_square(color);
-            let search_step = match right.to_ascii_uppercase() {
-                'K' => Square::RIGHT,
-                'Q' => Square::LEFT,
-                c @ 'A'..='H' => c as i8 - b'A' as i8 - king_from.file() as i8,
+            let rooks = self.colored_pieces(color, PieceType::Rook);
+            let rook_from = match right.to_ascii_uppercase() {
+                // X-FEN: the outermost rook on that side of the king.
+                'K' => (ray_pass(king_from, king_from.shift(Square::RIGHT)) & rooks).msb(),
+                'Q' => (ray_pass(king_from, king_from.shift(Square::LEFT)) & rooks).lsb(),
+                // Shredder-FEN: the rook on the named file.
+                c @ 'A'..='H' => (Square::from_rank_file(king_from.rank() as u8, c as u8 - b'A').to_bb() & rooks).lsb(),
                 _ => continue,
             };
-
-            let rook_from =
-                (ray_pass(king_from, king_from.shift(search_step)) & self.colored_pieces(color, PieceType::Rook)).lsb();
 
             let king_side = (rook_from > king_from) as usize;
 
